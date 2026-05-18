@@ -10,12 +10,10 @@ import type {
 import { applyMove } from "./move";
 import { createRulesConfig } from "./rules";
 
-/** Pomocna funkcija za kreiranje karte u testu. */
 function card(suit: Suit, rank: Rank): Card {
   return { id: `${suit}-${rank}`, suit, rank };
 }
 
-/** Pomocna funkcija za kreiranje igraca. */
 function makePlayers(count: 2 | 3 | 4): Player[] {
   const players: Player[] = [];
   for (let i = 0; i < count; i++) {
@@ -32,7 +30,10 @@ function makePlayers(count: 2 | 3 | 4): Player[] {
   return players;
 }
 
-/** Pravi minimalan GameState sa overrides. */
+/**
+ * Pravi minimalan GameState za testove.
+ * Vazno: dajemo p0 dodatnu kartu da hand-ovi ne budu svi prazni nakon p1-ovog poteza.
+ */
 function makeState(overrides?: Partial<GameState>): GameState {
   const players = makePlayers(2);
   const base: GameState = {
@@ -46,7 +47,7 @@ function makeState(overrides?: Partial<GameState>): GameState {
     currentPlayerId: "p1",
     deck: [],
     table: [],
-    hands: { p0: [], p1: [] },
+    hands: { p0: [card("diamonds", "K")], p1: [] }, // p0 ima 1 kartu po default-u
     captured: { p0: [], p1: [] },
     handNumber: 1,
     handScores: [],
@@ -59,7 +60,6 @@ function makeState(overrides?: Partial<GameState>): GameState {
   return { ...base, ...overrides };
 }
 
-/** Pravi PlayCardRequest sa default vrijednostima. */
 function makeRequest(overrides: Partial<PlayCardRequest>): PlayCardRequest {
   return {
     roomId: "r1",
@@ -78,7 +78,7 @@ describe("applyMove - uspjesni potezi", () => {
     const c9 = card("hearts", "9");
     const state = makeState({
       table: [c9],
-      hands: { p0: [], p1: [c5] },
+      hands: { p0: [card("diamonds", "K")], p1: [c5] },
     });
 
     applyMove(state, makeRequest({ cardId: "clubs-5" }));
@@ -94,7 +94,7 @@ describe("applyMove - uspjesni potezi", () => {
     const c7h = card("hearts", "7");
     const state = makeState({
       table: [c7h],
-      hands: { p0: [], p1: [c7c] },
+      hands: { p0: [card("diamonds", "K")], p1: [c7c] },
     });
 
     applyMove(
@@ -116,7 +116,7 @@ describe("applyMove - uspjesni potezi", () => {
     const cA = card("spades", "A");
     const state = makeState({
       table: [c9, cA],
-      hands: { p0: [], p1: [c10] },
+      hands: { p0: [card("diamonds", "K")], p1: [c10] },
     });
 
     applyMove(
@@ -137,7 +137,7 @@ describe("applyMove - uspjesni potezi", () => {
     const c9 = card("spades", "9");
     const state = makeState({
       table: [c5, c9],
-      hands: { p0: [], p1: [cJ] },
+      hands: { p0: [card("diamonds", "K")], p1: [cJ] },
     });
 
     applyMove(
@@ -158,9 +158,14 @@ describe("applyMove - uspjesni potezi", () => {
     const c7h = card("hearts", "7");
     const state = makeState({
       players,
-      currentPlayerId: "p1", // p1 je tim 1 (seat 1)
+      currentPlayerId: "p1",
       table: [c7h],
-      hands: { p0: [], p1: [c7c], p2: [], p3: [] },
+      hands: {
+        p0: [card("diamonds", "K")], // p0 ima kartu da hand-ovi ne budu svi prazni
+        p1: [c7c],
+        p2: [],
+        p3: [],
+      },
       captured: { "team-0": [], "team-1": [] },
       matchScore: { "team-0": 0, "team-1": 0 },
       rulesConfig: createRulesConfig(4),
@@ -181,7 +186,7 @@ describe("applyMove - uspjesni potezi", () => {
   it("povecava stateVersion za 1", () => {
     const c5 = card("clubs", "5");
     const state = makeState({
-      hands: { p0: [], p1: [c5] },
+      hands: { p0: [card("diamonds", "K")], p1: [c5] },
       stateVersion: 5,
     });
 
@@ -199,7 +204,7 @@ describe("applyMove - uspjesni potezi", () => {
   it("dodaje potez u moveHistory", () => {
     const c5 = card("clubs", "5");
     const state = makeState({
-      hands: { p0: [], p1: [c5] },
+      hands: { p0: [card("diamonds", "K")], p1: [c5] },
     });
 
     applyMove(state, makeRequest({ cardId: "clubs-5" }));
@@ -214,11 +219,11 @@ describe("applyMove - uspjesni potezi", () => {
   it("resetuje consecutiveAutoPlays za igraca koji je odigrao", () => {
     const c5 = card("clubs", "5");
     const players = makePlayers(2);
-    players[1]!.consecutiveAutoPlays = 2; // p1 imao 2 propuštena
+    players[1]!.consecutiveAutoPlays = 2;
 
     const state = makeState({
       players,
-      hands: { p0: [], p1: [c5] },
+      hands: { p0: [card("diamonds", "K")], p1: [c5] },
     });
 
     applyMove(state, makeRequest({ cardId: "clubs-5" }));
@@ -245,9 +250,9 @@ describe("applyMove - validacija greske", () => {
       hands: { p0: [], p1: [card("hearts", "3")] },
     });
 
-    expect(() =>
-      applyMove(state, makeRequest({ cardId: "clubs-5" })),
-    ).toThrow("CARD_NOT_IN_HAND");
+    expect(() => applyMove(state, makeRequest({ cardId: "clubs-5" }))).toThrow(
+      "CARD_NOT_IN_HAND",
+    );
   });
 
   it("baca CAPTURE_REQUIRED kad ima opciju a igrac probava trail", () => {
@@ -263,7 +268,7 @@ describe("applyMove - validacija greske", () => {
         state,
         makeRequest({
           cardId: "clubs-7",
-          selectedCaptureCardIds: [], // trail, ali ima capture opcija
+          selectedCaptureCardIds: [],
         }),
       ),
     ).toThrow("CAPTURE_REQUIRED");
@@ -283,7 +288,7 @@ describe("applyMove - validacija greske", () => {
         state,
         makeRequest({
           cardId: "clubs-10",
-          selectedCaptureCardIds: ["hearts-5", "spades-2"], // 5+2=7, ne 10
+          selectedCaptureCardIds: ["hearts-5", "spades-2"],
         }),
       ),
     ).toThrow("INVALID_CAPTURE_SELECTION");
@@ -301,7 +306,7 @@ describe("applyMove - validacija greske", () => {
         state,
         makeRequest({
           cardId: "clubs-5",
-          clientKnownStateVersion: 5, // ne odgovara
+          clientKnownStateVersion: 5,
         }),
       ),
     ).toThrow("STALE_STATE");
@@ -314,8 +319,8 @@ describe("applyMove - validacija greske", () => {
       hands: { p0: [], p1: [c5] },
     });
 
-    expect(() =>
-      applyMove(state, makeRequest({ cardId: "clubs-5" })),
-    ).toThrow("INVALID_GAME_PHASE");
+    expect(() => applyMove(state, makeRequest({ cardId: "clubs-5" }))).toThrow(
+      "INVALID_GAME_PHASE",
+    );
   });
 });

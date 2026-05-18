@@ -5,7 +5,16 @@ import type {
   PlayCardRequest,
 } from "@zandar/shared-types";
 import { getCaptureOptions } from "./capture";
-import { getCapturePileId, getNextPlayerId, sameSet } from "./helpers";
+import { getCapturePileId, sameSet } from "./helpers";
+import { advanceTurnOrPhase } from "./phase";
+
+/**
+ * Opcioni parametri za applyMove.
+ */
+export type ApplyMoveOptions = {
+  /** Ako je true, potez se logira kao auto-play i ne resetuje counter. */
+  isAutoPlay?: boolean;
+};
 
 /**
  * Glavna funkcija za odigravanje poteza.
@@ -24,6 +33,7 @@ import { getCapturePileId, getNextPlayerId, sameSet } from "./helpers";
 export function applyMove(
   state: GameState,
   request: PlayCardRequest,
+  options?: ApplyMoveOptions,
 ): GameState {
   // 1. Validacija state-a
   if (state.phase !== "playing") {
@@ -88,29 +98,31 @@ export function applyMove(
     state.table.push(playedCard);
   }
 
-  // 8. Belezimo potez u istoriju
+ // 8. Belezimo potez u istoriju
+  const isAutoPlay = options?.isAutoPlay ?? false;
   const historyItem: MoveHistoryItem = {
     moveId: request.clientMoveId,
     handNumber: state.handNumber,
     playerId: request.playerId,
     playedCard,
     capturedCards,
-    isAutoPlay: false,
+    isAutoPlay,
     timestamp: Date.now(),
   };
   state.moveHistory.push(historyItem);
 
-  // 9. Reset consecutiveAutoPlays za igraca (uradio je pravu akciju)
-  const player = state.players.find((p) => p.id === request.playerId);
-  if (player) {
-    player.consecutiveAutoPlays = 0;
+  // 9. Reset consecutiveAutoPlays SAMO ako je pravi potez (ne auto-play)
+  if (!isAutoPlay) {
+    const player = state.players.find((p) => p.id === request.playerId);
+    if (player) {
+      player.consecutiveAutoPlays = 0;
+    }
   }
-
   // 10. Povecaj state version (za concurrency)
   state.stateVersion += 1;
 
-  // 11. Sljedeci igrac (puna phase logika dolazi u 4.15)
-  state.currentPlayerId = getNextPlayerId(state);
+  /// 11. Sljedeci igrac ili nova faza partije
+  advanceTurnOrPhase(state);
 
   return state;
 }
