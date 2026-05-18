@@ -16,6 +16,10 @@ importers:
         version: 5.9.3
 
   packages/game-core:
+    dependencies:
+      '@zandar/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
     devDependencies:
       typescript:
         specifier: ^5.5.0
