@@ -144,3 +144,18 @@ export async function rejectJoinRequest(
     throw new Error(err.error || "Greška pri odbijanju");
   }
 }
+export async function startGame(
+  roomId: string,
+  playerId: string,
+  sessionToken: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerId, sessionToken }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Greška" }));
+    throw new Error(err.error || "Greška pri pokretanju igre");
+  }
+}

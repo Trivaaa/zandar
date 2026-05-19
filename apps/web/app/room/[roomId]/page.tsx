@@ -7,12 +7,15 @@ import {
   getPendingJoinRequests,
   approveJoinRequest,
   rejectJoinRequest,
+  startGame,
   type RoomInfo,
   type PendingJoinRequest,
 } from "@/lib/api";
 import { getSession, type RoomSession } from "@/lib/session";
 import { getSocket } from "@/lib/socket";
 import { JoinFlow } from "@/components/JoinFlow";
+import { GameView } from "@/components/GameView";
+import type { PrivateGameStateView } from "@zandar/shared-types";
 
 export default function RoomPage() {
   const params = useParams<{ roomId: string }>();
@@ -33,15 +36,17 @@ export default function RoomPage() {
   );
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [gameState, setGameState] = useState<PrivateGameStateView | null>(
+    null,
+  );
+  const [starting, setStarting] = useState(false);
 
-  // Load session i invite URL
   useEffect(() => {
     setSession(getSession(roomId));
     setSessionLoaded(true);
     setInviteUrl(`${window.location.origin}/room/${roomId}`);
   }, [roomId]);
 
-  // Load room info
   useEffect(() => {
     let cancelled = false;
     getRoom(roomId)
@@ -56,7 +61,6 @@ export default function RoomPage() {
     };
   }, [roomId, refreshTrigger]);
 
-  // Fetch pending join requests if I am host
   useEffect(() => {
     if (!session || !room) return;
     const me = room.players.find((p) => p.id === session.playerId);
@@ -78,7 +82,6 @@ export default function RoomPage() {
     };
   }, [session, room, roomId, refreshTrigger]);
 
-  // Socket connection — samo za članove
   useEffect(() => {
     if (!session) return;
 
@@ -116,6 +119,9 @@ export default function RoomPage() {
     function handleJoinRequested() {
       setRefreshTrigger((n) => n + 1);
     }
+    function handleGameState(state: PrivateGameStateView) {
+      setGameState(state);
+    }
 
     if (s.connected) {
       handleConnect();
@@ -125,12 +131,14 @@ export default function RoomPage() {
     s.on("disconnect", handleDisconnect);
     s.on("room:update", handleRoomUpdate);
     s.on("room:joinRequested", handleJoinRequested);
+    s.on("game:state", handleGameState);
 
     return () => {
       s.off("connect", handleConnect);
       s.off("disconnect", handleDisconnect);
       s.off("room:update", handleRoomUpdate);
       s.off("room:joinRequested", handleJoinRequested);
+      s.off("game:state", handleGameState);
     };
   }, [roomId, session]);
 
@@ -174,6 +182,47 @@ export default function RoomPage() {
     }
   }
 
+  async function handleStartGame() {
+    if (!session) return;
+    setStarting(true);
+    try {
+      await startGame(roomId, session.playerId, session.sessionToken);
+    } catch (err) {
+      alert(
+        "Greška: " + (err instanceof Error ? err.message : "Nepoznato"),
+      );
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  // Šalje potez serveru preko Socket.IO i čeka ack
+  async function handlePlayCard(
+    cardId: string,
+    selectedCaptureCardIds: string[],
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!gameState) {
+        reject(new Error("Igra nije aktivna"));
+        return;
+      }
+      const s = getSocket();
+      s.emit(
+        "game:playCard",
+        {
+          cardId,
+          selectedCaptureCardIds,
+          clientMoveId: `move-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          clientKnownStateVersion: gameState.stateVersion,
+        },
+        (res: { ok: boolean; error?: string }) => {
+          if (res?.ok) resolve();
+          else reject(new Error(res?.error || "Greška"));
+        },
+      );
+    });
+  }
+
   function copyInviteLink() {
     navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
@@ -206,7 +255,6 @@ export default function RoomPage() {
     );
   }
 
-  // JOINER VIEW
   if (!session) {
     return (
       <main className="min-h-screen bg-green-900 text-white p-8 flex items-center justify-center">
@@ -215,7 +263,10 @@ export default function RoomPage() {
     );
   }
 
-  // MEMBER VIEW
+  if (gameState) {
+    return <GameView state={gameState} onPlayCard={handlePlayCard} />;
+  }
+
   const me = room.players.find((p) => p.id === session.playerId);
   const isHost = me?.isHost ?? false;
   const playersNeeded = room.playerCount - room.players.length;
@@ -246,7 +297,6 @@ export default function RoomPage() {
             </span>
           </div>
 
-          {/* Invite link */}
           <div className="bg-green-800 rounded p-3 mb-4">
             <p className="text-xs text-green-300 mb-2">Pozovi prijatelje:</p>
             <div className="flex gap-2">
@@ -266,7 +316,6 @@ export default function RoomPage() {
             </div>
           </div>
 
-          {/* Pending join requests — samo za hosta */}
           {isHost && pendingRequests.length > 0 && (
             <div className="bg-yellow-900/40 border border-yellow-700 rounded p-3 mb-4">
               <p className="text-sm font-semibold mb-2 text-yellow-200">
@@ -306,7 +355,6 @@ export default function RoomPage() {
             </div>
           )}
 
-          {/* Player list */}
           <div className="space-y-2 mb-4">
             <p className="text-sm font-semibold">Igrači:</p>
             {room.players.map((p) => (
@@ -347,16 +395,18 @@ export default function RoomPage() {
             ))}
           </div>
 
-          {/* Start button */}
           {isHost ? (
             <button
-              disabled={!canStart}
+              disabled={!canStart || starting}
+              onClick={handleStartGame}
               className="w-full px-4 py-3 bg-yellow-500 text-zinc-900 rounded font-bold hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
               type="button"
             >
-              {canStart
-                ? "Pokreni igru"
-                : `Čeka se još ${playersNeeded} igrača`}
+              {starting
+                ? "Pokretanje..."
+                : canStart
+                  ? "Pokreni igru"
+                  : `Čeka se još ${playersNeeded} igrača`}
             </button>
           ) : (
             <p className="text-center text-zinc-400 text-sm">

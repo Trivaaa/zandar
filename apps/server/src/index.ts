@@ -1,7 +1,11 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { Server as SocketIOServer } from "socket.io";
-import { createRulesConfig } from "@zandar/game-core";
+import {
+  applyMove,
+  createInitialGameState,
+  createRulesConfig,
+} from "@zandar/game-core";
 import type { Player } from "@zandar/shared-types";
 import {
   createPlayerId,
@@ -16,6 +20,7 @@ import {
   type JoinRequest,
   type LobbyRoom,
 } from "./rooms";
+import { buildPrivateGameStateView } from "./gameStateView";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 
@@ -351,6 +356,72 @@ fastify.get<{
   return { pending };
 });
 
+// ---- START GAME ----
+
+type StartBody = {
+  playerId: string;
+  sessionToken: string;
+};
+
+fastify.post<{ Params: { roomId: string }; Body: StartBody }>(
+  "/api/rooms/:roomId/start",
+  async (request, reply) => {
+    const { roomId } = request.params;
+    const { playerId, sessionToken } = request.body;
+
+    const room = getRoom(roomId);
+    if (!room) {
+      return reply.code(404).send({ error: "Soba ne postoji" });
+    }
+    if (!verifyToken(room, playerId, sessionToken)) {
+      return reply.code(401).send({ error: "Nevalidan token" });
+    }
+    if (playerId !== room.hostPlayerId) {
+      return reply
+        .code(403)
+        .send({ error: "Samo host može pokrenuti igru" });
+    }
+    if (room.status !== "waiting") {
+      return reply
+        .code(409)
+        .send({ error: "Igra je već pokrenuta ili završena" });
+    }
+    if (room.players.length !== room.rulesConfig.playerCount) {
+      return reply.code(409).send({
+        error: `Treba ${room.rulesConfig.playerCount} igrača (ima ${room.players.length})`,
+      });
+    }
+
+    const gameState = createInitialGameState({
+      roomId,
+      matchId: roomId,
+      players: room.players,
+      dealerPlayerId: room.hostPlayerId,
+      rulesConfig: room.rulesConfig,
+    });
+
+    room.gameState = gameState;
+    room.status = "playing";
+
+    const socketsInRoom = await io.in(roomId).fetchSockets();
+    for (const socket of socketsInRoom) {
+      const viewerPlayerId = socket.data.playerId;
+      if (typeof viewerPlayerId !== "string") continue;
+      const privateState = buildPrivateGameStateView(
+        gameState,
+        viewerPlayerId,
+      );
+      socket.emit("game:state", privateState);
+    }
+
+    fastify.log.info(
+      `→ Game started in room ${roomId}, ${socketsInRoom.length} sockets notified`,
+    );
+
+    return { success: true };
+  },
+);
+
 // ---- SOCKET.IO ----
 
 await fastify.ready();
@@ -364,6 +435,28 @@ type SubscribePayload = {
   playerId: string;
   sessionToken: string;
 };
+
+type PlayCardPayload = {
+  cardId: string;
+  selectedCaptureCardIds: string[];
+  clientMoveId: string;
+  clientKnownStateVersion: number;
+};
+
+async function broadcastGameState(roomId: string): Promise<void> {
+  const room = getRoom(roomId);
+  if (!room || !room.gameState) return;
+  const socketsInRoom = await io.in(roomId).fetchSockets();
+  for (const socket of socketsInRoom) {
+    const viewerPlayerId = socket.data.playerId;
+    if (typeof viewerPlayerId !== "string") continue;
+    const privateState = buildPrivateGameStateView(
+      room.gameState,
+      viewerPlayerId,
+    );
+    socket.emit("game:state", privateState);
+  }
+}
 
 io.on("connection", (socket) => {
   fastify.log.info(`✓ Socket connected: ${socket.id}`);
@@ -394,6 +487,60 @@ io.on("connection", (socket) => {
         `→ Player ${playerId} subscribed to room ${roomId}`,
       );
       ack?.({ ok: true });
+
+      if (room.gameState) {
+        const privateState = buildPrivateGameStateView(
+          room.gameState,
+          playerId,
+        );
+        socket.emit("game:state", privateState);
+      }
+    },
+  );
+
+  socket.on(
+    "game:playCard",
+    async (
+      payload: PlayCardPayload,
+      ack?: (res: { ok: boolean; error?: string }) => void,
+    ) => {
+      const playerId = socket.data.playerId;
+      const roomId = socket.data.roomId;
+      if (typeof playerId !== "string" || typeof roomId !== "string") {
+        ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+
+      const room = getRoom(roomId);
+      if (!room) {
+        ack?.({ ok: false, error: "ROOM_NOT_FOUND" });
+        return;
+      }
+      if (!room.gameState) {
+        ack?.({ ok: false, error: "GAME_NOT_STARTED" });
+        return;
+      }
+
+      try {
+        applyMove(room.gameState, {
+          roomId,
+          playerId,
+          cardId: payload.cardId,
+          selectedCaptureCardIds: payload.selectedCaptureCardIds,
+          clientMoveId: payload.clientMoveId,
+          clientKnownStateVersion: payload.clientKnownStateVersion,
+        });
+
+        await broadcastGameState(roomId);
+        ack?.({ ok: true });
+        fastify.log.info(
+          `→ Move applied: ${playerId} played ${payload.cardId}`,
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        ack?.({ ok: false, error: message });
+        fastify.log.warn(`✗ Move rejected: ${message}`);
+      }
     },
   );
 

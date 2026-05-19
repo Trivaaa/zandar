@@ -305,3 +305,21 @@ export type PlayCardRequest = {
   /** Verzija state-a koju klijent zna. Ako se razlikuje od server-a, potez se odbija. */
   clientKnownStateVersion: number;
 };
+export type PrivateGameStateView = {
+  roomId: string;
+  matchId: string;
+  phase: GamePhase;
+  players: Player[];
+  table: Card[];
+  currentPlayerId: string;
+  dealerPlayerId: string;
+  deckCount: number;
+  handCounts: Record<string, number>;
+  capturedCounts: Record<string, number>;
+  matchScore: Record<string, number>;
+  targetScore: number;
+  stateVersion: number;
+  handNumber: number;
+  myPlayerId: string;
+  myHand: Card[];
+};
