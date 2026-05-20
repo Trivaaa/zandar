@@ -36,6 +36,7 @@ export function buildPrivateGameStateView(
     targetScore: state.targetScore,
     stateVersion: state.stateVersion,
     handNumber: state.handNumber,
+    handScores: state.handScores,
     myPlayerId: viewerPlayerId,
     myHand: state.hands[viewerPlayerId] ?? [],
   };

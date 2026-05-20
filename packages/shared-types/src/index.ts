@@ -320,6 +320,7 @@ export type PrivateGameStateView = {
   targetScore: number;
   stateVersion: number;
   handNumber: number;
+  handScores: HandScore[];
   myPlayerId: string;
   myHand: Card[];
 };

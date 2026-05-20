@@ -544,6 +544,120 @@ io.on("connection", (socket) => {
     },
   );
 
+  socket.on(
+    "game:nextHand",
+    async (
+      _payload: unknown,
+      ack?: (res: { ok: boolean; error?: string }) => void,
+    ) => {
+      const playerId = socket.data.playerId;
+      const roomId = socket.data.roomId;
+      if (typeof playerId !== "string" || typeof roomId !== "string") {
+        ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+
+      const room = getRoom(roomId);
+      if (!room || !room.gameState) {
+        ack?.({ ok: false, error: "GAME_NOT_STARTED" });
+        return;
+      }
+      if (playerId !== room.hostPlayerId) {
+        ack?.({ ok: false, error: "NOT_HOST" });
+        return;
+      }
+      if (room.gameState.phase !== "hand_finished") {
+        ack?.({ ok: false, error: "INVALID_PHASE" });
+        return;
+      }
+
+      // Rotiraj dealer-a clockwise
+      const oldState = room.gameState;
+      const oldDealerIdx = oldState.players.findIndex(
+        (p) => p.id === oldState.dealerPlayerId,
+      );
+      const newDealerIdx =
+        (oldDealerIdx + 1) % oldState.players.length;
+      const newDealerId = oldState.players[newDealerIdx]!.id;
+
+      const newState = createInitialGameState({
+        roomId: oldState.roomId,
+        matchId: oldState.matchId,
+        players: oldState.players,
+        dealerPlayerId: newDealerId,
+        rulesConfig: oldState.rulesConfig,
+      });
+
+      // Sačuvaj progres meča
+      newState.matchScore = { ...oldState.matchScore };
+      newState.handNumber = oldState.handNumber + 1;
+      newState.handScores = [...oldState.handScores];
+
+      room.gameState = newState;
+
+      await broadcastGameState(roomId);
+      ack?.({ ok: true });
+      fastify.log.info(
+        `→ Next hand started in room ${roomId} (hand #${newState.handNumber}, dealer ${newDealerId})`,
+      );
+    },
+  );
+
+  socket.on(
+    "game:rematch",
+    async (
+      _payload: unknown,
+      ack?: (res: { ok: boolean; error?: string }) => void,
+    ) => {
+      const playerId = socket.data.playerId;
+      const roomId = socket.data.roomId;
+      if (typeof playerId !== "string" || typeof roomId !== "string") {
+        ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+
+      const room = getRoom(roomId);
+      if (!room || !room.gameState) {
+        ack?.({ ok: false, error: "GAME_NOT_STARTED" });
+        return;
+      }
+      if (playerId !== room.hostPlayerId) {
+        ack?.({ ok: false, error: "NOT_HOST" });
+        return;
+      }
+      if (room.gameState.phase !== "match_finished") {
+        ack?.({ ok: false, error: "INVALID_PHASE" });
+        return;
+      }
+
+      const oldState = room.gameState;
+      const oldDealerIdx = oldState.players.findIndex(
+        (p) => p.id === oldState.dealerPlayerId,
+      );
+      const newDealerIdx =
+        (oldDealerIdx + 1) % oldState.players.length;
+      const newDealerId = oldState.players[newDealerIdx]!.id;
+
+      const newState = createInitialGameState({
+        roomId: oldState.roomId,
+        matchId: `${oldState.matchId}-rematch-${Date.now()}`,
+        players: oldState.players,
+        dealerPlayerId: newDealerId,
+        rulesConfig: oldState.rulesConfig,
+      });
+
+      // Rematch — sve počinje iz početka (matchScore = 0, handNumber = 1)
+      // createInitialGameState već postavlja te defaulte
+
+      room.gameState = newState;
+      room.status = "playing";
+
+      await broadcastGameState(roomId);
+      ack?.({ ok: true });
+      fastify.log.info(`→ Rematch started in room ${roomId}`);
+    },
+  );
+
   socket.on("disconnect", (reason) => {
     fastify.log.info(
       `✗ Socket disconnected: ${socket.id} (${reason})`,

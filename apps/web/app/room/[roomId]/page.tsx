@@ -196,7 +196,6 @@ export default function RoomPage() {
     }
   }
 
-  // Šalje potez serveru preko Socket.IO i čeka ack
   async function handlePlayCard(
     cardId: string,
     selectedCaptureCardIds: string[],
@@ -215,6 +214,34 @@ export default function RoomPage() {
           clientMoveId: `move-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           clientKnownStateVersion: gameState.stateVersion,
         },
+        (res: { ok: boolean; error?: string }) => {
+          if (res?.ok) resolve();
+          else reject(new Error(res?.error || "Greška"));
+        },
+      );
+    });
+  }
+
+  async function handleNextHand(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const s = getSocket();
+      s.emit(
+        "game:nextHand",
+        {},
+        (res: { ok: boolean; error?: string }) => {
+          if (res?.ok) resolve();
+          else reject(new Error(res?.error || "Greška"));
+        },
+      );
+    });
+  }
+
+  async function handleRematch(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const s = getSocket();
+      s.emit(
+        "game:rematch",
+        {},
         (res: { ok: boolean; error?: string }) => {
           if (res?.ok) resolve();
           else reject(new Error(res?.error || "Greška"));
@@ -264,7 +291,14 @@ export default function RoomPage() {
   }
 
   if (gameState) {
-    return <GameView state={gameState} onPlayCard={handlePlayCard} />;
+    return (
+      <GameView
+        state={gameState}
+        onPlayCard={handlePlayCard}
+        onNextHand={handleNextHand}
+        onRematch={handleRematch}
+      />
+    );
   }
 
   const me = room.players.find((p) => p.id === session.playerId);
