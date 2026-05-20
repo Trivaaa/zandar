@@ -14,8 +14,14 @@ import {
 import { getSession, type RoomSession } from "@/lib/session";
 import { getSocket } from "@/lib/socket";
 import { JoinFlow } from "@/components/JoinFlow";
-import { GameView } from "@/components/GameView";
+import { GameView, type ActiveReaction } from "@/components/GameView";
 import type { PrivateGameStateView } from "@zandar/shared-types";
+
+type ReactionEvent = {
+  playerId: string;
+  type: string;
+  timestamp: number;
+};
 
 export default function RoomPage() {
   const params = useParams<{ roomId: string }>();
@@ -40,6 +46,7 @@ export default function RoomPage() {
     null,
   );
   const [starting, setStarting] = useState(false);
+  const [activeReactions, setActiveReactions] = useState<ActiveReaction[]>([]);
 
   useEffect(() => {
     setSession(getSession(roomId));
@@ -122,6 +129,18 @@ export default function RoomPage() {
     function handleGameState(state: PrivateGameStateView) {
       setGameState(state);
     }
+    function handleReaction(event: ReactionEvent) {
+      const id = `${event.timestamp}-${Math.random().toString(36).slice(2)}`;
+      const reaction: ActiveReaction = {
+        id,
+        playerId: event.playerId,
+        type: event.type,
+      };
+      setActiveReactions((prev) => [...prev, reaction]);
+      setTimeout(() => {
+        setActiveReactions((prev) => prev.filter((r) => r.id !== id));
+      }, 3000);
+    }
 
     if (s.connected) {
       handleConnect();
@@ -132,6 +151,7 @@ export default function RoomPage() {
     s.on("room:update", handleRoomUpdate);
     s.on("room:joinRequested", handleJoinRequested);
     s.on("game:state", handleGameState);
+    s.on("game:reaction", handleReaction);
 
     return () => {
       s.off("connect", handleConnect);
@@ -139,6 +159,7 @@ export default function RoomPage() {
       s.off("room:update", handleRoomUpdate);
       s.off("room:joinRequested", handleJoinRequested);
       s.off("game:state", handleGameState);
+      s.off("game:reaction", handleReaction);
     };
   }, [roomId, session]);
 
@@ -250,6 +271,20 @@ export default function RoomPage() {
     });
   }
 
+  async function handleReact(type: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const s = getSocket();
+      s.emit(
+        "game:react",
+        { type },
+        (res: { ok: boolean; error?: string }) => {
+          if (res?.ok) resolve();
+          else reject(new Error(res?.error || "Greška"));
+        },
+      );
+    });
+  }
+
   function copyInviteLink() {
     navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
@@ -297,6 +332,8 @@ export default function RoomPage() {
         onPlayCard={handlePlayCard}
         onNextHand={handleNextHand}
         onRematch={handleRematch}
+        onReact={handleReact}
+        activeReactions={activeReactions}
       />
     );
   }

@@ -10,6 +10,17 @@ import type {
 import { Card } from "@/components/Card";
 import { CardBack } from "@/components/CardBack";
 
+const REACTIONS = [
+  { type: "laugh", emoji: "😂" },
+  { type: "wow", emoji: "😮" },
+  { type: "fire", emoji: "🔥" },
+  { type: "clap", emoji: "👏" },
+  { type: "cry", emoji: "😭" },
+  { type: "angry", emoji: "😠" },
+  { type: "thinking", emoji: "🤔" },
+  { type: "respect", emoji: "🙌" },
+] as const;
+
 function getPileDisplayName(
   pileId: string,
   players: PrivateGameStateView["players"],
@@ -21,9 +32,19 @@ function getPileDisplayName(
   return pileId;
 }
 
+function getReactionEmoji(type: string): string {
+  return REACTIONS.find((r) => r.type === type)?.emoji ?? "?";
+}
+
 type PendingMove = {
   card: CardType;
   options: CaptureOption[];
+};
+
+export type ActiveReaction = {
+  id: string;
+  playerId: string;
+  type: string;
 };
 
 type GameViewProps = {
@@ -34,6 +55,8 @@ type GameViewProps = {
   ) => Promise<void>;
   onNextHand: () => Promise<void>;
   onRematch: () => Promise<void>;
+  onReact: (type: string) => Promise<void>;
+  activeReactions: ActiveReaction[];
 };
 
 export function GameView({
@@ -41,11 +64,14 @@ export function GameView({
   onPlayCard,
   onNextHand,
   onRematch,
+  onReact,
+  activeReactions,
 }: GameViewProps) {
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [pendingAction, setPendingAction] = useState(false);
+  const [reactionDisabled, setReactionDisabled] = useState(false);
 
   useEffect(() => {
     if (!error) return;
@@ -64,7 +90,6 @@ export function GameView({
       ? state.handScores[state.handScores.length - 1]
       : null;
 
-  // Pobjednik meča (igrač/tim sa najviše poena)
   const matchWinner = isMatchOver
     ? Object.entries(state.matchScore).sort(
         ([, a], [, b]) => b - a,
@@ -122,9 +147,20 @@ export function GameView({
     }
   }
 
+  async function handleReact(type: string) {
+    if (reactionDisabled) return;
+    setReactionDisabled(true);
+    setTimeout(() => setReactionDisabled(false), 2000);
+    try {
+      await onReact(type);
+    } catch {
+      // tihi fail (najčešće cooldown — UI već disable-uje)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-green-900 text-white p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6 pb-24">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold">
             Žandar · Ruka #{state.handNumber}
@@ -248,6 +284,40 @@ export function GameView({
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Reactions panel — fiksiran pri dnu */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-1 bg-zinc-900/95 rounded-full px-3 py-2 shadow-lg z-30">
+        {REACTIONS.map((r) => (
+          <button
+            key={r.type}
+            onClick={() => handleReact(r.type)}
+            disabled={reactionDisabled}
+            className="text-2xl hover:scale-125 active:scale-110 transition-transform p-1 disabled:opacity-40 disabled:cursor-not-allowed"
+            type="button"
+            title={r.type}
+          >
+            {r.emoji}
+          </button>
+        ))}
+      </div>
+
+      {/* Reaction toasts — gornji desni ugao */}
+      <div className="fixed top-20 right-4 space-y-2 z-30 pointer-events-none">
+        {activeReactions.map((r) => {
+          const sender = state.players.find((p) => p.id === r.playerId);
+          return (
+            <div
+              key={r.id}
+              className="bg-zinc-900/95 rounded-lg px-3 py-2 shadow-lg flex items-center gap-2 animate-bounce"
+            >
+              <span className="text-3xl">{getReactionEmoji(r.type)}</span>
+              <span className="text-sm font-semibold">
+                {sender?.displayName ?? "?"}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       {/* Capture selection modal */}
@@ -431,7 +501,7 @@ export function GameView({
 
       {/* Error toast */}
       {error && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-red-700 rounded px-4 py-2 z-50 max-w-md shadow-lg">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-red-700 rounded px-4 py-2 z-50 max-w-md shadow-lg">
           ⚠️ {error}
         </div>
       )}

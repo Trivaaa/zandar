@@ -23,6 +23,17 @@ import {
 import { buildPrivateGameStateView } from "./gameStateView";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
+const REACTION_COOLDOWN_MS = 2000;
+const VALID_REACTIONS = [
+  "laugh",
+  "wow",
+  "fire",
+  "clap",
+  "cry",
+  "angry",
+  "thinking",
+  "respect",
+] as const;
 
 const fastify = Fastify({ logger: true });
 
@@ -443,6 +454,11 @@ type PlayCardPayload = {
   clientKnownStateVersion: number;
 };
 
+type ReactionPayload = { type: string };
+
+// Per-player cooldown za reactions
+const lastReactionAt = new Map<string, number>();
+
 async function broadcastGameState(roomId: string): Promise<void> {
   const room = getRoom(roomId);
   if (!room || !room.gameState) return;
@@ -571,7 +587,6 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // Rotiraj dealer-a clockwise
       const oldState = room.gameState;
       const oldDealerIdx = oldState.players.findIndex(
         (p) => p.id === oldState.dealerPlayerId,
@@ -588,7 +603,6 @@ io.on("connection", (socket) => {
         rulesConfig: oldState.rulesConfig,
       });
 
-      // Sačuvaj progres meča
       newState.matchScore = { ...oldState.matchScore };
       newState.handNumber = oldState.handNumber + 1;
       newState.handScores = [...oldState.handScores];
@@ -646,15 +660,51 @@ io.on("connection", (socket) => {
         rulesConfig: oldState.rulesConfig,
       });
 
-      // Rematch — sve počinje iz početka (matchScore = 0, handNumber = 1)
-      // createInitialGameState već postavlja te defaulte
-
       room.gameState = newState;
       room.status = "playing";
 
       await broadcastGameState(roomId);
       ack?.({ ok: true });
       fastify.log.info(`→ Rematch started in room ${roomId}`);
+    },
+  );
+
+  socket.on(
+    "game:react",
+    (
+      payload: ReactionPayload,
+      ack?: (res: { ok: boolean; error?: string }) => void,
+    ) => {
+      const playerId = socket.data.playerId;
+      const roomId = socket.data.roomId;
+      if (typeof playerId !== "string" || typeof roomId !== "string") {
+        ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+
+      if (
+        !payload.type ||
+        !(VALID_REACTIONS as readonly string[]).includes(payload.type)
+      ) {
+        ack?.({ ok: false, error: "INVALID_REACTION" });
+        return;
+      }
+
+      const now = Date.now();
+      const last = lastReactionAt.get(playerId) ?? 0;
+      if (now - last < REACTION_COOLDOWN_MS) {
+        ack?.({ ok: false, error: "REACTION_COOLDOWN" });
+        return;
+      }
+      lastReactionAt.set(playerId, now);
+
+      io.to(roomId).emit("game:reaction", {
+        playerId,
+        type: payload.type,
+        timestamp: now,
+      });
+
+      ack?.({ ok: true });
     },
   );
 
