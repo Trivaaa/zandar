@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import { Server as SocketIOServer } from "socket.io";
 import {
   applyMove,
+  autoPlay,
   createInitialGameState,
   createRulesConfig,
 } from "@zandar/game-core";
@@ -414,20 +415,8 @@ fastify.post<{ Params: { roomId: string }; Body: StartBody }>(
     room.gameState = gameState;
     room.status = "playing";
 
-    const socketsInRoom = await io.in(roomId).fetchSockets();
-    for (const socket of socketsInRoom) {
-      const viewerPlayerId = socket.data.playerId;
-      if (typeof viewerPlayerId !== "string") continue;
-      const privateState = buildPrivateGameStateView(
-        gameState,
-        viewerPlayerId,
-      );
-      socket.emit("game:state", privateState);
-    }
-
-    fastify.log.info(
-      `→ Game started in room ${roomId}, ${socketsInRoom.length} sockets notified`,
-    );
+    await broadcastGameState(roomId);
+    fastify.log.info(`→ Game started in room ${roomId}`);
 
     return { success: true };
   },
@@ -456,13 +445,75 @@ type PlayCardPayload = {
 
 type ReactionPayload = { type: string };
 
-// Per-player cooldown za reactions
 const lastReactionAt = new Map<string, number>();
+
+// ---- TURN TIMERS ----
+// Mapa roomId → timeout handle. Reset-uje se na svakom broadcast-u stanja.
+const turnTimers = new Map<string, NodeJS.Timeout>();
+// Mapa roomId → timestamp kad ističe turn (za client UI)
+const turnDeadlines = new Map<string, number>();
+
+function clearTurnTimer(roomId: string): void {
+  const timer = turnTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    turnTimers.delete(roomId);
+  }
+  turnDeadlines.delete(roomId);
+}
+
+function startTurnTimer(roomId: string): void {
+  clearTurnTimer(roomId);
+
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+  if (room.gameState.phase !== "playing") return;
+
+  const timeoutMs = room.gameState.rulesConfig.turnTimeoutSeconds * 1000;
+  const deadline = Date.now() + timeoutMs;
+  turnDeadlines.set(roomId, deadline);
+
+  const timer = setTimeout(() => {
+    void handleTurnTimeout(roomId);
+  }, timeoutMs);
+
+  turnTimers.set(roomId, timer);
+}
+
+async function handleTurnTimeout(roomId: string): Promise<void> {
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+  if (room.gameState.phase !== "playing") return;
+
+  const currentPlayerId = room.gameState.currentPlayerId;
+  const player = room.gameState.players.find((p) => p.id === currentPlayerId);
+  if (!player) return;
+
+  try {
+    autoPlay(room.gameState);
+
+    fastify.log.info(
+      `⏱ Auto-play in room ${roomId} for player ${currentPlayerId} (${player.displayName})`,
+    );
+
+    io.to(roomId).emit("game:autoPlay", {
+      playerId: currentPlayerId,
+      displayName: player.displayName,
+    });
+
+    await broadcastGameState(roomId);
+  } catch (err) {
+    fastify.log.error(`Auto-play failed in room ${roomId}: ${err}`);
+  }
+}
 
 async function broadcastGameState(roomId: string): Promise<void> {
   const room = getRoom(roomId);
   if (!room || !room.gameState) return;
   const socketsInRoom = await io.in(roomId).fetchSockets();
+
+  const deadline = turnDeadlines.get(roomId);
+
   for (const socket of socketsInRoom) {
     const viewerPlayerId = socket.data.playerId;
     if (typeof viewerPlayerId !== "string") continue;
@@ -470,7 +521,18 @@ async function broadcastGameState(roomId: string): Promise<void> {
       room.gameState,
       viewerPlayerId,
     );
-    socket.emit("game:state", privateState);
+    // Attach turn deadline (kao server timestamp)
+    socket.emit("game:state", {
+      ...privateState,
+      turnDeadline: deadline,
+    });
+  }
+
+  // Manage timer based on phase
+  if (room.gameState.phase === "playing") {
+    startTurnTimer(roomId);
+  } else {
+    clearTurnTimer(roomId);
   }
 }
 
@@ -505,11 +567,15 @@ io.on("connection", (socket) => {
       ack?.({ ok: true });
 
       if (room.gameState) {
+        const deadline = turnDeadlines.get(roomId);
         const privateState = buildPrivateGameStateView(
           room.gameState,
           playerId,
         );
-        socket.emit("game:state", privateState);
+        socket.emit("game:state", {
+          ...privateState,
+          turnDeadline: deadline,
+        });
       }
     },
   );

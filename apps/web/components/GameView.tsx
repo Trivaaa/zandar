@@ -47,8 +47,13 @@ export type ActiveReaction = {
   type: string;
 };
 
+// State sa server-pruženim turnDeadline poljem
+type GameViewState = PrivateGameStateView & {
+  turnDeadline?: number;
+};
+
 type GameViewProps = {
-  state: PrivateGameStateView;
+  state: GameViewState;
   onPlayCard: (
     cardId: string,
     selectedCaptureCardIds: string[],
@@ -58,6 +63,46 @@ type GameViewProps = {
   onReact: (type: string) => Promise<void>;
   activeReactions: ActiveReaction[];
 };
+
+// Countdown komponenta - prima deadline, sama refresh-uje svake sekunde
+function TurnCountdown({ deadline }: { deadline: number }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(interval);
+  }, []);
+
+  const remainingMs = Math.max(0, deadline - now);
+  const seconds = Math.ceil(remainingMs / 1000);
+  const totalMs = 30000;
+  const ratio = Math.max(0, Math.min(1, remainingMs / totalMs));
+
+  // Boja: zeleno > žuto > crveno
+  let color = "text-green-400";
+  let bgColor = "bg-green-500";
+  if (ratio < 0.33) {
+    color = "text-red-400";
+    bgColor = "bg-red-500";
+  } else if (ratio < 0.66) {
+    color = "text-yellow-400";
+    bgColor = "bg-yellow-500";
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`text-sm font-mono font-bold ${color}`}>
+        ⏱ {seconds}s
+      </span>
+      <div className="w-16 h-1.5 bg-zinc-700 rounded overflow-hidden">
+        <div
+          className={`h-full ${bgColor} transition-all duration-300`}
+          style={{ width: `${ratio * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export function GameView({
   state,
@@ -85,6 +130,7 @@ export function GameView({
   const iAmHost = me?.isHost ?? false;
   const isHandOver = state.phase === "hand_finished";
   const isMatchOver = state.phase === "match_finished";
+  const isPlaying = state.phase === "playing";
   const lastHandScore =
     state.handScores.length > 0
       ? state.handScores[state.handScores.length - 1]
@@ -154,7 +200,7 @@ export function GameView({
     try {
       await onReact(type);
     } catch {
-      // tihi fail (najčešće cooldown — UI već disable-uje)
+      // tihi fail
     }
   }
 
@@ -171,46 +217,50 @@ export function GameView({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {others.map((p) => (
-            <div
-              key={p.id}
-              className={`bg-zinc-900 rounded p-3 ${
-                state.currentPlayerId === p.id && !isHandOver && !isMatchOver
-                  ? "ring-2 ring-yellow-500"
-                  : "opacity-70"
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-zinc-700 rounded-full flex items-center justify-center font-bold text-sm">
-                  {p.displayName.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-sm">
-                    {p.displayName}
-                    {state.currentPlayerId === p.id &&
-                      !isHandOver &&
-                      !isMatchOver && (
+          {others.map((p) => {
+            const opponentTurn = state.currentPlayerId === p.id && isPlaying;
+            return (
+              <div
+                key={p.id}
+                className={`bg-zinc-900 rounded p-3 ${
+                  opponentTurn ? "ring-2 ring-yellow-500" : "opacity-70"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 bg-zinc-700 rounded-full flex items-center justify-center font-bold text-sm">
+                    {p.displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">
+                      {p.displayName}
+                      {opponentTurn && (
                         <span className="ml-2 text-yellow-400 text-xs">
                           NA POTEZU
                         </span>
                       )}
-                  </p>
-                  <p className="text-xs text-zinc-400">
-                    {state.handCounts[p.id] ?? 0} karata u ruci
-                  </p>
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      {state.handCounts[p.id] ?? 0} karata u ruci
+                    </p>
+                  </div>
+                </div>
+                {opponentTurn && state.turnDeadline && (
+                  <div className="mb-2">
+                    <TurnCountdown deadline={state.turnDeadline} />
+                  </div>
+                )}
+                <div className="flex gap-1">
+                  {Array.from({ length: state.handCounts[p.id] ?? 0 }).map(
+                    (_, i) => (
+                      <div key={i} className="scale-50 -mx-3">
+                        <CardBack />
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
-              <div className="flex gap-1">
-                {Array.from({ length: state.handCounts[p.id] ?? 0 }).map(
-                  (_, i) => (
-                    <div key={i} className="scale-50 -mx-3">
-                      <CardBack />
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="bg-green-800 rounded-lg p-6">
@@ -231,20 +281,23 @@ export function GameView({
 
         <div
           className={`bg-zinc-900 rounded-lg p-4 ${
-            myTurn && !isHandOver && !isMatchOver
-              ? "ring-2 ring-yellow-500"
-              : ""
+            myTurn && isPlaying ? "ring-2 ring-yellow-500" : ""
           }`}
         >
           <div className="flex justify-between items-center mb-3">
-            <p className="font-semibold">
-              {me?.displayName} (ti)
-              {myTurn && !isHandOver && !isMatchOver && (
-                <span className="ml-2 px-2 py-0.5 bg-yellow-500 text-zinc-900 text-xs font-bold rounded">
-                  NA POTEZU
-                </span>
+            <div className="flex items-center gap-3">
+              <p className="font-semibold">
+                {me?.displayName} (ti)
+                {myTurn && isPlaying && (
+                  <span className="ml-2 px-2 py-0.5 bg-yellow-500 text-zinc-900 text-xs font-bold rounded">
+                    NA POTEZU
+                  </span>
+                )}
+              </p>
+              {myTurn && isPlaying && state.turnDeadline && (
+                <TurnCountdown deadline={state.turnDeadline} />
               )}
-            </p>
+            </div>
             <p className="text-sm text-zinc-400">
               {state.matchScore[state.myPlayerId] ?? 0} / {state.targetScore}{" "}
               poena
@@ -286,7 +339,7 @@ export function GameView({
         </div>
       </div>
 
-      {/* Reactions panel — fiksiran pri dnu */}
+      {/* Reactions panel */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-1 bg-zinc-900/95 rounded-full px-3 py-2 shadow-lg z-30">
         {REACTIONS.map((r) => (
           <button
@@ -302,7 +355,7 @@ export function GameView({
         ))}
       </div>
 
-      {/* Reaction toasts — gornji desni ugao */}
+      {/* Reaction toasts */}
       <div className="fixed top-20 right-4 space-y-2 z-30 pointer-events-none">
         {activeReactions.map((r) => {
           const sender = state.players.find((p) => p.id === r.playerId);

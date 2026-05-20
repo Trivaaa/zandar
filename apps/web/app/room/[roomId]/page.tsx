@@ -23,6 +23,16 @@ type ReactionEvent = {
   timestamp: number;
 };
 
+type AutoPlayEvent = {
+  playerId: string;
+  displayName: string;
+};
+
+// State sa turnDeadline poljem koje server šalje
+type GameStateWithDeadline = PrivateGameStateView & {
+  turnDeadline?: number;
+};
+
 export default function RoomPage() {
   const params = useParams<{ roomId: string }>();
   const router = useRouter();
@@ -42,11 +52,12 @@ export default function RoomPage() {
   );
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [gameState, setGameState] = useState<PrivateGameStateView | null>(
+  const [gameState, setGameState] = useState<GameStateWithDeadline | null>(
     null,
   );
   const [starting, setStarting] = useState(false);
   const [activeReactions, setActiveReactions] = useState<ActiveReaction[]>([]);
+  const [autoPlayToast, setAutoPlayToast] = useState<string | null>(null);
 
   useEffect(() => {
     setSession(getSession(roomId));
@@ -126,7 +137,7 @@ export default function RoomPage() {
     function handleJoinRequested() {
       setRefreshTrigger((n) => n + 1);
     }
-    function handleGameState(state: PrivateGameStateView) {
+    function handleGameState(state: GameStateWithDeadline) {
       setGameState(state);
     }
     function handleReaction(event: ReactionEvent) {
@@ -141,6 +152,10 @@ export default function RoomPage() {
         setActiveReactions((prev) => prev.filter((r) => r.id !== id));
       }, 3000);
     }
+    function handleAutoPlay(event: AutoPlayEvent) {
+      setAutoPlayToast(`⏱ ${event.displayName} nije odigrao — auto-play`);
+      setTimeout(() => setAutoPlayToast(null), 3500);
+    }
 
     if (s.connected) {
       handleConnect();
@@ -152,6 +167,7 @@ export default function RoomPage() {
     s.on("room:joinRequested", handleJoinRequested);
     s.on("game:state", handleGameState);
     s.on("game:reaction", handleReaction);
+    s.on("game:autoPlay", handleAutoPlay);
 
     return () => {
       s.off("connect", handleConnect);
@@ -160,6 +176,7 @@ export default function RoomPage() {
       s.off("room:joinRequested", handleJoinRequested);
       s.off("game:state", handleGameState);
       s.off("game:reaction", handleReaction);
+      s.off("game:autoPlay", handleAutoPlay);
     };
   }, [roomId, session]);
 
@@ -327,14 +344,21 @@ export default function RoomPage() {
 
   if (gameState) {
     return (
-      <GameView
-        state={gameState}
-        onPlayCard={handlePlayCard}
-        onNextHand={handleNextHand}
-        onRematch={handleRematch}
-        onReact={handleReact}
-        activeReactions={activeReactions}
-      />
+      <>
+        <GameView
+          state={gameState}
+          onPlayCard={handlePlayCard}
+          onNextHand={handleNextHand}
+          onRematch={handleRematch}
+          onReact={handleReact}
+          activeReactions={activeReactions}
+        />
+        {autoPlayToast && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-orange-700 rounded px-4 py-2 z-50 max-w-md shadow-lg">
+            {autoPlayToast}
+          </div>
+        )}
+      </>
     );
   }
 
