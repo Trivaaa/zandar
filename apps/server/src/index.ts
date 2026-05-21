@@ -296,7 +296,73 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
     return { success: true };
   },
 );
+type KickBody = {
+  playerId: string;
+  hostPlayerId: string;
+  hostSessionToken: string;
+};
 
+fastify.post<{ Params: { roomId: string }; Body: KickBody }>(
+  "/api/rooms/:roomId/kick",
+  async (request, reply) => {
+    const { roomId } = request.params;
+    const { playerId, hostPlayerId, hostSessionToken } = request.body;
+
+    const room = getRoom(roomId);
+    if (!room) {
+      return reply.code(404).send({ error: "Soba ne postoji" });
+    }
+    if (!verifyToken(room, hostPlayerId, hostSessionToken)) {
+      return reply.code(401).send({ error: "Nevalidan token" });
+    }
+    if (hostPlayerId !== room.hostPlayerId) {
+      return reply.code(403).send({ error: "Nisi host" });
+    }
+    if (room.status !== "waiting") {
+      return reply
+        .code(409)
+        .send({ error: "Kick je dozvoljen samo prije start-a igre" });
+    }
+    if (playerId === room.hostPlayerId) {
+      return reply.code(400).send({ error: "Ne možeš kick-ovati sebe" });
+    }
+
+    const target = room.players.find((p) => p.id === playerId);
+    if (!target) {
+      return reply.code(404).send({ error: "Igrač ne postoji" });
+    }
+
+    // Notify the kicked player via socket
+    const socketsInRoom = await io.in(roomId).fetchSockets();
+    for (const socket of socketsInRoom) {
+      if (socket.data.playerId === playerId) {
+        socket.emit("room:kicked", {
+          reason: "Host te je izbacio iz sobe.",
+        });
+        socket.leave(roomId);
+        break;
+      }
+    }
+
+    // Remove from room and renumber seats
+    room.players = room.players.filter((p) => p.id !== playerId);
+    room.sessionTokens.delete(playerId);
+    room.players.forEach((p, idx) => {
+      p.seatIndex = idx;
+      if (room.rulesConfig.playerCount === 4) {
+        p.teamId = idx % 2;
+      }
+    });
+
+    io.to(roomId).emit("room:update");
+
+    fastify.log.info(
+      `→ Kicked ${playerId} (${target.displayName}) from room ${roomId}`,
+    );
+
+    return { success: true };
+  },
+);
 type RejectBody = {
   requestId: string;
   hostPlayerId: string;

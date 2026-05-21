@@ -162,3 +162,19 @@ export async function startGame(
     throw new Error(err.error || "Greška");
   }
 }
+export async function kickPlayer(
+  roomId: string,
+  playerId: string,
+  hostPlayerId: string,
+  hostSessionToken: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/kick`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerId, hostPlayerId, hostSessionToken }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
+  }
+}
