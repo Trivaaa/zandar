@@ -47,6 +47,18 @@ export type Card = {
 export type ConnectionStatus = "connected" | "reconnecting" | "abandoned";
 
 /**
+ * Javni prikaz igrača (bez internih polja kao što su consecutiveAutoPlays).
+ */
+export type PublicPlayer = {
+  id: string;
+  displayName: string;
+  seatIndex: number;
+  isHost: boolean;
+  teamId?: number;
+  connectionStatus: "connected" | "reconnecting" | "abandoned";
+};
+
+/**
  * Igrač u partiji.
  * U 4P modu, teamId je 0 ili 1 (sjedista 0+2 su tim A, 1+3 su tim B).
  * U 2P i 3P modu, teamId je undefined.
@@ -309,7 +321,7 @@ export type PrivateGameStateView = {
   roomId: string;
   matchId: string;
   phase: GamePhase;
-  players: Player[];
+  players: PublicPlayer[];
   table: Card[];
   currentPlayerId: string;
   dealerPlayerId: string;

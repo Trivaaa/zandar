@@ -521,6 +521,11 @@ const turnTimers = new Map<string, NodeJS.Timeout>();
 // Mapa roomId → timestamp kad ističe turn (za client UI)
 const turnDeadlines = new Map<string, number>();
 
+// ---- DISCONNECT TIMERS ----
+// playerId → timeout. Posle 2 min disconnect-a partija ide u abandoned.
+const disconnectTimers = new Map<string, NodeJS.Timeout>();
+const ABANDON_TIMEOUT_MS = 2 * 60 * 1000;
+
 function clearTurnTimer(roomId: string): void {
   const timer = turnTimers.get(roomId);
   if (timer) {
@@ -546,6 +551,45 @@ function startTurnTimer(roomId: string): void {
   }, timeoutMs);
 
   turnTimers.set(roomId, timer);
+}
+
+async function handlePlayerDisconnect(
+  roomId: string,
+  playerId: string,
+): Promise<void> {
+  // Provjeri ima li drugih aktivnih socket-a za ovog igrača (multi-tab)
+  const sockets = await io.in(roomId).fetchSockets();
+  const stillConnected = sockets.some((s) => s.data.playerId === playerId);
+  if (stillConnected) return;
+
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+
+  const player = room.gameState.players.find((p) => p.id === playerId);
+  if (!player) return;
+  if (player.connectionStatus === "abandoned") return;
+
+  player.connectionStatus = "reconnecting";
+  await broadcastGameState(roomId);
+  fastify.log.info(`📶 Player ${playerId} reconnecting...`);
+
+  const existing = disconnectTimers.get(playerId);
+  if (existing) clearTimeout(existing);
+
+  const timer = setTimeout(async () => {
+    const room = getRoom(roomId);
+    if (!room?.gameState) return;
+    const p = room.gameState.players.find((p) => p.id === playerId);
+    if (!p || p.connectionStatus !== "reconnecting") return;
+
+    p.connectionStatus = "abandoned";
+    room.gameState.phase = "abandoned";
+    await broadcastGameState(roomId);
+    fastify.log.info(`⚠ Match abandoned: ${playerId} did not return`);
+    disconnectTimers.delete(playerId);
+  }, ABANDON_TIMEOUT_MS);
+
+  disconnectTimers.set(playerId, timer);
 }
 
 async function handleTurnTimeout(roomId: string): Promise<void> {
@@ -633,6 +677,22 @@ io.on("connection", (socket) => {
         `→ Player ${playerId} subscribed to room ${roomId}`,
       );
       ack?.({ ok: true });
+
+      // Clear pending disconnect timer (ako se vraća)
+      const existingTimer = disconnectTimers.get(playerId);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+        disconnectTimers.delete(playerId);
+      }
+      // Ako je bio reconnecting, vrati na connected
+      if (room.gameState) {
+        const player = room.gameState.players.find((p) => p.id === playerId);
+        if (player && player.connectionStatus === "reconnecting") {
+          player.connectionStatus = "connected";
+          fastify.log.info(`✓ Player ${playerId} reconnected`);
+          // broadcast će ići za nekoliko linija dole
+        }
+      }
 
       if (room.gameState) {
         const deadline = turnDeadlines.get(roomId);
@@ -846,6 +906,15 @@ io.on("connection", (socket) => {
     fastify.log.info(
       `✗ Socket disconnected: ${socket.id} (${reason})`,
     );
+    const playerId = socket.data.playerId;
+    const roomId = socket.data.roomId;
+    if (typeof playerId === "string" && typeof roomId === "string") {
+      setTimeout(() => {
+        handlePlayerDisconnect(roomId, playerId).catch((err) =>
+          fastify.log.error(`Disconnect handler error: ${err}`),
+        );
+      }, 100);
+    }
   });
 });
 
