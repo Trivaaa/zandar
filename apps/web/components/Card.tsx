@@ -1,9 +1,6 @@
-import type { Card as CardType } from "@zandar/shared-types";
+"use client";
 
-type CardProps = {
-  card: CardType;
-  onClick?: () => void;
-};
+import type { Card as CardType } from "@zandar/shared-types";
 
 const SUIT_SYMBOLS: Record<string, string> = {
   clubs: "♣",
@@ -12,43 +9,45 @@ const SUIT_SYMBOLS: Record<string, string> = {
   spades: "♠",
 };
 
-export function Card({ card, onClick }: CardProps) {
-  const isRed = card.suit === "hearts" || card.suit === "diamonds";
-  const colorClass = isRed ? "text-red-600" : "text-zinc-900";
-  const interactiveClass = onClick
-    ? "cursor-pointer hover:-translate-y-2 transition-transform"
-    : "cursor-default";
+type Props = {
+  card: CardType;
+  onClick?: () => void;
+};
 
-  const baseClass = `
-    relative
-    w-20 h-28
-    bg-white rounded-lg
-    border-2 border-zinc-300
-    shadow-md
-    flex items-center justify-center
-    p-0
-    ${colorClass}
-    ${interactiveClass}
-  `;
+export function Card({ card, onClick }: Props) {
+  const isRed = card.suit === "hearts" || card.suit === "diamonds";
+  const symbol = SUIT_SYMBOLS[card.suit] ?? "?";
+
+  const baseClasses = [
+    "bg-white rounded shadow flex flex-col justify-between p-1",
+    "w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28",
+    isRed ? "text-red-600" : "text-zinc-900",
+    onClick
+      ? "cursor-pointer hover:-translate-y-2 active:-translate-y-1 transition-transform"
+      : "",
+  ].join(" ");
 
   const content = (
     <>
-      <span className="absolute top-1 left-2 text-sm font-bold leading-none">
+      <div className="text-xs sm:text-sm md:text-base font-bold leading-none">
         {card.rank}
-      </span>
-      <span className="text-5xl leading-none">{SUIT_SYMBOLS[card.suit]}</span>
-      <span className="absolute bottom-1 right-2 text-sm font-bold leading-none rotate-180">
+      </div>
+      <div className="text-center text-xl sm:text-2xl md:text-3xl leading-none">
+        {symbol}
+      </div>
+      <div className="text-xs sm:text-sm md:text-base font-bold leading-none rotate-180 self-end">
         {card.rank}
-      </span>
+      </div>
     </>
   );
 
   if (onClick) {
     return (
-      <button onClick={onClick} className={baseClass} type="button">
+      <button onClick={onClick} className={baseClasses} type="button">
         {content}
       </button>
     );
   }
-  return <div className={baseClass}>{content}</div>;
+
+  return <div className={baseClasses}>{content}</div>;
 }
