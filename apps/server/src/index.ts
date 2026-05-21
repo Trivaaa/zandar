@@ -39,7 +39,7 @@ const VALID_REACTIONS = [
 const fastify = Fastify({ logger: true });
 
 await fastify.register(cors, {
-  origin: "http://localhost:3000",
+  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
 });
 
 // ---- HEALTH ----
@@ -427,7 +427,9 @@ fastify.post<{ Params: { roomId: string }; Body: StartBody }>(
 await fastify.ready();
 
 const io = new SocketIOServer(fastify.server, {
-  cors: { origin: "http://localhost:3000" },
+  cors: {
+    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+  },
 });
 
 type SubscribePayload = {
@@ -782,7 +784,10 @@ io.on("connection", (socket) => {
 });
 
 try {
-  await fastify.listen({ port: 3001, host: "0.0.0.0" });
+  await fastify.listen({
+    port: parseInt(process.env.PORT || "3001", 10),
+    host: "0.0.0.0",
+  });
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);

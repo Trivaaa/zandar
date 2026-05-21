@@ -1,4 +1,22 @@
-const API_BASE = "http://localhost:3001";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+export type RoomPlayer = {
+  id: string;
+  displayName: string;
+  seatIndex: number;
+  isHost: boolean;
+  teamId?: number;
+};
+
+export type RoomInfo = {
+  id: string;
+  status: string;
+  players: RoomPlayer[];
+  playerCount: number;
+  targetScore: number;
+  slotsAvailable: number;
+};
 
 export type CreateRoomResponse = {
   roomId: string;
@@ -7,34 +25,34 @@ export type CreateRoomResponse = {
   inviteUrl: string;
 };
 
-export type RoomInfo = {
-  id: string;
-  status: "waiting" | "playing" | "finished";
-  players: Array<{
-    id: string;
-    displayName: string;
-    seatIndex: number;
-    isHost: boolean;
-    teamId?: number;
-  }>;
-  playerCount: number;
-  targetScore: number;
-  slotsAvailable: number;
+export type JoinRequestResponse = {
+  requestId: string;
+  expiresAt: number;
 };
 
-export async function createRoom(params: {
+export type JoinRequestStatusResponse =
+  | { status: "pending" | "rejected" | "expired" }
+  | { status: "approved"; playerId: string; sessionToken: string };
+
+export type PendingJoinRequest = {
+  id: string;
+  displayName: string;
+  expiresAt: number;
+};
+
+export async function createRoom(input: {
   displayName: string;
   playerCount: 2 | 3 | 4;
-  targetScore?: number;
+  targetScore: number;
 }): Promise<CreateRoomResponse> {
   const res = await fetch(`${API_BASE}/api/rooms`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify(input),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Network error" }));
-    throw new Error(err.error || "Greška pri kreiranju sobe");
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
   }
   return res.json();
 }
@@ -42,37 +60,24 @@ export async function createRoom(params: {
 export async function getRoom(roomId: string): Promise<RoomInfo> {
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}`);
   if (!res.ok) {
-    if (res.status === 404) throw new Error("Soba ne postoji");
-    throw new Error("Greška pri učitavanju sobe");
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
   }
   return res.json();
 }
-export type JoinRequestResponse = {
-  requestId: string;
-  expiresAt: number;
-};
-
-export type JoinRequestStatusResponse =
-  | { status: "pending" }
-  | { status: "approved"; playerId: string; sessionToken: string }
-  | { status: "rejected" }
-  | { status: "expired" };
 
 export async function submitJoinRequest(
   roomId: string,
   displayName: string,
 ): Promise<JoinRequestResponse> {
-  const res = await fetch(
-    `${API_BASE}/api/rooms/${roomId}/join-request`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName }),
-    },
-  );
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/join-request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ displayName }),
+  });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Network error" }));
-    throw new Error(err.error || "Greška pri slanju zahtjeva");
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
   }
   return res.json();
 }
@@ -85,30 +90,10 @@ export async function getJoinRequestStatus(
     `${API_BASE}/api/rooms/${roomId}/join-request/${requestId}`,
   );
   if (!res.ok) {
-    if (res.status === 404) throw new Error("Zahtjev ne postoji");
-    throw new Error("Greška pri provjeri statusa");
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
   }
   return res.json();
-}
-export type PendingJoinRequest = {
-  id: string;
-  displayName: string;
-  expiresAt: number;
-};
-
-export async function getPendingJoinRequests(
-  roomId: string,
-  hostPlayerId: string,
-  hostSessionToken: string,
-): Promise<PendingJoinRequest[]> {
-  const url = `${API_BASE}/api/rooms/${roomId}/join-requests?playerId=${encodeURIComponent(hostPlayerId)}&token=${encodeURIComponent(hostSessionToken)}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Greška" }));
-    throw new Error(err.error || "Greška pri učitavanju zahtjeva");
-  }
-  const data = await res.json();
-  return data.pending;
 }
 
 export async function approveJoinRequest(
@@ -123,8 +108,8 @@ export async function approveJoinRequest(
     body: JSON.stringify({ requestId, hostPlayerId, hostSessionToken }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Greška" }));
-    throw new Error(err.error || "Greška pri odobravanju");
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
   }
 }
 
@@ -140,10 +125,28 @@ export async function rejectJoinRequest(
     body: JSON.stringify({ requestId, hostPlayerId, hostSessionToken }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Greška" }));
-    throw new Error(err.error || "Greška pri odbijanju");
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
   }
 }
+
+export async function getPendingJoinRequests(
+  roomId: string,
+  playerId: string,
+  token: string,
+): Promise<PendingJoinRequest[]> {
+  const url = new URL(`${API_BASE}/api/rooms/${roomId}/join-requests`);
+  url.searchParams.set("playerId", playerId);
+  url.searchParams.set("token", token);
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
+  }
+  const data = await res.json();
+  return data.pending;
+}
+
 export async function startGame(
   roomId: string,
   playerId: string,
@@ -155,7 +158,7 @@ export async function startGame(
     body: JSON.stringify({ playerId, sessionToken }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Greška" }));
-    throw new Error(err.error || "Greška pri pokretanju igre");
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
   }
 }
