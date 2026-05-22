@@ -9,6 +9,7 @@ import type {
 } from "@zandar/shared-types";
 import { Card } from "@/components/Card";
 import { CardBack } from "@/components/CardBack";
+import { RulesModal } from "@/components/RulesModal";
 
 const REACTIONS = [
   { type: "laugh", emoji: "😂" },
@@ -109,6 +110,7 @@ export function GameView({
   onReact,
   activeReactions,
 }: GameViewProps) {
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -205,8 +207,15 @@ export function GameView({
     <main className="min-h-screen bg-green-900 text-white p-3 sm:p-6">
       <div className="max-w-4xl mx-auto space-y-3 sm:space-y-6 pb-24 sm:pb-24">
         <div className="flex justify-between items-center gap-2">
-          <h1 className="text-base sm:text-xl font-bold">
+          <h1 className="text-base sm:text-xl font-bold flex items-center gap-2">
             Žandar · Ruka #{state.handNumber}
+            <button
+              onClick={() => setRulesOpen(true)}
+              className="text-xs bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded font-normal"
+              type="button"
+            >
+              ? Pravila
+            </button>
           </h1>
           <div className="text-xs sm:text-sm text-green-300 whitespace-nowrap">
             Špil: {state.deckCount} · Cilj: {state.targetScore}
@@ -560,6 +569,7 @@ export function GameView({
           ⚠️ {error}
         </div>
       )}
+      <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
     </main>
   );
 }
