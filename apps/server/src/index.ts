@@ -38,8 +38,12 @@ const VALID_REACTIONS = [
 
 const fastify = Fastify({ logger: true });
 
+const allowedOrigins = (
+  process.env.CORS_ORIGIN || "http://localhost:3000"
+).split(",").map((o) => o.trim());
+
 await fastify.register(cors, {
-  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+  origin: allowedOrigins,
 });
 
 // ---- HEALTH ----
@@ -494,7 +498,7 @@ await fastify.ready();
 
 const io = new SocketIOServer(fastify.server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: allowedOrigins,
   },
 });
 
