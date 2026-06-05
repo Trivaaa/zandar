@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.56.0",
     "@zandar/game-core": "workspace:*",
     "@zandar/shared-types": "workspace:*",
     "next": "16.2.6",
