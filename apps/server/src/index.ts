@@ -22,6 +22,7 @@ import {
   type LobbyRoom,
 } from "./rooms";
 import { buildPrivateGameStateView } from "./gameStateView";
+import { posthog } from "./lib/posthog";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 const REACTION_COOLDOWN_MS = 2000;
@@ -486,6 +487,22 @@ fastify.post<{ Params: { roomId: string }; Body: StartBody }>(
     room.status = "playing";
 
     await broadcastGameState(roomId);
+    const sockets = await io.in(roomId).fetchSockets();
+    const hostSocket = sockets.find((s) => s.data.playerId === room.hostPlayerId);
+    const guestId = hostSocket?.data.guestId ?? null;
+    if (guestId) {
+      posthog.capture({
+        distinctId: guestId,
+        event: "game_started",
+        properties: {
+          gameType: "zandar",
+          roomId,
+          matchId: room.gameState.matchId,
+          playerCount: room.gameState.players.length,
+          targetScore: room.gameState.targetScore,
+        },
+      });
+    }
     fastify.log.info(`→ Game started in room ${roomId}`);
 
     return { success: true };
@@ -676,6 +693,7 @@ io.on("connection", (socket) => {
       socket.join(roomId);
       socket.data.roomId = roomId;
       socket.data.playerId = playerId;
+      socket.data.guestId = socket.handshake.auth.guestId ?? null;
 
       fastify.log.info(
         `→ Player ${playerId} subscribed to room ${roomId}`,
@@ -746,6 +764,32 @@ io.on("connection", (socket) => {
         });
 
         await broadcastGameState(roomId);
+        if (socket.data.guestId && room.gameState.phase === "hand_finished") {
+          posthog.capture({
+            distinctId: socket.data.guestId,
+            event: "hand_finished",
+            properties: {
+              gameType: "zandar",
+              roomId,
+              matchId: room.gameState.matchId,
+              handNumber: room.gameState.handNumber,
+              playerCount: room.gameState.players.length,
+            },
+          });
+        }
+        if (socket.data.guestId && room.gameState.phase === "match_finished") {
+          posthog.capture({
+            distinctId: socket.data.guestId,
+            event: "match_finished",
+            properties: {
+              gameType: "zandar",
+              roomId,
+              matchId: room.gameState.matchId,
+              handNumber: room.gameState.handNumber,
+              playerCount: room.gameState.players.length,
+            },
+          });
+        }
         ack?.({ ok: true });
         fastify.log.info(
           `→ Move applied: ${playerId} played ${payload.cardId}`,
@@ -930,4 +974,11 @@ try {
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);
+}
+
+for (const sig of ["SIGTERM", "SIGINT"] as const) {
+  process.on(sig, async () => {
+    await posthog.shutdown();
+    process.exit(0);
+  });
 }

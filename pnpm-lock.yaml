@@ -29,6 +29,9 @@ importers:
       fastify:
         specifier: ^5.3.2
         version: 5.8.5
+      posthog-node:
+        specifier: ^5.36.2
+        version: 5.36.2
       socket.io:
         specifier: ^4.8.1
         version: 4.8.3
@@ -863,8 +866,14 @@ packages:
   '@posthog/core@1.30.6':
     resolution: {integrity: sha512-9X9IUm4Iw9M+nxWOou8LdsvUCyAhDNwzYchMZOcOUVu+CY2oq19GJHC7fZ7UERoUppKVbgWQD51NlfFMHkjGKg==}
 
+  '@posthog/core@1.30.8':
+    resolution: {integrity: sha512-rRJxn7UjPR5LWgRwicJgHWD7tu3P2IebdWjGJ1xpXkbNqpFyW+SbSDGjhunmmXXl2c59ejOICtnbrwN6njS1lw==}
+
   '@posthog/types@1.379.3':
     resolution: {integrity: sha512-xx5GLkb/S/eSSQ0H0hnkn1BT7ZG1ZVetQ8/G/h8B5XyOM5prR96a/bgkcIbnK25GFSYyIMNx0X3syvBCYorkUA==}
+
+  '@posthog/types@1.380.1':
+    resolution: {integrity: sha512-GaeyU1vPxwZvYlSWdpxbLCRPqY2WKUZYUNjBlJHAlaAXbMmCfLgB2cvkwjidr8lhX8nyxINjjvQMiOSSfSSxcg==}
 
   '@rollup/plugin-commonjs@28.0.1':
     resolution: {integrity: sha512-+tNWdlWKbpB3WgBN7ijjYkq9X5uhjmcvyjEght4NmH5fAU++zfQzAJ6wumLS+dNcvwEZhKx2Z+skY8m7v0wGSA==}
@@ -2807,6 +2816,15 @@ packages:
   posthog-js@1.379.3:
     resolution: {integrity: sha512-Ej0Z6ZdaG8c0NoHtY0k1xiV/ws2WooX44Yr1GcuPU82uee+r6EuWf6fBsp9EDc5F/6MHe0RRpZG0YbLqM3TLTg==}
 
+  posthog-node@5.36.2:
+    resolution: {integrity: sha512-k+URjhZyxR0PJ92JZkYcgyk7+2U+T8r0fnfsQFNkW4GeKcuYH6t13VLzjI+bH4YLSknUuLmDDg4CczGO9nad2Q==}
+    engines: {node: ^20.20.0 || >=22.22.0}
+    peerDependencies:
+      rxjs: ^7.0.0
+    peerDependenciesMeta:
+      rxjs:
+        optional: true
+
   preact@10.29.2:
     resolution: {integrity: sha512-7tNmwg/7mzzAoB/8kSg6Hl37JraAZw3Z3A0JSY7VXlZwo82Xn0G7wKbNNs2qoF4ZEEsQGTwDAroNdqKs1ofJxQ==}
 
@@ -3988,7 +4006,13 @@ snapshots:
     dependencies:
       '@posthog/types': 1.379.3
 
+  '@posthog/core@1.30.8':
+    dependencies:
+      '@posthog/types': 1.380.1
+
   '@posthog/types@1.379.3': {}
+
+  '@posthog/types@1.380.1': {}
 
   '@rollup/plugin-commonjs@28.0.1(rollup@4.60.4)':
     dependencies:
@@ -6109,6 +6133,10 @@ snapshots:
       preact: 10.29.2
       query-selector-shadow-dom: 1.0.1
       web-vitals: 5.3.0
+
+  posthog-node@5.36.2:
+    dependencies:
+      '@posthog/core': 1.30.8
 
   preact@10.29.2: {}
 

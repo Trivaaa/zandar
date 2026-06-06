@@ -4,6 +4,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
+import { getGuestId } from "@/lib/guestId";
 
 Sentry.init({
   dsn: "https://7d96f7464b04a409c8e48593145bbbe3@o4511503641739264.ingest.de.sentry.io/4511503655239760",
@@ -21,6 +22,11 @@ Sentry.init({
 posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
   api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
   defaults: '2026-01-30',
+  bootstrap: {
+    distinctID: getGuestId(),
+    isIdentifiedID: false,
+  },
 });
+posthog.register({ gameType: 'zandar' });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

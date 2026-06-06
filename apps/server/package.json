@@ -13,9 +13,9 @@
     "@zandar/game-core": "workspace:*",
     "@zandar/shared-types": "workspace:*",
     "fastify": "^5.3.2",
+    "posthog-node": "^5.36.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1"
-
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
