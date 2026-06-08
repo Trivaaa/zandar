@@ -162,6 +162,47 @@ export async function startGame(
     throw new Error(err.error || "Greška");
   }
 }
+export type QuickPlayResponse = {
+  roomId: string;
+  playerId: string;
+  playerSessionToken: string;
+};
+
+export async function quickPlay(input: {
+  displayName: string;
+  playerCount: 2 | 3 | 4;
+  targetScore?: number;
+}): Promise<QuickPlayResponse> {
+  const res = await fetch(`${API_BASE}/api/quickplay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
+  }
+  return res.json();
+}
+
+export async function singlePlayer(input: {
+  displayName: string;
+  playerCount: 2 | 3 | 4;
+  targetScore?: number;
+  tier?: 1 | 2 | 3;
+}): Promise<QuickPlayResponse> {
+  const res = await fetch(`${API_BASE}/api/singleplayer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
+  }
+  return res.json();
+}
+
 export async function kickPlayer(
   roomId: string,
   playerId: string,

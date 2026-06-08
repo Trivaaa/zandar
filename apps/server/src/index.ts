@@ -6,6 +6,9 @@ import {
   autoPlay,
   createInitialGameState,
   createRulesConfig,
+  DEFAULT_BOT_CONFIGS,
+  generateTableIdentities,
+  selectBotMove,
 } from "@zandar/game-core";
 import type { Player } from "@zandar/shared-types";
 import {
@@ -439,6 +442,125 @@ fastify.get<{
   return { pending };
 });
 
+// ---- QUICK PLAY ----
+
+type QuickPlayBody = {
+  displayName: string;
+  playerCount: 2 | 3 | 4;
+  targetScore?: number;
+};
+
+fastify.post<{ Body: QuickPlayBody }>(
+  "/api/quickplay",
+  async (request, reply) => {
+    const { displayName, playerCount, targetScore = 21 } = request.body;
+
+    if (!displayName || displayName.trim().length === 0) {
+      return reply.code(400).send({ error: "displayName je obavezan" });
+    }
+    if (![2, 3, 4].includes(playerCount)) {
+      return reply.code(400).send({ error: "playerCount mora biti 2, 3 ili 4" });
+    }
+
+    const roomId = createRoomId();
+    const playerId = createPlayerId();
+    const sessionToken = createSessionToken();
+    const rulesConfig = createRulesConfig(playerCount);
+    rulesConfig.targetScore = targetScore;
+
+    const humanPlayer: Player = {
+      id: playerId,
+      displayName: displayName.trim(),
+      seatIndex: 0,
+      teamId: playerCount === 4 ? 0 : undefined,
+      connectionStatus: "connected",
+      isHost: true,
+      consecutiveAutoPlays: 0,
+    };
+
+    const room: LobbyRoom = {
+      id: roomId,
+      status: "waiting",
+      hostPlayerId: playerId,
+      players: [humanPlayer],
+      rulesConfig,
+      gameState: null,
+      sessionTokens: new Map([[playerId, hashToken(sessionToken)]]),
+      joinRequests: new Map(),
+      createdAt: Date.now(),
+      isPublic: true,
+    };
+
+    fillSeatsWithBots(room, 2);
+    startBotGame(room);
+    storeRoom(room);
+
+    fastify.log.info(`🎲 Quick Play room ${roomId} created (${playerCount}P)`);
+    return { roomId, playerId, playerSessionToken: sessionToken };
+  },
+);
+
+// ---- SINGLE PLAYER ----
+
+type SinglePlayerBody = {
+  displayName: string;
+  playerCount: 2 | 3 | 4;
+  targetScore?: number;
+  tier?: 1 | 2 | 3;
+};
+
+fastify.post<{ Body: SinglePlayerBody }>(
+  "/api/singleplayer",
+  async (request, reply) => {
+    const { displayName, playerCount, targetScore = 21, tier = 2 } = request.body;
+
+    if (!displayName || displayName.trim().length === 0) {
+      return reply.code(400).send({ error: "displayName je obavezan" });
+    }
+    if (![2, 3, 4].includes(playerCount)) {
+      return reply.code(400).send({ error: "playerCount mora biti 2, 3 ili 4" });
+    }
+    if (![1, 2, 3].includes(tier)) {
+      return reply.code(400).send({ error: "tier mora biti 1, 2 ili 3" });
+    }
+
+    const roomId = createRoomId();
+    const playerId = createPlayerId();
+    const sessionToken = createSessionToken();
+    const rulesConfig = createRulesConfig(playerCount);
+    rulesConfig.targetScore = targetScore;
+
+    const humanPlayer: Player = {
+      id: playerId,
+      displayName: displayName.trim(),
+      seatIndex: 0,
+      teamId: playerCount === 4 ? 0 : undefined,
+      connectionStatus: "connected",
+      isHost: true,
+      consecutiveAutoPlays: 0,
+    };
+
+    const room: LobbyRoom = {
+      id: roomId,
+      status: "waiting",
+      hostPlayerId: playerId,
+      players: [humanPlayer],
+      rulesConfig,
+      gameState: null,
+      sessionTokens: new Map([[playerId, hashToken(sessionToken)]]),
+      joinRequests: new Map(),
+      createdAt: Date.now(),
+    };
+
+    fillSeatsWithBots(room, tier);
+    startBotGame(room);
+    storeRoom(room);
+
+    fastify.log.info(`🎮 Single-player room ${roomId} created (${playerCount}P, tier ${tier})`);
+    return { roomId, playerId, playerSessionToken: sessionToken };
+  },
+);
+
 // ---- START GAME ----
 
 type StartBody = {
@@ -546,6 +668,111 @@ const turnDeadlines = new Map<string, number>();
 // playerId → timeout. Posle 2 min disconnect-a partija ide u abandoned.
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
 const ABANDON_TIMEOUT_MS = 2 * 60 * 1000;
+
+// ---- BOT MOVE TIMERS ----
+// roomId → timeout. Kad je bot na potezu, server interno odigra potez.
+const botMoveTimers = new Map<string, NodeJS.Timeout>();
+
+function clearBotTimer(roomId: string): void {
+  const t = botMoveTimers.get(roomId);
+  if (t) { clearTimeout(t); botMoveTimers.delete(roomId); }
+}
+
+function scheduleBotMove(roomId: string): void {
+  if (botMoveTimers.has(roomId)) return; // već zakazan
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+  const pid = room.gameState.currentPlayerId;
+  const player = room.gameState.players.find((p) => p.id === pid);
+  if (!player?.isBot || !player.botProfile) return;
+
+  const { minMs, maxMs } = player.botProfile.timing;
+  const delay = minMs + Math.random() * (maxMs - minMs);
+  const timer = setTimeout(() => void driveBotTurn(roomId), delay);
+  botMoveTimers.set(roomId, timer);
+}
+
+async function driveBotTurn(roomId: string): Promise<void> {
+  botMoveTimers.delete(roomId);
+  const room = getRoom(roomId);
+  if (!room?.gameState || room.gameState.phase !== "playing") return;
+
+  const pid = room.gameState.currentPlayerId;
+  const player = room.gameState.players.find((p) => p.id === pid);
+  if (!player?.isBot || !player.botProfile) return;
+
+  try {
+    const config = DEFAULT_BOT_CONFIGS[player.botProfile.tier]!;
+    const { cardId, selectedCaptureCardIds } = selectBotMove(
+      room.gameState,
+      pid,
+      config,
+    );
+    applyMove(room.gameState, {
+      roomId,
+      playerId: pid,
+      cardId,
+      selectedCaptureCardIds,
+      clientMoveId: `bot-${room.gameState.stateVersion}`,
+      clientKnownStateVersion: room.gameState.stateVersion,
+    });
+    fastify.log.info(`🤖 Bot ${pid} (${player.displayName}) played ${cardId}`);
+    await broadcastGameState(roomId);
+  } catch (err) {
+    fastify.log.error(`Bot move failed in room ${roomId}: ${err}`);
+  }
+}
+
+// ---- BOT HELPERS ----
+
+function fillSeatsWithBots(
+  room: LobbyRoom,
+  tier: 1 | 2 | 3 = 2,
+): void {
+  const slots = room.rulesConfig.playerCount - room.players.length;
+  if (slots <= 0) return;
+
+  const atTable = new Set(room.players.map((p) => p.displayName));
+  const identities = generateTableIdentities(slots, new Set(), () => Math.random());
+
+  for (let i = 0; i < slots; i++) {
+    const seatIndex = room.players.length;
+    const identity = identities[i]!;
+    const botPlayer: Player = {
+      id: createPlayerId(),
+      displayName: identity.displayName,
+      seatIndex,
+      teamId: room.rulesConfig.playerCount === 4 ? seatIndex % 2 : undefined,
+      connectionStatus: "connected",
+      isHost: false,
+      consecutiveAutoPlays: 0,
+      isBot: true,
+      botProfile: {
+        identity,
+        tier,
+        timing: { minMs: 1200, maxMs: 4000 },
+        reactionProbability: 0.1,
+      },
+    };
+    // Bots don't have session tokens — they are server-driven
+    room.players.push(botPlayer);
+  }
+  void atTable; // suppress lint
+}
+
+function startBotGame(room: LobbyRoom): void {
+  // allow_on_table ensures deck size stays divisible by (playerCount × 4)
+  const rulesConfig = { ...room.rulesConfig, jackOnInitialTableBehavior: "allow_on_table" as const };
+  const gameState = createInitialGameState({
+    roomId: room.id,
+    matchId: room.id,
+    players: room.players,
+    dealerPlayerId: room.hostPlayerId,
+    rulesConfig,
+  });
+  room.gameState = gameState;
+  room.status = "playing";
+}
 
 function clearTurnTimer(roomId: string): void {
   const timer = turnTimers.get(roomId);
@@ -661,12 +888,58 @@ async function broadcastGameState(roomId: string): Promise<void> {
     });
   }
 
-  // Manage timer based on phase
+  // Route timer: bots get their own move timer; humans get the AFK turn timer.
   if (room.gameState.phase === "playing") {
-    startTurnTimer(roomId);
+    const currentPlayer = room.gameState.players.find(
+      (p) => p.id === room.gameState!.currentPlayerId,
+    );
+    if (currentPlayer?.isBot) {
+      clearTurnTimer(roomId);
+      scheduleBotMove(roomId);
+    } else {
+      clearBotTimer(roomId);
+      startTurnTimer(roomId);
+    }
   } else {
     clearTurnTimer(roomId);
+    clearBotTimer(roomId);
+    // Auto-advance hand_finished in bot games after 4 s
+    if (room.gameState.phase === "hand_finished") {
+      const hasBots = room.gameState.players.some((p) => p.isBot);
+      if (hasBots) {
+        setTimeout(() => void autoNextHand(roomId), 4000);
+      }
+    }
   }
+}
+
+async function autoNextHand(roomId: string): Promise<void> {
+  const room = getRoom(roomId);
+  if (!room?.gameState || room.gameState.phase !== "hand_finished") return;
+
+  const oldState = room.gameState;
+  const oldDealerIdx = oldState.players.findIndex(
+    (p) => p.id === oldState.dealerPlayerId,
+  );
+  const newDealerIdx = (oldDealerIdx + 1) % oldState.players.length;
+  const newDealerId = oldState.players[newDealerIdx]!.id;
+
+  const rulesConfig = { ...oldState.rulesConfig, jackOnInitialTableBehavior: "allow_on_table" as const };
+  const newState = createInitialGameState({
+    roomId: oldState.roomId,
+    matchId: oldState.matchId,
+    players: oldState.players,
+    dealerPlayerId: newDealerId,
+    rulesConfig,
+  });
+
+  newState.matchScore = { ...oldState.matchScore };
+  newState.handNumber = oldState.handNumber + 1;
+  newState.handScores = [...oldState.handScores];
+  room.gameState = newState;
+
+  await broadcastGameState(roomId);
+  fastify.log.info(`🤖 Auto next hand in room ${roomId} (hand #${newState.handNumber})`);
 }
 
 io.on("connection", (socket) => {
@@ -726,6 +999,16 @@ io.on("connection", (socket) => {
           ...privateState,
           turnDeadline: deadline,
         });
+
+        // Kick off bot chain if it's a bot's turn and no timer is running yet
+        if (room.gameState.phase === "playing") {
+          const cp = room.gameState.players.find(
+            (p) => p.id === room.gameState!.currentPlayerId,
+          );
+          if (cp?.isBot && !botMoveTimers.has(roomId)) {
+            scheduleBotMove(roomId);
+          }
+        }
       }
     },
   );

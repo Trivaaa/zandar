@@ -31,6 +31,8 @@ export type LobbyRoom = {
   sessionTokens: Map<string, string>;
   joinRequests: Map<string, JoinRequest>;
   createdAt: number;
+  /** Javni stolovi (Quick Play) — vidljivi matchmakeru. */
+  isPublic?: boolean;
 };
 
 const rooms = new Map<string, LobbyRoom>();

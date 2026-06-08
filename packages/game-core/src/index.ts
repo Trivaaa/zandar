@@ -11,5 +11,9 @@ export type { ApplyMoveOptions } from "./move";
 export { advanceTurnOrPhase, finishHand, getMatchWinner } from "./phase";
 export { calculateHandScore } from "./scoring";
 export { autoPlay, findAutoPlayMove } from "./autoplay";
+export { selectBotMove, DEFAULT_BOT_CONFIGS } from "./bot";
+export type { BotConfig, BotWeights } from "./bot";
+export { generateBotIdentity, generateTableIdentities, normalizeName } from "./identity";
+export type { GeneratedWithMeta } from "./identity";
 
 export const VERSION = "0.0.1";
