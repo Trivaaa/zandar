@@ -15,16 +15,27 @@ export default function Home() {
           <p className="text-lg sm:text-2xl text-green-200 max-w-xl mx-auto leading-relaxed">
             Klasična kartaška sa rajom — sad i online.
           </p>
-          <div className="pt-4">
+          <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/create"
-              className="inline-block px-8 sm:px-12 py-4 sm:py-5 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-zinc-900 rounded-lg font-bold text-lg sm:text-xl shadow-2xl shadow-yellow-500/20 transition-all hover:scale-105"
+              href="/quickplay"
+              className="inline-block px-8 sm:px-10 py-4 sm:py-5 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-zinc-900 rounded-lg font-bold text-lg sm:text-xl shadow-2xl shadow-yellow-500/20 transition-all hover:scale-105"
             >
-              🎴 Kreiraj sobu
+              ⚡ Brza igra
+            </Link>
+            <Link
+              href="/practice"
+              className="inline-block px-8 sm:px-10 py-4 sm:py-5 bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-800 text-white rounded-lg font-bold text-lg sm:text-xl transition-all hover:scale-105"
+            >
+              🤖 Vježbaj
             </Link>
           </div>
           <p className="text-sm text-green-400 pt-2">
             Besplatno · Bez registracije · 2–4 igrača
+          </p>
+          <p className="text-xs text-zinc-500">
+            <Link href="/create" className="underline hover:text-zinc-400">
+              Privatna soba s prijateljima →
+            </Link>
           </p>
         </div>
       </section>
