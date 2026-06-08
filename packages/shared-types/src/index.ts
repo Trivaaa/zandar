@@ -62,6 +62,8 @@ export type PublicPlayer = {
  * Igrač u partiji.
  * U 4P modu, teamId je 0 ili 1 (sjedista 0+2 su tim A, 1+3 su tim B).
  * U 2P i 3P modu, teamId je undefined.
+ *
+ * isBot i botProfile su SAMO server-side — nikad se ne šalju klijentu (vidi PublicPlayer).
  */
 export type Player = {
   id: string;
@@ -71,6 +73,32 @@ export type Player = {
   connectionStatus: ConnectionStatus;
   isHost: boolean;
   consecutiveAutoPlays: number;
+  isBot?: boolean;
+  botProfile?: BotProfile;
+};
+
+// ====================================================
+// BOT TYPES (PRD §42.2)
+// ====================================================
+
+export type BotSkillTier = 1 | 2 | 3;
+
+export type BotIdentity = {
+  displayName: string;
+  avatar: string;
+  gender: "m" | "f" | "neutral";
+};
+
+/**
+ * Profil bota: identitet, tier vještine i ponašanje tokom partije.
+ * SAMO server-side — nikad se ne šalje klijentu.
+ */
+export type BotProfile = {
+  identity: BotIdentity;
+  tier: BotSkillTier;
+  timing: { minMs: number; maxMs: number };
+  reactionProbability: number;
+  personaId?: string;
 };
 
 // ====================================================
