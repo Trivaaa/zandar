@@ -17,6 +17,7 @@ import {
   createRoomId,
   createSessionToken,
   expireOldRequests,
+  getAllRooms,
   getRoom,
   hashToken,
   storeRoom,
@@ -28,6 +29,7 @@ import { buildPrivateGameStateView } from "./gameStateView";
 import { posthog } from "./lib/posthog";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
+const MATCHMAKING_WINDOW_MS = 20_000; // čekaj 20s na pravog igrača, pa popuni botovima
 const REACTION_COOLDOWN_MS = 2000;
 const VALID_REACTIONS = [
   "laugh",
@@ -129,6 +131,8 @@ fastify.get<{ Params: { roomId: string } }>(
     return {
       id: room.id,
       status: room.status,
+      isPublic: room.isPublic ?? false,
+      createdAt: room.createdAt,
       players: room.players.map((p) => ({
         id: p.id,
         displayName: p.displayName,
@@ -462,9 +466,50 @@ fastify.post<{ Body: QuickPlayBody }>(
       return reply.code(400).send({ error: "playerCount mora biti 2, 3 ili 4" });
     }
 
-    const roomId = createRoomId();
     const playerId = createPlayerId();
     const sessionToken = createSessionToken();
+
+    // Pokušaj matchmaking: nađi javnu sobu koja čeka igrače
+    const existingRoom = getAllRooms().find(
+      (r) =>
+        r.isPublic &&
+        r.status === "waiting" &&
+        r.rulesConfig.playerCount === playerCount &&
+        r.rulesConfig.targetScore === targetScore &&
+        r.players.length < r.rulesConfig.playerCount,
+    );
+
+    if (existingRoom) {
+      // Pridruži se postojećoj sobi
+      const seatIndex = existingRoom.players.length;
+      const newPlayer: Player = {
+        id: playerId,
+        displayName: displayName.trim(),
+        seatIndex,
+        teamId: playerCount === 4 ? seatIndex % 2 : undefined,
+        connectionStatus: "connected",
+        isHost: false,
+        consecutiveAutoPlays: 0,
+      };
+      existingRoom.players.push(newPlayer);
+      existingRoom.sessionTokens.set(playerId, hashToken(sessionToken));
+
+      io.to(existingRoom.id).emit("room:update");
+      fastify.log.info(`🤝 Matched ${playerId} into room ${existingRoom.id}`);
+
+      if (existingRoom.players.length >= existingRoom.rulesConfig.playerCount) {
+        // Soba puna — pokreni odmah
+        clearMatchmakingTimer(existingRoom.id);
+        startBotGame(existingRoom);
+        await broadcastGameState(existingRoom.id);
+        fastify.log.info(`▶ Room ${existingRoom.id} full, game started`);
+      }
+
+      return { roomId: existingRoom.id, playerId, playerSessionToken: sessionToken };
+    }
+
+    // Nema odgovarajuće sobe — kreiraj novu i čekaj 20s na matchmaking
+    const roomId = createRoomId();
     const rulesConfig = createRulesConfig(playerCount);
     rulesConfig.targetScore = targetScore;
 
@@ -491,11 +536,10 @@ fastify.post<{ Body: QuickPlayBody }>(
       isPublic: true,
     };
 
-    fillSeatsWithBots(room, 2);
-    startBotGame(room);
     storeRoom(room);
+    startMatchmakingTimer(roomId);
 
-    fastify.log.info(`🎲 Quick Play room ${roomId} created (${playerCount}P)`);
+    fastify.log.info(`🎲 Quick Play room ${roomId} created, waiting ${MATCHMAKING_WINDOW_MS / 1000}s`);
     return { roomId, playerId, playerSessionToken: sessionToken };
   },
 );
@@ -668,6 +712,29 @@ const turnDeadlines = new Map<string, number>();
 // playerId → timeout. Posle 2 min disconnect-a partija ide u abandoned.
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
 const ABANDON_TIMEOUT_MS = 2 * 60 * 1000;
+
+// ---- MATCHMAKING TIMERS ----
+// roomId → timeout. Kad istekne prozor, prazna mjesta se popune botovima.
+const matchmakingTimers = new Map<string, NodeJS.Timeout>();
+
+function clearMatchmakingTimer(roomId: string): void {
+  const t = matchmakingTimers.get(roomId);
+  if (t) { clearTimeout(t); matchmakingTimers.delete(roomId); }
+}
+
+function startMatchmakingTimer(roomId: string): void {
+  clearMatchmakingTimer(roomId);
+  const timer = setTimeout(async () => {
+    matchmakingTimers.delete(roomId);
+    const room = getRoom(roomId);
+    if (!room || room.status !== "waiting") return;
+    fillSeatsWithBots(room, 2);
+    startBotGame(room);
+    await broadcastGameState(roomId);
+    fastify.log.info(`⏱ Matchmaking timeout → bot fill room ${roomId}`);
+  }, MATCHMAKING_WINDOW_MS);
+  matchmakingTimers.set(roomId, timer);
+}
 
 // ---- BOT MOVE TIMERS ----
 // roomId → timeout. Kad je bot na potezu, server interno odigra potez.

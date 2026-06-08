@@ -12,6 +12,8 @@ export type RoomPlayer = {
 export type RoomInfo = {
   id: string;
   status: string;
+  isPublic: boolean;
+  createdAt: number;
   players: RoomPlayer[];
   playerCount: number;
   targetScore: number;
