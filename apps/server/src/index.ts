@@ -687,7 +687,11 @@ function scheduleBotMove(roomId: string): void {
   if (!player?.isBot || !player.botProfile) return;
 
   const { minMs, maxMs } = player.botProfile.timing;
-  const delay = minMs + Math.random() * (maxMs - minMs);
+  // Skaliraj kašnjenje prema veličini ruke — više karata = duže "razmišljanje" (§41.1)
+  const handSize = room.gameState.hands[pid]?.length ?? 4;
+  const complexityScale = 1 + (handSize - 1) * 0.07; // max ~1.28× na punoj ruci
+  const scaledMax = Math.min(maxMs * complexityScale, 5500);
+  const delay = minMs + Math.random() * (scaledMax - minMs);
   const timer = setTimeout(() => void driveBotTurn(roomId), delay);
   botMoveTimers.set(roomId, timer);
 }
@@ -717,9 +721,115 @@ async function driveBotTurn(roomId: string): Promise<void> {
       clientKnownStateVersion: room.gameState.stateVersion,
     });
     fastify.log.info(`🤖 Bot ${pid} (${player.displayName}) played ${cardId}`);
+
+    // Reakcija na vlastiti potez (§41.2)
+    const lastMove = room.gameState.moveHistory.at(-1);
+    if (lastMove) {
+      scheduleBotReaction(roomId, pid, player.botProfile.reactionProbability, lastMove.capturedCards, lastMove.playedCard);
+    }
+
     await broadcastGameState(roomId);
   } catch (err) {
     fastify.log.error(`Bot move failed in room ${roomId}: ${err}`);
+  }
+}
+
+// ---- BOT REACTIONS (§41.2) ----
+
+const BOT_REACTION_COOLDOWN_MS = 2000;
+
+/**
+ * Emituje reakciju jednog bota uz malo kašnjenje (da ne bude instant nakon poteza).
+ * Poštuje isti 2s cooldown kao i ljudske reakcije.
+ */
+function emitBotReaction(
+  roomId: string,
+  botPlayerId: string,
+  reactionType: string,
+  delayMs = 600,
+): void {
+  const now = Date.now();
+  const last = lastReactionAt.get(botPlayerId) ?? 0;
+  if (now - last < BOT_REACTION_COOLDOWN_MS) return;
+  lastReactionAt.set(botPlayerId, now + delayMs);
+
+  setTimeout(() => {
+    io.to(roomId).emit("game:reaction", {
+      playerId: botPlayerId,
+      type: reactionType,
+      timestamp: Date.now(),
+    });
+  }, delayMs);
+}
+
+/**
+ * Odlučuje da li i kako bot reaguje na vlastiti potez (§41.2):
+ * - J sweep → 😮/🔥
+ * - Kupio 2♣ ili 10♦ → 🔥
+ * - Random (mala šansa) → 😂/🤔
+ */
+function scheduleBotReaction(
+  roomId: string,
+  botPlayerId: string,
+  reactionProbability: number,
+  capturedCards: import("@zandar/shared-types").Card[],
+  playedCard: import("@zandar/shared-types").Card,
+): void {
+  const rand = Math.random();
+
+  // J sweep
+  if (playedCard.rank === "J" && capturedCards.length >= 2) {
+    if (rand < reactionProbability * 2) {
+      emitBotReaction(roomId, botPlayerId, rand < 0.5 ? "wow" : "fire");
+      return;
+    }
+  }
+
+  // Kupio 2♣ ili 10♦
+  const gotBonus = capturedCards.some(
+    (c) => c.id === "clubs-2" || c.id === "diamonds-10",
+  );
+  if (gotBonus && rand < reactionProbability) {
+    emitBotReaction(roomId, botPlayerId, "fire");
+    return;
+  }
+
+  // Nasumična reakcija (niska vjerovatnoća)
+  if (rand < reactionProbability * 0.3) {
+    emitBotReaction(roomId, botPlayerId, rand < 0.5 ? "laugh" : "thinking", 1200);
+  }
+}
+
+/**
+ * Bot gleda potez protivnika i reaguje (§41.2):
+ * - Protivnik kupio 2♣ ili 10♦ → 😭
+ * - Protivnik kupio puno karata (≥ 4) → 🙌
+ */
+function scheduleBotWatchReaction(
+  roomId: string,
+  capturedCards: import("@zandar/shared-types").Card[],
+): void {
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+
+  const bots = room.gameState.players.filter((p) => p.isBot && p.botProfile);
+  if (bots.length === 0) return;
+
+  const lostBonus = capturedCards.some(
+    (c) => c.id === "clubs-2" || c.id === "diamonds-10",
+  );
+  const bigCapture = capturedCards.length >= 4;
+
+  if (!lostBonus && !bigCapture) return;
+
+  // Nasumično jedan bot reaguje
+  const reactor = bots[Math.floor(Math.random() * bots.length)]!;
+  const prob = reactor.botProfile!.reactionProbability;
+
+  if (lostBonus && Math.random() < prob * 1.5) {
+    emitBotReaction(roomId, reactor.id, "cry", 800);
+  } else if (bigCapture && Math.random() < prob) {
+    emitBotReaction(roomId, reactor.id, "clap", 800);
   }
 }
 
@@ -750,8 +860,13 @@ function fillSeatsWithBots(
       botProfile: {
         identity,
         tier,
-        timing: { minMs: 1200, maxMs: 4000 },
-        reactionProbability: 0.1,
+        // Per-tier timing personality (§41.1): tier 1 = impulsivan, tier 3 = promišljen
+        timing: tier === 1
+          ? { minMs: 700,  maxMs: 2500 }
+          : tier === 3
+          ? { minMs: 2000, maxMs: 5200 }
+          : { minMs: 1300, maxMs: 3800 },
+        reactionProbability: 0.12,
       },
     };
     // Bots don't have session tokens — they are server-driven
@@ -1045,6 +1160,12 @@ io.on("connection", (socket) => {
           clientMoveId: payload.clientMoveId,
           clientKnownStateVersion: payload.clientKnownStateVersion,
         });
+
+        // Bot gleda šta je čovjek uradio i možda reaguje (§41.2)
+        const lastMove = room.gameState.moveHistory.at(-1);
+        if (lastMove && lastMove.capturedCards.length > 0) {
+          scheduleBotWatchReaction(roomId, lastMove.capturedCards);
+        }
 
         await broadcastGameState(roomId);
         if (socket.data.guestId && room.gameState.phase === "hand_finished") {
