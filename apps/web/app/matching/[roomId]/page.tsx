@@ -92,8 +92,8 @@ export default function MatchingPage() {
     if (stage !== "filling" || players.length === 0) return;
 
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const STAGGER = 480;
-    const FIRST_DELAY = 250;
+    const STAGGER = 650;
+    const FIRST_DELAY = 400;
 
     // Otkrij sjedišta jedno po jedno
     players.forEach((_, i) => {
@@ -108,14 +108,14 @@ export default function MatchingPage() {
       setTimeout(() => {
         setStatusText("Sto popunjen! Kreće igra...");
         setStage("done");
-      }, allRevealedAt + 500),
+      }, allRevealedAt + 600),
     );
 
     // Redirect
     timers.push(
       setTimeout(() => {
         router.replace(`/room/${roomId}`);
-      }, allRevealedAt + 1400),
+      }, allRevealedAt + 1500),
     );
 
     return () => timers.forEach(clearTimeout);
