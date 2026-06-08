@@ -31,8 +31,7 @@ export default function Home() {
         playerId: res.playerId,
         sessionToken: res.playerSessionToken,
       });
-      // Step 3: promijeni u /matching/${res.roomId}
-      router.push(`/room/${res.roomId}`);
+      router.push(`/matching/${res.roomId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greška");
       setLoading(false);

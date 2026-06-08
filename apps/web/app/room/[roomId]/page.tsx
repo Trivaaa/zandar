@@ -342,37 +342,6 @@ export default function RoomPage() {
     );
   }
 
-  // Quick Play soba čeka matchmaking — ne prikazuj privatni lobby
-  if (room.isPublic && room.status === "waiting" && !gameState) {
-    const elapsedMs = Date.now() - room.createdAt;
-    const remainingSec = Math.max(0, Math.ceil((20_000 - elapsedMs) / 1000));
-    return (
-      <main className="min-h-screen bg-green-900 text-white flex items-center justify-center">
-        <div className="text-center space-y-5 max-w-sm px-4">
-          <div className="text-6xl">⚡</div>
-          <h1 className="text-2xl font-bold">Tražim protivnike...</h1>
-          <div className="w-48 h-1.5 bg-zinc-700 rounded-full mx-auto overflow-hidden">
-            <div
-              className="h-full bg-yellow-500 rounded-full transition-all duration-1000"
-              style={{ width: `${(remainingSec / 20) * 100}%` }}
-            />
-          </div>
-          <p className="text-zinc-400 text-sm">
-            {room.players.length} / {room.playerCount} igrača
-            {remainingSec > 0 && ` · bot za ${remainingSec}s ako nema protivnika`}
-          </p>
-          <button
-            onClick={() => router.push("/")}
-            className="text-xs text-zinc-500 hover:text-zinc-300"
-            type="button"
-          >
-            Odustani
-          </button>
-        </div>
-      </main>
-    );
-  }
-
   if (gameState) {
     return (
       <>

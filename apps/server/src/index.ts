@@ -29,7 +29,6 @@ import { buildPrivateGameStateView } from "./gameStateView";
 import { posthog } from "./lib/posthog";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
-const MATCHMAKING_WINDOW_MS = 20_000; // čekaj 20s na pravog igrača, pa popuni botovima
 const REACTION_COOLDOWN_MS = 2000;
 const VALID_REACTIONS = [
   "laugh",
@@ -499,7 +498,6 @@ fastify.post<{ Body: QuickPlayBody }>(
 
       if (existingRoom.players.length >= existingRoom.rulesConfig.playerCount) {
         // Soba puna — pokreni odmah
-        clearMatchmakingTimer(existingRoom.id);
         startBotGame(existingRoom);
         await broadcastGameState(existingRoom.id);
         fastify.log.info(`▶ Room ${existingRoom.id} full, game started`);
@@ -508,7 +506,7 @@ fastify.post<{ Body: QuickPlayBody }>(
       return { roomId: existingRoom.id, playerId, playerSessionToken: sessionToken };
     }
 
-    // Nema odgovarajuće sobe — kreiraj novu i čekaj 20s na matchmaking
+    // Nema odgovarajuće sobe — kreiraj novu, popuni botovima i startaj odmah (§49.2 fake matching)
     const roomId = createRoomId();
     const rulesConfig = createRulesConfig(playerCount);
     rulesConfig.targetScore = targetScore;
@@ -536,10 +534,11 @@ fastify.post<{ Body: QuickPlayBody }>(
       isPublic: true,
     };
 
+    fillSeatsWithBots(room, 2);
+    startBotGame(room);
     storeRoom(room);
-    startMatchmakingTimer(roomId);
 
-    fastify.log.info(`🎲 Quick Play room ${roomId} created, waiting ${MATCHMAKING_WINDOW_MS / 1000}s`);
+    fastify.log.info(`🎲 Quick Play room ${roomId} created and started (${playerCount}P)`);
     return { roomId, playerId, playerSessionToken: sessionToken };
   },
 );
@@ -653,29 +652,6 @@ const turnDeadlines = new Map<string, number>();
 // playerId → timeout. Posle 2 min disconnect-a partija ide u abandoned.
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
 const ABANDON_TIMEOUT_MS = 2 * 60 * 1000;
-
-// ---- MATCHMAKING TIMERS ----
-// roomId → timeout. Kad istekne prozor, prazna mjesta se popune botovima.
-const matchmakingTimers = new Map<string, NodeJS.Timeout>();
-
-function clearMatchmakingTimer(roomId: string): void {
-  const t = matchmakingTimers.get(roomId);
-  if (t) { clearTimeout(t); matchmakingTimers.delete(roomId); }
-}
-
-function startMatchmakingTimer(roomId: string): void {
-  clearMatchmakingTimer(roomId);
-  const timer = setTimeout(async () => {
-    matchmakingTimers.delete(roomId);
-    const room = getRoom(roomId);
-    if (!room || room.status !== "waiting") return;
-    fillSeatsWithBots(room, 2);
-    startBotGame(room);
-    await broadcastGameState(roomId);
-    fastify.log.info(`⏱ Matchmaking timeout → bot fill room ${roomId}`);
-  }, MATCHMAKING_WINDOW_MS);
-  matchmakingTimers.set(roomId, timer);
-}
 
 // ---- BOT MOVE TIMERS ----
 // roomId → timeout. Kad je bot na potezu, server interno odigra potez.
