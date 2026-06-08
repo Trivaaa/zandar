@@ -87,7 +87,7 @@ export default function MatchingPage() {
       });
   }, [roomId, router]);
 
-  // Staggered otkrivanje sjedišta + redirect
+  // Effect 1: staggered otkrivanje sjedišta
   useEffect(() => {
     if (stage !== "filling" || players.length === 0) return;
 
@@ -95,14 +95,12 @@ export default function MatchingPage() {
     const STAGGER = 650;
     const FIRST_DELAY = 400;
 
-    // Otkrij sjedišta jedno po jedno
     players.forEach((_, i) => {
       timers.push(
         setTimeout(() => setRevealed(i + 1), FIRST_DELAY + STAGGER * i),
       );
     });
 
-    // Nakon zadnjeg: "Sto popunjen!"
     const allRevealedAt = FIRST_DELAY + STAGGER * (players.length - 1);
     timers.push(
       setTimeout(() => {
@@ -111,15 +109,15 @@ export default function MatchingPage() {
       }, allRevealedAt + 600),
     );
 
-    // Redirect
-    timers.push(
-      setTimeout(() => {
-        router.replace(`/room/${roomId}`);
-      }, allRevealedAt + 1500),
-    );
-
     return () => timers.forEach(clearTimeout);
-  }, [stage, players, roomId, router]);
+  }, [stage, players]);
+
+  // Effect 2: redirect kad je stage "done" — odvojen da ga cleanup Effect 1 ne obriše
+  useEffect(() => {
+    if (stage !== "done") return;
+    const t = setTimeout(() => router.replace(`/room/${roomId}`), 900);
+    return () => clearTimeout(t);
+  }, [stage, roomId, router]);
 
   // Redovi "X se pridružio" koji se pojavljuju uz svako sjedište
   const joinedLines = players.slice(0, revealed);
