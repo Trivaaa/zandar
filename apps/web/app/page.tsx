@@ -1,116 +1,158 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { quickPlay } from "@/lib/api";
+import { saveSession } from "@/lib/session";
+
+const NAME_KEY = "zandar_name";
 
 export default function Home() {
+  const router = useRouter();
+  const [savedName, setSavedName] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(NAME_KEY);
+    if (stored) setSavedName(stored);
+  }, []);
+
+  async function handlePlay(displayName: string) {
+    setError(null);
+    setLoading(true);
+    try {
+      localStorage.setItem(NAME_KEY, displayName);
+      const res = await quickPlay({ displayName });
+      saveSession({
+        roomId: res.roomId,
+        playerId: res.playerId,
+        sessionToken: res.playerSessionToken,
+      });
+      // Step 3: promijeni u /matching/${res.roomId}
+      router.push(`/room/${res.roomId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Greška");
+      setLoading(false);
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (nameInput.trim()) handlePlay(nameInput.trim());
+  }
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-green-900 via-green-950 to-zinc-950 text-white">
-      {/* Hero */}
-      <section className="px-4 py-16 sm:py-24 md:py-32 max-w-4xl mx-auto">
-        <div className="text-center space-y-6 sm:space-y-8">
+    <main className="min-h-screen bg-gradient-to-b from-green-900 via-green-950 to-zinc-950 text-white flex flex-col">
+      {/* Hero — dominantni CTA */}
+      <section className="flex-1 flex flex-col items-center justify-center px-4 py-16 sm:py-24">
+        <div className="text-center space-y-5 max-w-md w-full">
           <div className="text-6xl sm:text-7xl">🃏</div>
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tight">
+
+          <h1 className="text-5xl sm:text-7xl font-bold tracking-tight">
             Žandar
           </h1>
-          <p className="text-lg sm:text-2xl text-green-200 max-w-xl mx-auto leading-relaxed">
-            Klasična kartaška sa rajom — sad i online.
+
+          <p className="text-base sm:text-xl text-green-200">
+            Klasična kartaška — sad i online. Odmah.
           </p>
-          <div className="pt-4">
-            <Link
-              href="/create"
-              className="inline-block px-8 sm:px-12 py-4 sm:py-5 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-zinc-900 rounded-lg font-bold text-lg sm:text-xl shadow-2xl shadow-yellow-500/20 transition-all hover:scale-105"
+
+          {/* Primarna akcija */}
+          <div className="pt-4 space-y-3">
+            {savedName ? (
+              /* Povratni korisnik — jedan tap */
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-400">
+                  Igraš kao{" "}
+                  <strong className="text-white">{savedName}</strong>
+                  {" · "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSavedName(null);
+                      localStorage.removeItem(NAME_KEY);
+                    }}
+                    className="underline hover:text-white transition-colors"
+                  >
+                    Promijeni
+                  </button>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handlePlay(savedName)}
+                  disabled={loading}
+                  className="w-full px-8 py-5 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 disabled:opacity-60 text-zinc-900 rounded-xl font-bold text-xl shadow-2xl shadow-yellow-500/25 transition-all hover:scale-[1.02] disabled:scale-100"
+                >
+                  {loading ? "Tražim sto..." : "Igra – nađi sto"}
+                </button>
+              </div>
+            ) : (
+              /* Novi korisnik — unos imena */
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder="Tvoje ime"
+                  maxLength={30}
+                  required
+                  autoFocus
+                  className="w-full px-4 py-3 bg-zinc-800/80 border border-zinc-700 focus:border-yellow-500 rounded-xl text-white text-lg outline-none text-center placeholder:text-zinc-500 transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !nameInput.trim()}
+                  className="w-full px-8 py-5 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 disabled:opacity-60 text-zinc-900 rounded-xl font-bold text-xl shadow-2xl shadow-yellow-500/25 transition-all hover:scale-[1.02] disabled:scale-100"
+                >
+                  {loading ? "Tražim sto..." : "Igra – nađi sto"}
+                </button>
+              </form>
+            )}
+
+            {error && (
+              <p className="text-red-400 text-sm">{error}</p>
+            )}
+
+            {/* Sekundarni CTA */}
+            <div className="pt-3 border-t border-zinc-800">
+              <Link
+                href="/create"
+                className="inline-block px-5 py-2.5 text-zinc-300 hover:text-white text-sm border border-zinc-700 hover:border-zinc-500 rounded-lg transition-colors"
+              >
+                Kreiraj privatnu sobu →
+              </Link>
+              <p className="text-xs text-zinc-600 mt-1.5">
+                Privatni sto samo za tebe i prijatelje.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Sekundarna info sekcija */}
+      <section className="px-4 pb-12 max-w-lg mx-auto w-full">
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[
+            { icon: "⚡", label: "Odmah", sub: "Bez čekanja" },
+            { icon: "📱", label: "Bilo gdje", sub: "Telefon, laptop" },
+            { icon: "🆓", label: "Besplatno", sub: "Bez registracije" },
+          ].map((f) => (
+            <div
+              key={f.label}
+              className="bg-zinc-900/60 rounded-lg p-3 border border-zinc-800/60"
             >
-              🎴 Kreiraj sobu
-            </Link>
-          </div>
-          <p className="text-sm text-green-400 pt-2">
-            Besplatno · Bez registracije · 2–4 igrača
-          </p>
+              <div className="text-2xl mb-1">{f.icon}</div>
+              <p className="text-xs font-semibold">{f.label}</p>
+              <p className="text-xs text-zinc-500">{f.sub}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="px-4 py-12 sm:py-16 max-w-2xl mx-auto">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-10">
-          Kako se igra
-        </h2>
-        <div className="space-y-3 sm:space-y-4">
-          <div className="flex gap-4 items-start bg-zinc-900/70 rounded-lg p-4 sm:p-5 border border-zinc-800">
-            <div className="shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-yellow-500 text-zinc-900 rounded-full flex items-center justify-center font-bold text-lg">
-              1
-            </div>
-            <div>
-              <h3 className="font-bold mb-1">Kreiraj sobu</h3>
-              <p className="text-sm text-zinc-400">
-                Izaberi broj igrača (2, 3 ili 4) i ciljni broj poena (default 21).
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-4 items-start bg-zinc-900/70 rounded-lg p-4 sm:p-5 border border-zinc-800">
-            <div className="shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-yellow-500 text-zinc-900 rounded-full flex items-center justify-center font-bold text-lg">
-              2
-            </div>
-            <div>
-              <h3 className="font-bold mb-1">Pošalji link prijateljima</h3>
-              <p className="text-sm text-zinc-400">
-                Kopiraj invite link i pošalji u WhatsApp/Viber. Odobri svakog ko se pridruži.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-4 items-start bg-zinc-900/70 rounded-lg p-4 sm:p-5 border border-zinc-800">
-            <div className="shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-yellow-500 text-zinc-900 rounded-full flex items-center justify-center font-bold text-lg">
-              3
-            </div>
-            <div>
-              <h3 className="font-bold mb-1">Igrajte zajedno</h3>
-              <p className="text-sm text-zinc-400">
-                Pokreni partiju kad svi uđu. Prvi do ciljnog broja poena pobjeđuje.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="px-4 py-8 sm:py-12 max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="bg-zinc-900/70 rounded-lg p-5 sm:p-6 text-center border border-zinc-800">
-            <div className="text-3xl sm:text-4xl mb-2">📱</div>
-            <h3 className="font-semibold text-sm sm:text-base">Bilo gdje</h3>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              Telefon, tablet, laptop
-            </p>
-          </div>
-          <div className="bg-zinc-900/70 rounded-lg p-5 sm:p-6 text-center border border-zinc-800">
-            <div className="text-3xl sm:text-4xl mb-2">⚡</div>
-            <h3 className="font-semibold text-sm sm:text-base">~30 min</h3>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              Trajanje partije
-            </p>
-          </div>
-          <div className="bg-zinc-900/70 rounded-lg p-5 sm:p-6 text-center border border-zinc-800">
-            <div className="text-3xl sm:text-4xl mb-2">🎉</div>
-            <h3 className="font-semibold text-sm sm:text-base">Reactions</h3>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              8 emoji za zafrkavanje
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="px-4 py-12 sm:py-16 max-w-md mx-auto text-center">
-        <Link
-          href="/create"
-          className="inline-block w-full px-8 py-4 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-zinc-900 rounded-lg font-bold text-lg shadow-lg transition-colors"
-        >
-          Hajde da igramo →
-        </Link>
-      </section>
-
-      {/* Footer */}
-      <footer className="px-4 py-8 text-center text-zinc-500 text-xs sm:text-sm border-t border-zinc-900">
-        <p>Žandar MVP · v1.0</p>
+      <footer className="px-4 py-6 text-center text-zinc-600 text-xs border-t border-zinc-900">
+        Žandar · Besplatno · Bez registracije
       </footer>
     </main>
   );
