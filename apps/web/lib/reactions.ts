@@ -5,7 +5,7 @@ export const REACTIONS: {
   emoji: string;
   label: string;
 }[] = [
-  { type: "laugh", emoji: "😂", label: "Smijeh" },
+  { type: "laugh", emoji: "😂", label: "haha" },
   { type: "wow", emoji: "😮", label: "Wow" },
   { type: "fire", emoji: "🔥", label: "Vatra" },
   { type: "clap", emoji: "👏", label: "Aplauz" },

@@ -170,33 +170,14 @@ export type QuickPlayResponse = {
   playerSessionToken: string;
 };
 
+/** Quick Play: fiksno 4 igrača, target 21 (§37.1 v3.2) */
 export async function quickPlay(input: {
   displayName: string;
-  playerCount: 2 | 3 | 4;
-  targetScore?: number;
 }): Promise<QuickPlayResponse> {
   const res = await fetch(`${API_BASE}/api/quickplay`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Greška");
-  }
-  return res.json();
-}
-
-export async function singlePlayer(input: {
-  displayName: string;
-  playerCount: 2 | 3 | 4;
-  targetScore?: number;
-  tier?: 1 | 2 | 3;
-}): Promise<QuickPlayResponse> {
-  const res = await fetch(`${API_BASE}/api/singleplayer`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, playerCount: 4, targetScore: 21 }),
   });
   if (!res.ok) {
     const err = await res.json();

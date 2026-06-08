@@ -544,66 +544,7 @@ fastify.post<{ Body: QuickPlayBody }>(
   },
 );
 
-// ---- SINGLE PLAYER ----
-
-type SinglePlayerBody = {
-  displayName: string;
-  playerCount: 2 | 3 | 4;
-  targetScore?: number;
-  tier?: 1 | 2 | 3;
-};
-
-fastify.post<{ Body: SinglePlayerBody }>(
-  "/api/singleplayer",
-  async (request, reply) => {
-    const { displayName, playerCount, targetScore = 21, tier = 2 } = request.body;
-
-    if (!displayName || displayName.trim().length === 0) {
-      return reply.code(400).send({ error: "displayName je obavezan" });
-    }
-    if (![2, 3, 4].includes(playerCount)) {
-      return reply.code(400).send({ error: "playerCount mora biti 2, 3 ili 4" });
-    }
-    if (![1, 2, 3].includes(tier)) {
-      return reply.code(400).send({ error: "tier mora biti 1, 2 ili 3" });
-    }
-
-    const roomId = createRoomId();
-    const playerId = createPlayerId();
-    const sessionToken = createSessionToken();
-    const rulesConfig = createRulesConfig(playerCount);
-    rulesConfig.targetScore = targetScore;
-
-    const humanPlayer: Player = {
-      id: playerId,
-      displayName: displayName.trim(),
-      seatIndex: 0,
-      teamId: playerCount === 4 ? 0 : undefined,
-      connectionStatus: "connected",
-      isHost: true,
-      consecutiveAutoPlays: 0,
-    };
-
-    const room: LobbyRoom = {
-      id: roomId,
-      status: "waiting",
-      hostPlayerId: playerId,
-      players: [humanPlayer],
-      rulesConfig,
-      gameState: null,
-      sessionTokens: new Map([[playerId, hashToken(sessionToken)]]),
-      joinRequests: new Map(),
-      createdAt: Date.now(),
-    };
-
-    fillSeatsWithBots(room, tier);
-    startBotGame(room);
-    storeRoom(room);
-
-    fastify.log.info(`🎮 Single-player room ${roomId} created (${playerCount}P, tier ${tier})`);
-    return { roomId, playerId, playerSessionToken: sessionToken };
-  },
-);
+// Single-player endpoint uklonjen u v3.2 — Quick Play sa lakim botovima je dovoljan (§37.5)
 
 // ---- START GAME ----
 
