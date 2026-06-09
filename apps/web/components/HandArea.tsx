@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { Card as CardType } from "@zandar/shared-types";
 import { Card } from "@/components/Card";
 
@@ -22,6 +23,8 @@ type HandAreaProps = {
   /** Tap karte → selekcija/lift. Ne izvršava potez. */
   onSelectCard: (card: CardType) => void;
   disabled?: boolean;
+  /** TurnTimer (B5) — prikazan u headeru kad je tvoj red. */
+  timer?: ReactNode;
 };
 
 export function HandArea({
@@ -30,6 +33,7 @@ export function HandArea({
   selectedCardId,
   onSelectCard,
   disabled = false,
+  timer,
 }: HandAreaProps) {
   const interactive = isMyTurn && !disabled;
 
@@ -48,7 +52,10 @@ export function HandArea({
           Tvoja ruka
         </span>
         {interactive && (
-          <span className="text-[10px] font-bold text-accent">Tvoj red</span>
+          <div className="flex items-center gap-2">
+            {timer}
+            <span className="text-[10px] font-bold text-accent">Tvoj red</span>
+          </div>
         )}
       </div>
 
