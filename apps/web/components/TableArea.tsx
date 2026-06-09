@@ -30,6 +30,8 @@ type TableAreaProps = {
   selectedCard: CardType | null;
   onCapture: (option: CaptureOption) => void;
   onTrail: () => void;
+  /** Bez vlastite felt-kutije/padding-a (roditelj je play-zona, full-felt). */
+  bare?: boolean;
 };
 
 function TableCards({
@@ -70,6 +72,7 @@ export function TableArea({
   selectedCard,
   onCapture,
   onTrail,
+  bare = false,
 }: TableAreaProps) {
   const options = selectedCard ? getCaptureOptions(selectedCard, table) : [];
   const captureIds = new Set(options.flatMap((o) => o.cardIds));
@@ -82,7 +85,7 @@ export function TableArea({
   const singleOption = options.length === 1 ? options[0] : undefined;
 
   return (
-    <div className="rounded-token-lg bg-felt border border-white/5 p-3">
+    <div className={bare ? "" : "rounded-token-lg bg-felt border border-white/5 p-3"}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] uppercase tracking-wide text-muted">
           Sto · {table.length}

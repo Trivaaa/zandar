@@ -7,14 +7,15 @@ import type {
   PrivateGameStateView,
   ReactionType,
 } from "@zandar/shared-types";
-import { TableSeats } from "@/components/TableSeats";
+import { SeatBubble } from "@/components/SeatBubble";
 import { TableArea } from "@/components/TableArea";
-import { HandArea } from "@/components/HandArea";
+import { HandFan } from "@/components/HandFan";
 import { TurnTimer } from "@/components/TurnTimer";
 import { ScorePill } from "@/components/ScorePill";
 import { ReactionFab } from "@/components/ReactionFab";
 import { PauseAbandonOverlay } from "@/components/PauseAbandonOverlay";
 import { RulesModal } from "@/components/RulesModal";
+import { arrangeSeats } from "@/lib/seating";
 import { getReactionEmoji } from "@/lib/reactions";
 import type { ActiveReaction } from "@/components/GameView";
 
@@ -135,38 +136,97 @@ export function GameScreen({
       null)
     : null;
 
+  // Pozicijski raspored: ti dole, partner gore, protivnici lijevo/desno.
+  const seats = arrangeSeats(state.players, state.myPlayerId);
+
+  function seatTimer(isTurn: boolean) {
+    return isTurn && turnDeadline != null ? (
+      <TurnTimer deadline={turnDeadline} size="sm" />
+    ) : undefined;
+  }
+
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-surface">
-      <TableSeats
-        players={state.players}
-        myPlayerId={state.myPlayerId}
-        currentPlayerId={state.currentPlayerId}
-        handCounts={state.handCounts}
-        capturedCounts={state.capturedCounts}
-        turnDeadline={turnDeadline}
-        table={
+    <div
+      className="relative h-[100dvh] w-full overflow-hidden bg-felt"
+      style={{
+        backgroundImage:
+          "radial-gradient(120% 90% at 50% 28%, rgba(255,255,255,0.06), transparent 55%), radial-gradient(140% 130% at 50% 125%, rgba(0,0,0,0.45), transparent 60%)",
+      }}
+    >
+      {/* Partner / jedini protivnik — gore-centar */}
+      {seats.partner && (
+        <SeatBubble
+          displayName={seats.partner.displayName}
+          cardCount={state.handCounts[seats.partner.id] ?? 0}
+          isCurrentTurn={state.currentPlayerId === seats.partner.id}
+          connectionStatus={seats.partner.connectionStatus}
+          teamId={seats.partner.teamId}
+          timer={seatTimer(state.currentPlayerId === seats.partner.id)}
+          className="top-3 left-1/2 -translate-x-1/2 mt-safe-top"
+        />
+      )}
+      {/* Protivnik lijevo */}
+      {seats.oppL && (
+        <SeatBubble
+          displayName={seats.oppL.displayName}
+          cardCount={state.handCounts[seats.oppL.id] ?? 0}
+          isCurrentTurn={state.currentPlayerId === seats.oppL.id}
+          connectionStatus={seats.oppL.connectionStatus}
+          teamId={seats.oppL.teamId}
+          timer={seatTimer(state.currentPlayerId === seats.oppL.id)}
+          className="top-[40%] left-2 -translate-y-1/2"
+        />
+      )}
+      {/* Protivnik desno */}
+      {seats.oppR && (
+        <SeatBubble
+          displayName={seats.oppR.displayName}
+          cardCount={state.handCounts[seats.oppR.id] ?? 0}
+          isCurrentTurn={state.currentPlayerId === seats.oppR.id}
+          connectionStatus={seats.oppR.connectionStatus}
+          teamId={seats.oppR.teamId}
+          timer={seatTimer(state.currentPlayerId === seats.oppR.id)}
+          className="top-[40%] right-2 -translate-y-1/2"
+        />
+      )}
+
+      {/* Centralna play-zona — odigrane karte + capture/trail */}
+      <div className="absolute top-[44%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[82%] max-w-[300px] z-10">
+        <div className="rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]">
           <TableArea
+            bare
             table={state.table}
             selectedCard={selectedCard}
             onCapture={handleCapture}
             onTrail={handleTrail}
           />
-        }
-        hand={
-          <HandArea
-            cards={state.myHand}
-            isMyTurn={myTurn}
-            selectedCardId={selectedId}
-            onSelectCard={handleSelect}
-            disabled={busy}
-            timer={
-              myTurn && turnDeadline != null ? (
-                <TurnTimer deadline={turnDeadline} size="md" />
-              ) : undefined
-            }
-          />
-        }
-      />
+        </div>
+      </div>
+
+      {/* Ti — dole-centar iznad ruke */}
+      {seats.me && (
+        <SeatBubble
+          displayName={seats.me.displayName}
+          cardCount={state.myHand.length}
+          isCurrentTurn={myTurn}
+          connectionStatus={seats.me.connectionStatus}
+          teamId={seats.me.teamId}
+          isMe
+          timer={seatTimer(myTurn)}
+          className="bottom-[150px] left-1/2 -translate-x-1/2"
+        />
+      )}
+
+      {/* Ruka — lepeza na dnu */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pb-safe-bottom z-20">
+        <HandFan
+          cards={state.myHand}
+          isMyTurn={myTurn}
+          selectedCardId={selectedId}
+          onSelectCard={handleSelect}
+          disabled={busy}
+        />
+      </div>
 
       {/* Overlay: rezultat */}
       <ScorePill
