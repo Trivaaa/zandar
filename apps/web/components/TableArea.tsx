@@ -55,12 +55,13 @@ function TableCards({
       {table.map((card) => {
         const tappable = tappableIds?.has(card.id);
         return (
-          <Card
-            key={card.id}
-            card={card}
-            selected={highlightIds.has(card.id)}
-            onClick={tappable ? onTap : undefined}
-          />
+          <div key={card.id} className="animate-card-in">
+            <Card
+              card={card}
+              selected={highlightIds.has(card.id)}
+              onClick={tappable ? onTap : undefined}
+            />
+          </div>
         );
       })}
     </>

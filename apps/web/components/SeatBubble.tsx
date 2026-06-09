@@ -4,14 +4,17 @@ import type { ReactNode } from "react";
 import type { ConnectionStatus } from "@zandar/shared-types";
 
 /**
- * SeatBubble — kružni prikaz igrača za felt layout (DS Faza B, full-felt).
+ * SeatBubble — kružni prikaz igrača za felt layout (DS v3.2, full-felt).
  *
  * Plutajući "puck" na ivici stola (gore/lijevo/desno/dole). Bot-agnostičan —
- * ne zna za isBot. Sadrži: avatar (inicijal), badge broja karata (NE poleđine),
- * turn ring + timer kad je na potezu, team-boja (4P), connection status.
+ * ne zna za isBot. Sadrži: avatar (inicijal), broj karata kao lepeza poleđina
+ * (generičke, bez info-leak-a), turn arc-timer iznad logoa, team-boja (4P),
+ * connection status.
  *
  * Pozicioniranje ide preko `className` (apsolutno unutar felt root-a).
  */
+
+type BacksOrientation = "top" | "left" | "right";
 
 type SeatBubbleProps = {
   displayName: string;
@@ -20,16 +23,46 @@ type SeatBubbleProps = {
   connectionStatus: ConnectionStatus;
   teamId?: number;
   isMe?: boolean;
-  /** Prikaži lepezu poleđina (broj karata protivnika, kao u referencama). */
+  /** Prikaži lepezu poleđina (broj karata protivnika). */
   showBacks?: boolean;
-  /** TurnTimer (B5) kad je na potezu. */
+  /** Orijentacija lepeze: top (partner) ili left/right (bočni — horizontalno). */
+  backsOrientation?: BacksOrientation;
+  /** TurnTimer (B5, size="arc") iznad logoa kad je na potezu. */
   timer?: ReactNode;
   /** Apsolutno pozicioniranje (npr. "top-3 left-1/2 -translate-x-1/2"). */
   className?: string;
 };
 
-/** Mini lepeza poleđina — vizuelni broj karata (generičke, bez info-leak-a). */
-function BackFan({ count }: { count: number }) {
+/** Lepeza poleđina — vizuelni broj karata (generičke, bez info-leak-a). */
+function BackFan({
+  count,
+  orientation,
+}: {
+  count: number;
+  orientation: BacksOrientation;
+}) {
+  // Bočni igrači: veće, horizontalne karte (landscape), naslagane vertikalno.
+  if (orientation !== "top") {
+    const shown = Math.min(count, 6);
+    const mid = (shown - 1) / 2;
+    return (
+      <div className="flex flex-col items-center">
+        {Array.from({ length: shown }).map((_, i) => (
+          <div
+            key={i}
+            className="w-10 h-7 rounded-[4px] bg-surface-raised border border-accent/40 shadow-md"
+            style={{
+              marginTop: i === 0 ? 0 : -18,
+              transform: `rotate(${(i - mid) * 4}deg)`,
+            }}
+          >
+            <div className="m-1 h-[calc(100%-8px)] rounded-[2px] border border-accent/20" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  // Partner (gore): vertikalne karte u redu.
   const shown = Math.min(count, 7);
   const mid = (shown - 1) / 2;
   return (
@@ -37,9 +70,9 @@ function BackFan({ count }: { count: number }) {
       {Array.from({ length: shown }).map((_, i) => (
         <div
           key={i}
-          className="w-4 h-6 rounded-[3px] bg-surface-raised border border-accent/30 shadow-sm"
+          className="w-5 h-7 rounded-[3px] bg-surface-raised border border-accent/30 shadow-sm"
           style={{
-            marginLeft: i === 0 ? 0 : -9,
+            marginLeft: i === 0 ? 0 : -10,
             transform: `rotate(${(i - mid) * 5}deg)`,
             transformOrigin: "bottom center",
           }}
@@ -63,6 +96,7 @@ export function SeatBubble({
   teamId,
   isMe = false,
   showBacks = false,
+  backsOrientation = "top",
   timer,
   className = "",
 }: SeatBubbleProps) {
@@ -77,6 +111,9 @@ export function SeatBubble({
       data-current-turn={isCurrentTurn}
     >
       <div className="relative">
+        {/* Arc timer iznad logoa (B5 arc) */}
+        {isCurrentTurn && timer}
+
         <div
           className={`w-14 h-14 rounded-full bg-surface-raised border-2 ${teamBorder(teamId)} ${ring} flex items-center justify-center text-lg font-bold shadow-lg select-none`}
         >
@@ -96,11 +133,9 @@ export function SeatBubble({
         )}
       </div>
 
-      {showBacks && cardCount > 0 && <BackFan count={cardCount} />}
-
-      {isCurrentTurn && timer ? (
-        <div className="leading-none">{timer}</div>
-      ) : null}
+      {showBacks && cardCount > 0 && (
+        <BackFan count={cardCount} orientation={backsOrientation} />
+      )}
 
       <span className="text-xs font-semibold text-white drop-shadow max-w-[88px] truncate">
         {displayName}

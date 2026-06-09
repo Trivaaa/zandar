@@ -151,7 +151,7 @@ export function GameScreen({
 
   function seatTimer(isTurn: boolean) {
     return isTurn && turnDeadline != null ? (
-      <TurnTimer deadline={turnDeadline} size="md" />
+      <TurnTimer deadline={turnDeadline} size="arc" />
     ) : undefined;
   }
 
@@ -185,8 +185,9 @@ export function GameScreen({
           connectionStatus={seats.oppL.connectionStatus}
           teamId={seats.oppL.teamId}
           showBacks
+          backsOrientation="left"
           timer={seatTimer(state.currentPlayerId === seats.oppL.id)}
-          className="top-[34%] left-1 -translate-y-1/2"
+          className="top-[42%] left-1 -translate-y-1/2"
         />
       )}
       {/* Protivnik desno */}
@@ -198,8 +199,9 @@ export function GameScreen({
           connectionStatus={seats.oppR.connectionStatus}
           teamId={seats.oppR.teamId}
           showBacks
+          backsOrientation="right"
           timer={seatTimer(state.currentPlayerId === seats.oppR.id)}
-          className="top-[34%] right-1 -translate-y-1/2"
+          className="top-[42%] right-1 -translate-y-1/2"
         />
       )}
 
