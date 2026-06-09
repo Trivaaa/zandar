@@ -51,36 +51,38 @@ export function TurnTimer({
   // Pred istek (danger) — blagi puls za hitnost.
   const urgency = ratio < 0.25 ? "animate-status-blink" : "";
 
-  // ── arc: polu-luk iznad avatara, hue green→red, zadnjih 5s crveno ──
+  // ── arc: debeo luk koji PRIANJA uz gornju ivicu avatara (koncentrično),
+  //     hue green→red po preostalom vremenu, zadnjih 5s crveno + puls ──
   if (size === "arc") {
-    const r = 26;
-    const len = Math.PI * r; // dužina polu-luka
+    // SVG 72×72 centriran na 56px avatar; luk radijusa 31 hvata gornju ivicu.
+    const R = 31;
+    const len = Math.PI * R; // gornji polu-luk
     const visible = len * ratio;
-    // hue 120 (zeleno) → 0 (crveno) po preostalom vremenu; ≤5s = crveno
     const hue = remainingMs <= 5000 ? 0 : Math.min(120, Math.round(120 * ratio));
-    const color = `hsl(${hue} 72% 48%)`;
-    const path = "M 6 32 A 26 26 0 0 1 58 32";
+    const color = `hsl(${hue} 78% 50%)`;
+    const path = "M 5 36 A 31 31 0 0 1 67 36";
     return (
       <svg
-        className={`absolute left-1/2 -translate-x-1/2 -top-3 w-16 h-9 overflow-visible pointer-events-none ${remainingMs <= 5000 ? "animate-status-blink" : ""}`}
-        viewBox="0 0 64 36"
+        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[72px] h-[72px] overflow-visible pointer-events-none ${remainingMs <= 5000 ? "animate-status-blink" : ""}`}
+        viewBox="0 0 72 72"
         aria-label={`${seconds} sekundi za potez`}
       >
+        {/* tamna podloga da boja iskoči na feltu */}
         <path
           d={path}
           fill="none"
-          stroke="rgba(255,255,255,0.12)"
-          strokeWidth="4"
+          stroke="rgba(0,0,0,0.4)"
+          strokeWidth="6.5"
           strokeLinecap="round"
         />
         <path
           d={path}
           fill="none"
           stroke={color}
-          strokeWidth="4"
+          strokeWidth="6"
           strokeLinecap="round"
           strokeDasharray={`${visible} ${len}`}
-          style={{ transition: "stroke-dasharray 0.25s linear, stroke 0.25s linear" }}
+          style={{ transition: "stroke-dasharray 0.25s linear, stroke 0.3s linear" }}
         />
       </svg>
     );

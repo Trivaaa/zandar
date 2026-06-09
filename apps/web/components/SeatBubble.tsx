@@ -111,9 +111,6 @@ export function SeatBubble({
       data-current-turn={isCurrentTurn}
     >
       <div className="relative">
-        {/* Arc timer iznad logoa (B5 arc) */}
-        {isCurrentTurn && timer}
-
         <div
           className={`w-14 h-14 rounded-full bg-surface-raised border-2 ${teamBorder(teamId)} ${ring} flex items-center justify-center text-lg font-bold shadow-lg select-none`}
         >
@@ -131,6 +128,8 @@ export function SeatBubble({
             aria-label="veza se vraća"
           />
         )}
+        {/* Arc timer — PRIANJA uz gornju ivicu avatara, na vrhu (z-top) */}
+        {isCurrentTurn && timer}
       </div>
 
       {showBacks && cardCount > 0 && (
