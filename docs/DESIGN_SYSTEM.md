@@ -1,8 +1,25 @@
-# Kartaonica — Design System v2.0
+# Kartaonica — Design System v3.1
 
-> Žandar (prvi game) · mobile-first + PWA · ijekavica
-> Bazira se na: PRD v2.0 + PRD v3.0 (AI sloj / Brza partija)
-> Zamjenjuje: UX plan v1.1
+> **Naziv igre: Tablić - Žandar** (prvi game) · mobile-first + PWA · ijekavica
+> Bazira se na: PRD v2.0 + PRD v3.2 (AI sloj / Brza partija + home/matching redizajn)
+> Zamjenjuje: Design System v2.0
+
+---
+
+## Changelog (v2.0 → v3.1)
+
+| Promjena | Opis |
+|----------|------|
+| Naziv igre | Igra se zove **Tablić - Žandar** (ranije referencirana samo kao "Žandar") |
+| Home hijerarhija | "Igra – nađi sto" je sad **dominantni primarni** CTA; "Kreiraj svoj sto" je **jak sekundarni** (ne zakopan — viralni loop ostaje). "Pridruži se" tercijarni. Vidi §2, §9 C1 |
+| Brza partija pojednostavljena | Korisnik upisuje **samo ime**; fiksno **4 igrača, target 21**. Izbor broja igrača / target score-a **uklonjen** iz Quick Play-a (ostaje samo u "Kreiraj svoj sto"). Vidi §7.3, §9 C2 |
+| Matching ekran (pomireno) | Sjedišta se **popunjavaju imenima/avatarima** (živo), ALI **bez brojača "X/Y pronađeno" i bez "tražim igrače" framinga** — kao "sto se postavlja", ne kao pretraga. Vidi §7.3 |
+| Remember name | Povratni korisnik preskače unos imena → "Nađi sto" je jedan tap. Vidi §7.3, §9 C2 |
+| Single-player IZBAČEN | Bio Should-have; sada van scope-a (Quick Play sa lakim botovima je vježba). Vidi §8 |
+
+> **Dvije svjesne tenzije pomirene u ovoj verziji** (originalni v2.0 ih je drugačije postavljao): (1) dominantni "Nađi sto" vs. zaštita viralnog create/invite loop-a; (2) živ matching ekran sa imenima vs. pravilo "ne odaj matchmaking brojačem". Vidi §2 i §7.3 za rezonovanje.
+
+---
 
 ## Dva noseća principa
 
@@ -64,21 +81,21 @@ Koristi **CSS Grid sa named areas** (`partner`, `oppL`, `oppR`, `table`, `hand`)
 
 ---
 
-## 2. Information architecture — tri ulaza
+## 2. Information architecture — tri ulaza (nova hijerarhija)
 
-Home sad ima tri puta (PRD v3 uvodi Brzu partiju):
+Home ima tri puta, ali sa jasnom hijerarhijom (v3.1):
 
-| Ulaz | Šta radi | Za koga |
-|------|----------|---------|
-| **Brza partija** | Odmah te stavi za sto (prazna mjesta = botovi), partija kreće bez čekanja | Cold-start / kad nema prijatelja online — retention safety net |
-| **Kreiraj sobu** | Privatna soba + invite link (WhatsApp/Viber) | Viralni motor — friend-graph distribucija |
-| **Pridruži se** | Ulaz u privatnu sobu preko linka/koda (sa host approval) | Pozvani prijatelj |
+| Ulaz | Hijerarhija | Šta radi | Za koga |
+|------|-------------|----------|---------|
+| **Igra – nađi sto** | **Primarni (dominantni)** | Upišeš ime → odmah te stavi za sto (prazna mjesta = botovi), partija kreće bez čekanja. Fiksno 4 igrača / target 21 | Cold-start / kad nema prijatelja online — retention safety net |
+| **Kreiraj svoj sto** | **Sekundarni (jak, vidljiv)** | Privatna soba + invite link (WhatsApp/Viber). Podtekst: *"Privatni sto samo za tebe i prijatelje."* Ovdje se bira broj igrača + target score | Viralni motor — friend-graph distribucija |
+| **Pridruži se** | Tercijarni | Ulaz u privatnu sobu preko linka/koda (sa host approval) | Pozvani prijatelj |
 
-**Strateška napomena (bitno):** Brza partija je mreža za hvatanje (igraj odmah, bez praznog stola), ali **Kreiraj sobu je tvoj viralni loop**. Ne dozvoli da Brza partija sahrani create/invite tok. Oba ostaju vizuelno jaka na home-u. Korisnik koji dođe preko invite linka i dalje ide pravo u sobu (preskače home).
+**Strateška napomena (bitno — i tenzija koju namjerno balansiramo):** "Nađi sto" je dominantni CTA jer rješava cold-start i daje trenutni loop. ALI "Kreiraj svoj sto" je **tvoj viralni loop** (invite = friend-graph rast) i zato ostaje **jak, jasno vidljiv sekundarni** — vizuelno odmah ispod primarnog, NE zakopan u meni ili sitnim linkom. Ne dozvoli da dominantni "Nađi sto" sahrani create/invite tok. Korisnik koji dođe preko invite linka i dalje ide pravo u sobu (preskače home).
 
 Rute:
-- `/` — Home (tri ulaza)
-- `/zandar/brza` — Brza partija (matchmaking → redirect na sto)
+- `/` — Home (tri ulaza, nova hijerarhija)
+- `/zandar/brza` — Igra–nađi sto (matchmaking → redirect na sto)
 - `/zandar/room/:id` — Lobby ili sto (privatna soba)
 - `/rules` — Pravila
 
@@ -90,8 +107,8 @@ Neutralno stilizovano (tokeni), jasna stanja. Game-agnostic gdje može (kartaoni
 
 | Komponenta | Tip | Stanja / napomena |
 |------------|-----|-------------------|
-| `Home` | shell | tri CTA: Brza partija (primary), Kreiraj sobu, Pridruži se |
-| `QuickMatchScreen` | shell | tranzicija <2s, neutralna, drop u sto (vidi 7.3) |
+| `Home` | shell | tri CTA sa hijerarhijom: **Igra–nađi sto (primary, dominantno)**, Kreiraj svoj sto (jak sekundarni), Pridruži se (tercijarni) |
+| `QuickMatchScreen` | shell | samo unos imena (ili preskoči ako zapamćeno) → matching tranzicija u kojoj se sjedišta popunjavaju → drop u sto (vidi 7.3) |
 | `GameTable` | shell+žandar | phase: playing / paused / scoring / finished |
 | `SeatChip` | shell | idle / active / reconnecting / auto-play / disconnected; team A/B. **Bot-agnostičan.** Glatka zamjena identiteta na granici ruke (bot→čovjek, vidi 7.5) |
 | `TableArea` (Sto) | žandar | normal / capture-highlight; karte se prelamaju u 2 reda po potrebi |
@@ -169,13 +186,28 @@ Ovo je novi sloj iz PRD v3. Pravac razmišljanja: **gotovo sve je server concern
 
 ### 7.2 Šta se zapravo mijenja na frontendu
 
-Samo četiri stvari: home ulaz, quick-match tranzicija, host toggle u privatnom lobby-ju, i glatka zamjena identiteta na sjedištu. Sve ostalo je server.
+Samo četiri stvari: home ulaz (nova hijerarhija), quick-match tranzicija (samo ime → matching populate), host toggle u privatnom lobby-ju, i glatka zamjena identiteta na sjedištu. Sve ostalo je server.
 
-### 7.3 QuickMatchScreen (tranzicija, <2s)
+### 7.3 QuickMatchScreen (samo ime → matching, <2–3s)
 
-- Cilj iz PRD-a: za sto za < 2s. Pošto se prazna mjesta pune botovima, **NEMA pravog čekanja**.
-- **NE prikazuj "tražim igrače (2/4 pronađeno)"** — to (a) postavlja očekivanje human matchmakinga i (b) "našao 3 igrača za 1.5s" je sumnjivo brzo i potkopava iluziju.
-- Umjesto toga: neutralna kratka tranzicija — "Pripremamo sto…" + suptilna animacija / skeleton stola → padneš u partiju. Drži pod pragom gdje korisnik počne brojati sekunde.
+Tok (v3.1):
+1. Korisnik upisuje **samo ime** (povratni korisnik preskače — ime zapamćeno na uređaju → jedan tap).
+2. **Bez izbora konfiguracije** — fiksno 4 igrača, target 21.
+3. Matching tranzicija → padneš u partiju koja kreće.
+
+**Kako izgleda matching (pomireno pravilo):** pošto se prazna mjesta pune botovima, nema pravog čekanja, ali sto se prikazuje kako se **postavlja i popunjava**:
+- Sjedišta se popunjavaju imenima/avatarima jedan po jedan (iz generatora §39 PRD-a) — daje osjećaj žive, pune sobe.
+- **Copy je "Pripremamo sto…" / "Igrači sjedaju…"**, NE "Tražimo igrače".
+- **NEMA brojača "X/Y pronađeno"** i NEMA framinga human-matchmakinga.
+  - Zašto: brojač "našao 3 igrača za 1.5s" je sumnjivo brzo i odaje fake matchmaking; takođe postavlja pogrešno očekivanje (da čekaš ljude).
+- Stagger je blag i kratak, ali **ne instant** — mikro-ritam "sjedanja" pojačava osjećaj pravog stola. Drži ispod praga gdje korisnik počne brojati sekunde.
+
+> Suština pomirenja: **živost (imena se pojavljuju) DA, "pretraga igrača" (brojač/search copy) NE.** Razlika je u framingu — "sto se postavlja", ne "tražim ti protivnike".
+
+**Nove design-system komponente za matching:**
+- Matching layout sa 4 seat placeholdera koji se popunjavaju.
+- "Seat fill" animacija (avatar + ime, staggered, mek fade-in).
+- Neutralni progress/skeleton stola u stilu brenda.
 
 ### 7.4 Host toggle u privatnoj sobi
 
@@ -186,7 +218,7 @@ Samo četiri stvari: home ulaz, quick-match tranzicija, host toggle u privatnom 
 
 ### 7.5 Tiha zamjena identiteta (bot → čovjek)
 
-- Kad realan igrač uskoči na bot sjedište (na granici ruke), `SeatChip` na tom sjedištu **glatko promijeni identitet** (ime + avatar), bez najave. (PRD v3 open Q4 default = tiha zamjena.)
+- Kad realan igrač uskoči na bot sjedište (na granici ruke), `SeatChip` na tom sjedištu **glatko promijeni identitet** (ime + avatar), bez najave. Copy nigdje ne kaže "bot" — vidi i PRD §38.4 ("[nickname] je otišao").
 - Frontend NE zna da je "bilo bot" — samo prima novi `PublicPlayer` za to sjedište. Tranzicija treba biti vizuelno meka (fade imena/avatara), ne hard cut, da ne zazvuči kao bug.
 
 ### 7.6 Bot reactions i timing
@@ -204,7 +236,7 @@ Van opsega ovog UX prolaza. PRD ih spominje samo kao etičku granicu (kozmetika,
 
 - Ex-Yu vizuelni identitet (Faza 2).
 - Coins / ekonomija UI.
-- Eksplicitni single-player ("igraj protiv računara") ekran — Should-have, jeftin kad bot engine postoji, ali ne sad.
+- **Eksplicitni single-player ("igraj protiv računara") ekran — IZBAČEN (PRD v3.2).** Ne gradi. Quick Play sa lakim onboarding botovima već služi kao vježba.
 - "Regulari" persona pool (post-MVP polish).
 - Suspected-bot report dugme (Could-have).
 - Drag-and-drop sjedišta, named slots (post-MVP).
@@ -276,22 +308,22 @@ Acceptance: ne troši stalni prostor; cooldown vidljiv; onemogućen u pauzi.
 
 **B8. Pause/abandon overlay.**
 ```
-Grace indikator na čipu (0–30s), pause banner + "Sačekaj još" (30s–2min), abandon-vote modal (2min+). Poveži sa phase i abandonVotes.
-Acceptance: tri stanja jasna; tokom pauze gameplay blokiran, reactions off.
+Grace indikator na čipu (0–30s), pause banner + "Sačekaj još" (30s–2min), abandon-vote modal (2min+). Poveži sa phase i abandonVotes. (Napomena: za turn-based, hard pause i vote su minimalni; obavezni dio je da klijent renderuje abandoned stanje + offline indikator — ne ostavljaj prazno.)
+Acceptance: tri stanja jasna; tokom pauze gameplay blokiran, reactions off; abandoned stanje se vidi (ne prazan ekran).
 ```
 
 ### Faza C — Brza partija + bot sloj
 
-**C1. Home — tri ulaza.**
+**C1. Home — tri ulaza, nova hijerarhija.**
 ```
-Redizajniraj Home na tri CTA: "Brza partija" (primary, vodi na /zandar/brza), "Kreiraj sobu" (privatna soba + invite link), "Pridruži se" (ulaz preko koda/linka). Brza partija i Kreiraj sobu su oba vizuelno jaka (ne sahranjuj create/invite tok). Tokeni, bez UI eksperimenata.
-Acceptance: tri jasna ulaza; primary je Brza partija; create/invite ostaje prominentan.
+Redizajniraj Home na tri CTA sa hijerarhijom: "Igra – nađi sto" (PRIMARNI, dominantni, vodi na /zandar/brza), "Kreiraj svoj sto" (JAK SEKUNDARNI, vidljiv odmah ispod primarnog, podtekst "Privatni sto samo za tebe i prijatelje", vodi na privatnu sobu + invite link), "Pridruži se" (tercijarni, ulaz preko koda/linka). Dominantni je vizuelno najjači, ali sekundarni NE smije biti zakopan (viralni loop). Tokeni, bez UI eksperimenata.
+Acceptance: "Nađi sto" je vizuelno dominantan; "Kreiraj svoj sto" je jasno vidljiv jak sekundarni (ne sitni link); tri jasna nivoa.
 ```
 
-**C2. QuickMatchScreen.**
+**C2. QuickMatchScreen — samo ime → matching populate.**
 ```
-Napravi tranziciju za /zandar/brza: korisnik bira broj igrača (2/3/4) i opciono target score, klikne Igraj → neutralna kratka tranzicija "Pripremamo sto…" (skeleton stola) → redirect na sto kad backend vrati room. NE prikazuj "tražim igrače (X/Y)" ni broj pronađenih — neutralno, brzo.
-Acceptance: nema human-matchmaking copy; tranzicija kratka; padne u partiju koja kreće odmah.
+Napravi tok za /zandar/brza: korisnik upisuje SAMO ime (ili preskoči ako je ime zapamćeno na uređaju → jedan tap) → klikne "Igra – nađi sto". BEZ izbora broja igrača i target score-a (fiksno 4 igrača, target 21). Zatim matching tranzicija u kojoj se sjedišta popunjavaju imenima/avatarima jedan po jedan (mek fade, blag stagger), copy "Pripremamo sto…" / "Igrači sjedaju…". NE prikazuj brojač "X/Y pronađeno" ni "tražim igrače" — frame je "sto se postavlja", ne pretraga. Redirect na sto kad backend vrati room. Persistuj ime lokalno.
+Acceptance: nema izbora konfiguracije; nema human-matchmaking copy ni brojača; sjedišta se popunjavaju (živo) bez search framinga; povratni korisnik preskače unos imena; padne u partiju koja kreće.
 ```
 
 **C3. Host bot-fill toggle.**
@@ -324,7 +356,7 @@ Acceptance: background→foreground vraća živu konekciju i state bez ručnog r
 
 ## 10. UI smjer za Fazu 2 (Ex-Yu) — orijentacija, ne gradi sad
 
-Mijenjaš samo vrijednosti tokena. Smjer: kafana/felt sto (topliji zeleni, suptilna tekstura, drvo + zlato akcenti — žuti CTA već nagovještava), klasične čitke karte (regionalni špil, autentičnost kasnije), folk motivi štedljivo, topla čitka tipografija sa karakternim display fontom za brand. Ton: "klasična kartaška sa rajom — sad i online" — toplo, prijateljski, nostalgično. Bot iluzija pomaže ovom tonu: stolovi uvijek "živi", imena domaća.
+Mijenjaš samo vrijednosti tokena. Smjer: kafana/felt sto (topliji zeleni, suptilna tekstura, drvo + zlato akcenti — žuti CTA već nagovještava), klasične čitke karte (regionalni špil, autentičnost kasnije), folk motivi štedljivo, topla čitka tipografija sa karakternim display fontom za brand. Ton: "klasična kartaška sa rajom — sad i online" — toplo, prijateljski, nostalgično. Bot iluzija pomaže ovom tonu: stolovi uvijek "živi", imena domaća, sjedišta se popunjavaju pred tobom.
 
 ---
 
@@ -333,7 +365,7 @@ Mijenjaš samo vrijednosti tokena. Smjer: kafana/felt sto (topliji zeleni, supti
 1. Faza A (tokeni + pozicijski grid) → temelj.
 2. Faza B, prvo B1–B2 (SeatChip + pozicije) → **rješava 4P responsive bug.** Stani, provjeri na pravom telefonu.
 3. Ostatak Faze B (interakcija, timer, score, reactions, edge-ovi) → core loop.
-4. Faza C (Brza partija + bot sloj) → cold-start rješenje; mali frontend posao jer je bot server concern.
+4. Faza C (Brza partija + bot sloj + nova home hijerarhija + matching populate) → cold-start rješenje; mali frontend posao jer je bot server concern.
 5. Faza D (PWA + reconnect) → prije Faze 1 playtesta.
 6. Faza 2 UI → tek kad UX prođe Fazu 2 playtest (human-only metrici, ne bot-padded).
 
