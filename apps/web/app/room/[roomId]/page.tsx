@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { getSession, type RoomSession } from "@/lib/session";
 import { getSocket } from "@/lib/socket";
+import { assertNoBotLeak } from "@/lib/antiLeak";
 import { JoinFlow } from "@/components/JoinFlow";
 import { GameScreen } from "@/components/GameScreen";
 import type { ActiveReaction } from "@/components/GameView";
@@ -139,6 +140,7 @@ export default function RoomPage() {
       setRefreshTrigger((n) => n + 1);
     }
     function handleGameState(state: GameStateWithDeadline) {
+      assertNoBotLeak(state.players); // dev straža (DS §7.1, C4)
       setGameState(state);
     }
     function handleReaction(event: ReactionEvent) {
