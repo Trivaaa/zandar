@@ -14,7 +14,8 @@ import {
 import { getSession, type RoomSession } from "@/lib/session";
 import { getSocket } from "@/lib/socket";
 import { JoinFlow } from "@/components/JoinFlow";
-import { GameView, type ActiveReaction } from "@/components/GameView";
+import { GameScreen } from "@/components/GameScreen";
+import type { ActiveReaction } from "@/components/GameView";
 import type { PrivateGameStateView } from "@zandar/shared-types";
 
 type ReactionEvent = {
@@ -345,16 +346,17 @@ export default function RoomPage() {
   if (gameState) {
     return (
       <>
-        <GameView
+        <GameScreen
           state={gameState}
           onPlayCard={handlePlayCard}
           onNextHand={handleNextHand}
           onRematch={handleRematch}
           onReact={handleReact}
+          onLeave={() => router.push("/")}
           activeReactions={activeReactions}
         />
         {autoPlayToast && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-orange-700 rounded px-4 py-2 z-50 max-w-md shadow-lg">
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-surface-raised border border-warn/40 text-white rounded-token-md px-4 py-2 z-50 max-w-md shadow-lg text-sm">
             {autoPlayToast}
           </div>
         )}

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { PublicPlayer } from "@zandar/shared-types";
 import { GameTable } from "@/components/GameTable";
 import { SeatChip } from "@/components/SeatChip";
+import { TurnTimer } from "@/components/TurnTimer";
 import { arrangeSeats } from "@/lib/seating";
 
 /**
@@ -26,6 +27,9 @@ type TableSeatsProps = {
   handCounts: Record<string, number>;
   /** key = playerId (2P/3P) ili "team-N" (4P) — per-igrač samo u 2P/3P */
   capturedCounts: Record<string, number>;
+  /** Epoch ms za TurnTimer na aktivnom protivniku (B5). */
+  turnDeadline?: number;
+  turnTotalSeconds?: number;
   table?: ReactNode;
   hand?: ReactNode;
 };
@@ -36,6 +40,8 @@ export function TableSeats({
   currentPlayerId,
   handCounts,
   capturedCounts,
+  turnDeadline,
+  turnTotalSeconds,
   table,
   hand,
 }: TableSeatsProps) {
@@ -49,15 +55,25 @@ export function TableSeats({
     variant: "full" | "compact",
   ): ReactNode {
     if (!p) return undefined; // prazno → GameTable placeholder
+    const isCurrentTurn = currentPlayerId === p.id;
     return (
       <SeatChip
         displayName={p.displayName}
         cardCount={handCounts[p.id] ?? 0}
         capturedCount={capturedCounts[p.id]}
-        isCurrentTurn={currentPlayerId === p.id}
+        isCurrentTurn={isCurrentTurn}
         connectionStatus={p.connectionStatus}
         teamId={p.teamId}
         variant={variant}
+        timer={
+          isCurrentTurn && turnDeadline != null ? (
+            <TurnTimer
+              deadline={turnDeadline}
+              totalSeconds={turnTotalSeconds}
+              size="sm"
+            />
+          ) : undefined
+        }
       />
     );
   }
