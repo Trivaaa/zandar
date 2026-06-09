@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { PwaManager } from "@/components/PwaManager";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,6 +24,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "bs_BA",
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Žandar",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 // viewport-fit=cover — notch/home-indicator safe areas (DS §6, §1.5)
@@ -43,7 +54,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <PwaManager />
+      </body>
     </html>
   );
 }
