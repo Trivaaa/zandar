@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { quickPlay, getRoom } from "@/lib/api";
 import type { RoomPlayer } from "@/lib/api";
 import { saveSession } from "@/lib/session";
-import { SeatPuck, SEAT_COLORS } from "@/components/SeatPuck";
+import { MatchingTable } from "@/components/MatchingTable";
 
 // ---- constants ----
 
@@ -50,7 +50,7 @@ export default function BrzaPage() {
 
   // matching state
   const [stage, setStage] = useState<Stage>("input");
-  const [statusText, setStatusText] = useState("Tražimo igrače...");
+  const [statusText, setStatusText] = useState("Pripremamo sto...");
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(0);
@@ -79,7 +79,7 @@ export default function BrzaPage() {
     localStorage.setItem(NAME_KEY, name);
     setSavedName(name);
     setStage("searching");
-    setStatusText("Tražimo igrače...");
+    setStatusText("Pripremamo sto...");
     setFormError(null);
 
     // Min-duration timer — enforce theatre floor of 3 s
@@ -118,6 +118,7 @@ export default function BrzaPage() {
 
       setPlayers(sorted);
       roomReady.current = true;
+      setStatusText("Igrači sjedaju...");
       setStage("animating");
     } catch {
       clearTimeout(minTimer);
@@ -261,77 +262,14 @@ export default function BrzaPage() {
   }
 
   // ---- render: matching phase (searching / animating / done / slow) ----
+  // "Sto se postavlja" — ovalni sto sa sjedištima okolo (DS §7.3).
   return (
-    <main className="min-h-screen bg-gradient-to-b from-green-900 via-green-950 to-zinc-950 text-white flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-xs space-y-8 text-center">
-
-        {/* Status text */}
-        <div className="space-y-1 min-h-[56px] flex flex-col items-center justify-center">
-          <p
-            className={[
-              "text-lg font-semibold transition-colors duration-500",
-              stage === "done" ? "text-yellow-400" : "text-white",
-            ].join(" ")}
-          >
-            {statusText}
-          </p>
-          <p className="text-zinc-500 text-sm tabular-nums">
-            Spremni: {revealed}/4
-          </p>
-        </div>
-
-        {/* Seat pucks */}
-        <div className="flex justify-center gap-3">
-          {Array.from({ length: 4 }).map((_, i) => {
-            const player = players[i] ?? null;
-            const filled = i < revealed;
-            const isMe = player?.id === myPlayerId;
-            return (
-              <SeatPuck
-                key={i}
-                player={player}
-                isMe={isMe}
-                filled={filled}
-                seatIndex={i}
-              />
-            );
-          })}
-        </div>
-
-        {/* Join log — slides in as seats are revealed */}
-        <div className="space-y-1.5 min-h-[80px] text-left">
-          {players.slice(0, revealed).map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center gap-2 text-sm text-zinc-300 animate-fade-in"
-            >
-              <span
-                className={`w-2 h-2 rounded-full shrink-0 ${
-                  SEAT_COLORS[p.seatIndex] ?? "bg-zinc-500"
-                }`}
-              />
-              <span>
-                <strong className="text-white">{p.displayName}</strong>
-                {p.id === myPlayerId ? " (ti)" : " se pridružio"}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className={[
-                "w-2 h-2 rounded-full transition-all duration-300",
-                i < revealed ? "bg-yellow-500 scale-110" : "bg-zinc-700",
-              ].join(" ")}
-            />
-          ))}
-        </div>
-
-      </div>
-    </main>
+    <MatchingTable
+      players={players}
+      myPlayerId={myPlayerId}
+      revealed={revealed}
+      statusText={statusText}
+      done={stage === "done"}
+    />
   );
 }
