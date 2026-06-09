@@ -32,9 +32,9 @@ packages/shared-types TS types shared by web + server
 | Bot server integration — turn driving, auto-next-hand, bot reactions, per-tier timing (PRD §41, M9/M10) | main | bots drive turns internally; never trip AFK timer |
 | Quick Play endpoint — instant bot-fill, human-human matching window | main | `POST /api/quickplay`; 4P/21 fixed |
 | Home page redizajn — name input, remember-name, dominant CTA (PRD §49.1) | main | `/` — "Igra – nađi sto" |
-| Matching screen `/matching/[roomId]` — staggered seat reveal, 3–5s theatre (PRD §49.2) | main | used by private-room mid-flow |
+| Matching screen — **oval "sto se postavlja"** (skica), seats around felt table, DS §7.3 copy ("Pripremamo sto…" / "Igrači sjedaju…"); no counter/search/join-log | main | shared `components/MatchingTable.tsx` used by `/brza` + `/matching/[roomId]`; preview `/dev/matching`. Supersedes old flat-row reveal |
 | v3.2 cleanup — single-player removed, Quick Play simplified to 4P/21 | main | `/practice` deleted; `/api/singleplayer` removed |
-| QuickMatchScreen `/brza` — name input + animated matching in one page (PRD §49, Design §7.3) | main | merged |
+| QuickMatchScreen `/brza` — name input → oval matching table | main | merged; matching faza koristi `MatchingTable` |
 | RulesModal — full pravila Žandara | main | opened via "? Pravila" in GameView |
 | PostHog analytics, Sentry, OG metadata, CORS multi-origin | main | |
 
