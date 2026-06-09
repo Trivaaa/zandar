@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -23,6 +23,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "bs_BA",
   },
+};
+
+// viewport-fit=cover — notch/home-indicator safe areas (DS §6, §1.5)
+export const viewport: Viewport = {
+  themeColor: "#18181b",
+  viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
