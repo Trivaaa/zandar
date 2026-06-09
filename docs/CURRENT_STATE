@@ -45,12 +45,13 @@ packages/shared-types TS types shared by web + server
 | **A1** — design tokens + Tailwind v4 mapping + safe-area + viewport-fit + hover-guard | main | `app/globals.css`; no hex in new code |
 | **A2** — positional grid shell `GameTable` (named areas, 2P/3P/4P, card-wrap) | main | `components/GameTable.tsx`; preview `/dev/table` |
 | **B1** — `SeatChip` (~56px, bot-agnostičan; turn ring, status, auto-play, 4P team border, identity fade) | main | `components/SeatChip.tsx`; preview `/dev/seat` |
+| **B2** — positional seats: `arrangeSeats` + `TableSeats` (SeatChips into partner/oppL/oppR from public state) | main | `lib/seating.ts`, `components/TableSeats.tsx`; preview `/dev/table` (Seats toggle) |
 
 ### 🔶 Partial / in progress
 
 | Item | Status |
 |---|---|
-| Design System Faza B (sto + interakcija) | A-faza done; **B1 done**. Next: B2 (populate grid slots with SeatChip), then B3–B8 |
+| Design System Faza B (sto + interakcija) | A-faza done; **B1+B2 done** (4P responsive fix — verify on real phone via `/dev/table`). Next: B3 (HandArea + Card, fluid tap), then B4–B8. Live `GameView` još koristi staru flat-list; pozicijski layout se integriše kad B3–B8 slegnu |
 | DDA (dynamic difficulty) | Config types exist (`DDAConfig`); adjustment logic not implemented |
 | Onboarding win-curve by session number | Config tables in PRD; not wired to session tracking |
 
@@ -100,4 +101,4 @@ When a feature slice is completed or scope changes, update this file: move items
 
 ✅ Bot engine → ✅ name generator → ✅ bot server integration + Quick Play → ✅ bot reactions/timing → ✅ home/matching redesign (v3.2) → ✅ merge feat/quick-match.
 
-**Design System frontend build (docs/DESIGN_SYSTEM.md §11):** ✅ A1 tokens → ✅ A2 positional grid → ✅ B1 SeatChip → **[next]** B2 (populate grid slots; then stop & check 4P on a real phone) → rest of Faza B (B3–B8 interakcija/timer/score/reactions/edge) → Faza C (brza + bot sloj) → Faza D (PWA + reconnect). Still pending from backlog: abandon UI, reconnect/persistence (gate before real-user validation).
+**Design System frontend build (docs/DESIGN_SYSTEM.md §11):** ✅ A1 tokens → ✅ A2 positional grid → ✅ B1 SeatChip → ✅ B2 positions (check 4P on a real phone via `/dev/table`) → **[next]** B3 HandArea + Card (fluid tap) → rest of Faza B (B4–B8 capture/timer/score/reactions/edge) → Faza C (brza + bot sloj) → Faza D (PWA + reconnect). Still pending from backlog: abandon UI, reconnect/persistence (gate before real-user validation).
