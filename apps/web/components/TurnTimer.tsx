@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 type TurnTimerProps = {
   deadline: number;
   totalSeconds?: number;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "arc";
 };
 
 function tone(ratio: number): { text: string; bar: string } {
@@ -36,7 +36,8 @@ export function TurnTimer({
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
-    setNow(Date.now());
+    // Ne postavljamo sinhrono — interval drži now; prvi render (now=null) je
+    // determinističan iz props-a (pun timer) → SSR-safe, bez cascading rendera.
     const id = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(id);
   }, []);
@@ -49,6 +50,41 @@ export function TurnTimer({
 
   // Pred istek (danger) — blagi puls za hitnost.
   const urgency = ratio < 0.25 ? "animate-status-blink" : "";
+
+  // ── arc: polu-luk iznad avatara, hue green→red, zadnjih 5s crveno ──
+  if (size === "arc") {
+    const r = 26;
+    const len = Math.PI * r; // dužina polu-luka
+    const visible = len * ratio;
+    // hue 120 (zeleno) → 0 (crveno) po preostalom vremenu; ≤5s = crveno
+    const hue = remainingMs <= 5000 ? 0 : Math.min(120, Math.round(120 * ratio));
+    const color = `hsl(${hue} 72% 48%)`;
+    const path = "M 6 32 A 26 26 0 0 1 58 32";
+    return (
+      <svg
+        className={`absolute left-1/2 -translate-x-1/2 -top-3 w-16 h-9 overflow-visible pointer-events-none ${remainingMs <= 5000 ? "animate-status-blink" : ""}`}
+        viewBox="0 0 64 36"
+        aria-label={`${seconds} sekundi za potez`}
+      >
+        <path
+          d={path}
+          fill="none"
+          stroke="rgba(255,255,255,0.12)"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+        <path
+          d={path}
+          fill="none"
+          stroke={color}
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={`${visible} ${len}`}
+          style={{ transition: "stroke-dasharray 0.25s linear, stroke 0.25s linear" }}
+        />
+      </svg>
+    );
+  }
 
   if (size === "sm") {
     return (
