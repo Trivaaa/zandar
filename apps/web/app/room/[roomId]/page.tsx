@@ -160,17 +160,34 @@ export default function RoomPage() {
       setTimeout(() => setAutoPlayToast(null), 3500);
     }
 
-    if (s.connected) {
-      handleConnect();
-    } else {
-      s.on("connect", handleConnect);
-    }
+    // Uvijek slušaj connect → re-subscribe na SVAKI (re)connect socket.io-a
+    // (auto-reconnect transporta). Prije je listener falio ako smo već povezani.
+    s.on("connect", handleConnect);
     s.on("disconnect", handleDisconnect);
     s.on("room:update", handleRoomUpdate);
     s.on("room:joinRequested", handleJoinRequested);
     s.on("game:state", handleGameState);
     s.on("game:reaction", handleReaction);
     s.on("game:autoPlay", handleAutoPlay);
+    if (s.connected) handleConnect(); // već povezan na mount-u
+
+    // Page-lifecycle reconnect (Faza D2): na povratak u foreground / online,
+    // debounce ~500ms pa re-subscribe (i reconnect ako je socket mrtav) →
+    // server pošalje svjež state. Bitno za mobilni (WhatsApp/Viber background).
+    let resumeTimer: ReturnType<typeof setTimeout> | null = null;
+    function resume() {
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => {
+        if (!s.connected) s.connect();
+        else subscribe();
+      }, 500);
+    }
+    function onVisible() {
+      if (document.visibilityState === "visible") resume();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", resume);
+    window.addEventListener("pageshow", resume);
 
     return () => {
       s.off("connect", handleConnect);
@@ -180,6 +197,10 @@ export default function RoomPage() {
       s.off("game:state", handleGameState);
       s.off("game:reaction", handleReaction);
       s.off("game:autoPlay", handleAutoPlay);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", resume);
+      window.removeEventListener("pageshow", resume);
+      if (resumeTimer) clearTimeout(resumeTimer);
     };
   }, [roomId, session]);
 
