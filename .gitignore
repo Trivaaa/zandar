@@ -10,3 +10,6 @@ build/
 .vscode/
 .idea/
 coverage/
+# Persistence snapshots (file adapter)
+.data/
+**/.data/

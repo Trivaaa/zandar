@@ -20,6 +20,8 @@ import {
   getAllRooms,
   getRoom,
   hashToken,
+  hydrateRooms,
+  persistRoom,
   storeRoom,
   verifyToken,
   type JoinRequest,
@@ -297,6 +299,8 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
     req.status = "approved";
     req.playerId = playerId;
     req.sessionToken = sessionToken;
+
+    persistRoom(room); // novi igrač u lobby-ju → preživi restart
 
     io.to(roomId).emit("room:update");
 
@@ -1010,6 +1014,9 @@ async function broadcastGameState(roomId: string): Promise<void> {
       }
     }
   }
+
+  // Perzistuj svjež state (debounce) — preživi restart servera.
+  persistRoom(room);
 }
 
 async function autoNextHand(roomId: string): Promise<void> {
@@ -1353,6 +1360,27 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+// Hydrate perzistirane sobe (preživi restart) + re-arm bot poteza za partije
+// koje su bile u toku. Human turn timer se NE pokreće dok se igrač ne vrati
+// (room:subscribe → broadcastGameState ga pokrene) — da ne auto-play-uje odsutne.
+try {
+  const restoredIds = await hydrateRooms();
+  if (restoredIds.length > 0) {
+    fastify.log.info(`♻ Restored ${restoredIds.length} room(s) from persistence`);
+    for (const id of restoredIds) {
+      const room = getRoom(id);
+      if (room?.gameState?.phase === "playing") {
+        const cp = room.gameState.players.find(
+          (p) => p.id === room.gameState!.currentPlayerId,
+        );
+        if (cp?.isBot) scheduleBotMove(id);
+      }
+    }
+  }
+} catch (err) {
+  fastify.log.error(`Hydrate failed (nastavljam in-memory): ${err}`);
+}
 
 try {
   await fastify.listen({
