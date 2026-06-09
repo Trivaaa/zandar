@@ -62,7 +62,8 @@ packages/shared-types TS types shared by web + server
 | **Integracija** — `GameScreen` (sve B-komponente) zamijenio flat-list `GameView` u `/room/[roomId]` | main | `components/GameScreen.tsx`; preview `/dev/game`. `GameView` ostaje fallback (1-line revert) |
 | **Full-felt raspored** — cijeli ekran felt, igrači po ivicama, centralna play-zona, ruka-lepeza (po referentnim igrama) | main | `SeatBubble` + `HandFan` + `TableArea bare`; skica `/dev/felt`. Zamjenjuje grid. Vidi DS changelog v3.1→v3.2 |
 | **UX fixes** (feedback s telefona) | main | tap-to-play (2. tap = potez), play-zona uža (bez preklapanja), poleđine kod protivnika, jasniji timer |
-| **Polish** | main | arc timer (polu-luk iznad logoa, zeleno→crveno), bočni backs horizontalno/veći/centrirani, mikro-animacije (card-in) |
+| **Polish** | main | arc timer (zeleno→crveno), bočni backs horizontalno/veći/centrirani, mikro-animacije (card-in) |
+| **Timer vidljivost** (feedback s telefona) | main | turn timer = **debeo luk koji prianja uz gornju ivicu avatara** (koncentrično, po referenci INVITÉ 6.) umjesto tankog odvojenog luka → jasno ko je na potezu |
 | **C4 — anti-leak straža** | main | `lib/antiLeak.ts` dev guard; web ne čita isBot, server whitelist-uje PublicPlayer → čisto |
 | **Reconnect (Faza D2)** | main | room/[roomId]: visibilitychange/online/pageshow → debounce + re-subscribe (+reconnect ako mrtav) → svjež state. Fixed: connect listener uvijek registrovan. Server već vraća connected + re-emit |
 | **Persistence — sobe preživljavaju restart** | main | `persistence.ts` adapter + **file-snapshot** (atomski JSON/soba); `rooms.ts` serialize/hydrate; persist u broadcastGameState+approve; startup hydrate + bot re-arm. **Verifikovano lokalno** (restart → restored). Postgres adapter pending (pg install blokiran cert-om) |
