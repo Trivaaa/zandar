@@ -38,7 +38,7 @@ packages/shared-types TS types shared by web + server
 | RulesModal — full pravila Žandara | main | opened via "? Pravila" in GameView |
 | PostHog analytics, Sentry, OG metadata, CORS multi-origin | main | |
 
-#### Design System v3.1 frontend build (docs/DESIGN_SYSTEM.md §9)
+#### Design System v3.2 frontend build (docs/DESIGN_SYSTEM.md §11)
 
 | Slice | Branch | Notes |
 |---|---|---|
@@ -53,15 +53,23 @@ packages/shared-types TS types shared by web + server
 | **B7** — `ReactionFab` floating reakcije (collapsed FAB → 8 emojija → emit; 2s cooldown; off u pauzi) | main | `components/ReactionFab.tsx`; preview `/dev/reactions` |
 | **B8** — `PauseAbandonOverlay` (pause banner / abandon-vote modal / abandoned full-screen — nikad prazno) | main | `components/PauseAbandonOverlay.tsx`; preview `/dev/pause`. Pokriva i abandon-UI backlog |
 
+> **Faza B KOMPLETNA (B1–B8)** — svi token-only, bot-agnostični, `/dev/*` preview-i.
+
+#### In-game integracija + full-felt redizajn (v3.2)
+
+| Slice | Branch | Notes |
+|---|---|---|
+| **Integracija** — `GameScreen` (sve B-komponente) zamijenio flat-list `GameView` u `/room/[roomId]` | main | `components/GameScreen.tsx`; preview `/dev/game`. `GameView` ostaje fallback (1-line revert) |
+| **Full-felt raspored** — cijeli ekran felt, igrači po ivicama, centralna play-zona, ruka-lepeza (po referentnim igrama) | main | `SeatBubble` + `HandFan` + `TableArea bare`; skica `/dev/felt`. Zamjenjuje grid. Vidi DS changelog v3.1→v3.2 |
+| **UX fixes** (feedback s telefona) | main | tap-to-play (2. tap = potez), play-zona uža (bez preklapanja), poleđine kod protivnika, jasniji timer |
+| **Polish** | main | arc timer (polu-luk iznad logoa, zeleno→crveno), bočni backs horizontalno/veći/centrirani, mikro-animacije (card-in) |
+| **C4 — anti-leak straža** | main | `lib/antiLeak.ts` dev guard; web ne čita isBot, server whitelist-uje PublicPlayer → čisto |
+
 ### 🔶 Partial / in progress
 
 | Item | Status |
 |---|---|
-| Design System Faza B (sto + interakcija) | **KOMPLETNA — B1–B8 done** (svi token-only, bot-agnostični, `/dev/*` preview-i) |
-| **Faza B integracija** — `GameScreen` (sve B-komponente) zamijenio flat-list `GameView` u `/room/[roomId]` | main | `components/GameScreen.tsx`; preview `/dev/game`. `GameView` ostaje kao fallback (1-line revert) |
-| **Full-felt in-game raspored** — redizajn po referentnim igrama (cijeli ekran felt, igrači po ivicama, centralna play-zona, ruka kao lepeza) | main | `SeatBubble` + `HandFan` + `TableArea bare`; skica `/dev/felt`. Zamjenjuje grid (kutije). Vidi DESIGN_SYSTEM changelog v3.1→v3.2 |
-| **In-game UX fixes** (feedback s telefona) | main | 1) **tap-to-play** (2. tap karte izvrši jednoznačan potez) — fix za "karta ne ode"; 2) play-zona uža → nema preklapanja s bočnim igračima; 3) **poleđine karata** kod protivnika; 4) jasniji timer. **#1 na telefonu = za retest** |
-| **In-game polish** (dotjerivanje) | main | 1) turn timer kao **polu-luk iznad logoa** (zeleno→crveno, zadnjih 5s crveno) `TurnTimer size="arc"`; 2) bočni backs **horizontalno + veći + centrirani**; 3) **mikro-animacije** (card-in na stolu; capture-flash pripremljen). End-to-end + telefon = za retest |
+| **Live verifikacija in-game ekrana** | typecheck/lint/dev-preview ✅; **end-to-end (socket/backend) + pravi telefon = u toku** (tap-to-play retest) |
 | DDA (dynamic difficulty) | Config types exist (`DDAConfig`); adjustment logic not implemented |
 | Onboarding win-curve by session number | Config tables in PRD; not wired to session tracking |
 
@@ -69,7 +77,6 @@ packages/shared-types TS types shared by web + server
 
 | Item | Why / notes |
 |---|---|
-| ~~Abandon phase UI~~ | ✅ riješeno — `PauseAbandonOverlay` (B8) integrisan u `GameScreen`; `abandoned` je sad pun ekran, ne prazno |
 | **PostgreSQL persistence** | `rooms` is an in-memory `Map`; server restart loses all state |
 | `/zandar/room/:id` route | Prompt references this path; current route is `/room/[roomId]`; needs decision |
 | iOS localStorage eviction | Guest session can be lost on Safari low-memory; no server fallback |
