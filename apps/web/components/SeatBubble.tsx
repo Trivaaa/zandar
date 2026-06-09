@@ -20,11 +20,34 @@ type SeatBubbleProps = {
   connectionStatus: ConnectionStatus;
   teamId?: number;
   isMe?: boolean;
+  /** Prikaži lepezu poleđina (broj karata protivnika, kao u referencama). */
+  showBacks?: boolean;
   /** TurnTimer (B5) kad je na potezu. */
   timer?: ReactNode;
   /** Apsolutno pozicioniranje (npr. "top-3 left-1/2 -translate-x-1/2"). */
   className?: string;
 };
+
+/** Mini lepeza poleđina — vizuelni broj karata (generičke, bez info-leak-a). */
+function BackFan({ count }: { count: number }) {
+  const shown = Math.min(count, 7);
+  const mid = (shown - 1) / 2;
+  return (
+    <div className="flex justify-center">
+      {Array.from({ length: shown }).map((_, i) => (
+        <div
+          key={i}
+          className="w-4 h-6 rounded-[3px] bg-surface-raised border border-accent/30 shadow-sm"
+          style={{
+            marginLeft: i === 0 ? 0 : -9,
+            transform: `rotate(${(i - mid) * 5}deg)`,
+            transformOrigin: "bottom center",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 function teamBorder(teamId?: number): string {
   if (teamId === 0) return "border-team-a";
@@ -39,6 +62,7 @@ export function SeatBubble({
   connectionStatus,
   teamId,
   isMe = false,
+  showBacks = false,
   timer,
   className = "",
 }: SeatBubbleProps) {
@@ -71,6 +95,8 @@ export function SeatBubble({
           />
         )}
       </div>
+
+      {showBacks && cardCount > 0 && <BackFan count={cardCount} />}
 
       {isCurrentTurn && timer ? (
         <div className="leading-none">{timer}</div>

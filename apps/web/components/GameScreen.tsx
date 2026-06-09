@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getCaptureOptions } from "@zandar/game-core";
 import type {
   Card as CardType,
   CaptureOption,
@@ -112,8 +113,17 @@ export function GameScreen({
   function handleTrail() {
     if (selectedCard) void play(selectedCard.id, []);
   }
+  // Prvi tap: selekcija/lift. Drugi tap iste karte: izvrši ako je jednoznačno
+  // (trail bez capture-a / jedan capture). Više opcija → tapni grupu na stolu.
   function handleSelect(card: CardType) {
-    setSelectedId((id) => (id === card.id ? null : card.id));
+    if (!myTurn || busy) return;
+    if (selectedId === card.id) {
+      const opts = getCaptureOptions(card, state.table);
+      if (opts.length === 0) return void play(card.id, []);
+      if (opts.length === 1) return void play(card.id, opts[0]!.cardIds);
+      return; // multi-capture: izbor grupe je na stolu
+    }
+    setSelectedId(card.id);
   }
 
   async function runAction(fn: () => Promise<void>) {
@@ -141,7 +151,7 @@ export function GameScreen({
 
   function seatTimer(isTurn: boolean) {
     return isTurn && turnDeadline != null ? (
-      <TurnTimer deadline={turnDeadline} size="sm" />
+      <TurnTimer deadline={turnDeadline} size="md" />
     ) : undefined;
   }
 
@@ -161,6 +171,7 @@ export function GameScreen({
           isCurrentTurn={state.currentPlayerId === seats.partner.id}
           connectionStatus={seats.partner.connectionStatus}
           teamId={seats.partner.teamId}
+          showBacks
           timer={seatTimer(state.currentPlayerId === seats.partner.id)}
           className="top-3 left-1/2 -translate-x-1/2 mt-safe-top"
         />
@@ -173,8 +184,9 @@ export function GameScreen({
           isCurrentTurn={state.currentPlayerId === seats.oppL.id}
           connectionStatus={seats.oppL.connectionStatus}
           teamId={seats.oppL.teamId}
+          showBacks
           timer={seatTimer(state.currentPlayerId === seats.oppL.id)}
-          className="top-[40%] left-2 -translate-y-1/2"
+          className="top-[34%] left-1 -translate-y-1/2"
         />
       )}
       {/* Protivnik desno */}
@@ -185,13 +197,14 @@ export function GameScreen({
           isCurrentTurn={state.currentPlayerId === seats.oppR.id}
           connectionStatus={seats.oppR.connectionStatus}
           teamId={seats.oppR.teamId}
+          showBacks
           timer={seatTimer(state.currentPlayerId === seats.oppR.id)}
-          className="top-[40%] right-2 -translate-y-1/2"
+          className="top-[34%] right-1 -translate-y-1/2"
         />
       )}
 
       {/* Centralna play-zona — odigrane karte + capture/trail */}
-      <div className="absolute top-[44%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[82%] max-w-[300px] z-10">
+      <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[64%] max-w-[230px] z-10">
         <div className="rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]">
           <TableArea
             bare
