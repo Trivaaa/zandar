@@ -1,4 +1,4 @@
-# Kartaonica — Design System v3.1
+# Kartaonica — Design System v3.2
 
 > **Naziv igre: Tablić - Žandar** (prvi game) · mobile-first + PWA · ijekavica
 > Bazira se na: PRD v2.0 + PRD v3.2 (AI sloj / Brza partija + home/matching redizajn)
@@ -21,6 +21,19 @@
 
 ---
 
+## Changelog (v3.1 → v3.2 — in-game raspored, posle playtesta na telefonu)
+
+| Promjena | Opis |
+|----------|------|
+| **Full-felt raspored** umjesto boxed grid-a | Implementirano po referentnim card-game aplikacijama: **cijeli ekran je felt** (bez kutija), igrači plutaju po ivicama, centralna **play-zona** za odigrane karte, ruka kao **lepeza (fan)** na dnu. Zamjenjuje pozicijski *grid sa named-areas* (§1.1/§1.5). Orijentacija igrača (ti dole / partner gore / protivnici lijevo-desno) **ostaje** ista. Komp.: `GameScreen` + `SeatBubble` + `HandFan` + `TableArea bare`; matching već koristi isti felt jezik (`MatchingTable`). |
+| **Poleđine karata se prikazuju** (revizija §1.4) | Protivnicima se broj karata prikazuje kao **lepeza poleđina** (generičke, bez info-leak-a) — kao u referencama. Ranije pravilo "NE renderovati poleđine" je **opozvano** (bila kozmetička odluka; backs su anonimne pa ne krše anti-leak). |
+| **Tap-to-play** (dopuna §4.1) | 1. tap karte = selekcija/lift + highlight opcija; **2. tap iste karte = izvrši jednoznačan potez** (trail / jedan capture). Destinacijski tap na stolu i dalje radi; drugi-tap je pouzdan fallback (touch promašaji). Više opcija → tapni grupu na stolu. |
+| **Jasniji turn timer** | Timer na čipu = broj + traka (ne samo broj). |
+
+> Napomena: §1.1 i §1.5 (grid sa named-areas) su **superseded** za in-game ekran full-felt pristupom; ostaju kao istorijska referenca. `GameTable`/`TableSeats` (grid) i dalje postoje za `/dev/table`, ali live igra koristi `GameScreen` felt-canvas.
+
+---
+
 ## Dva noseća principa
 
 1. **Struktura prije skina.** Gradiš UX sa neutralnim design tokenima. Ex-Yu UI dolazi kasnije kao zamjena vrijednosti tokena, ne strukture.
@@ -31,6 +44,8 @@ Alat ostaje: tvoj kod + ovaj spec su source of truth. Bez Figme/Lovable. Claude 
 ---
 
 ## 1. Layout sistem — pozicijski (mobile-first)
+
+> ⚠️ **v3.2:** in-game ekran je implementiran kao **full-felt canvas** (cijeli ekran felt, igrači po ivicama, centralna play-zona, ruka-lepeza), NE kao grid sa named-areas. Vidi changelog v3.1→v3.2. Orijentacija igrača ispod (ti dole / partner gore / protivnici lijevo-desno) i dalje važi; mijenja se samo *kako* se renderuje (apsolutno pozicioniranje na feltu umjesto CSS grid kutija). §1.5 (grid) je superseded.
 
 ### 1.1 Tri zone + pozicije
 
@@ -62,18 +77,22 @@ Nema dva odvojena layouta. Isti pozicijski grid; skaliraš veličinu čipova. Na
 - **Score pill** — gornji ugao, kompaktan, tap otvara breakdown.
 - **Reactions FAB** — donji desni ugao, tap širi 8 emojija.
 
-### 1.4 Seat chip (kompaktni igrač)
+### 1.4 Seat chip / Seat bubble (kompaktni igrač)
 
-Zamjena za trenutne velike panele. Visina ~56px umjesto ~150px. Renderuje se IDENTIČNO za čovjeka i bota. Sadrži:
-- Avatar (krug)
+Renderuje se IDENTIČNO za čovjeka i bota. Dvije realizacije:
+- **`SeatChip`** (pill, ~56px) — za grid layout / `/dev` previewe.
+- **`SeatBubble`** (krug) — **in-game (full-felt) standard, v3.2**: kružni avatar + count badge + turn ring + timer + team-color border + connection status.
+
+Sadrži:
+- Avatar (krug; inicijal dok nema slike)
 - Ime (truncate)
-- Badge broja karata u ruci (npr. `4`) — NE renderovati 4 velike poleđine
+- **Broj karata** — count badge **+ lepeza poleđina** (v3.2; generičke, bez info-leak-a). *(Ranije pravilo "NE renderovati poleđine" je opozvano — vidi changelog.)*
 - Brojač kupljenih karata (mali)
-- Turn ring + timer kad je na potezu
+- Turn ring + timer (broj + traka) kad je na potezu
 - Connection status (`connected` / `reconnecting` / `auto-play`) — botovi su uvijek `connected`
 - 4P: suptilni team-color border
 
-Bočni protivnici (4P) su uža varijanta: avatar + count badge + turn ring, bez punog imena ako nema mjesta (ime u tooltip/expand).
+Bočni protivnici (4P) su uža varijanta: avatar + count + turn ring, bez punog imena ako nema mjesta.
 
 ### 1.5 CSS Grid + safe areas
 
@@ -129,12 +148,11 @@ Neutralno stilizovano (tokeni), jasna stanja. Game-agnostic gdje može (kartaoni
 
 ## 4. Interakcijski patterni (standardi, ne izmišljanje)
 
-1. **Fluid tap, NE drag, NE confirm dugme.** Tap karte u ruci = selekcija/lift. **Destinacijski tap je potvrda:**
-   - Trail: tap kartu → tap prazan dio stola.
-   - Jednoznačan capture: tap kartu → tap grupu/sto → izvrši odmah.
-   - Više opcija: svaka validna grupa je zasebno tapabilna; tap grupe = izvrši taj capture.
+1. **Fluid tap, NE drag, NE confirm dugme.** Tap karte u ruci = selekcija/lift. **Potvrda poteza (v3.2 — dva pouzdana puta):**
+   - **Drugi tap iste karte** = izvrši jednoznačan potez (trail / jedan capture). Pouzdan na touchu.
+   - **Destinacijski tap** na stolu: trail = tap prazan/sto; jednoznačan capture = tap grupu; više opcija = svaka grupa zasebno tapabilna.
    - Force capture: trail blokiran kad postoji obavezan capture (inline poruka).
-   - Undo se **ne gradi** (multiplayer trošak); destinacijski tap je dovoljna zaštita. Revidiraj samo ako playtest pokaže J-misklik rage.
+   - Undo se **ne gradi** (multiplayer trošak); potvrda tapom je dovoljna zaštita. Revidiraj samo ako playtest pokaže J-misklik rage.
 2. **Capture highlight.** Selektovana karta → validne grupe na stolu zasvijetle prije nego potvrdiš.
 3. **Turn clarity.** Aktivni čip = turn ring + timer NA čipu. Tvoja ruka glow kad je tvoj red, dim kad nije.
 4. **Reactions kao FAB.** Floating dole-desno, ne stalna traka.
