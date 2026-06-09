@@ -1,7 +1,7 @@
 # CLAUDE.md — Žandar (Kartaonica)
 
 > Standing rules for this project. Loaded automatically at the start of every Claude Code session.
-> Spec / source of truth: `docs/PRD_Zandar_v3.md` (currently v3.2). Status snapshot: `docs/CURRENT_STATE.md`.
+> Spec / source of truth: `docs/PRD_Zandar-v3-1.md` (currently v3.2). Status snapshot below.
 > Read the relevant PRD section before implementing; flag any deviation.
 
 ---
@@ -19,11 +19,43 @@ packages/game-core    Pure TS game engine (no UI, no network)
 packages/shared-types TS types shared by web + server
 ```
 
-## Current state
+---
 
-See `docs/CURRENT_STATE.md` — the single source of truth for what's done / partial / not-done and what's next. Do not duplicate that list here.
+## Current state — last updated 2026-06-09
 
-In short: the engine (tested, 2/3/4 players) and the WebSocket multiplayer core already work — **build on them; do not scaffold from scratch or rewrite working code.** The v3 AI features, reconnect/persistence, and the home/matching redesign are not built yet.
+### ✅ Done
+
+| Slice | Branch | Notes |
+|---|---|---|
+| Bot engine — `selectBotMove`, 3 tiers, BotConfig (PRD §40) | main | 18 unit tests; seeded, deterministic |
+| Identity generator — `generateBotIdentity`, dedup, profanity filter (PRD §39) | main | 20 tests; DoD distribution ±4% |
+| Bot server integration — turn driving, auto-next-hand, bot reactions, per-tier timing (PRD §41, M9/M10) | main | bots drive turns internally; never trip AFK timer |
+| Quick Play endpoint — instant bot-fill, human-human matching window | main | `POST /api/quickplay`; 4P/21 fixed |
+| Home page redizajn — name input, remember-name, dominant CTA (PRD §49.1) | main | `/` — "Igra – nađi sto" |
+| Matching screen `/matching/[roomId]` — staggered seat reveal, 3–5s theatre (PRD §49.2) | main | used by private-room mid-flow |
+| v3.2 cleanup — single-player removed, Quick Play simplified to 4P/21 | main | `/practice` deleted; `/api/singleplayer` removed |
+| **QuickMatchScreen `/brza`** — name input + animated matching in one page (PRD §49, Design §7.3) | **feat/quick-match** | **NOT merged to main yet** |
+| RulesModal — full pravila Žandara | main | opened via "? Pravila" in GameView |
+| PostHog analytics, Sentry, OG metadata, CORS multi-origin | main | |
+
+### 🔶 Partial / in progress
+
+| Item | Status |
+|---|---|
+| `feat/quick-match` branch | Built, pushed, **awaiting merge to main** |
+| DDA (dynamic difficulty) | Config types exist (`DDAConfig`); adjustment logic not implemented |
+| Onboarding win-curve by session number | Config tables in PRD; not wired to session tracking |
+
+### ❌ Not done
+
+| Item | Why / notes |
+|---|---|
+| **Abandon phase UI** | `GameView` shows blank when `phase === "abandoned"` — needs a screen |
+| **PostgreSQL persistence** | `rooms` is an in-memory `Map`; server restart loses all state |
+| `/zandar/room/:id` route | Prompt references this path; current route is `/room/[roomId]`; needs decision |
+| iOS localStorage eviction | Guest session can be lost on Safari low-memory; no server fallback |
+| Human-over-bot mid-game replacement (PRD §38.4) | Complex; not started |
+| Bot reactions — "regulari" persona pool (PRD §39.5) | Post-MVP polish |
 
 ---
 
@@ -31,12 +63,12 @@ In short: the engine (tested, 2/3/4 players) and the WebSocket multiplayer core 
 
 1. **Server is the referee.** The client never decides what is a legal move. All moves go through server-side `applyMove`.
 2. **Bots play ONLY legal moves** and always respect force-capture (PRD §36.3). Difficulty comes purely from move-selection quality (noise / blunder probability / J timing / lookahead) — **never** from breaking or bending the rules.
-3. **`isBot` / `botProfile` NEVER reach the client.** `PublicPlayer` / public state must strip them. A bot-leak is a hidden-information leak, same severity as leaking another player's hand. Add/keep a test that fails if either field appears in any client payload.
+3. **`isBot` / `botProfile` NEVER reach the client.** `PublicPlayer` / public state must strip them. A bot-leak is a hidden-information leak, same severity as leaking another player's hand.
 4. **Bots are server-driven actors** that go through the same validation as humans. Bots must **never** trip the AFK / auto-play / turn-timer system.
 5. **Bots are human-presenting in-game.** Never show the word "bot" or any AI hint anywhere in the UI. When a human takes over a bot seat, the UI says only `"[nickname] je otišao"` (PRD §38.4). Disclosure lives only in the ToS.
-6. **Name generator** (PRD §39): realistic ex-Yu identities; no duplicate name at a table; recency per user (don't show the same identity to the same user again soon); **mandatory** profanity/hate blocklist including nationalist/ethnic slurs; gender↔avatar consistency; identity stable for the whole match.
+6. **Name generator** (PRD §39): realistic ex-Yu identities; no duplicate name at a table; recency per user; **mandatory** profanity/hate blocklist including nationalist/ethnic slurs; gender↔avatar consistency; identity stable for the whole match.
 7. **Difficulty, DDA, and the onboarding win-curve are CONFIG, not hardcoded** (PRD §40.3–40.5). Tunable from a config object.
-8. **Coins stay cosmetic and non-cashable.** Never introduce cashable currency or real-money wagering — it would pull the product into gambling regulation and make bots-vs-money fraud.
+8. **Coins stay cosmetic and non-cashable.** Never introduce cashable currency or real-money wagering.
 9. **Game rules (PRD §6) are LOCKED.** Do not change gameplay rules.
 
 ---
@@ -48,17 +80,14 @@ In short: the engine (tested, 2/3/4 players) and the WebSocket multiplayer core 
 - **Tests:** follow the existing game-core test style and fixtures. Never regress an existing test. New logic ships with tests.
 - **Plan first** for any non-trivial change: output a short plan + list of files to add/change, and wait for approval before mass-editing.
 - **One feature branch per slice** (e.g. `feat/bot-engine`). Keep diffs minimal and reviewable.
-- **Scope discipline:** implement only the slice asked for; don't pull in adjacent v3 features unprompted.
+- **Scope discipline:** implement only the slice asked for; don't pull in adjacent features unprompted.
 - **Language:** match existing code conventions (code/comments). User-facing copy is ijekavica.
+- **Single-player is cut** (v3.2) — do not build it.
 
 ## Status maintenance
 
-When a feature slice is completed or scope changes, update `docs/CURRENT_STATE.md`: move items between Done / Partial / Not-done, update the "in progress / next" marker, and bump the "Last updated" date. Keep it concise. If this hasn't been done by the end of a working session, do it before wrapping up.
+When a feature slice is completed or scope changes, update this file: move items between Done / Partial / Not-done, update the "Last updated" date. Keep it concise.
 
-## Implementation order (agreed)
+## Implementation order (agreed, v3.2)
 
-Bot engine (PRD §36, §40, §42) → name generator (§39) → bot-backfill into live rooms (§38) → Quick Play + home/matching redesign (§37, §49).
-
-- **Reconnect + persistence** (§7.8, §20–21) is a **gate that must land before Quick Play with real users** and before any quantitative validation. It may wait behind the bot work, but not past that point.
-- **Single-player is cut** (v3.2) — do not build it.
-- **Disconnect/abandon** needs only a small client-UI fix (~0.5d: render abandoned state + offline indicator); do not build the pause/vote ceremony.
+✅ Bot engine → ✅ name generator → ✅ bot server integration + Quick Play → ✅ bot reactions/timing → ✅ home/matching redesign (v3.2) → **[next]** merge feat/quick-match → abandon UI → reconnect/persistence (gate before real-user validation).
