@@ -151,7 +151,7 @@ export function GameScreen({
 
   function seatTimer(isTurn: boolean) {
     return isTurn && turnDeadline != null ? (
-      <TurnTimer deadline={turnDeadline} size="arc" />
+      <TurnTimer deadline={turnDeadline} size="pill" />
     ) : undefined;
   }
 

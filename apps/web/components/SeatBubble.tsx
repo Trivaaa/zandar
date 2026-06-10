@@ -110,6 +110,9 @@ export function SeatBubble({
       className={`absolute flex flex-col items-center gap-1 ${dimmed ? "opacity-50" : ""} ${className}`}
       data-current-turn={isCurrentTurn}
     >
+      {/* Turn timer — pilula IZNAD ikonice; samo kad je na potezu (DS B5 v2) */}
+      {isCurrentTurn && timer ? <div className="mb-0.5">{timer}</div> : null}
+
       <div className="relative">
         <div
           className={`w-14 h-14 rounded-full bg-surface-raised border-2 ${teamBorder(teamId)} ${ring} flex items-center justify-center text-lg font-bold shadow-lg select-none`}
@@ -128,8 +131,6 @@ export function SeatBubble({
             aria-label="veza se vraća"
           />
         )}
-        {/* Arc timer — PRIANJA uz gornju ivicu avatara, na vrhu (z-top) */}
-        {isCurrentTurn && timer}
       </div>
 
       {showBacks && cardCount > 0 && (

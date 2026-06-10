@@ -973,46 +973,45 @@ async function handleTurnTimeout(roomId: string): Promise<void> {
 async function broadcastGameState(roomId: string): Promise<void> {
   const room = getRoom(roomId);
   if (!room || !room.gameState) return;
-  const socketsInRoom = await io.in(roomId).fetchSockets();
+  const gs = room.gameState;
 
-  const deadline = turnDeadlines.get(roomId);
-
-  for (const socket of socketsInRoom) {
-    const viewerPlayerId = socket.data.playerId;
-    if (typeof viewerPlayerId !== "string") continue;
-    const privateState = buildPrivateGameStateView(
-      room.gameState,
-      viewerPlayerId,
-    );
-    // Attach turn deadline (kao server timestamp)
-    socket.emit("game:state", {
-      ...privateState,
-      turnDeadline: deadline,
-    });
-  }
-
-  // Route timer: bots get their own move timer; humans get the AFK turn timer.
-  if (room.gameState.phase === "playing") {
-    const currentPlayer = room.gameState.players.find(
-      (p) => p.id === room.gameState!.currentPlayerId,
-    );
+  // Rutiranje timera + postavljanje roka poteza ZA PRIKAZ. Rok se šalje za
+  // SVAKI aktivni potez — i čovjeka i bota (puni turnTimeoutSeconds). Bot odigra
+  // brzo unutar toga (kao brz čovjek) → timer izgleda isto za sve (anti-leak).
+  // Rok se čita POSLE rutiranja → tačan je za aktuelni potez (ne kasni jedan tur).
+  if (gs.phase === "playing") {
+    const currentPlayer = gs.players.find((p) => p.id === gs.currentPlayerId);
     if (currentPlayer?.isBot) {
-      clearTurnTimer(roomId);
+      clearTurnTimer(roomId); // bot nema AFK timeout
+      turnDeadlines.set(
+        roomId,
+        Date.now() + gs.rulesConfig.turnTimeoutSeconds * 1000,
+      );
       scheduleBotMove(roomId);
     } else {
       clearBotTimer(roomId);
-      startTurnTimer(roomId);
+      startTurnTimer(roomId); // postavlja rok + AFK timeout
     }
   } else {
     clearTurnTimer(roomId);
     clearBotTimer(roomId);
     // Auto-advance hand_finished in bot games after 4 s
-    if (room.gameState.phase === "hand_finished") {
-      const hasBots = room.gameState.players.some((p) => p.isBot);
+    if (gs.phase === "hand_finished") {
+      const hasBots = gs.players.some((p) => p.isBot);
       if (hasBots) {
         setTimeout(() => void autoNextHand(roomId), 4000);
       }
     }
+  }
+
+  const deadline =
+    gs.phase === "playing" ? turnDeadlines.get(roomId) : undefined;
+  const socketsInRoom = await io.in(roomId).fetchSockets();
+  for (const socket of socketsInRoom) {
+    const viewerPlayerId = socket.data.playerId;
+    if (typeof viewerPlayerId !== "string") continue;
+    const privateState = buildPrivateGameStateView(gs, viewerPlayerId);
+    socket.emit("game:state", { ...privateState, turnDeadline: deadline });
   }
 
   // Perzistuj svjež state (debounce) — preživi restart servera.
