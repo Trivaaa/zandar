@@ -8,6 +8,7 @@ import {
   approveJoinRequest,
   rejectJoinRequest,
   startGame,
+  setBotFill,
   type RoomInfo,
   type PendingJoinRequest,
 } from "@/lib/api";
@@ -58,6 +59,7 @@ export default function RoomPage() {
     null,
   );
   const [starting, setStarting] = useState(false);
+  const [botFillLoading, setBotFillLoading] = useState(false);
   const [activeReactions, setActiveReactions] = useState<ActiveReaction[]>([]);
   const [autoPlayToast, setAutoPlayToast] = useState<string | null>(null);
 
@@ -255,6 +257,25 @@ export default function RoomPage() {
       );
     } finally {
       setStarting(false);
+    }
+  }
+
+  async function handleToggleBotFill() {
+    if (!session || !room) return;
+    setBotFillLoading(true);
+    try {
+      await setBotFill(
+        roomId,
+        session.playerId,
+        session.sessionToken,
+        !room.botFill,
+      );
+      // room:update stiže preko socket-a; osvježi i odmah za svaki slučaj
+      setRefreshTrigger((n) => n + 1);
+    } catch (err) {
+      alert("Greška: " + (err instanceof Error ? err.message : "Nepoznato"));
+    } finally {
+      setBotFillLoading(false);
     }
   }
 
@@ -514,6 +535,32 @@ export default function RoomPage() {
               </div>
             ))}
           </div>
+
+          {isHost && (
+            <button
+              disabled={botFillLoading}
+              onClick={handleToggleBotFill}
+              className={`w-full px-4 py-2.5 rounded font-semibold mb-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                room.botFill
+                  ? "bg-zinc-700 hover:bg-zinc-600 text-white"
+                  : "bg-green-700 hover:bg-green-600 text-white"
+              }`}
+              type="button"
+            >
+              {botFillLoading
+                ? "..."
+                : room.botFill
+                  ? "🤖 Ukloni botove"
+                  : "🤖 Popuni mjesta botovima"}
+            </button>
+          )}
+
+          {isHost && room.botFill && (
+            <p className="text-xs text-zinc-400 mb-2 text-center">
+              Prazna mjesta popunjavaju protivnici. Ljudi koji se pridruže
+              zauzimaju njihovo mjesto.
+            </p>
+          )}
 
           {isHost ? (
             <button

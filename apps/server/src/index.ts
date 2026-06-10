@@ -144,6 +144,8 @@ fastify.get<{ Params: { roomId: string } }>(
       playerCount: room.rulesConfig.playerCount,
       targetScore: room.rulesConfig.targetScore,
       slotsAvailable: room.rulesConfig.playerCount - room.players.length,
+      // Room-level zastavica (NE per-player isBot) — host UI prikazuje toggle.
+      botFill: room.botFill ?? false,
     };
   },
 );
@@ -273,7 +275,13 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
         .code(409)
         .send({ error: `Zahtjev nije pending: ${req.status}` });
     }
+
+    // Ljudi imaju prioritet nad botovima: kad je bot-fill uključen, oslobodi
+    // bot-sjedišta da bi novi čovjek mogao da uđe (kasnije se opet popuni).
+    if (room.botFill) removeBotsFromRoom(room);
+
     if (room.players.length >= room.rulesConfig.playerCount) {
+      if (room.botFill) fillSeatsWithBots(room); // vrati botove ako nije bilo mjesta
       return reply.code(409).send({ error: "Soba je puna" });
     }
 
@@ -295,6 +303,9 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
 
     room.players.push(newPlayer);
     room.sessionTokens.set(playerId, hashToken(sessionToken));
+
+    // Bot-fill ON → popuni preostala prazna mjesta nazad botovima (soba ostaje puna).
+    if (room.botFill) fillSeatsWithBots(room);
 
     req.status = "approved";
     req.playerId = playerId;
@@ -368,6 +379,9 @@ fastify.post<{ Params: { roomId: string }; Body: KickBody }>(
         p.teamId = idx % 2;
       }
     });
+
+    // Bot-fill ON → oslobođeno mjesto se opet popuni botom.
+    if (room.botFill) fillSeatsWithBots(room);
 
     io.to(roomId).emit("room:update");
 
@@ -619,6 +633,53 @@ fastify.post<{ Params: { roomId: string }; Body: StartBody }>(
   },
 );
 
+// ---- HOST BOT-FILL (C3) ----
+
+type BotFillBody = {
+  playerId: string;
+  sessionToken: string;
+  enabled: boolean;
+};
+
+fastify.post<{ Params: { roomId: string }; Body: BotFillBody }>(
+  "/api/rooms/:roomId/bot-fill",
+  async (request, reply) => {
+    const { roomId } = request.params;
+    const { playerId, sessionToken, enabled } = request.body;
+
+    const room = getRoom(roomId);
+    if (!room) {
+      return reply.code(404).send({ error: "Soba ne postoji" });
+    }
+    if (!verifyToken(room, playerId, sessionToken)) {
+      return reply.code(401).send({ error: "Nevalidan token" });
+    }
+    if (playerId !== room.hostPlayerId) {
+      return reply.code(403).send({ error: "Samo host može popuniti botovima" });
+    }
+    if (room.status !== "waiting") {
+      return reply
+        .code(409)
+        .send({ error: "Bot-fill je dozvoljen samo prije start-a igre" });
+    }
+
+    // Uvijek kreni od čistih (samo ljudi) sjedišta pa popuni ako je uključeno —
+    // ljudi imaju prioritet, botovi popunjavaju ostatak.
+    removeBotsFromRoom(room);
+    if (enabled) fillSeatsWithBots(room);
+    room.botFill = enabled;
+
+    persistRoom(room);
+    io.to(roomId).emit("room:update");
+
+    fastify.log.info(
+      `→ Bot-fill ${enabled ? "ON" : "OFF"} room ${roomId} (${room.players.length}/${room.rulesConfig.playerCount})`,
+    );
+
+    return { success: true, botFill: enabled, players: room.players.length };
+  },
+);
+
 // ---- SOCKET.IO ----
 
 await fastify.ready();
@@ -862,8 +923,9 @@ function fillSeatsWithBots(
   const slots = room.rulesConfig.playerCount - room.players.length;
   if (slots <= 0) return;
 
+  // Imena za stolom (ljudi + postojeći botovi) → izbjegni duplikate kod novih botova.
   const atTable = new Set(room.players.map((p) => p.displayName));
-  const identities = generateTableIdentities(slots, new Set(), () => Math.random());
+  const identities = generateTableIdentities(slots, atTable, () => Math.random());
 
   for (let i = 0; i < slots; i++) {
     const seatIndex = room.players.length;
@@ -888,7 +950,18 @@ function fillSeatsWithBots(
     // Bots don't have session tokens — they are server-driven
     room.players.push(botPlayer);
   }
-  void atTable; // suppress lint
+}
+
+/**
+ * Uklanja sve botove iz lobby sobe i renumerira sjedišta/timove (C3).
+ * Botovi nemaju session token, pa nema dodatnog čišćenja. Samo prije start-a.
+ */
+function removeBotsFromRoom(room: LobbyRoom): void {
+  room.players = room.players.filter((p) => !p.isBot);
+  room.players.forEach((p, idx) => {
+    p.seatIndex = idx;
+    if (room.rulesConfig.playerCount === 4) p.teamId = idx % 2;
+  });
 }
 
 function startBotGame(room: LobbyRoom): void {

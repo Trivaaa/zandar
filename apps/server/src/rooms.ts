@@ -34,6 +34,11 @@ export type LobbyRoom = {
   createdAt: number;
   /** Javni stolovi (Quick Play) — vidljivi matchmakeru. */
   isPublic?: boolean;
+  /**
+   * Host bot-fill (C3): kad je true, prazna mjesta se drže popunjena botovima
+   * dok se ne pridruže ljudi (ljudi imaju prioritet — zauzimaju mjesto bota).
+   */
+  botFill?: boolean;
 };
 
 const rooms = new Map<string, LobbyRoom>();

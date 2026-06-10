@@ -18,6 +18,8 @@ export type RoomInfo = {
   playerCount: number;
   targetScore: number;
   slotsAvailable: number;
+  /** Host bot-fill (C3): prazna mjesta popunjena botovima. */
+  botFill: boolean;
 };
 
 export type CreateRoomResponse = {
@@ -164,6 +166,24 @@ export async function startGame(
     throw new Error(err.error || "Greška");
   }
 }
+/** Host bot-fill (C3): uključi/isključi popunjavanje praznih mjesta botovima. */
+export async function setBotFill(
+  roomId: string,
+  playerId: string,
+  sessionToken: string,
+  enabled: boolean,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/bot-fill`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerId, sessionToken, enabled }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
+  }
+}
+
 export type QuickPlayResponse = {
   roomId: string;
   playerId: string;
