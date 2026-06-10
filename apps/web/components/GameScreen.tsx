@@ -156,8 +156,11 @@ export function GameScreen({
   }
 
   return (
+    // Outer surround: na desktopu felt-stage se centrira, ostatak je tamna
+    // podloga. Na mobilu (stage = w-full) izgleda identično kao prije.
+    <div className="h-[100dvh] w-full bg-surface flex justify-center">
     <div
-      className="relative h-[100dvh] w-full overflow-hidden bg-felt"
+      className="relative h-full w-full max-w-[600px] overflow-hidden bg-felt md:shadow-2xl md:ring-1 md:ring-black/40"
       style={{
         backgroundImage:
           "radial-gradient(120% 90% at 50% 28%, rgba(255,255,255,0.06), transparent 55%), radial-gradient(140% 130% at 50% 125%, rgba(0,0,0,0.45), transparent 60%)",
@@ -205,8 +208,9 @@ export function GameScreen({
         />
       )}
 
-      {/* Centralna play-zona — odigrane karte + capture/trail */}
-      <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[64%] max-w-[230px] z-10">
+      {/* Centralna play-zona — odigrane karte + capture/trail.
+          Desktop (md): šira da se karte ne gomilaju u usku kolonu. */}
+      <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[64%] max-w-[230px] md:max-w-[380px] z-10">
         <div className="rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]">
           <TableArea
             bare
@@ -362,6 +366,7 @@ export function GameScreen({
       )}
 
       <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
+    </div>
     </div>
   );
 }
