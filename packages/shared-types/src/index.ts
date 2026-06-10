@@ -93,10 +93,25 @@ export type BotIdentity = {
  * Profil bota: identitet, tier vještine i ponašanje tokom partije.
  * SAMO server-side — nikad se ne šalje klijentu.
  */
+/** Raspon kašnjenja poteza (ms), iz kojeg se uniformno bira. */
+export type BotMoveTimingBand = { minMs: number; maxMs: number };
+
+/**
+ * Kašnjenje bot poteza po situaciji (§41.1):
+ * - firstMove: prvi potez nakon svakog dijeljenja (pune ruke) — botu treba malo da "sagleda" sto.
+ * - normal: svaki ostali potez.
+ * - lastCard: kad botu ostane samo jedna karta — odluka je trivijalna, igra brzo.
+ */
+export type BotMoveTiming = {
+  firstMove: BotMoveTimingBand;
+  normal: BotMoveTimingBand;
+  lastCard: BotMoveTimingBand;
+};
+
 export type BotProfile = {
   identity: BotIdentity;
   tier: BotSkillTier;
-  timing: { minMs: number; maxMs: number };
+  timing: BotMoveTiming;
   reactionProbability: number;
   personaId?: string;
 };

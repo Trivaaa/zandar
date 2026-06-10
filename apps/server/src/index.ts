@@ -10,7 +10,7 @@ import {
   generateTableIdentities,
   selectBotMove,
 } from "@zandar/game-core";
-import type { Player } from "@zandar/shared-types";
+import type { BotMoveTiming, BotSkillTier, Player } from "@zandar/shared-types";
 import {
   createPlayerId,
   createRequestId,
@@ -661,6 +661,28 @@ const ABANDON_TIMEOUT_MS = 2 * 60 * 1000;
 // roomId → timeout. Kad je bot na potezu, server interno odigra potez.
 const botMoveTimers = new Map<string, NodeJS.Timeout>();
 
+// Kašnjenje bot poteza po situaciji i tieru (§41.1). Globalni okviri (zahtjev):
+//   firstMove 3–5s, normal 2.5–7s, lastCard 1.5–2.5s — randomizirano unutar benda.
+// Tier zadržava "ličnost": tier 1 = impulsivan (brži kraj), tier 3 = promišljen
+// (sporiji kraj), uvijek unutar globalnih okvira.
+const BOT_MOVE_TIMING: Record<BotSkillTier, BotMoveTiming> = {
+  1: {
+    firstMove: { minMs: 3000, maxMs: 4000 },
+    normal:    { minMs: 2500, maxMs: 5000 },
+    lastCard:  { minMs: 1500, maxMs: 2000 },
+  },
+  2: {
+    firstMove: { minMs: 3300, maxMs: 4500 },
+    normal:    { minMs: 3000, maxMs: 6000 },
+    lastCard:  { minMs: 1600, maxMs: 2200 },
+  },
+  3: {
+    firstMove: { minMs: 3800, maxMs: 5000 },
+    normal:    { minMs: 3500, maxMs: 7000 },
+    lastCard:  { minMs: 1800, maxMs: 2500 },
+  },
+};
+
 function clearBotTimer(roomId: string): void {
   const t = botMoveTimers.get(roomId);
   if (t) { clearTimeout(t); botMoveTimers.delete(roomId); }
@@ -674,12 +696,22 @@ function scheduleBotMove(roomId: string): void {
   const player = room.gameState.players.find((p) => p.id === pid);
   if (!player?.isBot || !player.botProfile) return;
 
-  const { minMs, maxMs } = player.botProfile.timing;
-  // Skaliraj kašnjenje prema veličini ruke — više karata = duže "razmišljanje" (§41.1)
+  const timing = player.botProfile.timing;
   const handSize = room.gameState.hands[pid]?.length ?? 4;
-  const complexityScale = 1 + (handSize - 1) * 0.07; // max ~1.28× na punoj ruci
-  const scaledMax = Math.min(maxMs * complexityScale, 5500);
-  const delay = minMs + Math.random() * (scaledMax - minMs);
+  // Prvi potez nakon (re)dijeljenja: svi igrači imaju pune ruke (niko još nije
+  // odigrao iz svježe podijeljene grupe) → botu treba malo da sagleda novi sto.
+  const cardsPerDeal = room.gameState.rulesConfig.cardsPerDeal;
+  const isFirstMoveOfDeal = room.gameState.players.every(
+    (p) => (room.gameState!.hands[p.id]?.length ?? 0) === cardsPerDeal,
+  );
+
+  // Izbor benda po situaciji (§41.1). 1 karta ima prioritet — odluka je trivijalna.
+  const band =
+    handSize <= 1 ? timing.lastCard
+    : isFirstMoveOfDeal ? timing.firstMove
+    : timing.normal;
+
+  const delay = band.minMs + Math.random() * (band.maxMs - band.minMs);
   const timer = setTimeout(() => void driveBotTurn(roomId), delay);
   botMoveTimers.set(roomId, timer);
 }
@@ -849,11 +881,7 @@ function fillSeatsWithBots(
         identity,
         tier,
         // Per-tier timing personality (§41.1): tier 1 = impulsivan, tier 3 = promišljen
-        timing: tier === 1
-          ? { minMs: 700,  maxMs: 2500 }
-          : tier === 3
-          ? { minMs: 2000, maxMs: 5200 }
-          : { minMs: 1300, maxMs: 3800 },
+        timing: BOT_MOVE_TIMING[tier],
         reactionProbability: 0.12,
       },
     };
