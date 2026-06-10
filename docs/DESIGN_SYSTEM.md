@@ -412,12 +412,17 @@ Cilj: sto da "živi" — svaki bitan događaj ima čujni/opipljivi/vidljivi odgo
 | `animate-card-in` (postojeće) | nova karta na stolu (trail-settle) | scale+slide ulaz |
 | `animate-capture-flash` | običan capture | kratki zlatni inset-sjaj play-zone (0.5s) |
 | `animate-jack-sweep` | J-sweep (čišćenje stola) | jači/duži sjaj + blagi `scale` (0.7s) |
-| capture **fly-to-pile** | bilo koji capture | ghost kartica iz `[data-play-zone]` ka `[data-seat-id]` kupca (Web Animations API, element na `document.body` da NE pregazi `-translate` sjedišta; samočisteće, `pointer-events-none`) |
+| **collect** (`collectToPile`) | bilo koji capture | STVARNE karte iz `MoveReveal`-a (`[data-reveal-card]`) odlete ka `[data-seat-id]` kupca (Web Animations API, `fill:forwards`, staggered; samočisteće, `pointer-events-none`) |
+| **reakcija** (emoji) | igrač reaguje | emoji-bubble uz `SeatBubble` pošiljaoca (iznad avatara; ispod za gornje sjedište) |
 | deal "iz špila" | — | **ODGOĐENO** (nema deck-sidra; WAAPI transform bi razbio centriranje sjedišta — traži zaseban dizajn) |
 
-- **Sidra:** `[data-play-zone]` na play-zoni, `[data-seat-id]` na `SeatBubble` (uz postojeći `data-current-turn`).
+- **Sidra:** `[data-seat-id]` na `SeatBubble` (uz postojeći `data-current-turn`); `[data-reveal-card]` na karticama u `MoveReveal`-u.
 - Keyframes u `globals.css`; svaka nova ide i u `prefers-reduced-motion` blok.
 
-### 12.4 Zvuk i haptika
-- **Haptika:** `navigator.vibrate` (guard `'vibrate' in navigator` → **iOS Safari = no-op**). Patterni: tvoj-red, moje kupljenje (byMe), nevažeća akcija.
-- **Zvuk:** event-driven SFX, master On/Off, autoplay-unlock na prvi gest, throttle. **Asseti pending** (Faza 2) — handleri za `trail/deal/handEnd/matchEnd` su već u event sloju, prazni.
+### 12.4 Move reveal (`MoveReveal`)
+- Server šalje `PrivateGameStateView.lastMove` (odigrana + pokupljene karte; javno). Banner iznad play-zone ~1.8s: **ko / koju kartu / šta pokupio** (ŽANDAR ima poseban prikaz). Na kraju (za capture) karte **collect**-uju u pile kupca.
+- Rješava "karte samo nestanu, ne zna se šta se desilo".
+
+### 12.5 Zvuk i haptika
+- **Haptika:** `navigator.vibrate` (guard `'vibrate' in navigator` → **iOS Safari = no-op**). Patterni: tvoj-red, moje kupljenje (byMe), nevažeća akcija; potvrda na paljenje preklopke.
+- **Zvuk:** **sintetizovani SFX** preko Web Audio (`lib/sound.ts`, bez asseta) — tonovi+šum+envelope; `place/capture/sweep/turn/deal/win/lose`. Master On/Off, autoplay-unlock na prvi gest, throttle. Lako se kasnije zamijeni pravim samplovima (ista `playSfx` površina).
