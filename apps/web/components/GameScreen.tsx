@@ -80,11 +80,15 @@ export function GameScreen({
 
   // Feedback sloj (§50.6): jedinstvena detekcija događaja pokreće capture-flash i
   // haptiku (a u Fazi 2 i zvuk). Capture-flash je keyed overlay u play-zoni.
-  const [flashKey, setFlashKey] = useState(0);
+  const [flash, setFlash] = useState<{ key: number; sweep: boolean }>({
+    key: 0,
+    sweep: false,
+  });
   const handleGameEvent = useCallback((event: GameEvent) => {
     switch (event.type) {
       case "capture":
-        setFlashKey((k) => k + 1); // zasvijetli play-zonu
+        // J-sweep dobija jači flash (§50.5); običan capture standardni.
+        setFlash((f) => ({ key: f.key + 1, sweep: event.jackSweep }));
         if (event.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
         break;
       case "yourTurn":
@@ -240,11 +244,13 @@ export function GameScreen({
             onCapture={handleCapture}
             onTrail={handleTrail}
           />
-          {flashKey > 0 && (
+          {flash.key > 0 && (
             <span
-              key={flashKey}
+              key={flash.key}
               aria-hidden
-              className="pointer-events-none absolute inset-0 rounded-token-lg animate-capture-flash"
+              className={`pointer-events-none absolute inset-0 rounded-token-lg ${
+                flash.sweep ? "animate-jack-sweep" : "animate-capture-flash"
+              }`}
             />
           )}
         </div>
