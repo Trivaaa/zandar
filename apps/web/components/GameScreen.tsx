@@ -17,12 +17,14 @@ import { ReactionFab } from "@/components/ReactionFab";
 import { PauseAbandonOverlay } from "@/components/PauseAbandonOverlay";
 import { RulesModal } from "@/components/RulesModal";
 import { MoveReveal } from "@/components/MoveReveal";
+import { DeckPile } from "@/components/DeckPile";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { arrangeSeats } from "@/lib/seating";
 import { getReactionEmoji } from "@/lib/reactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
 import { playSfx } from "@/lib/sound";
 import { useGameEvents } from "@/lib/useGameEvents";
+import { dealFromDeck } from "@/lib/flyAnimation";
 import type { ActiveReaction } from "@/components/GameView";
 
 /**
@@ -117,6 +119,7 @@ export function GameScreen({
         break;
       case "deal":
         playSfx("deal");
+        dealFromDeck(); // poleđine lete iz špila ka svim igračima
         break;
       case "yourTurn":
         playSfx("turn");
@@ -334,6 +337,11 @@ export function GameScreen({
         targetScore={state.targetScore}
         handScores={state.handScores}
       />
+
+      {/* Špil — stanjuje se kako runde idu; sidro za deal animaciju. Pozicija tweakable. */}
+      {isPlaying && (
+        <DeckPile count={state.deckCount} className="bottom-[200px] right-3" />
+      )}
 
       {/* Move reveal — šta je zadnji potez uradio (ko/koja karta/šta pokupio) */}
       {isPlaying && <MoveReveal state={state} />}
