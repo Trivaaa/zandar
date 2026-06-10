@@ -68,7 +68,7 @@ export function Card({
 
   const classes = [
     dim,
-    "bg-white rounded-token-sm shadow flex flex-col justify-between p-1 select-none transition-transform",
+    "bg-white rounded-token-md shadow flex flex-col justify-between p-1 select-none transition-transform ring-1 ring-black/5",
     isRed ? "text-red-600" : "text-zinc-900",
     // selekcija: podignuta + accent ring
     selected ? "-translate-y-3 ring-2 ring-accent shadow-lg" : "",

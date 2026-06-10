@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { ConnectionStatus } from "@zandar/shared-types";
+import { CardBack } from "@/components/CardBack";
 
 /**
  * SeatBubble — kružni prikaz igrača za felt layout (DS v3.2, full-felt).
@@ -47,42 +48,42 @@ function BackFan({
   count: number;
   orientation: BacksOrientation;
 }) {
-  // Bočni igrači: veće, horizontalne karte (landscape), naslagane vertikalno.
+  // Bočni igrači: veće, horizontalne (landscape) poleđine, naslagane vertikalno.
   if (orientation !== "top") {
-    const shown = Math.min(count, 6);
+    const shown = Math.min(count, 5);
     const mid = (shown - 1) / 2;
     return (
       <div className="flex flex-col items-center">
         {Array.from({ length: shown }).map((_, i) => (
           <div
             key={i}
-            className="w-10 h-7 rounded-[4px] bg-surface-raised border border-accent/40 shadow-md"
             style={{
-              marginTop: i === 0 ? 0 : -18,
+              marginTop: i === 0 ? 0 : -22,
               transform: `rotate(${(i - mid) * 4}deg)`,
             }}
           >
-            <div className="m-1 h-[calc(100%-8px)] rounded-[2px] border border-accent/20" />
+            <CardBack size="sm" />
           </div>
         ))}
       </div>
     );
   }
-  // Partner (gore): vertikalne karte u redu.
-  const shown = Math.min(count, 7);
+  // Partner (gore): uspravne poleđine u blagom luku.
+  const shown = Math.min(count, 6);
   const mid = (shown - 1) / 2;
   return (
     <div className="flex justify-center">
       {Array.from({ length: shown }).map((_, i) => (
         <div
           key={i}
-          className="w-5 h-7 rounded-[3px] bg-surface-raised border border-accent/30 shadow-sm"
           style={{
-            marginLeft: i === 0 ? 0 : -10,
+            marginLeft: i === 0 ? 0 : -16,
             transform: `rotate(${(i - mid) * 5}deg)`,
             transformOrigin: "bottom center",
           }}
-        />
+        >
+          <CardBack size="xs" />
+        </div>
       ))}
     </div>
   );

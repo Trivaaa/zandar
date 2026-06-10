@@ -259,7 +259,7 @@ export function GameView({
                   {Array.from({ length: state.handCounts[p.id] ?? 0 }).map(
                     (_, i) => (
                       <div key={i} className="scale-[0.4] sm:scale-50 -mx-3 sm:-mx-3">
-                        <CardBack />
+                        <CardBack size="lg" />
                       </div>
                     ),
                   )}
