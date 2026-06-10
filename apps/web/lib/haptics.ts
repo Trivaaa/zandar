@@ -12,9 +12,10 @@ import { getHaptics } from "./settings";
 
 /** Orijentacioni patterni (ms). Broj = jedan puls; niz = vibracija/pauza/vibracija. */
 export const HAPTIC = {
-  turn: 15,
-  capture: [10, 30, 10],
+  turn: 25,
+  capture: [12, 30, 18],
   error: [40, 30, 40],
+  confirm: [20, 40, 40], // osjetna potvrda kod paljenja preklopke
 } as const;
 
 /** Da li uređaj uopšte podržava vibraciju (npr. false na iOS Safari). */

@@ -66,7 +66,7 @@ export function FeedbackToggles({ className }: { className?: string }) {
         onClick={() => {
           const next = !haptics;
           setHaptics(next);
-          if (next) vibrate(HAPTIC.turn); // potvrda (no-op ako nije podržano)
+          if (next) vibrate(HAPTIC.confirm); // osjetna potvrda (no-op ako nije podržano)
         }}
         className={`w-10 h-10 rounded-full flex items-center justify-center text-lg bg-black/30 transition ${
           !canVibrate
