@@ -21,6 +21,18 @@ export function buildPrivateGameStateView(
     capturedCounts[pileId] = state.captured[pileId]?.length ?? 0;
   }
 
+  // Zadnji potez (javno — otkrivene karte) za "move reveal" prikaz na klijentu.
+  const last = state.moveHistory.at(-1);
+  const lastMove = last
+    ? {
+        moveId: last.moveId,
+        playerId: last.playerId,
+        playedCard: last.playedCard,
+        capturedCards: last.capturedCards,
+        isAutoPlay: last.isAutoPlay,
+      }
+    : null;
+
   return {
     roomId: state.roomId,
     matchId: state.matchId,
@@ -46,5 +58,6 @@ export function buildPrivateGameStateView(
     handScores: state.handScores,
     myPlayerId: viewerPlayerId,
     myHand: state.hands[viewerPlayerId] ?? [],
+    lastMove,
   };
 }

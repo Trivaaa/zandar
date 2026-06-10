@@ -379,4 +379,16 @@ export type PrivateGameStateView = {
   handScores: HandScore[];
   myPlayerId: string;
   myHand: Card[];
+  /**
+   * Zadnji odigrani potez (javno — odigrana/pokupljene karte su otkrivene).
+   * Za vizuelni prikaz "ko je šta odigrao i šta je pokupio" (žandar/capture/trail).
+   * null na početku ruke (nema poteza). Žandar-sweep: playedCard.rank === "J" && capturedCards.length > 0.
+   */
+  lastMove?: {
+    moveId: string;
+    playerId: string;
+    playedCard: Card;
+    capturedCards: Card[];
+    isAutoPlay: boolean;
+  } | null;
 };

@@ -16,6 +16,7 @@ import { ScorePill } from "@/components/ScorePill";
 import { ReactionFab } from "@/components/ReactionFab";
 import { PauseAbandonOverlay } from "@/components/PauseAbandonOverlay";
 import { RulesModal } from "@/components/RulesModal";
+import { MoveReveal } from "@/components/MoveReveal";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { arrangeSeats } from "@/lib/seating";
 import { getReactionEmoji } from "@/lib/reactions";
@@ -328,6 +329,9 @@ export function GameScreen({
         targetScore={state.targetScore}
         handScores={state.handScores}
       />
+
+      {/* Move reveal — šta je zadnji potez uradio (ko/koja karta/šta pokupio) */}
+      {isPlaying && <MoveReveal state={state} />}
 
       {/* Overlay: rules (gornji lijevi) */}
       <button
