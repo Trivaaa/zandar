@@ -227,7 +227,7 @@ export function GameScreen({
   function seatTimer(isTurn: boolean) {
     if (dealing) return undefined; // dok karte "padaju" ne prikazuj timer
     return isTurn && turnDeadline != null ? (
-      <TurnTimer deadline={turnDeadline} size="pill" />
+      <TurnTimer deadline={turnDeadline} size="ring" />
     ) : undefined;
   }
 

@@ -39,8 +39,8 @@ export function collectToPile(
   const cards = container.querySelectorAll<HTMLElement>("[data-reveal-card]");
   if (cards.length === 0) return 0;
 
-  const DUR = 420;
-  const STAGGER = 45;
+  const DUR = 462;
+  const STAGGER = 50;
   cards.forEach((el, i) => {
     const from = centerOf(el.getBoundingClientRect());
     const dx = to.x - from.x;
@@ -122,8 +122,8 @@ function flyGhostCard(
  */
 const CARDS_PER_SEAT = 3;
 const CARDS_TO_TABLE = 4;
-const DEAL_FLIGHT_MS = 360;
-const DEAL_STEP_MS = 55; // razmak između uzastopnih karata (round-robin)
+const DEAL_FLIGHT_MS = 396;
+const DEAL_STEP_MS = 61; // razmak između uzastopnih karata (round-robin)
 
 export function dealFromDeck(): number {
   if (prefersReducedMotion() || typeof document === "undefined") return 0;

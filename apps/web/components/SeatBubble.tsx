@@ -111,7 +111,7 @@ export function SeatBubble({
   reactionBelow = false,
 }: SeatBubbleProps) {
   const ring = isCurrentTurn
-    ? "ring-2 ring-turn animate-turn-pulse"
+    ? "ring-2 ring-turn animate-turn-pulse scale-105"
     : "ring-1 ring-white/10";
   const dimmed = connectionStatus === "abandoned";
 
@@ -134,12 +134,21 @@ export function SeatBubble({
         </div>
       )}
 
-      {/* Turn timer — pilula IZNAD ikonice; samo kad je na potezu (DS B5 v2) */}
-      {isCurrentTurn && timer ? <div className="mb-0.5">{timer}</div> : null}
-
       <div className="relative">
+        {/* Turn countdown — kružni prsten OKO avatara (industrijski standard) */}
+        {isCurrentTurn && timer ? (
+          <div className="absolute -inset-[6px] z-0 pointer-events-none">{timer}</div>
+        ) : null}
         <div
-          className={`w-14 h-14 rounded-full bg-surface-raised border-2 ${teamBorder(teamId)} ${ring} flex items-center justify-center text-lg font-bold shadow-lg select-none`}
+          className={`relative z-10 w-14 h-14 rounded-full bg-surface-raised border-2 ${teamBorder(teamId)} ${ring} flex items-center justify-center text-lg font-bold shadow-lg select-none transition-transform`}
+          style={
+            isCurrentTurn
+              ? {
+                  boxShadow:
+                    "0 0 16px 3px color-mix(in srgb, var(--turn-ring) 55%, transparent)",
+                }
+              : undefined
+          }
         >
           {displayName.charAt(0).toUpperCase()}
         </div>

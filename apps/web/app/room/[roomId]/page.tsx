@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   getRoom,
@@ -105,14 +105,15 @@ export default function RoomPage() {
     };
   }, [session, room, roomId, refreshTrigger]);
 
-  useEffect(() => {
-    if (!session) return;
-
-    const s = getSocket();
-    setSocketStatus(s.connected ? "connected" : "connecting");
-
-    function subscribe() {
-      if (!session) return;
+  // Subscribe na sobu, promise-based (resolve-uje ok/ne-ok). Re-subscribe je
+  // bezbjedan i idempotentan na serveru (samo postavi socket.data + join).
+  const subscribeSocket = useCallback((): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (!session) {
+        resolve(false);
+        return;
+      }
+      const s = getSocket();
       s.emit(
         "room:subscribe",
         {
@@ -124,9 +125,53 @@ export default function RoomPage() {
           if (!res.ok) {
             console.error("Subscribe failed:", res.error);
             setSocketStatus("error");
+          } else {
+            setSocketStatus("connected");
           }
+          resolve(res.ok);
         },
       );
+    });
+  }, [roomId, session]);
+
+  // Emit game-akciju sa self-heal: ako socket nije subscribe-ovan (reconnect /
+  // restart servera nakon deploya), transparentno re-subscribe i pokušaj JEDNOM
+  // ponovo. U NOT_SUBSCRIBED slučaju potez nije primijenjen pa je retry siguran
+  // (stateVersion nepromijenjen; isti clientMoveId → idempotentno).
+  const emitAction = useCallback(
+    (event: string, payload: unknown): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        const s = getSocket();
+        const send = (canRetry: boolean) => {
+          s.emit(event, payload, (res: { ok: boolean; error?: string }) => {
+            if (res?.ok) {
+              resolve();
+              return;
+            }
+            if (res?.error === "NOT_SUBSCRIBED" && canRetry) {
+              void subscribeSocket().then((ok) => {
+                if (ok) send(false);
+                else reject(new Error("Veza izgubljena — pokušaj ponovo"));
+              });
+              return;
+            }
+            reject(new Error(res?.error || "Greška"));
+          });
+        };
+        send(true);
+      });
+    },
+    [subscribeSocket],
+  );
+
+  useEffect(() => {
+    if (!session) return;
+
+    const s = getSocket();
+    setSocketStatus(s.connected ? "connected" : "connecting");
+
+    function subscribe() {
+      void subscribeSocket();
     }
 
     function handleConnect() {
@@ -205,7 +250,7 @@ export default function RoomPage() {
       window.removeEventListener("pageshow", resume);
       if (resumeTimer) clearTimeout(resumeTimer);
     };
-  }, [roomId, session]);
+  }, [roomId, session, subscribeSocket]);
 
   async function handleApprove(requestId: string) {
     if (!session) return;
@@ -284,54 +329,21 @@ export default function RoomPage() {
     cardId: string,
     selectedCaptureCardIds: string[],
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!gameState) {
-        reject(new Error("Igra nije aktivna"));
-        return;
-      }
-      const s = getSocket();
-      s.emit(
-        "game:playCard",
-        {
-          cardId,
-          selectedCaptureCardIds,
-          clientMoveId: `move-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          clientKnownStateVersion: gameState.stateVersion,
-        },
-        (res: { ok: boolean; error?: string }) => {
-          if (res?.ok) resolve();
-          else reject(new Error(res?.error || "Greška"));
-        },
-      );
+    if (!gameState) throw new Error("Igra nije aktivna");
+    await emitAction("game:playCard", {
+      cardId,
+      selectedCaptureCardIds,
+      clientMoveId: `move-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      clientKnownStateVersion: gameState.stateVersion,
     });
   }
 
   async function handleNextHand(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const s = getSocket();
-      s.emit(
-        "game:nextHand",
-        {},
-        (res: { ok: boolean; error?: string }) => {
-          if (res?.ok) resolve();
-          else reject(new Error(res?.error || "Greška"));
-        },
-      );
-    });
+    await emitAction("game:nextHand", {});
   }
 
   async function handleRematch(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const s = getSocket();
-      s.emit(
-        "game:rematch",
-        {},
-        (res: { ok: boolean; error?: string }) => {
-          if (res?.ok) resolve();
-          else reject(new Error(res?.error || "Greška"));
-        },
-      );
-    });
+    await emitAction("game:rematch", {});
   }
 
   async function handleFindNewTable(): Promise<void> {
@@ -354,17 +366,7 @@ export default function RoomPage() {
   }
 
   async function handleReact(type: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const s = getSocket();
-      s.emit(
-        "game:react",
-        { type },
-        (res: { ok: boolean; error?: string }) => {
-          if (res?.ok) resolve();
-          else reject(new Error(res?.error || "Greška"));
-        },
-      );
-    });
+    await emitAction("game:react", { type });
   }
 
   function copyInviteLink() {

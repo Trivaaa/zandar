@@ -14,7 +14,7 @@ import { collectToPile } from "@/lib/flyAnimation";
  * Javni podaci iz `state.lastMove`; bot i čovjek isti prikaz (anti-leak).
  */
 
-const READ_MS = 1100;
+const READ_MS = 1210;
 
 export function MoveReveal({ state }: { state: PrivateGameStateView }) {
   const move = state.lastMove ?? null;

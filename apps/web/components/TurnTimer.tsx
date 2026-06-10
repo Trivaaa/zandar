@@ -8,7 +8,9 @@ import { useEffect, useState } from "react";
  * Renderuje se SAMO kad je proslijeđen (tj. to sjedište je na potezu).
  * Tri stanja boje: zeleno 100→50%, narandžasto 50→20%, crveno 20→0%.
  *
- * size="pill" — horizontalna pilula IZNAD avatara (glavni in-game prikaz).
+ * size="ring" — kružni countdown OKO avatara (industrijski standard za "ko je na
+ *   redu"); conic-gradient se prazni, boja po pragu. Glavni in-game prikaz (v3.2).
+ * size="pill" — horizontalna pilula IZNAD avatara (legacy/dev).
  * size="sm"/"md" — broj / broj+traka (dev/legacy).
  *
  * `deadline` je epoch ms (server-authoritative). `totalSeconds` je puni
@@ -18,7 +20,7 @@ import { useEffect, useState } from "react";
 type TurnTimerProps = {
   deadline: number;
   totalSeconds?: number;
-  size?: "sm" | "md" | "pill";
+  size?: "sm" | "md" | "pill" | "ring";
 };
 
 // Pragovi: zeleno ≥50%, narandžasto 50–20%, crveno <20%.
@@ -26,6 +28,13 @@ function tone(ratio: number): { text: string; bar: string } {
   if (ratio < 0.2) return { text: "text-danger", bar: "bg-danger" };
   if (ratio < 0.5) return { text: "text-warn", bar: "bg-warn" };
   return { text: "text-success", bar: "bg-success" };
+}
+
+// Boja kao CSS token-var (za inline conic-gradient / glow).
+function toneVar(ratio: number): string {
+  if (ratio < 0.2) return "var(--danger)";
+  if (ratio < 0.5) return "var(--warn)";
+  return "var(--success)";
 }
 
 export function TurnTimer({
@@ -52,6 +61,26 @@ export function TurnTimer({
 
   // Pred istek (danger) — blagi puls za hitnost.
   const urgency = ratio < 0.2 ? "animate-status-blink" : "";
+
+  // ── ring: kružni countdown OKO avatara (conic-gradient se prazni) ──
+  if (size === "ring") {
+    const color = toneVar(ratio);
+    const deg = ratio * 360;
+    return (
+      <div
+        className={`h-full w-full rounded-full ${urgency}`}
+        aria-label={`${seconds} sekundi za potez`}
+        style={{
+          // Preostali dio = boja praga; potrošeni = prigušena traka.
+          background: `conic-gradient(${color} ${deg}deg, color-mix(in srgb, var(--text) 16%, transparent) ${deg}deg 360deg)`,
+          // Maska pravi tanak prsten koji "grli" avatar spolja.
+          WebkitMask: "radial-gradient(circle, transparent 82%, #000 84%)",
+          mask: "radial-gradient(circle, transparent 82%, #000 84%)",
+          filter: `drop-shadow(0 0 5px color-mix(in srgb, ${color} 75%, transparent))`,
+        }}
+      />
+    );
+  }
 
   // ── pill: horizontalna pilula IZNAD avatara (fill se prazni, boja po pragu) ──
   if (size === "pill") {
