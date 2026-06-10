@@ -19,9 +19,17 @@ packages/game-core    Pure TS game engine (no UI, no network)
 packages/shared-types TS types shared by web + server
 ```
 
+## Deployment (Railway, GitHub auto-deploy)
+
+- **Hosting: Railway.** Server servis (`apps/server`) je povezan na GitHub repo `Trivaaa/zandar`, grana `main`, s **auto-deploy na push**. Nema CI skripte ni ručne deploy komande — `git push origin main` = build + redeploy.
+- **Server build/run:** Nixpacks · build `pnpm install --frozen-lockfile` · start `pnpm --filter=@zandar/server start` (= `tsx src/index.ts`). Region `iad`. Domen servisa: `zandar-test.up.railway.app`.
+- **Provjera deploya:** Railway dashboard → server servis → Deployments (svaki red = jedan push). Hash pored imena servisa je Railway **deployment ID**, NE git SHA (git SHA je pod "Deployed via GitHub").
+- **Web (`apps/web`):** hosting TBD (Next.js; Vercel ili zaseban Railway servis). `NEXT_PUBLIC_API_URL` se postavlja u env hosting platforme — **nije u repou** (lokalno pada na `http://localhost:3001`).
+- **⚠ Deploy = restart = hydrate.** Svaki deploy restartuje server, koji na startu hidrira perzistirane sobe (file-snapshot na Railway volumenu). Zato promjene oblika perzistiranih podataka MORAJU biti back-compat (vidi Code & workflow conventions).
+
 ---
 
-## Current state — last updated 2026-06-09
+## Current state — last updated 2026-06-10
 
 ### ✅ Done
 
@@ -82,7 +90,7 @@ packages/shared-types TS types shared by web + server
 
 | Item | Why / notes |
 |---|---|
-| **Postgres adapter za persistence** | File-snapshot radi (gore); Postgres `PersistenceAdapter` drop-in ostaje za kad `pg` može da se instalira (cert/registry blokiran u dev okruženju). Deploy = VM s persistent diskom (file-snapshot dovoljan zasad) |
+| **Postgres adapter za persistence** | File-snapshot radi (gore); Postgres `PersistenceAdapter` drop-in ostaje za kad `pg` može da se instalira (cert/registry blokiran u dev okruženju). Hosting = Railway (vidi Deployment sekciju); file-snapshot na Railway volumenu dovoljan zasad |
 | `/zandar/room/:id` route | Prompt references this path; current route is `/room/[roomId]`; needs decision |
 | iOS localStorage eviction | Guest session can be lost on Safari low-memory; no server fallback |
 | Human-over-bot mid-game replacement (PRD §38.4) | Complex; not started |
@@ -114,6 +122,7 @@ packages/shared-types TS types shared by web + server
 - **Scope discipline:** implement only the slice asked for; don't pull in adjacent features unprompted.
 - **Language:** match existing code conventions (code/comments). User-facing copy is ijekavica.
 - **Single-player is cut** (v3.2) — do not build it.
+- **Back-compat za perzistirane podatke.** Deploy na Railway = restart = hydrate soba (vidi Deployment). Mijenjanje oblika onoga što ide u snapshot (`botProfile`, `gameState`, `LobbyRoom`…) mora tolerisati **stari** oblik na hydrate-u, inače žive partije pucaju nakon deploya. Pouka: bot-stuck regresija 2026-06-10 — promjena `botProfile.timing` oblika je nakon deploya zaglavila botove u hidriranim sobama (`scheduleBotMove` bacio na nedostajuće bendove; bot nema AFK timeout → trajno zaglavljen).
 
 ## Status maintenance
 
@@ -123,4 +132,4 @@ When a feature slice is completed or scope changes, update this file: move items
 
 ✅ Bot engine → ✅ name generator → ✅ bot server integration + Quick Play → ✅ bot reactions/timing → ✅ home/matching redesign (v3.2) → ✅ merge feat/quick-match.
 
-**Design System frontend build (docs/DESIGN_SYSTEM.md §11):** ✅ A1 tokens → ✅ A2 positional grid → ✅ B1 SeatChip → ✅ B2 positions → ✅ B3 HandArea + Card → ✅ B4 capture/trail → ✅ B5 TurnTimer → ✅ B6 ScorePill → ✅ B7 ReactionFab → ✅ B8 pause/abandon (**Faza B kompletna**) → ✅ **integracija** (`GameScreen` u live room) → ✅ **full-felt raspored** (v3.2, redizajn po referencama) → ✅ **UX fixes s telefona** (tap-to-play, overlap, poleđine, timer) → ✅ **polish** (arc timer, bočni backs horizontalno, mikro-animacije) → ✅ **C4 anti-leak** → ✅ **reconnect (D2)** → ✅ **persistence** (file-snapshot; gate skinut) → ✅ **timer vidljivost** → ✅ **Faza D1 PWA** (Faza D kompletna) → ✅ **desktop UX** (centriran stage, mobilni netaknut) → ✅ **timer pilula iznad avatara** (3 stanja; server šalje rok i botu → na svakom igraču) → ✅ **C3 host bot-fill toggle** (`POST /api/rooms/:id/bot-fill`; host puni/skida botove u privatnoj sobi, ljudi imaju prioritet; `botFill` room-level flag, NE per-player isBot) → ✅ **`/zandar/room/:id` → 308 redirect** (next.config `redirects()`) → ✅ **capture-flash** (`animate-capture-flash` okida se na rast `capturedCounts`) → ✅ **PWA banner pozicija** (na `/room/*` ide na vrh da ne prekriva ruku) → **[next]** retest (telefon + desktop + install + timer na svima). Preostalo: Postgres adapter (kad pg može da se instalira), iOS localStorage fallback.
+**Design System frontend build (docs/DESIGN_SYSTEM.md §11):** ✅ A1 tokens → ✅ A2 positional grid → ✅ B1 SeatChip → ✅ B2 positions → ✅ B3 HandArea + Card → ✅ B4 capture/trail → ✅ B5 TurnTimer → ✅ B6 ScorePill → ✅ B7 ReactionFab → ✅ B8 pause/abandon (**Faza B kompletna**) → ✅ **integracija** (`GameScreen` u live room) → ✅ **full-felt raspored** (v3.2, redizajn po referencama) → ✅ **UX fixes s telefona** (tap-to-play, overlap, poleđine, timer) → ✅ **polish** (arc timer, bočni backs horizontalno, mikro-animacije) → ✅ **C4 anti-leak** → ✅ **reconnect (D2)** → ✅ **persistence** (file-snapshot; gate skinut) → ✅ **timer vidljivost** → ✅ **Faza D1 PWA** (Faza D kompletna) → ✅ **desktop UX** (centriran stage, mobilni netaknut) → ✅ **timer pilula iznad avatara** (3 stanja; server šalje rok i botu → na svakom igraču) → ✅ **C3 host bot-fill toggle** (`POST /api/rooms/:id/bot-fill`; host puni/skida botove u privatnoj sobi, ljudi imaju prioritet; `botFill` room-level flag, NE per-player isBot) → ✅ **`/zandar/room/:id` → 308 redirect** (next.config `redirects()`) → ✅ **capture-flash** (`animate-capture-flash` okida se na rast `capturedCounts`) → ✅ **PWA banner pozicija** (na `/room/*` ide na vrh da ne prekriva ruku) → ✅ **fix: bot-stuck na timeout** (back-compat za stari `botProfile.timing` oblik u `scheduleBotMove` + `autoPlay` fallback u `driveBotTurn`; bloker, vidi Code & workflow conventions) → **[next]** retest (telefon + desktop + install + timer na svima). Preostalo: Postgres adapter (kad pg može da se instalira), iOS localStorage fallback.
