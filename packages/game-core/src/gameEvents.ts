@@ -8,7 +8,7 @@
 /** Tipovi feedback događaja. */
 export type GameEvent =
   | { type: "deal" }
-  | { type: "capture"; byMe: boolean; jackSweep: boolean }
+  | { type: "capture"; byMe: boolean; jackSweep: boolean; playerId: string }
   | { type: "trail"; byMe: boolean }
   | { type: "yourTurn" }
   | { type: "handEnd" }
@@ -73,7 +73,8 @@ export function deriveGameEvents(
 
   if (next.phase !== "playing") return events; // ništa van aktivne igre
 
-  const byMe = prev.currentPlayerId === myPlayerId;
+  const mover = prev.currentPlayerId; // igrač koji je upravo odigrao
+  const byMe = mover === myPlayerId;
 
   // Dijeljenje: ukupan broj karata u rukama poraste (početak ruke / re-deal).
   if (sum(next.handCounts) > sum(prev.handCounts)) {
@@ -84,7 +85,7 @@ export function deriveGameEvents(
   const capturedDelta = sum(next.capturedCounts) - sum(prev.capturedCounts);
   if (capturedDelta > 0) {
     const jackSweep = prev.table.length > 0 && next.table.length === 0;
-    events.push({ type: "capture", byMe, jackSweep });
+    events.push({ type: "capture", byMe, jackSweep, playerId: mover });
   } else if (next.table.length === prev.table.length + 1) {
     // Karta spuštena na sto bez kupljenja.
     events.push({ type: "trail", byMe });

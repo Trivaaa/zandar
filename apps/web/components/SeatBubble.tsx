@@ -31,6 +31,8 @@ type SeatBubbleProps = {
   timer?: ReactNode;
   /** Apsolutno pozicioniranje (npr. "top-3 left-1/2 -translate-x-1/2"). */
   className?: string;
+  /** ID igrača — sidro za fly-to-pile animaciju (PRD §50.5). */
+  seatId?: string;
 };
 
 /** Lepeza poleđina — vizuelni broj karata (generičke, bez info-leak-a). */
@@ -99,6 +101,7 @@ export function SeatBubble({
   backsOrientation = "top",
   timer,
   className = "",
+  seatId,
 }: SeatBubbleProps) {
   const ring = isCurrentTurn
     ? "ring-2 ring-turn animate-turn-pulse"
@@ -109,6 +112,7 @@ export function SeatBubble({
     <div
       className={`absolute flex flex-col items-center gap-1 ${dimmed ? "opacity-50" : ""} ${className}`}
       data-current-turn={isCurrentTurn}
+      data-seat-id={seatId}
     >
       {/* Turn timer — pilula IZNAD ikonice; samo kad je na potezu (DS B5 v2) */}
       {isCurrentTurn && timer ? <div className="mb-0.5">{timer}</div> : null}

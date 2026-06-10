@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getCaptureOptions, type GameEvent } from "@zandar/game-core";
 import type {
   Card as CardType,
@@ -21,6 +21,7 @@ import { arrangeSeats } from "@/lib/seating";
 import { getReactionEmoji } from "@/lib/reactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
 import { useGameEvents } from "@/lib/useGameEvents";
+import { flyToPile } from "@/lib/flyAnimation";
 import type { ActiveReaction } from "@/components/GameView";
 
 /**
@@ -80,6 +81,7 @@ export function GameScreen({
 
   // Feedback sloj (§50.6): jedinstvena detekcija događaja pokreće capture-flash i
   // haptiku (a u Fazi 2 i zvuk). Capture-flash je keyed overlay u play-zoni.
+  const stageRef = useRef<HTMLDivElement>(null);
   const [flash, setFlash] = useState<{ key: number; sweep: boolean }>({
     key: 0,
     sweep: false,
@@ -89,6 +91,7 @@ export function GameScreen({
       case "capture":
         // J-sweep dobija jači flash (§50.5); običan capture standardni.
         setFlash((f) => ({ key: f.key + 1, sweep: event.jackSweep }));
+        flyToPile(stageRef.current, event.playerId); // ghost poleti ka kupcu
         if (event.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
         break;
       case "yourTurn":
@@ -185,6 +188,7 @@ export function GameScreen({
     // podloga. Na mobilu (stage = w-full) izgleda identično kao prije.
     <div className="h-[100dvh] w-full bg-surface flex justify-center">
     <div
+      ref={stageRef}
       className="relative h-full w-full max-w-[600px] overflow-hidden bg-felt md:shadow-2xl md:ring-1 md:ring-black/40"
       style={{
         backgroundImage:
@@ -199,6 +203,7 @@ export function GameScreen({
           isCurrentTurn={state.currentPlayerId === seats.partner.id}
           connectionStatus={seats.partner.connectionStatus}
           teamId={seats.partner.teamId}
+          seatId={seats.partner.id}
           showBacks
           timer={seatTimer(state.currentPlayerId === seats.partner.id)}
           className="top-3 left-1/2 -translate-x-1/2 mt-safe-top"
@@ -212,6 +217,7 @@ export function GameScreen({
           isCurrentTurn={state.currentPlayerId === seats.oppL.id}
           connectionStatus={seats.oppL.connectionStatus}
           teamId={seats.oppL.teamId}
+          seatId={seats.oppL.id}
           showBacks
           backsOrientation="left"
           timer={seatTimer(state.currentPlayerId === seats.oppL.id)}
@@ -226,6 +232,7 @@ export function GameScreen({
           isCurrentTurn={state.currentPlayerId === seats.oppR.id}
           connectionStatus={seats.oppR.connectionStatus}
           teamId={seats.oppR.teamId}
+          seatId={seats.oppR.id}
           showBacks
           backsOrientation="right"
           timer={seatTimer(state.currentPlayerId === seats.oppR.id)}
@@ -236,7 +243,10 @@ export function GameScreen({
       {/* Centralna play-zona — odigrane karte + capture/trail.
           Desktop (md): šira da se karte ne gomilaju u usku kolonu. */}
       <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[64%] max-w-[230px] md:max-w-[380px] z-10">
-        <div className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]">
+        <div
+          data-play-zone
+          className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]"
+        >
           <TableArea
             bare
             table={state.table}
@@ -264,6 +274,7 @@ export function GameScreen({
           isCurrentTurn={myTurn}
           connectionStatus={seats.me.connectionStatus}
           teamId={seats.me.teamId}
+          seatId={seats.me.id}
           isMe
           timer={seatTimer(myTurn)}
           className="bottom-[150px] left-1/2 -translate-x-1/2"

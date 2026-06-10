@@ -35,7 +35,7 @@ describe("deriveGameEvents", () => {
     });
     // prev.table=2>0, next.table=0 → jackSweep heuristika TRUE u ovom slučaju
     const events = deriveGameEvents(prev, next, "p1");
-    expect(events).toContainEqual({ type: "capture", byMe: true, jackSweep: true });
+    expect(events).toContainEqual({ type: "capture", byMe: true, jackSweep: true, playerId: "p1" });
   });
 
   it("capture (ja) bez praznog stola → jackSweep false", () => {
@@ -50,6 +50,7 @@ describe("deriveGameEvents", () => {
       type: "capture",
       byMe: true,
       jackSweep: false,
+      playerId: "p1",
     });
   });
 
@@ -62,7 +63,7 @@ describe("deriveGameEvents", () => {
       handCounts: { p1: 4, p2: 3 },
     });
     const events = deriveGameEvents(prev, next, "p1");
-    expect(events).toContainEqual({ type: "capture", byMe: false, jackSweep: false });
+    expect(events).toContainEqual({ type: "capture", byMe: false, jackSweep: false, playerId: "p2" });
     // p1 je sada na potezu → i yourTurn
     expect(events).toContainEqual({ type: "yourTurn" });
   });
