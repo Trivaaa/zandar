@@ -757,7 +757,15 @@ function scheduleBotMove(roomId: string): void {
   const player = room.gameState.players.find((p) => p.id === pid);
   if (!player?.isBot || !player.botProfile) return;
 
-  const timing = player.botProfile.timing;
+  // Tolerantno na stari, perzistirani oblik timing-a ({minMs,maxMs}) — sobe koje su
+  // preživjele restart preko promjene oblika nemaju firstMove/normal/lastCard bendove.
+  // Fallback na svježu tabelu po tieru da scheduleBotMove NIKAD ne baci (inače bot
+  // zaglavi: rok je postavljen, a potez se ne zakaže).
+  const timing =
+    player.botProfile.timing?.normal != null
+      ? player.botProfile.timing
+      : BOT_MOVE_TIMING[player.botProfile.tier] ?? BOT_MOVE_TIMING[2];
+
   const handSize = room.gameState.hands[pid]?.length ?? 4;
   // Prvi potez nakon (re)dijeljenja: svi igrači imaju pune ruke (niko još nije
   // odigrao iz svježe podijeljene grupe) → botu treba malo da sagleda novi sto.
@@ -811,7 +819,15 @@ async function driveBotTurn(roomId: string): Promise<void> {
 
     await broadcastGameState(roomId);
   } catch (err) {
-    fastify.log.error(`Bot move failed in room ${roomId}: ${err}`);
+    // Bot potez pao (npr. neočekivan state) — NE smije zaglaviti partiju jer bot
+    // nema AFK timeout. Odigraj fallback auto-play (garantovano legalan) i rebroadcast.
+    fastify.log.error(`Bot move failed in room ${roomId}: ${err} — autoplay fallback`);
+    try {
+      autoPlay(room.gameState);
+      await broadcastGameState(roomId);
+    } catch (err2) {
+      fastify.log.error(`Bot autoplay fallback also failed in room ${roomId}: ${err2}`);
+    }
   }
 }
 
