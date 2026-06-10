@@ -372,8 +372,11 @@ type DDAConfig = {
 
 ### 41.1 Timing (da sto ne izgleda robotski)
 
-- Potez se ne igra instant. Delay se uzorkuje iz distribucije, npr. **1.2–5.5s**, duže kad ima više legalnih opcija (simulacija "razmišljanja").
-- Varijabilnost po botu (jedan bot "brz", drugi "spor") — dio njegovog profila.
+- Potez se ne igra instant. Kašnjenje se uzorkuje uniformno iz benda koji ovisi o **situaciji** (simulacija "razmišljanja"):
+  - **prvi potez nakon svakog (re)dijeljenja** (pune ruke): 3–5s — bot "sagledava" novi sto;
+  - **ostali potezi:** 2.5–7s;
+  - **kad botu ostane 1 karta:** 1.5–2.5s — odluka je trivijalna pa igra brzo (ovo pravilo ima prioritet nad gornja dva).
+- Tier zadržava "ličnost" unutar tih okvira: tier 1 = impulsivan (brži kraj benda), tier 3 = promišljen (sporiji kraj).
 - **Botovi nikad ne smiju okinuti turn-timer / auto-play / AFK sistem** (FR-015/016). Oni su server-driven akteri; auto-play je samo za realne AFK ljude.
 - Kod 2-bot stolova (čovjek + 1 bot u 2P, ili više botova u 4P) paziti da zbir delay-a ne čini partiju sporom — cap ukupno tempo.
 
@@ -420,10 +423,18 @@ type BotIdentity = {
   gender: "m" | "f" | "neutral";
 };
 
+type BotMoveTimingBand = { minMs: number; maxMs: number };
+
+type BotMoveTiming = {
+  firstMove: BotMoveTimingBand;  // prvi potez nakon (re)dijeljenja
+  normal: BotMoveTimingBand;     // ostali potezi
+  lastCard: BotMoveTimingBand;   // kad ostane 1 karta (prioritet)
+};
+
 type BotProfile = {
   identity: BotIdentity;
   tier: BotSkillTier;
-  timing: { minMs: number; maxMs: number };
+  timing: BotMoveTiming;         // bend po situaciji (41.1)
   reactionProbability: number;   // 0..1 po potezu
   personaId?: string;            // za "regulare" (39.5)
 };

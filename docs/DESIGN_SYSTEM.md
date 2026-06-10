@@ -244,7 +244,7 @@ Tok (v3.1):
 ### 7.6 Bot reactions i timing
 
 - Botovi šalju reactions kroz **postojeći** `game:reaction` kanal i `ReactionFab` sistem — frontend ih prikazuje identično ljudskim. Nema frontend promjene.
-- Bot delay/timing je server-side (1.2–5.5s). Frontend samo prikazuje turn ring/timer kao i za čovjeka. Botovi nikad ne padaju na timer.
+- Bot delay/timing je server-side, bend po situaciji (prvi potez 3–5s / normalno 2.5–7s / zadnja karta 1.5–2.5s; vidi PRD §41.1). Frontend samo prikazuje turn ring/timer kao i za čovjeka. Botovi nikad ne padaju na timer.
 
 ### 7.7 Coins / ekonomija
 
