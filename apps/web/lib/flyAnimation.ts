@@ -61,58 +61,95 @@ export function collectToPile(
   return DUR + (cards.length - 1) * STAGGER;
 }
 
+/** Jedna poleđina koja leti iz `from` u `to` sa zadatim kašnjenjem (ms). */
+function flyGhostCard(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  delayMs: number,
+  durationMs: number,
+): void {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const ghost = document.createElement("div");
+  ghost.setAttribute("aria-hidden", "true");
+  Object.assign(ghost.style, {
+    position: "fixed",
+    left: `${from.x}px`,
+    top: `${from.y}px`,
+    width: "26px",
+    height: "37px",
+    borderRadius: "5px",
+    background: "#243029",
+    border: "1px solid rgba(224, 169, 46, 0.5)",
+    boxShadow: "0 3px 8px rgba(0,0,0,0.4)",
+    pointerEvents: "none",
+    zIndex: "65",
+    willChange: "transform, opacity",
+  } as Partial<CSSStyleDeclaration>);
+  document.body.appendChild(ghost);
+
+  const anim = ghost.animate(
+    [
+      { transform: "translate(-50%, -50%) translate(0, 0) scale(0.7)", opacity: 0.95 },
+      {
+        transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(1)`,
+        opacity: 0,
+      },
+    ],
+    {
+      duration: durationMs,
+      delay: delayMs,
+      easing: "cubic-bezier(0.3, 0, 0.5, 1)",
+      fill: "forwards",
+    },
+  );
+  const cleanup = () => ghost.remove();
+  anim.onfinish = cleanup;
+  anim.oncancel = cleanup;
+}
+
 /**
  * Deal animacija (PRD §50.5): poleđine "lete" iz špila (`[data-deck]`) ka svakom
- * sjedištu (`[data-seat-id]`), staggered. Ghost elementi na `document.body`
- * (fixed), samočisteći, `pointer-events-none`. No-op pri reduced-motion / bez
- * deck-sidra. Anti-leak: poleđine, isto za sve.
+ * sjedištu (`[data-seat-id]`) i na sto (`[data-table-drop]`), kao da djelitelj
+ * dijeli karte u krug — više karata po meti, round-robin, staggered. Ghost
+ * elementi na `document.body` (fixed), samočisteći. No-op pri reduced-motion /
+ * bez deck-sidra. Anti-leak: poleđine, isto za sve.
+ *
+ * Vraća ukupno trajanje (ms) da pozivatelj može odgoditi npr. prikaz timera.
  */
-export function dealFromDeck(): void {
-  if (prefersReducedMotion() || typeof document === "undefined") return;
+const CARDS_PER_SEAT = 3;
+const CARDS_TO_TABLE = 4;
+const DEAL_FLIGHT_MS = 360;
+const DEAL_STEP_MS = 55; // razmak između uzastopnih karata (round-robin)
+
+export function dealFromDeck(): number {
+  if (prefersReducedMotion() || typeof document === "undefined") return 0;
   const deckEl = document.querySelector("[data-deck]");
-  if (!deckEl) return;
+  if (!deckEl) return 0;
   const from = centerOf(deckEl.getBoundingClientRect());
-  const seats = document.querySelectorAll<HTMLElement>("[data-seat-id]");
 
-  seats.forEach((seatEl, i) => {
-    const to = centerOf(seatEl.getBoundingClientRect());
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const ghost = document.createElement("div");
-    ghost.setAttribute("aria-hidden", "true");
-    Object.assign(ghost.style, {
-      position: "fixed",
-      left: `${from.x}px`,
-      top: `${from.y}px`,
-      width: "26px",
-      height: "37px",
-      borderRadius: "5px",
-      background: "#243029",
-      border: "1px solid rgba(224, 169, 46, 0.5)",
-      boxShadow: "0 3px 8px rgba(0,0,0,0.4)",
-      pointerEvents: "none",
-      zIndex: "65",
-      willChange: "transform, opacity",
-    } as Partial<CSSStyleDeclaration>);
-    document.body.appendChild(ghost);
-
-    const anim = ghost.animate(
-      [
-        { transform: "translate(-50%, -50%) translate(0, 0) scale(0.7)", opacity: 0.9 },
-        {
-          transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(1)`,
-          opacity: 0,
-        },
-      ],
-      {
-        duration: 380,
-        delay: i * 90,
-        easing: "cubic-bezier(0.3, 0, 0.5, 1)",
-        fill: "forwards",
-      },
+  // Mete dijeljenja: svako sjedište + (ako postoji) sto. Centre čitamo jednom.
+  const targets: { center: { x: number; y: number }; cards: number }[] = [];
+  document
+    .querySelectorAll<HTMLElement>("[data-seat-id]")
+    .forEach((el) =>
+      targets.push({ center: centerOf(el.getBoundingClientRect()), cards: CARDS_PER_SEAT }),
     );
-    const cleanup = () => ghost.remove();
-    anim.onfinish = cleanup;
-    anim.oncancel = cleanup;
-  });
+  const tableEl = document.querySelector<HTMLElement>("[data-table-drop]");
+  if (tableEl) {
+    targets.push({ center: centerOf(tableEl.getBoundingClientRect()), cards: CARDS_TO_TABLE });
+  }
+  if (targets.length === 0) return 0;
+
+  // Round-robin: u svakom krugu po jedna karta svakoj meti koja još treba karte.
+  const maxCards = Math.max(...targets.map((t) => t.cards));
+  let order = 0;
+  for (let round = 0; round < maxCards; round++) {
+    for (const t of targets) {
+      if (round >= t.cards) continue;
+      flyGhostCard(from, t.center, order * DEAL_STEP_MS, DEAL_FLIGHT_MS);
+      order++;
+    }
+  }
+  return order > 0 ? (order - 1) * DEAL_STEP_MS + DEAL_FLIGHT_MS : 0;
 }

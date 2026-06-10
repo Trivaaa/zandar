@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getCaptureOptions, type GameEvent } from "@zandar/game-core";
 import type {
   Card as CardType,
@@ -105,6 +105,16 @@ export function GameScreen({
     key: 0,
     sweep: false,
   });
+  // Dok traje deal animacija: sakrij timer pa ga pokaži čim karte "slegnu" →
+  // jasan slijed na startu (podijeljeno → čiji je red / koliko vremena).
+  const [dealing, setDealing] = useState(false);
+  const dealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (dealTimerRef.current) clearTimeout(dealTimerRef.current);
+    },
+    [],
+  );
   const handleGameEvent = useCallback((event: GameEvent) => {
     switch (event.type) {
       case "capture":
@@ -117,10 +127,16 @@ export function GameScreen({
       case "trail":
         playSfx("place");
         break;
-      case "deal":
+      case "deal": {
         playSfx("deal");
-        dealFromDeck(); // poleđine lete iz špila ka svim igračima
+        const durMs = dealFromDeck(); // poleđine lete iz špila ka igračima + na sto
+        if (durMs > 0) {
+          setDealing(true);
+          if (dealTimerRef.current) clearTimeout(dealTimerRef.current);
+          dealTimerRef.current = setTimeout(() => setDealing(false), durMs);
+        }
         break;
+      }
       case "yourTurn":
         playSfx("turn");
         vibrate(HAPTIC.turn);
@@ -209,6 +225,7 @@ export function GameScreen({
   const seats = arrangeSeats(state.players, state.myPlayerId);
 
   function seatTimer(isTurn: boolean) {
+    if (dealing) return undefined; // dok karte "padaju" ne prikazuj timer
     return isTurn && turnDeadline != null ? (
       <TurnTimer deadline={turnDeadline} size="pill" />
     ) : undefined;
@@ -283,7 +300,10 @@ export function GameScreen({
       {/* Centralna play-zona — odigrane karte + capture/trail.
           Desktop (md): šira da se karte ne gomilaju u usku kolonu. */}
       <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[64%] max-w-[230px] md:max-w-[380px] z-10">
-        <div className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]">
+        <div
+          data-table-drop
+          className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]"
+        >
           <TableArea
             bare
             table={state.table}
