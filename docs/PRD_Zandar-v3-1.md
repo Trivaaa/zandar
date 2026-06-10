@@ -524,7 +524,7 @@ In-game: botovi se predstavljaju kao igrači — OK za neunovčive coins, standa
 - **Sekcija 12/13 (State):** kako u Sekciji 42.
 - **Sekcija 22 (Anti-cheat):** dodati red u tabelu — "Igrač pokušava detektovati bote iz payload-a → public state ne sadrži isBot/botProfile".
 - **Sekcija 25 (Analytics):** kako u Sekciji 43.
-- **Sekcija 28 (Backlog):** Must-have += Quick Play matchmaking, Bot engine (3 tiera), Name generator, Bot timing+reactions, **home redizajn + matching ekran (§49)**. Should-have += regulari pool. Could-have += suspected-bot report dugme, sound za bot reactions. **Single-player izbačen (v3.2).**
+- **Sekcija 28 (Backlog):** Must-have += Quick Play matchmaking, Bot engine (3 tiera), Name generator, Bot timing+reactions, **home redizajn + matching ekran (§49)**. Should-have += regulari pool, **feedback sloj — zvuk + haptika + animacije kupljenja/dijeljenja (§50)**. Could-have += suspected-bot report dugme, sound za bot reactions. **Single-player izbačen (v3.2).**
 
 ---
 
@@ -624,6 +624,120 @@ Nakon "Nađi sto", loading/matching ekran koji popunjava sto pred korisnikom:
 - Prikazuje staggered "player joined" događaje sa imenima iz §39.
 - Botovi i ljudi se prikazuju identično (ne otkriva se ko je bot).
 - Min/max trajanje konfigurabilno (npr. 1.5–3s).
+
+---
+
+## 50. Feedback sloj — zvuk, haptika i animacije 🆕
+
+### 50.1 Filozofija
+
+Kartaška igra živi od **taktilnog feedbacka**. Trenutno sto djeluje "mrtvo": potezi se dešavaju bez ijednog zvuka, vibracije ili pokreta. Cilj ove sekcije: svaki bitan događaj (dijeljenje, igranje, kupljenje, J-sweep, tvoj red, kraj) ima **čujni / vidljivi / opipljivi** odgovor — *"juicy, ali ne bučno"*. Sloj je **dekorativan i klijent-side**: autoritativni state ostaje serverov, efekti se izvode iz `game:state` dif-a i **nikad ne mijenjaju ishod**.
+
+Tri tvrda principa kroz cijelu sekciju:
+- **Anti-leak (PRD §41, §44):** zvuk, vibracija i animacije su **identični za botove i ljude**. Nijedan efekt ne smije otkriti ko je bot niti skrivenu informaciju (protivničke karte ostaju poleđina).
+- **Poštuj korisnika i platformu:** `prefers-reduced-motion`, autoplay policy, sistemski mute, i nezavisne On/Off preklopke.
+- **Ne blokiraj igru:** efekti su asinhroni, interuptibilni i robusni na brze botove / reconnect / hydrate.
+
+### 50.2 Zvuk (SFX)
+
+Event-driven, kratki uzorci. Mapiranje događaj → zvuk:
+
+| Događaj | Zvuk | Napomena |
+|---|---|---|
+| Dijeljenje / re-deal | riffle/swoosh | jednom po (re)dijeljenju |
+| Spuštanje karte (trail) | tap/place | |
+| Kupljenje (capture) | prijatan "collect" | |
+| **J-sweep** (čišćenje stola) | istaknutiji, nagradni | jači od običnog capture-a |
+| Tvoj red | diskretan cue | **samo lokalni igrač na potezu** |
+| Kraj ruke / pobjeda / poraz | kratki stinger | |
+| Reakcija (emoji) | blagi pop, tiho | opcionalno |
+| UI tap (dugme) | vrlo tih | opcionalno |
+
+Pravila:
+- **Web Audio + preload**, bez blokiranja UI niti; jedan master bus.
+- **Autoplay policy:** browseri blokiraju audio do prvog korisničkog gesta — prvi tap "otključava". Tretirati kao normalno, ne kao grešku.
+- **Throttle/cooldown** da brzi nizovi poteza (više capture-a zaredom) ne prave kakofoniju.
+- "Tvoj red" cue se **ne** svira za protivnike/botove — samo kad je lokalni čovjek na potezu.
+- Poštuj sistemski silent/mute gdje je platforma izloži.
+
+### 50.3 Haptika (vibracija)
+
+`navigator.vibrate` (Web Vibration API). Kratki, suptilni patterni:
+
+| Događaj | Pattern (orijentaciono) |
+|---|---|
+| Tvoj red | jedan kratki puls (~15ms) |
+| Capture / J-sweep | dvostruki kratki puls |
+| Nevažeća akcija / greška | kratak "buzz" |
+
+- **Platformsko ograničenje:** Vibration API radi na **Android Chrome**; **iOS Safari ga NE podržava** → na iOS haptika je **graceful no-op** (provjeri `'vibrate' in navigator`). Nikad ne oslanjaj kritičnu informaciju samo na vibraciju.
+- Haptika je **odvojena postavka** od zvuka (igra može biti nečujna ali s vibracijom i obrnuto).
+
+### 50.4 Postavke On/Off (glavni ekran) 🆕
+
+Po zahtjevu: **lako dostupna On/Off opcija na glavnom ekranu**, bez ulaska u meni.
+
+- Dvije **nezavisne preklopke**: 🔊 **Zvuk** i 📳 **Vibracija**.
+- **Primarno mjesto:** kompaktne ikonice u uglu **home ekrana** (§49.1) — jedan tap mijenja stanje (🔊↔🔇 / 📳 prekriženo).
+- **Iste preklopke i u igri** (npr. u "Pravila"/meni overlay) radi konzistencije; ali primarno i obavezno mjesto je glavni ekran.
+- **Persistencija:** lokalno (localStorage, isti mehanizam kao zapamćeno ime — nema naloga još; podložno iste iOS-eviction napomene). Stanje preživi reload.
+- **Defaults:** oba **ON**, ali trivijalno isključiva. Kod prvog otvaranja poštuj `prefers-reduced-motion` i sistemski mute kao hint za početno stanje.
+- Master volume / pojedinačni mikseri = post-MVP; MVP je čisto On/Off.
+
+### 50.5 Animacije — kupljenje i dijeljenje
+
+Postojeći `capture-flash` (kratko zasvijetli play-zona) je tek početak. Dodaci:
+
+- **Dealing:** na početku ruke / re-dealu karte "izlaze" iz špila ka rukama, **staggered**; poleđine za protivnike, lica za lokalnog igrača. Ukupno kratko (~≤600ms), ne usporava partiju.
+- **Capture:** odigrana karta + pokupljene karte sa stola "lete" ka pile-u kupca (motion + fade), uz `capture-flash` + SFX.
+- **Trail:** spuštena karta sjeda na sto (mali scale/slide).
+- **J-sweep:** istaknutija varijanta capture-a (cijeli sto se počisti) — vizuelno nagradno.
+
+Pravila:
+- **`prefers-reduced-motion` → instant** (bez leta); već konvencija u `globals.css`.
+- **Ne blokira input ni state:** animacija je dekoracija nad već primijenjenim autoritativnim state-om.
+- **Interuptibilna / robusna na re-render:** brzi botovi, reconnect i hydrate ne smiju ostaviti zaglavljenu animaciju — vezati za `stateVersion` / move id.
+- **Budžet 60fps na mobilnom:** samo `transform`/`opacity` (GPU), bez layout thrash-a.
+- **Anti-leak:** protivničke karte ostaju poleđina; bot i čovjek animiraju isto.
+- Trajanja/easing preko **design-system tokena** (DESIGN_SYSTEM §6), ne hardkodirano.
+
+### 50.6 State / arhitektura
+
+- **Čisto klijent-side (`apps/web`).** Server NE šalje audio ni "event tip". Klijent izvodi efekte iz dif-a `game:state`:
+  - rast `capturedCounts` → capture (J-sweep ako je sto bio pun i ostao prazan),
+  - promjena `handCounts` naviše / nova ruka → dealing,
+  - zadnji `moveHistory` unos → trail vs capture.
+- **Bez novih server polja u MVP-u** (sve izvodljivo iz postojećeg `PrivateGameStateView`). Ako precizno razlikovanje (npr. J-sweep vs običan capture) ne bude pouzdano iz postojećih polja, razmotriti dodavanje `lastEvent` u view — ali **prvo probati bez**.
+- Postavke (sound/haptics On/Off) su **lokalne na uređaju** (localStorage), kao i `displayName`.
+
+### 50.7 FR dodaci
+
+**FR-023: Audio feedback 🆕**
+- Event-driven SFX za deal / trail / capture / J-sweep / your-turn / kraj.
+- Master On/Off; poštuje autoplay policy (prvi gest otključava); throttle protiv kakofonije.
+- Botovi i ljudi proizvode iste zvuke (anti-leak); "tvoj red" samo za lokalnog igrača.
+
+**FR-024: Haptički feedback 🆕**
+- `navigator.vibrate` za tvoj-red / capture / grešku.
+- Graceful no-op gdje API ne postoji (iOS Safari).
+- Nezavisan On/Off od zvuka.
+
+**FR-025: Postavke zvuka i vibracije na glavnom ekranu 🆕**
+- Dvije nezavisne preklopke (zvuk, vibracija), jedan tap, vidljive na home ekranu (§49.1).
+- Persist lokalno; stanje preživi reload; dostupne i u igri.
+- Default oba ON; poštuj `prefers-reduced-motion`/mute kao početni hint.
+
+**FR-026: Animacije kupljenja i dijeljenja 🆕**
+- Deal / capture / trail / J-sweep animacije.
+- Poštuje `prefers-reduced-motion`; ne blokira input; interuptibilna; 60fps; anti-leak.
+
+### 50.8 Definition of Done
+
+- Svaki događaj iz §50.2 ima zvuk; prvi korisnički gest otključava audio bez greške; brzi nizovi poteza ne prave kakofoniju.
+- Vibracija radi na Android Chrome; na iOS je tih no-op bez greške u konzoli.
+- On/Off za **zvuk** i **vibraciju** vidljiv i funkcionalan **na glavnom ekranu**; stanje preživi reload; default oba ON; iste preklopke dostupne i u igri.
+- `prefers-reduced-motion` gasi/instant-uje animacije; nijedna animacija ne ostaje zaglavljena nakon reconnect/hydrate.
+- **Anti-leak verifikovano:** SFX, vibracija i animacije identični za botove i ljude (isti dev-guard duh kao `assertNoBotLeak`).
 
 ---
 
