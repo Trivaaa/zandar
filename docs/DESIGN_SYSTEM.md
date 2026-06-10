@@ -390,3 +390,34 @@ Mijenjaš samo vrijednosti tokena. Smjer: kafana/felt sto (topliji zeleni, supti
 6. Faza 2 UI → tek kad UX prođe Fazu 2 playtest (human-only metrici, ne bot-padded).
 
 > Pažnja iz PRD v3: go/no-go za mobile se računa na **human-only** brojkama. Botovi čine loop testabilnim na nuli, ali bot-padded engagement nije PMF.
+
+---
+
+## 12. Feedback sloj — zvuk, haptika, animacije (PRD §50)
+
+Cilj: sto da "živi" — svaki bitan događaj ima čujni/opipljivi/vidljivi odgovor. Sloj je **čisto klijent-side i dekorativan** (ne mijenja autoritativni state).
+
+### 12.1 Event sloj (jedan izvor istine)
+- `deriveGameEvents(prev, next, myPlayerId)` (game-core, čista/testirana) → `capture{byMe,jackSweep,playerId}` / `trail{byMe}` / `deal` / `yourTurn` / `handEnd` / `matchEnd{iWon}`.
+- `useGameEvents` (web) poredi uzastopne `game:state` snapshote (po `stateVersion`) i fire-uje događaje. **Bez novih server polja** — sve iz postojećeg `PrivateGameStateView` dif-a.
+- **Anti-leak:** efekti se izvode iz javnog view-a → identični za bota i čovjeka (princip iz §7.1).
+
+### 12.2 Postavke — `FeedbackToggles` (🔊 / 📳)
+- Dvije nezavisne preklopke, **jedan tap**, bez menija. Primarno: **home gornji desni ugao**; iste u igri (ispod "? Pravila").
+- Persist u `localStorage` (`zandar:sound` / `zandar:haptics`), default **ON**; live-sync preko `useSyncExternalStore` (bez context/store-a).
+
+### 12.3 Animacije (sve GPU `transform`/`opacity`; `prefers-reduced-motion` ih gasi)
+| Animacija | Kad | Kako |
+|---|---|---|
+| `animate-card-in` (postojeće) | nova karta na stolu (trail-settle) | scale+slide ulaz |
+| `animate-capture-flash` | običan capture | kratki zlatni inset-sjaj play-zone (0.5s) |
+| `animate-jack-sweep` | J-sweep (čišćenje stola) | jači/duži sjaj + blagi `scale` (0.7s) |
+| capture **fly-to-pile** | bilo koji capture | ghost kartica iz `[data-play-zone]` ka `[data-seat-id]` kupca (Web Animations API, element na `document.body` da NE pregazi `-translate` sjedišta; samočisteće, `pointer-events-none`) |
+| deal "iz špila" | — | **ODGOĐENO** (nema deck-sidra; WAAPI transform bi razbio centriranje sjedišta — traži zaseban dizajn) |
+
+- **Sidra:** `[data-play-zone]` na play-zoni, `[data-seat-id]` na `SeatBubble` (uz postojeći `data-current-turn`).
+- Keyframes u `globals.css`; svaka nova ide i u `prefers-reduced-motion` blok.
+
+### 12.4 Zvuk i haptika
+- **Haptika:** `navigator.vibrate` (guard `'vibrate' in navigator` → **iOS Safari = no-op**). Patterni: tvoj-red, moje kupljenje (byMe), nevažeća akcija.
+- **Zvuk:** event-driven SFX, master On/Off, autoplay-unlock na prvi gest, throttle. **Asseti pending** (Faza 2) — handleri za `trail/deal/handEnd/matchEnd` su već u event sloju, prazni.
