@@ -211,6 +211,12 @@ export function GameScreen({
     ) : undefined;
   }
 
+  // Najnovija aktivna reakcija za dato sjedište → emoji uz tog igrača.
+  function seatReaction(playerId: string) {
+    const r = [...activeReactions].reverse().find((x) => x.playerId === playerId);
+    return r ? <span>{getReactionEmoji(r.type as ReactionType)}</span> : undefined;
+  }
+
   return (
     // Outer surround: na desktopu felt-stage se centrira, ostatak je tamna
     // podloga. Na mobilu (stage = w-full) izgleda identično kao prije.
@@ -231,6 +237,8 @@ export function GameScreen({
           connectionStatus={seats.partner.connectionStatus}
           teamId={seats.partner.teamId}
           seatId={seats.partner.id}
+          reaction={seatReaction(seats.partner.id)}
+          reactionBelow
           showBacks
           timer={seatTimer(state.currentPlayerId === seats.partner.id)}
           className="top-3 left-1/2 -translate-x-1/2 mt-safe-top"
@@ -245,6 +253,7 @@ export function GameScreen({
           connectionStatus={seats.oppL.connectionStatus}
           teamId={seats.oppL.teamId}
           seatId={seats.oppL.id}
+          reaction={seatReaction(seats.oppL.id)}
           showBacks
           backsOrientation="left"
           timer={seatTimer(state.currentPlayerId === seats.oppL.id)}
@@ -260,6 +269,7 @@ export function GameScreen({
           connectionStatus={seats.oppR.connectionStatus}
           teamId={seats.oppR.teamId}
           seatId={seats.oppR.id}
+          reaction={seatReaction(seats.oppR.id)}
           showBacks
           backsOrientation="right"
           timer={seatTimer(state.currentPlayerId === seats.oppR.id)}
@@ -299,6 +309,7 @@ export function GameScreen({
           connectionStatus={seats.me.connectionStatus}
           teamId={seats.me.teamId}
           seatId={seats.me.id}
+          reaction={seatReaction(seats.me.id)}
           isMe
           timer={seatTimer(myTurn)}
           className="bottom-[150px] left-1/2 -translate-x-1/2"
@@ -342,25 +353,7 @@ export function GameScreen({
       {/* Overlay: reactions */}
       <ReactionFab onReact={onReact} disabled={reactionsDisabled} />
 
-      {/* Floating active reactions (gornji centar) */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 mt-safe-top pt-12 flex flex-col items-center gap-1 pointer-events-none">
-        {activeReactions.map((r) => {
-          const sender = state.players.find((p) => p.id === r.playerId);
-          return (
-            <div
-              key={r.id}
-              className="bg-surface-raised/95 rounded-token-md px-2.5 py-1.5 shadow-lg flex items-center gap-1.5 animate-fade-in"
-            >
-              <span className="text-2xl">
-                {getReactionEmoji(r.type as ReactionType)}
-              </span>
-              <span className="text-xs font-semibold truncate max-w-[40vw]">
-                {sender?.displayName ?? "?"}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      {/* Reakcije se sad prikazuju uz svako sjedište (seatReaction) — vidi gore. */}
 
       {/* Pause / abandon */}
       <PauseAbandonOverlay

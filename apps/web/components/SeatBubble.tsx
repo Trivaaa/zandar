@@ -33,6 +33,10 @@ type SeatBubbleProps = {
   className?: string;
   /** ID igrača — sidro za fly-to-pile animaciju (PRD §50.5). */
   seatId?: string;
+  /** Aktivna reakcija (emoji) — prikazuje se uz sjedište da se vidi KO je reagovao. */
+  reaction?: ReactNode;
+  /** Reakciju prikaži ispod (za gornje sjedište, da ne klizne van ekrana). */
+  reactionBelow?: boolean;
 };
 
 /** Lepeza poleđina — vizuelni broj karata (generičke, bez info-leak-a). */
@@ -102,6 +106,8 @@ export function SeatBubble({
   timer,
   className = "",
   seatId,
+  reaction,
+  reactionBelow = false,
 }: SeatBubbleProps) {
   const ring = isCurrentTurn
     ? "ring-2 ring-turn animate-turn-pulse"
@@ -114,6 +120,19 @@ export function SeatBubble({
       data-current-turn={isCurrentTurn}
       data-seat-id={seatId}
     >
+      {/* Reakcija (emoji) uz sjedište — da se vidi KO je reagovao (DS §12 / feedback) */}
+      {reaction && (
+        <div
+          className={`absolute left-1/2 -translate-x-1/2 z-40 pointer-events-none animate-fade-in ${
+            reactionBelow ? "-bottom-7" : "-top-7"
+          }`}
+        >
+          <div className="w-9 h-9 rounded-full bg-surface-raised/95 border border-white/10 shadow-lg flex items-center justify-center text-xl">
+            {reaction}
+          </div>
+        </div>
+      )}
+
       {/* Turn timer — pilula IZNAD ikonice; samo kad je na potezu (DS B5 v2) */}
       {isCurrentTurn && timer ? <div className="mb-0.5">{timer}</div> : null}
 
