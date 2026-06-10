@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { quickPlay } from "@/lib/api";
 import { saveSession } from "@/lib/session";
+import { FeedbackToggles } from "@/components/FeedbackToggles";
 
 const NAME_KEY = "zandar_name";
 
@@ -45,6 +46,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-green-900 via-green-950 to-zinc-950 text-white flex flex-col">
+      {/* Zvuk / vibracija — lako dostupno (PRD §50.4) */}
+      <FeedbackToggles className="fixed top-3 right-3 z-20 mt-safe-top mr-safe-right" />
+
       {/* Hero — dominantni CTA */}
       <section className="flex-1 flex flex-col items-center justify-center px-4 py-16 sm:py-24">
         <div className="text-center space-y-5 max-w-md w-full">

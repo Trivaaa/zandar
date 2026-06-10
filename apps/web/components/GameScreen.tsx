@@ -16,8 +16,10 @@ import { ScorePill } from "@/components/ScorePill";
 import { ReactionFab } from "@/components/ReactionFab";
 import { PauseAbandonOverlay } from "@/components/PauseAbandonOverlay";
 import { RulesModal } from "@/components/RulesModal";
+import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { arrangeSeats } from "@/lib/seating";
 import { getReactionEmoji } from "@/lib/reactions";
+import { vibrate, HAPTIC } from "@/lib/haptics";
 import type { ActiveReaction } from "@/components/GameView";
 
 /**
@@ -70,6 +72,7 @@ export function GameScreen({
 
   useEffect(() => {
     if (!error) return;
+    vibrate(HAPTIC.error); // haptika na nevažeću akciju (§50.3)
     const t = setTimeout(() => setError(null), 4000);
     return () => clearTimeout(t);
   }, [error]);
@@ -92,6 +95,13 @@ export function GameScreen({
   const myTurn = isPlaying && state.currentPlayerId === state.myPlayerId;
   const isHandOver = state.phase === "hand_finished";
   const isMatchOver = state.phase === "match_finished";
+
+  // Haptika kad lokalni igrač dođe na potez (rising edge) — §50.3.
+  const prevMyTurnRef = useRef(myTurn);
+  useEffect(() => {
+    if (myTurn && !prevMyTurnRef.current) vibrate(HAPTIC.turn);
+    prevMyTurnRef.current = myTurn;
+  }, [myTurn]);
 
   const selectedCard = myTurn
     ? (state.myHand.find((c) => c.id === selectedId) ?? null)
@@ -282,6 +292,9 @@ export function GameScreen({
       >
         ? Pravila
       </button>
+
+      {/* Overlay: zvuk/vibracija (ispod Pravila) — §50.4 */}
+      <FeedbackToggles className="absolute top-9 left-0 z-40 m-2 ml-safe-left" />
 
       {/* Overlay: reactions */}
       <ReactionFab onReact={onReact} disabled={reactionsDisabled} />
