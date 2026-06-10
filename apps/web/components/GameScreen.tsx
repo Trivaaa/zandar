@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { getCaptureOptions } from "@zandar/game-core";
+import { useCallback, useEffect, useState } from "react";
+import { getCaptureOptions, type GameEvent } from "@zandar/game-core";
 import type {
   Card as CardType,
   CaptureOption,
@@ -20,6 +20,7 @@ import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { arrangeSeats } from "@/lib/seating";
 import { getReactionEmoji } from "@/lib/reactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
+import { useGameEvents } from "@/lib/useGameEvents";
 import type { ActiveReaction } from "@/components/GameView";
 
 /**
@@ -77,17 +78,22 @@ export function GameScreen({
     return () => clearTimeout(t);
   }, [error]);
 
-  // Capture-flash: zasvijetli play-zonu kad ukupan broj pokupljenih karata poraste.
-  const capturedTotal = useMemo(
-    () => Object.values(state.capturedCounts).reduce((a, b) => a + b, 0),
-    [state.capturedCounts],
-  );
-  const prevCapturedRef = useRef(capturedTotal);
+  // Feedback sloj (§50.6): jedinstvena detekcija događaja pokreće capture-flash i
+  // haptiku (a u Fazi 2 i zvuk). Capture-flash je keyed overlay u play-zoni.
   const [flashKey, setFlashKey] = useState(0);
-  useEffect(() => {
-    if (capturedTotal > prevCapturedRef.current) setFlashKey((k) => k + 1);
-    prevCapturedRef.current = capturedTotal;
-  }, [capturedTotal]);
+  const handleGameEvent = useCallback((event: GameEvent) => {
+    switch (event.type) {
+      case "capture":
+        setFlashKey((k) => k + 1); // zasvijetli play-zonu
+        if (event.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
+        break;
+      case "yourTurn":
+        vibrate(HAPTIC.turn);
+        break;
+      // trail / deal / handEnd / matchEnd → zvuk u Fazi 2
+    }
+  }, []);
+  useGameEvents(state, handleGameEvent);
 
   const me = state.players.find((p) => p.id === state.myPlayerId);
   const isHost = me?.isHost ?? false;
@@ -95,13 +101,6 @@ export function GameScreen({
   const myTurn = isPlaying && state.currentPlayerId === state.myPlayerId;
   const isHandOver = state.phase === "hand_finished";
   const isMatchOver = state.phase === "match_finished";
-
-  // Haptika kad lokalni igrač dođe na potez (rising edge) — §50.3.
-  const prevMyTurnRef = useRef(myTurn);
-  useEffect(() => {
-    if (myTurn && !prevMyTurnRef.current) vibrate(HAPTIC.turn);
-    prevMyTurnRef.current = myTurn;
-  }, [myTurn]);
 
   const selectedCard = myTurn
     ? (state.myHand.find((c) => c.id === selectedId) ?? null)

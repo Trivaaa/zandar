@@ -15,5 +15,7 @@ export { selectBotMove, DEFAULT_BOT_CONFIGS } from "./bot";
 export type { BotConfig, BotWeights } from "./bot";
 export { generateBotIdentity, generateTableIdentities, normalizeName } from "./identity";
 export type { GeneratedWithMeta } from "./identity";
+export { deriveGameEvents } from "./gameEvents";
+export type { GameEvent, EventSnapshot } from "./gameEvents";
 
 export const VERSION = "0.0.1";
