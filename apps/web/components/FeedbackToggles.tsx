@@ -1,6 +1,7 @@
 "use client";
 
 import { useSetting } from "@/lib/settings";
+import { playSfx } from "@/lib/sound";
 
 /**
  * On/Off preklopke za zvuk i vibraciju (PRD §50.4, FR-025).
@@ -20,7 +21,11 @@ export function FeedbackToggles({ className }: { className?: string }) {
         aria-pressed={sound}
         aria-label={sound ? "Isključi zvuk" : "Uključi zvuk"}
         title={sound ? "Zvuk uključen" : "Zvuk isključen"}
-        onClick={() => setSound(!sound)}
+        onClick={() => {
+          const next = !sound;
+          setSound(next);
+          if (next) playSfx("capture"); // potvrda + otključavanje audija
+        }}
         className={`w-10 h-10 rounded-full flex items-center justify-center text-lg bg-black/30 hover:bg-black/40 active:scale-95 transition ${
           sound ? "ring-1 ring-white/25" : "opacity-50"
         }`}

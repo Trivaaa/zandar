@@ -20,6 +20,7 @@ import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { arrangeSeats } from "@/lib/seating";
 import { getReactionEmoji } from "@/lib/reactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
+import { playSfx } from "@/lib/sound";
 import { useGameEvents } from "@/lib/useGameEvents";
 import { flyToPile } from "@/lib/flyAnimation";
 import type { ActiveReaction } from "@/components/GameView";
@@ -92,12 +93,23 @@ export function GameScreen({
         // J-sweep dobija jači flash (§50.5); običan capture standardni.
         setFlash((f) => ({ key: f.key + 1, sweep: event.jackSweep }));
         flyToPile(stageRef.current, event.playerId); // ghost poleti ka kupcu
+        playSfx(event.jackSweep ? "sweep" : "capture");
         if (event.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
         break;
+      case "trail":
+        playSfx("place");
+        break;
+      case "deal":
+        playSfx("deal");
+        break;
       case "yourTurn":
+        playSfx("turn");
         vibrate(HAPTIC.turn);
         break;
-      // trail / deal / handEnd / matchEnd → zvuk u Fazi 2
+      case "matchEnd":
+        playSfx(event.iWon ? "win" : "lose");
+        break;
+      // handEnd → bez zvuka (matchEnd nosi rezultat)
     }
   }, []);
   useGameEvents(state, handleGameEvent);
