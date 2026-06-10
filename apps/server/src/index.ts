@@ -981,14 +981,14 @@ function removeBotsFromRoom(room: LobbyRoom): void {
 }
 
 function startBotGame(room: LobbyRoom): void {
-  // allow_on_table ensures deck size stays divisible by (playerCount × 4)
-  const rulesConfig = { ...room.rulesConfig, jackOnInitialTableBehavior: "allow_on_table" as const };
+  // J na početnom stolu → dealeru (award_to_dealer, iz rulesConfig). Špil smije
+  // ostati neravnomjeran; ranije forsirani allow_on_table je ostavljao J na stolu.
   const gameState = createInitialGameState({
     roomId: room.id,
     matchId: room.id,
     players: room.players,
     dealerPlayerId: room.hostPlayerId,
-    rulesConfig,
+    rulesConfig: room.rulesConfig,
   });
   room.gameState = gameState;
   room.status = "playing";
@@ -1146,13 +1146,12 @@ async function autoNextHand(roomId: string): Promise<void> {
   const newDealerIdx = (oldDealerIdx + 1) % oldState.players.length;
   const newDealerId = oldState.players[newDealerIdx]!.id;
 
-  const rulesConfig = { ...oldState.rulesConfig, jackOnInitialTableBehavior: "allow_on_table" as const };
   const newState = createInitialGameState({
     roomId: oldState.roomId,
     matchId: oldState.matchId,
     players: oldState.players,
     dealerPlayerId: newDealerId,
-    rulesConfig,
+    rulesConfig: oldState.rulesConfig,
   });
 
   newState.matchScore = { ...oldState.matchScore };

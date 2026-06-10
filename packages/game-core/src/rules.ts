@@ -9,7 +9,7 @@ export const defaultRulesConfig: RulesConfig = {
   playerCount: 2, // postavlja se pri kreiranju sobe
   initialTableCards: 4,
   cardsPerDeal: 4,
-  jackOnInitialTableBehavior: "award_to_cutter",
+  jackOnInitialTableBehavior: "award_to_dealer",
   aceValue: 1,
   allowMultipleDisjointCaptures: false,
   forceCapture: true,

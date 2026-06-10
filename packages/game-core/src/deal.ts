@@ -21,7 +21,8 @@ export function dealCardsToPlayers(state: GameState): void {
 
 /**
  * Interno: dijeli pocetne karte na sto.
- * Sa "award_to_cutter" pravilom, J koji izadje ide cutter-u i izvlaci se zamjenska karta.
+ * J koji izadje medju pocetne 4 se obradjuje prema jackOnInitialTableBehavior:
+ * award_to_dealer (default) / award_to_cutter / replace_without_award / allow_on_table.
  */
 function dealInitialTable(state: GameState, cutterPlayerId: string): void {
   const { initialTableCards, jackOnInitialTableBehavior } = state.rulesConfig;
@@ -30,11 +31,27 @@ function dealInitialTable(state: GameState, cutterPlayerId: string): void {
     const card = state.deck.shift();
     if (!card) return;
 
-    if (card.rank === "J" && jackOnInitialTableBehavior === "award_to_cutter") {
-      const cutterPile = getCapturePileId(state, cutterPlayerId);
-      state.captured[cutterPile]!.push(card);
-      // J ne ide na sto, izvuci sljedecu kartu
-      continue;
+    if (card.rank === "J") {
+      // award_to_dealer: J odlazi u captured pile dealera (onaj ko dijeli), pa se
+      //   izvuce zamjenska karta za sto. (Spil tako moze ostati neravnomjeran.)
+      if (jackOnInitialTableBehavior === "award_to_dealer") {
+        const dealerPile = getCapturePileId(state, state.dealerPlayerId);
+        state.captured[dealerPile]!.push(card);
+        continue;
+      }
+      // award_to_cutter: J ide cutteru (desno od dealera) + zamjena.
+      if (jackOnInitialTableBehavior === "award_to_cutter") {
+        const cutterPile = getCapturePileId(state, cutterPlayerId);
+        state.captured[cutterPile]!.push(card);
+        continue;
+      }
+      // replace_without_award: J ide na DNO spila + izvuce se sljedeca (cuva
+      //   djeljivost; J se nikome ne dodjeljuje, kasnije se podijeli normalno).
+      if (jackOnInitialTableBehavior === "replace_without_award") {
+        state.deck.push(card);
+        continue;
+      }
+      // allow_on_table: J ostaje na stolu (padne kroz na push ispod).
     }
 
     state.table.push(card);

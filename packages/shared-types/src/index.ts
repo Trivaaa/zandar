@@ -238,6 +238,7 @@ export type HandScore = {
  * Sta se desi sa J koji izadje medju pocetne 4 karte na stolu.
  */
 export type JackOnInitialBehavior =
+  | "award_to_dealer"
   | "award_to_cutter"
   | "replace_without_award"
   | "allow_on_table";

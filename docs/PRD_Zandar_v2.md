@@ -204,7 +204,7 @@ Default real-world pravilo:
 1. Dealer miješa špil.
 2. Igrač desno od dealera (cutter) siječe špil.
 3. Na sto se otvaraju 4 karte.
-4. **Ako među početne 4 karte izađe J, cutter ga dobija kao captured kartu**, a J se zamjenjuje novom kartom iz špila.
+4. **Ako među početne 4 karte izađe J (Žandar), dealer (onaj ko dijeli) ga dobija kao captured kartu**, a J se zamjenjuje novom kartom iz špila. (J nikad ne ostaje na početnom stolu; špil zato smije biti neravnomjeran u zadnjem dijeljenju.)
 5. Svaki igrač dobija po 4 karte.
 6. Igra se nastavlja u smjeru kazaljke na satu, počevši od igrača lijevo od dealera.
 7. Kada svi odigraju po 4 karte, dijele se nove 4 karte svakom igraču.
@@ -212,7 +212,7 @@ Default real-world pravilo:
 
 ### 6.5 Simplifikacija za MVP
 
-Server automatski izvodi shuffle i "sječenje" špila. J behavior na početku je konfigurabilan kroz `RulesConfig.jackOnInitialTableBehavior`, default je `"award_to_cutter"`.
+Server automatski izvodi shuffle i "sječenje" špila. J behavior na početku je konfigurabilan kroz `RulesConfig.jackOnInitialTableBehavior`, default je `"award_to_dealer"` (J sa početnog stola ide dealeru). Opcije: `award_to_dealer` (default) / `award_to_cutter` / `replace_without_award` (J na dno špila) / `allow_on_table`.
 
 ### 6.6 Tok poteza
 
