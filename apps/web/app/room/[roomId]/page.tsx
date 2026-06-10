@@ -9,10 +9,11 @@ import {
   rejectJoinRequest,
   startGame,
   setBotFill,
+  quickPlay,
   type RoomInfo,
   type PendingJoinRequest,
 } from "@/lib/api";
-import { getSession, type RoomSession } from "@/lib/session";
+import { getSession, saveSession, type RoomSession } from "@/lib/session";
 import { getSocket } from "@/lib/socket";
 import { assertNoBotLeak } from "@/lib/antiLeak";
 import { JoinFlow } from "@/components/JoinFlow";
@@ -333,6 +334,25 @@ export default function RoomPage() {
     });
   }
 
+  async function handleFindNewTable(): Promise<void> {
+    // Napusti ovaj sto i nađi novi (Quick Play sa novim igračima).
+    const myName =
+      gameState?.players.find((p) => p.id === session?.playerId)?.displayName ??
+      localStorage.getItem("zandar_name") ??
+      "Igrač";
+    try {
+      const res = await quickPlay({ displayName: myName });
+      saveSession({
+        roomId: res.roomId,
+        playerId: res.playerId,
+        sessionToken: res.playerSessionToken,
+      });
+      router.push(`/matching/${res.roomId}`);
+    } catch (err) {
+      alert("Greška: " + (err instanceof Error ? err.message : "Nepoznato"));
+    }
+  }
+
   async function handleReact(type: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const s = getSocket();
@@ -397,6 +417,7 @@ export default function RoomPage() {
           onRematch={handleRematch}
           onReact={handleReact}
           onLeave={() => router.push("/")}
+          onFindNewTable={handleFindNewTable}
           activeReactions={activeReactions}
         />
         {autoPlayToast && (

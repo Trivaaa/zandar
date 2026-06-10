@@ -46,6 +46,8 @@ type GameScreenProps = {
   onRematch: () => Promise<void>;
   onReact: (type: string) => Promise<void>;
   onLeave?: () => void;
+  /** Napusti ovaj sto i nađi novi (Quick Play sa novim igračima). */
+  onFindNewTable?: () => void;
   activeReactions: ActiveReaction[];
 };
 
@@ -58,6 +60,20 @@ function pileLabel(
   return players.find((p) => p.id === pileId)?.displayName ?? pileId;
 }
 
+/** Imena članova tima (za pile "team-N"); null za individualni pile. */
+function pileMembers(
+  pileId: string,
+  players: PrivateGameStateView["players"],
+): string | null {
+  const m = /^team-(\d+)$/.exec(pileId);
+  if (!m) return null;
+  const teamId = Number(m[1]);
+  const names = players
+    .filter((p) => p.teamId === teamId)
+    .map((p) => p.displayName);
+  return names.length > 0 ? names.join(" · ") : null;
+}
+
 export function GameScreen({
   state,
   onPlayCard,
@@ -65,6 +81,7 @@ export function GameScreen({
   onRematch,
   onReact,
   onLeave,
+  onFindNewTable,
   activeReactions,
 }: GameScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -358,8 +375,20 @@ export function GameScreen({
       {/* End-of-hand / end-of-match modal */}
       {(isHandOver || isMatchOver) && lastHandScore && (
         <div className="absolute inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm rounded-token-lg bg-surface-raised border border-white/10 shadow-xl p-4 max-h-[90vh] overflow-y-auto animate-fade-in">
-            <h2 className="text-xl font-bold mb-3 text-center">
+          <div className="relative w-full max-w-sm rounded-token-lg bg-surface-raised border border-white/10 shadow-xl p-4 max-h-[90vh] overflow-y-auto animate-fade-in">
+            {/* X — ostani na sajtu bez revanša (idi na početnu). Samo kraj meča. */}
+            {isMatchOver && onLeave && (
+              <button
+                type="button"
+                onClick={onLeave}
+                aria-label="Zatvori i idi na početnu"
+                className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-white/10 active:scale-95 transition"
+              >
+                ✕
+              </button>
+            )}
+
+            <h2 className="text-xl font-bold mb-3 text-center px-6">
               {isMatchOver
                 ? `🏆 ${matchWinner ? pileLabel(matchWinner, state.players) : ""} pobjeđuje!`
                 : `Ruka #${lastHandScore.handNumber} gotova`}
@@ -369,49 +398,93 @@ export function GameScreen({
               <p className="font-semibold mb-2 text-sm text-muted">
                 Poeni iz ove ruke:
               </p>
-              {Object.entries(lastHandScore.pointsByPile).map(([pileId, pts]) => (
-                <div key={pileId} className="flex justify-between text-sm">
-                  <span>{pileLabel(pileId, state.players)}</span>
-                  <span
-                    className={pts > 0 ? "text-accent font-bold" : "text-muted"}
-                  >
-                    +{pts}
-                  </span>
-                </div>
-              ))}
+              {Object.entries(lastHandScore.pointsByPile).map(([pileId, pts]) => {
+                const members = pileMembers(pileId, state.players);
+                return (
+                  <div key={pileId} className="flex justify-between items-start text-sm gap-2 py-0.5">
+                    <span className="min-w-0">
+                      <span className="font-medium">{pileLabel(pileId, state.players)}</span>
+                      {members && (
+                        <span className="block text-[11px] text-muted truncate">{members}</span>
+                      )}
+                    </span>
+                    <span className={pts > 0 ? "text-accent font-bold" : "text-muted"}>
+                      +{pts}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="rounded-token-md bg-surface p-3 mb-4">
               <p className="font-semibold mb-2 text-sm text-muted">
                 Ukupni rezultat:
               </p>
-              {Object.entries(state.matchScore).map(([pileId, score]) => (
-                <div key={pileId} className="flex justify-between text-sm">
-                  <span>{pileLabel(pileId, state.players)}</span>
-                  <span className="font-bold tabular-nums">
-                    {score} / {state.targetScore}
-                  </span>
-                </div>
-              ))}
+              {Object.entries(state.matchScore).map(([pileId, score]) => {
+                const members = pileMembers(pileId, state.players);
+                return (
+                  <div key={pileId} className="flex justify-between items-start text-sm gap-2 py-0.5">
+                    <span className="min-w-0">
+                      <span className="font-medium">{pileLabel(pileId, state.players)}</span>
+                      {members && (
+                        <span className="block text-[11px] text-muted truncate">{members}</span>
+                      )}
+                    </span>
+                    <span className="font-bold tabular-nums shrink-0">
+                      {score} / {state.targetScore}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
-            {isHost ? (
+            {isMatchOver ? (
+              <div className="space-y-2">
+                {isHost ? (
+                  <button
+                    type="button"
+                    onClick={() => runAction(onRematch)}
+                    disabled={pendingAction}
+                    className="w-full px-4 py-3 bg-accent text-accent-contrast rounded-token-md font-bold active:scale-95 disabled:opacity-50 transition-transform"
+                  >
+                    {pendingAction ? "..." : "🔄 Revanš (isti sto)"}
+                  </button>
+                ) : (
+                  <p className="text-center text-muted text-sm py-1">
+                    Čeka se da host pokrene revanš…
+                  </p>
+                )}
+                {onFindNewTable && (
+                  <button
+                    type="button"
+                    onClick={onFindNewTable}
+                    className="w-full px-4 py-3 bg-surface border border-white/15 rounded-token-md font-semibold active:scale-95 transition-transform"
+                  >
+                    🔎 Novi sto i igrači
+                  </button>
+                )}
+                {onLeave && (
+                  <button
+                    type="button"
+                    onClick={onLeave}
+                    className="w-full text-center text-muted text-sm py-1.5 hover:text-white transition-colors"
+                  >
+                    Izađi na početnu
+                  </button>
+                )}
+              </div>
+            ) : isHost ? (
               <button
                 type="button"
-                onClick={() => runAction(isMatchOver ? onRematch : onNextHand)}
+                onClick={() => runAction(onNextHand)}
                 disabled={pendingAction}
                 className="w-full px-4 py-3 bg-accent text-accent-contrast rounded-token-md font-bold active:scale-95 disabled:opacity-50 transition-transform"
               >
-                {pendingAction
-                  ? "..."
-                  : isMatchOver
-                    ? "🔄 Reanš"
-                    : "Sljedeća ruka →"}
+                {pendingAction ? "..." : "Sljedeća ruka →"}
               </button>
             ) : (
               <p className="text-center text-muted text-sm py-2">
-                Čeka se da host{" "}
-                {isMatchOver ? "pokrene reanš" : "pokrene sljedeću ruku"}…
+                Čeka se da host pokrene sljedeću ruku…
               </p>
             )}
           </div>
