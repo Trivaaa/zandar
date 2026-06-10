@@ -28,7 +28,9 @@
 | **Full-felt raspored** umjesto boxed grid-a | Implementirano po referentnim card-game aplikacijama: **cijeli ekran je felt** (bez kutija), igrači plutaju po ivicama, centralna **play-zona** za odigrane karte, ruka kao **lepeza (fan)** na dnu. Zamjenjuje pozicijski *grid sa named-areas* (§1.1/§1.5). Orijentacija igrača (ti dole / partner gore / protivnici lijevo-desno) **ostaje** ista. Komp.: `GameScreen` + `SeatBubble` + `HandFan` + `TableArea bare`; matching već koristi isti felt jezik (`MatchingTable`). |
 | **Poleđine karata se prikazuju** (revizija §1.4) | Protivnicima se broj karata prikazuje kao **lepeza poleđina** (generičke, bez info-leak-a) — kao u referencama. Ranije pravilo "NE renderovati poleđine" je **opozvano** (bila kozmetička odluka; backs su anonimne pa ne krše anti-leak). |
 | **Tap-to-play** (dopuna §4.1) | 1. tap karte = selekcija/lift + highlight opcija; **2. tap iste karte = izvrši jednoznačan potez** (trail / jedan capture). Destinacijski tap na stolu i dalje radi; drugi-tap je pouzdan fallback (touch promašaji). Više opcija → tapni grupu na stolu. |
-| **Jasniji turn timer** | Timer na čipu = broj + traka (ne samo broj). |
+| **Turn timer = pilula iznad avatara** (revizija §4.3) | Horizontalna **pilula IZNAD ikonice** igrača (ne preko badge-a broja karata), fill se prazni; **3 stanja: zeleno 100→50%, narandžasto 50→20%, crveno <20%**. Prikazuje se SAMO iznad aktivnog igrača i prelazi na sljedećeg čim odigra. **Na SVAKOM igraču** (i botu): server šalje rok poteza za svaki potez (puni timeout; bot odigra brzo unutar toga → anti-leak konzistentno). Mijenjao prijašnji broj/traku pa luk. |
+| **Desktop UX** (dopuna §1) | In-game se centrira u **felt-stage `max-w-[600px]`** s tamnom podlogom okolo; play-zona šira na `md:`. Sve preko `max-w`/`md:` → mobilni nepromijenjen. |
+| **Faza C/D status** | C1/C2/C4 ✅ (anti-leak straža `lib/antiLeak.ts`); C3 (host bot-fill) preostaje. **Faza D ✅** (D1 PWA: manifest/ikone/SW-samo-statika/install; D2 reconnect: visibilitychange/online → re-subscribe). Persistence soba (file-snapshot; Postgres adapter kasnije). |
 
 > Napomena: §1.1 i §1.5 (grid sa named-areas) su **superseded** za in-game ekran full-felt pristupom; ostaju kao istorijska referenca. `GameTable`/`TableSeats` (grid) i dalje postoje za `/dev/table`, ali live igra koristi `GameScreen` felt-canvas.
 
@@ -88,7 +90,7 @@ Sadrži:
 - Ime (truncate)
 - **Broj karata** — count badge **+ lepeza poleđina** (v3.2; generičke, bez info-leak-a). *(Ranije pravilo "NE renderovati poleđine" je opozvano — vidi changelog.)*
 - Brojač kupljenih karata (mali)
-- Turn ring + timer (broj + traka) kad je na potezu
+- Turn ring + **timer pilula iznad avatara** (3 stanja: zeleno/narandžasto/crveno na 50%/20%) kad je na potezu
 - Connection status (`connected` / `reconnecting` / `auto-play`) — botovi su uvijek `connected`
 - 4P: suptilni team-color border
 
@@ -154,7 +156,7 @@ Neutralno stilizovano (tokeni), jasna stanja. Game-agnostic gdje može (kartaoni
    - Force capture: trail blokiran kad postoji obavezan capture (inline poruka).
    - Undo se **ne gradi** (multiplayer trošak); potvrda tapom je dovoljna zaštita. Revidiraj samo ako playtest pokaže J-misklik rage.
 2. **Capture highlight.** Selektovana karta → validne grupe na stolu zasvijetle prije nego potvrdiš.
-3. **Turn clarity.** Aktivni čip = turn ring + timer NA čipu. Tvoja ruka glow kad je tvoj red, dim kad nije.
+3. **Turn clarity.** Aktivni igrač = turn ring + **timer pilula iznad avatara** (zeleno 100→50% / narandžasto 50→20% / crveno <20%), prikazana SAMO na onom ko je na potezu (i na botovima). Tvoja ruka glow kad je tvoj red, dim kad nije.
 4. **Reactions kao FAB.** Floating dole-desno, ne stalna traka.
 5. **Score kao pill.** Gornji ugao, tap širi breakdown.
 6. **Touch feedback preko `active:`, ne `hover:`** (hover se zaglavi na touchu; `hover:` samo iza `@media (hover: hover)`).
