@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 /**
  * PwaManager (DS §9 D1) — registruje service worker (samo statika),
@@ -18,6 +19,9 @@ export function PwaManager() {
     null,
   );
   const [updateReady, setUpdateReady] = useState<ServiceWorker | null>(null);
+  const pathname = usePathname();
+  // U sobi je dno zauzeto rukom + reaction FAB-om → prikaži banner na vrhu.
+  const inRoom = pathname?.startsWith("/room/") ?? false;
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
@@ -90,7 +94,13 @@ export function PwaManager() {
   if (!installEvt && !updateReady) return null;
 
   return (
-    <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-token-lg bg-surface-raised border border-white/10 shadow-xl px-3 py-2 mb-safe-bottom max-w-[92vw]">
+    <div
+      className={`fixed left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-token-lg bg-surface-raised border border-white/10 shadow-xl px-3 py-2 max-w-[92vw] ${
+        inRoom
+          ? "top-3 mt-safe-top"
+          : "bottom-3 mb-safe-bottom"
+      }`}
+    >
       {updateReady ? (
         <>
           <span className="text-sm text-white">Nova verzija dostupna</span>

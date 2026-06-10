@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getCaptureOptions } from "@zandar/game-core";
 import type {
   Card as CardType,
@@ -73,6 +73,18 @@ export function GameScreen({
     const t = setTimeout(() => setError(null), 4000);
     return () => clearTimeout(t);
   }, [error]);
+
+  // Capture-flash: zasvijetli play-zonu kad ukupan broj pokupljenih karata poraste.
+  const capturedTotal = useMemo(
+    () => Object.values(state.capturedCounts).reduce((a, b) => a + b, 0),
+    [state.capturedCounts],
+  );
+  const prevCapturedRef = useRef(capturedTotal);
+  const [flashKey, setFlashKey] = useState(0);
+  useEffect(() => {
+    if (capturedTotal > prevCapturedRef.current) setFlashKey((k) => k + 1);
+    prevCapturedRef.current = capturedTotal;
+  }, [capturedTotal]);
 
   const me = state.players.find((p) => p.id === state.myPlayerId);
   const isHost = me?.isHost ?? false;
@@ -211,7 +223,7 @@ export function GameScreen({
       {/* Centralna play-zona — odigrane karte + capture/trail.
           Desktop (md): šira da se karte ne gomilaju u usku kolonu. */}
       <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[64%] max-w-[230px] md:max-w-[380px] z-10">
-        <div className="rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]">
+        <div className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]">
           <TableArea
             bare
             table={state.table}
@@ -219,6 +231,13 @@ export function GameScreen({
             onCapture={handleCapture}
             onTrail={handleTrail}
           />
+          {flashKey > 0 && (
+            <span
+              key={flashKey}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-token-lg animate-capture-flash"
+            />
+          )}
         </div>
       </div>
 

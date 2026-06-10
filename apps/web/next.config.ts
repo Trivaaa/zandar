@@ -2,7 +2,16 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // /zandar/room/:roomId → /room/:roomId (308 trajni redirect; zadrži oba linka).
+  async redirects() {
+    return [
+      {
+        source: "/zandar/room/:roomId",
+        destination: "/room/:roomId",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {
