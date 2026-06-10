@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getCaptureOptions, type GameEvent } from "@zandar/game-core";
 import type {
   Card as CardType,
@@ -23,7 +23,6 @@ import { getReactionEmoji } from "@/lib/reactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
 import { playSfx } from "@/lib/sound";
 import { useGameEvents } from "@/lib/useGameEvents";
-import { flyToPile } from "@/lib/flyAnimation";
 import type { ActiveReaction } from "@/components/GameView";
 
 /**
@@ -100,7 +99,6 @@ export function GameScreen({
 
   // Feedback sloj (§50.6): jedinstvena detekcija događaja pokreće capture-flash i
   // haptiku (a u Fazi 2 i zvuk). Capture-flash je keyed overlay u play-zoni.
-  const stageRef = useRef<HTMLDivElement>(null);
   const [flash, setFlash] = useState<{ key: number; sweep: boolean }>({
     key: 0,
     sweep: false,
@@ -109,8 +107,8 @@ export function GameScreen({
     switch (event.type) {
       case "capture":
         // J-sweep dobija jači flash (§50.5); običan capture standardni.
+        // "Collect" let karata radi MoveReveal (karte iz reveala → pile).
         setFlash((f) => ({ key: f.key + 1, sweep: event.jackSweep }));
-        flyToPile(stageRef.current, event.playerId); // ghost poleti ka kupcu
         playSfx(event.jackSweep ? "sweep" : "capture");
         if (event.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
         break;
@@ -218,7 +216,6 @@ export function GameScreen({
     // podloga. Na mobilu (stage = w-full) izgleda identično kao prije.
     <div className="h-[100dvh] w-full bg-surface flex justify-center">
     <div
-      ref={stageRef}
       className="relative h-full w-full max-w-[600px] overflow-hidden bg-felt md:shadow-2xl md:ring-1 md:ring-black/40"
       style={{
         backgroundImage:
@@ -273,10 +270,7 @@ export function GameScreen({
       {/* Centralna play-zona — odigrane karte + capture/trail.
           Desktop (md): šira da se karte ne gomilaju u usku kolonu. */}
       <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[64%] max-w-[230px] md:max-w-[380px] z-10">
-        <div
-          data-play-zone
-          className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]"
-        >
+        <div className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]">
           <TableArea
             bare
             table={state.table}
