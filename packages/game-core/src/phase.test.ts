@@ -76,6 +76,43 @@ describe("advanceTurnOrPhase", () => {
     expect(state.currentPlayerId).toBe("p3");
   });
 
+  it("preskace igrace bez karata pri rotaciji (neravnomjeran spil)", () => {
+    const state = makeState({
+      players: makePlayers(4),
+      currentPlayerId: "p0",
+      hands: { p0: [c("hearts", "5")], p1: [], p2: [c("spades", "9")], p3: [] },
+      captured: { "team-0": [], "team-1": [] },
+      matchScore: { "team-0": 0, "team-1": 0 },
+      rulesConfig: createRulesConfig(4),
+    });
+
+    advanceTurnOrPhase(state);
+
+    // p1 je prazan → mora preskočiti na p2 (ne smije zaglaviti na praznoj ruci)
+    expect(state.currentPlayerId).toBe("p2");
+  });
+
+  it("poslije neravnomjernog dijeljenja currentPlayer ima karte", () => {
+    const state = makeState({
+      players: makePlayers(4),
+      dealerPlayerId: "p0", // lijevo od dealera = p1
+      currentPlayerId: "p3",
+      hands: { p0: [], p1: [], p2: [], p3: [] }, // sve prazno → re-deal
+      deck: [c("hearts", "2"), c("hearts", "3")], // samo 2 karte → p0 dobije obje
+      captured: { "team-0": [], "team-1": [] },
+      matchScore: { "team-0": 0, "team-1": 0 },
+      rulesConfig: createRulesConfig(4),
+    });
+
+    advanceTurnOrPhase(state);
+
+    // p0 dobije 2 karte; p1-p3 ostanu prazni → current MORA biti p0 (ima karte)
+    expect(state.hands["p0"]).toHaveLength(2);
+    expect(state.hands["p1"]).toHaveLength(0);
+    expect(state.currentPlayerId).toBe("p0");
+    expect((state.hands[state.currentPlayerId] ?? []).length).toBeGreaterThan(0);
+  });
+
   it("dijeli novu rundu kad su sve ruke prazne ali spil ima karte", () => {
     const deckCards: Card[] = [];
     for (const rank of ["2", "3", "4", "5", "6", "7", "8", "9"] as Rank[]) {

@@ -2,7 +2,7 @@ import type { GameState } from "@zandar/shared-types";
 import { dealCardsToPlayers } from "./deal";
 import {
   getCapturePileId,
-  getNextPlayerId,
+  getNextPlayerWithCards,
   getPlayerLeftOfDealer,
 } from "./helpers";
 import { calculateHandScore } from "./scoring";
@@ -74,13 +74,20 @@ export function advanceTurnOrPhase(state: GameState): void {
   );
 
   if (!allHandsEmpty) {
-    state.currentPlayerId = getNextPlayerId(state);
-    return;
+    // Preskoci igrace bez karata (neravnomjeran spil); bar jedan ima karte.
+    const next = getNextPlayerWithCards(state, state.currentPlayerId, false);
+    if (next) {
+      state.currentPlayerId = next;
+      return;
+    }
+    // teorijski nedostizno (allHandsEmpty bi bio true) — padni na deal/finish nize.
   }
 
   if (state.deck.length > 0) {
     dealCardsToPlayers(state);
-    state.currentPlayerId = getPlayerLeftOfDealer(state);
+    // Poslije dijeljenja prvi igrac S KARTAMA od lijevo-od-dealera (neravnomjeran spil).
+    const start = getPlayerLeftOfDealer(state);
+    state.currentPlayerId = getNextPlayerWithCards(state, start, true) ?? start;
     return;
   }
 

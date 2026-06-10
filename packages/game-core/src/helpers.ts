@@ -49,6 +49,34 @@ export function getNextPlayerId(state: GameState): string {
 }
 
 /**
+ * Vraca ID sljedeceg igraca (clockwise) koji JOS IMA karte u ruci.
+ *
+ * Bitno kad spil ne dijeli ravnomjerno (npr. award_to_dealer izvuce kartu pa
+ * zadnja runda bude neravnomjerna) — neki igraci ostanu bez karata prije drugih.
+ * Preskacemo prazne ruke da niko ne zaglavi na potezu bez ijedne karte.
+ *
+ * @param fromPlayerId pocetni igrac
+ * @param includeFrom  ukljuci i pocetnog (za izbor prvog igraca poslije dijeljenja)
+ * @returns id igraca sa kartama, ili null ako niko nema karte
+ */
+export function getNextPlayerWithCards(
+  state: GameState,
+  fromPlayerId: string,
+  includeFrom = false,
+): string | null {
+  const n = state.players.length;
+  const fromIdx = state.players.findIndex((p) => p.id === fromPlayerId);
+  if (fromIdx === -1) {
+    throw new Error("fromPlayerId nije u listi igraca");
+  }
+  for (let step = includeFrom ? 0 : 1; step <= n; step++) {
+    const id = state.players[(fromIdx + step) % n]!.id;
+    if ((state.hands[id]?.length ?? 0) > 0) return id;
+  }
+  return null;
+}
+
+/**
  * Vraca ID igraca koji je lijevo od dealera (clockwise jedno mjesto).
  * To je prvi igrac koji igra u svakoj ruci.
  */
