@@ -50,7 +50,11 @@
       "Bash(cd /c/Users/User/projects/zandar && rg -n \"allow_on_table|award_to_cutter\" --glob '!docs/**' --glob '!*.test.ts' apps packages | rg -v \"JackOnInitialBehavior|// award_to_cutter|award_to_cutter: J ide\")",
       "Read(//c/c/Users/User/projects/zandar/**)",
       "Bash(cd /c/Users/User/projects/zandar/apps/web && npx tsc --noEmit 2>&1 | tail -10 && echo \"=== WEB TSC ===\" && npx eslint components/MoveReveal.tsx components/GameScreen.tsx 2>&1 | tail -10 && echo \"=== ESLINT ===\" && cd ../server && pnpm typecheck 2>&1 | tail -5 && echo \"=== SERVER TSC ===\")",
-      "Read(//c/Users/User/projects/**)"
+      "Read(//c/Users/User/projects/**)",
+      "Bash(git commit *)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\User\\projects\\zandar\\.git"
     ]
   }
 }

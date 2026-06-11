@@ -135,9 +135,11 @@ export function SeatBubble({
       )}
 
       <div className="relative">
-        {/* Turn countdown — kružni prsten OKO avatara (industrijski standard) */}
+        {/* Turn countdown — horizontalna pilula IZNAD avatara (na potezu) */}
         {isCurrentTurn && timer ? (
-          <div className="absolute -inset-[9px] z-0 pointer-events-none">{timer}</div>
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+            {timer}
+          </div>
         ) : null}
         <div
           className={`relative z-10 w-14 h-14 rounded-full bg-surface-raised border-2 ${teamBorder(teamId)} ${ring} flex items-center justify-center text-lg font-bold shadow-lg select-none transition-transform`}
@@ -152,12 +154,6 @@ export function SeatBubble({
         >
           {displayName.charAt(0).toUpperCase()}
         </div>
-        <span
-          className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-accent text-accent-contrast text-[11px] font-bold leading-5 text-center border-2 border-felt"
-          aria-label={`${cardCount} karata u ruci`}
-        >
-          {cardCount}
-        </span>
         {connectionStatus === "reconnecting" && (
           <span
             className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-warn border border-felt animate-status-blink"
