@@ -36,6 +36,19 @@
 
 ---
 
+## Changelog (v3.2 → v3.2 in-game polish — posle telefon-retesta 2026-06-10)
+
+| Promjena | Opis |
+|----------|------|
+| **Turn indikator = kružni prsten OKO avatara** (revizija §1.4, §4.3) | Pilula iznad avatara se slabo vidjela. Zamijenjena **industrijskim standardom**: kružni conic-gradient countdown koji "grli" avatar spolja (boja po pragu zeleno ≥50% / narandžasto 50–20% / crveno <20%) + **zlatni glow** + blago **`scale-105`** na aktivnom sjedištu. `TurnTimer size="ring"`; pilula ostaje kao legacy varijanta. |
+| **Jedinstvena poleđina `CardBack`** (dopuna §3, smjer §10) | Nova `CardBack` komponenta: **zlatna rešetka rombova na feltu** + tanka zlatna ivica, token-only (`--accent`/`--surface-raised`). Dijele je poleđine protivnika (`SeatBubble`), špil (`DeckPile`) i deal-duhovi → jedan vizuelni jezik. Veće poleđine (partner 30×42, bočni 52×36) umjesto praznih pravougaonika. Rana, djelimična primjena §10 smjera na karte/špil (puni Ex-Yu skin ostaje Faza 2). |
+| **Špil kao fizički štos** (dopuna §50/§12) | `DeckPile`: deblji slojevi (∝ `deckCount`) + `CardBack` gornja karta + **chip-badge** za broj. |
+| **Deal animacija — više nije odgođena** (revizija §12.3) | Karte se na (re)dijeljenju i **na startu partije** dijele iz špila (`[data-deck]`) ka svakom igraču + na sto (`[data-table-drop]`), round-robin. Turn-timer se sakrije dok karte "padaju" pa pokaže čim dijeljenje završi → jasan slijed. |
+| **Lica karata** (dopuna §3) | Mekši radius (`token-md`) + suptilan ring za klasičniji izgled. |
+| **Animacije +10% sporije** | Sve dekorativne animacije usporene ×1.1 (CSS keyframes + JS fly + `MoveReveal`) — prebrzo prolazile na uređaju. |
+
+---
+
 ## Dva noseća principa
 
 1. **Struktura prije skina.** Gradiš UX sa neutralnim design tokenima. Ex-Yu UI dolazi kasnije kao zamjena vrijednosti tokena, ne strukture.
@@ -90,7 +103,7 @@ Sadrži:
 - Ime (truncate)
 - **Broj karata** — count badge **+ lepeza poleđina** (v3.2; generičke, bez info-leak-a). *(Ranije pravilo "NE renderovati poleđine" je opozvano — vidi changelog.)*
 - Brojač kupljenih karata (mali)
-- Turn ring + **timer pilula iznad avatara** (3 stanja: zeleno/narandžasto/crveno na 50%/20%) kad je na potezu
+- Turn ring + **kružni countdown-prsten OKO avatara** (conic-gradient; 3 stanja: zeleno ≥50% / narandžasto 50–20% / crveno <20%) + **zlatni glow** + blago uvećanje (`scale-105`) kad je na potezu — industrijski standard za "ko je na redu" (v3.2 polish; zamijenio raniju pilulu iznad)
 - Connection status (`connected` / `reconnecting` / `auto-play`) — botovi su uvijek `connected`
 - 4P: suptilni team-color border
 
@@ -156,7 +169,7 @@ Neutralno stilizovano (tokeni), jasna stanja. Game-agnostic gdje može (kartaoni
    - Force capture: trail blokiran kad postoji obavezan capture (inline poruka).
    - Undo se **ne gradi** (multiplayer trošak); potvrda tapom je dovoljna zaštita. Revidiraj samo ako playtest pokaže J-misklik rage.
 2. **Capture highlight.** Selektovana karta → validne grupe na stolu zasvijetle prije nego potvrdiš.
-3. **Turn clarity.** Aktivni igrač = turn ring + **timer pilula iznad avatara** (zeleno 100→50% / narandžasto 50→20% / crveno <20%), prikazana SAMO na onom ko je na potezu (i na botovima). Tvoja ruka glow kad je tvoj red, dim kad nije.
+3. **Turn clarity.** Aktivni igrač = **kružni countdown-prsten OKO avatara** (conic-gradient: zeleno ≥50% / narandžasto 50–20% / crveno <20%) + zlatni glow + `scale-105`, prikazan SAMO na onom ko je na potezu (i na botovima). Tvoja ruka glow kad je tvoj red, dim kad nije. *(Industrijski standard; zamijenio raniju pilulu iznad avatara — v3.2 polish.)*
 4. **Reactions kao FAB.** Floating dole-desno, ne stalna traka.
 5. **Score kao pill.** Gornji ugao, tap širi breakdown.
 6. **Touch feedback preko `active:`, ne `hover:`** (hover se zaglavi na touchu; `hover:` samo iza `@media (hover: hover)`).
@@ -378,6 +391,8 @@ Acceptance: background→foreground vraća živu konekciju i state bez ručnog r
 
 Mijenjaš samo vrijednosti tokena. Smjer: kafana/felt sto (topliji zeleni, suptilna tekstura, drvo + zlato akcenti — žuti CTA već nagovještava), klasične čitke karte (regionalni špil, autentičnost kasnije), folk motivi štedljivo, topla čitka tipografija sa karakternim display fontom za brand. Ton: "klasična kartaška sa rajom — sad i online" — toplo, prijateljski, nostalgično. Bot iluzija pomaže ovom tonu: stolovi uvijek "živi", imena domaća, sjedišta se popunjavaju pred tobom.
 
+> **Rana djelimična primjena (v3.2 polish):** poleđina karata i špil su već dobili §10 dašak — `CardBack` sa zlatnom rešetkom rombova na feltu (token-only). Ostalo (lica karata / regionalni špil, tekstura felta, drvo, display font) ostaje za punu Fazu 2.
+
 ---
 
 ## 11. Redoslijed (TL;DR)
@@ -414,10 +429,12 @@ Cilj: sto da "živi" — svaki bitan događaj ima čujni/opipljivi/vidljivi odgo
 | `animate-jack-sweep` | J-sweep (čišćenje stola) | jači/duži sjaj + blagi `scale` (0.7s) |
 | **collect** (`collectToPile`) | bilo koji capture | STVARNE karte iz `MoveReveal`-a (`[data-reveal-card]`) odlete ka `[data-seat-id]` kupca (Web Animations API, `fill:forwards`, staggered; samočisteće, `pointer-events-none`) |
 | **reakcija** (emoji) | igrač reaguje | emoji-bubble uz `SeatBubble` pošiljaoca (iznad avatara; ispod za gornje sjedište) |
-| deal "iz špila" | — | **ODGOĐENO** (nema deck-sidra; WAAPI transform bi razbio centriranje sjedišta — traži zaseban dizajn) |
+| **deal "iz špila"** (`dealFromDeck`) | (re)dijeljenje + **start partije** | poleđine (`CardBack` izgled) lete iz špila (`[data-deck]`) ka svakom igraču + na sto (`[data-table-drop]`), round-robin staggered; ghost elementi na `body`, samočisteći. Na startu se sintetizuje iz prvog "playing" snapshota; turn-timer se sakrije dok traje pa pokaže po završetku. *(Više NIJE odgođeno — deck-sidro riješilo problem.)* |
+| **CardBack** (poleđina) | protivnici / špil / deal | zlatna rešetka rombova na feltu, token-only; ne animira se sama nego daje jedinstven izgled svemu gore |
 
-- **Sidra:** `[data-seat-id]` na `SeatBubble` (uz postojeći `data-current-turn`); `[data-reveal-card]` na karticama u `MoveReveal`-u.
+- **Sidra:** `[data-seat-id]` na `SeatBubble` (uz postojeći `data-current-turn`); `[data-reveal-card]` na karticama u `MoveReveal`-u; `[data-deck]` na `DeckPile`; `[data-table-drop]` na play-zoni.
 - Keyframes u `globals.css`; svaka nova ide i u `prefers-reduced-motion` blok.
+- **Tempo:** dekorativne animacije su namjerno usporene ×1.1 (v3.2 polish — prebrzo prolazile na uređaju).
 
 ### 12.4 Move reveal (`MoveReveal`)
 - Server šalje `PrivateGameStateView.lastMove` (odigrana + pokupljene karte; javno). Banner iznad play-zone ~1.8s: **ko / koju kartu / šta pokupio** (ŽANDAR ima poseban prikaz). Na kraju (za capture) karte **collect**-uju u pile kupca.

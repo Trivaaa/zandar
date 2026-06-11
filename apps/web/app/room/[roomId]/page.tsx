@@ -431,6 +431,18 @@ export default function RoomPage() {
     );
   }
 
+  // Igra je već pokrenuta na serveru (Quick Play startuje odmah, ili reconnect u
+  // partiju u toku) — gameState stiže socket-om za koji trenutak. NE prikazuj
+  // lobby (invite link, host kontrole, "Pokreni igru") u tom prozoru: nakon
+  // matching ekrana mora doći Sto, ne lobby. Drži tih loading dok state ne stigne.
+  if (room.status === "playing" || room.status === "finished") {
+    return (
+      <main className="min-h-screen bg-felt text-white flex items-center justify-center">
+        <p className="text-muted">Učitavanje stola...</p>
+      </main>
+    );
+  }
+
   const me = room.players.find((p) => p.id === session.playerId);
   const isHost = me?.isHost ?? false;
   const playersNeeded = room.playerCount - room.players.length;

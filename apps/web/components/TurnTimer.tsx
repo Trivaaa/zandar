@@ -72,11 +72,11 @@ export function TurnTimer({
         aria-label={`${seconds} sekundi za potez`}
         style={{
           // Preostali dio = boja praga; potrošeni = prigušena traka.
-          background: `conic-gradient(${color} ${deg}deg, color-mix(in srgb, var(--text) 16%, transparent) ${deg}deg 360deg)`,
-          // Maska pravi tanak prsten koji "grli" avatar spolja.
-          WebkitMask: "radial-gradient(circle, transparent 82%, #000 84%)",
-          mask: "radial-gradient(circle, transparent 82%, #000 84%)",
-          filter: `drop-shadow(0 0 5px color-mix(in srgb, ${color} 75%, transparent))`,
+          background: `conic-gradient(${color} ${deg}deg, color-mix(in srgb, var(--text) 24%, transparent) ${deg}deg 360deg)`,
+          // Maska pravi prsten koji "grli" avatar spolja (deblji = čitljiviji countdown).
+          WebkitMask: "radial-gradient(circle, transparent 73%, #000 76%)",
+          mask: "radial-gradient(circle, transparent 73%, #000 76%)",
+          filter: `drop-shadow(0 0 7px color-mix(in srgb, ${color} 90%, transparent))`,
         }}
       />
     );

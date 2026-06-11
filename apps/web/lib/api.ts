@@ -1,3 +1,5 @@
+import { getGuestId } from "@/lib/guestId";
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -197,7 +199,12 @@ export async function quickPlay(input: {
   const res = await fetch(`${API_BASE}/api/quickplay`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...input, playerCount: 4, targetScore: 21 }),
+    body: JSON.stringify({
+      ...input,
+      playerCount: 4,
+      targetScore: 21,
+      guestId: getGuestId(),
+    }),
   });
   if (!res.ok) {
     const err = await res.json();
