@@ -47,6 +47,15 @@
 | **Lica karata** (dopuna §3) | Mekši radius (`token-md`) + suptilan ring za klasičniji izgled. |
 | **Animacije +10% sporije** | Sve dekorativne animacije usporene ×1.1 (CSS keyframes + JS fly + `MoveReveal`) — prebrzo prolazile na uređaju. |
 
+### Dopuna (2026-06-11 — retest follow-up)
+
+| Promjena | Opis |
+|----------|------|
+| **Turn indikator vraćen na horizontalni pill** (revizija §1.4, §4.3) | Kratkotrajni conic-ring (vidi red gore) se na uređaju lošije čitao od horizontalne trake. Vraćeno na **`TurnTimer size="pill"`** — horizontalna traka koja se prazni (boja po pragu zeleno ≥50% / narandžasto 50–20% / crveno <20%) **iznad** aktivnog avatara. Zlatni puls/glow **pojačan** (`ring-4` + `scale-110` + veći/svjetliji glow `0 0 28px 8px @85%`) ostaje kao "ko je na redu". |
+| **Uklonjen count-badge sa sjedišta** (revizija §1.4) | `bg-accent` badge broja karata izbačen sa `SeatBubble`-a — redundantan jer se broj već vidi preko **lepeze poleđina** (protivnici) / **vlastite ruke u lepezi** (ti). |
+| **Quick Play → pravo u Sto** (veza §7.3 / PRD §49.2) | Nakon matching ekrana korisnik pada **direktno u Sto**; host-lobby se NE prikazuje. `/room/:id` kad je partija već pokrenuta (`status=playing/finished`) drži tih loading dok `game:state` stigne socketom, umjesto da bljesne lobby. Lobby ostaje samo za privatne sobe u čekanju (`status=waiting`, `/create`). |
+| **Native pakovanje — procjena** | `docs/MOBILE_PLAN_STATUS.md`: postojeći PWA → TWA (Android) + Capacitor (iOS); bez React Native. Orijentaciono, ne gradi se sad. |
+
 ---
 
 ## Dva noseća principa
@@ -96,18 +105,18 @@ Nema dva odvojena layouta. Isti pozicijski grid; skaliraš veličinu čipova. Na
 
 Renderuje se IDENTIČNO za čovjeka i bota. Dvije realizacije:
 - **`SeatChip`** (pill, ~56px) — za grid layout / `/dev` previewe.
-- **`SeatBubble`** (krug) — **in-game (full-felt) standard, v3.2**: kružni avatar + count badge + turn ring + timer + team-color border + connection status.
+- **`SeatBubble`** (krug) — **in-game (full-felt) standard, v3.2**: kružni avatar + lepeza poleđina + turn pulse + timer + team-color border + connection status.
 
 Sadrži:
 - Avatar (krug; inicijal dok nema slike)
 - Ime (truncate)
-- **Broj karata** — count badge **+ lepeza poleđina** (v3.2; generičke, bez info-leak-a). *(Ranije pravilo "NE renderovati poleđine" je opozvano — vidi changelog.)*
+- **Broj karata** — **lepeza poleđina** (v3.2; generičke, bez info-leak-a). *(Count-badge uklonjen 2026-06-11 — redundantan; ranije pravilo "NE renderovati poleđine" je takođe opozvano — vidi changelog.)*
 - Brojač kupljenih karata (mali)
-- Turn ring + **kružni countdown-prsten OKO avatara** (conic-gradient; 3 stanja: zeleno ≥50% / narandžasto 50–20% / crveno <20%) + **zlatni glow** + blago uvećanje (`scale-105`) kad je na potezu — industrijski standard za "ko je na redu" (v3.2 polish; zamijenio raniju pilulu iznad)
+- Turn puls (zlatni `ring-4` + glow + `scale-110`) + **horizontalni countdown-pill IZNAD avatara** (`TurnTimer size="pill"`; 3 stanja: zeleno ≥50% / narandžasto 50–20% / crveno <20%) kad je na potezu. *(2026-06-11: vraćeno na pill sa kratkotrajnog conic-ring eksperimenta — pill se jasnije čita na uređaju.)*
 - Connection status (`connected` / `reconnecting` / `auto-play`) — botovi su uvijek `connected`
 - 4P: suptilni team-color border
 
-Bočni protivnici (4P) su uža varijanta: avatar + count + turn ring, bez punog imena ako nema mjesta.
+Bočni protivnici (4P) su uža varijanta: avatar + poleđine + turn puls, bez punog imena ako nema mjesta.
 
 ### 1.5 CSS Grid + safe areas
 
@@ -169,7 +178,7 @@ Neutralno stilizovano (tokeni), jasna stanja. Game-agnostic gdje može (kartaoni
    - Force capture: trail blokiran kad postoji obavezan capture (inline poruka).
    - Undo se **ne gradi** (multiplayer trošak); potvrda tapom je dovoljna zaštita. Revidiraj samo ako playtest pokaže J-misklik rage.
 2. **Capture highlight.** Selektovana karta → validne grupe na stolu zasvijetle prije nego potvrdiš.
-3. **Turn clarity.** Aktivni igrač = **kružni countdown-prsten OKO avatara** (conic-gradient: zeleno ≥50% / narandžasto 50–20% / crveno <20%) + zlatni glow + `scale-105`, prikazan SAMO na onom ko je na potezu (i na botovima). Tvoja ruka glow kad je tvoj red, dim kad nije. *(Industrijski standard; zamijenio raniju pilulu iznad avatara — v3.2 polish.)*
+3. **Turn clarity.** Aktivni igrač = **zlatni puls/glow oko avatara** (`ring-4` + `scale-110` + glow) + **horizontalni countdown-pill IZNAD avatara** (`TurnTimer size="pill"`: zeleno ≥50% / narandžasto 50–20% / crveno <20%), prikazan SAMO na onom ko je na potezu (i na botovima). Tvoja ruka glow kad je tvoj red, dim kad nije. *(2026-06-11: pill vraćen sa kratkotrajnog conic-ring eksperimenta; puls pojačan.)*
 4. **Reactions kao FAB.** Floating dole-desno, ne stalna traka.
 5. **Score kao pill.** Gornji ugao, tap širi breakdown.
 6. **Touch feedback preko `active:`, ne `hover:`** (hover se zaglavi na touchu; `hover:` samo iza `@media (hover: hover)`).

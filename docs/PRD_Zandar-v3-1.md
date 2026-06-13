@@ -608,6 +608,7 @@ Nakon "Nađi sto", loading/matching ekran koji popunjava sto pred korisnikom:
 - **Imena/avatari se pojavljuju jedan po jedan** ("Marko se pridružio", "ana_88 se pridružila") koristeći generator iz §39.
 - Svrha: (a) prodaje iluziju pune, žive sobe; (b) zabavlja tokom 1–2s spin-up-a.
 - Trajanje: kratko ali ne instant — realna mikro-pauza pojačava osjećaj "pravog" matchmakinga; ne predugo (frustracija).
+- **Drop pravo u Sto (2026-06-11):** kad matching završi, korisnik pada **direktno u Sto** (partija već kreće). Host-lobby (invite link, "Pokreni igru", "Popuni botovima") se u Quick Play-u **NIKAD ne prikazuje** — to je flow privatne sobe. Implementacija: Quick Play sto se na serveru pokrene odmah (`status=playing`), pa klijent na `/room/:id` drži tih loading dok prvi `game:state` ne stigne socketom, umjesto da bljesne lobby. Lobby se renderuje samo dok je soba u čekanju (`status=waiting`, privatne sobe).
 
 **Potrebne nove design-system komponente:**
 - Matching screen layout (4 seat placeholdera koji se popunjavaju).
@@ -624,6 +625,7 @@ Nakon "Nađi sto", loading/matching ekran koji popunjava sto pred korisnikom:
 - Prikazuje staggered "player joined" događaje sa imenima iz §39.
 - Botovi i ljudi se prikazuju identično (ne otkriva se ko je bot).
 - Min/max trajanje konfigurabilno (npr. 1.5–3s).
+- Po završetku matchinga korisnik ide **pravo u Sto**, nikad u host-lobby (vidi §49.2 "Drop pravo u Sto").
 
 ---
 

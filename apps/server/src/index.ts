@@ -1201,13 +1201,9 @@ async function broadcastGameState(roomId: string): Promise<void> {
   } else {
     clearTurnTimer(roomId);
     clearBotTimer(roomId);
-    // Auto-advance hand_finished in bot games after 4 s
-    if (gs.phase === "hand_finished") {
-      const hasBots = gs.players.some((p) => p.isBot);
-      if (hasBots) {
-        setTimeout(() => void autoNextHand(roomId), 4000);
-      }
-    }
+    // Kraj ruke NE napreduje automatski — HOST pokreće sljedeću ruku dugmetom
+    // ("Sljedeća ruka →" → game:nextHand). Ranije: auto-advance posle 4s u bot
+    // partijama; uklonjeno na zahtjev (igrač kontroliše tempo).
   }
 
   const deadline =
@@ -1226,34 +1222,6 @@ async function broadcastGameState(roomId: string): Promise<void> {
 
   // Perzistuj svjež state (debounce) — preživi restart servera.
   persistRoom(room);
-}
-
-async function autoNextHand(roomId: string): Promise<void> {
-  const room = getRoom(roomId);
-  if (!room?.gameState || room.gameState.phase !== "hand_finished") return;
-
-  const oldState = room.gameState;
-  const oldDealerIdx = oldState.players.findIndex(
-    (p) => p.id === oldState.dealerPlayerId,
-  );
-  const newDealerIdx = (oldDealerIdx + 1) % oldState.players.length;
-  const newDealerId = oldState.players[newDealerIdx]!.id;
-
-  const newState = createInitialGameState({
-    roomId: oldState.roomId,
-    matchId: oldState.matchId,
-    players: oldState.players,
-    dealerPlayerId: newDealerId,
-    rulesConfig: oldState.rulesConfig,
-  });
-
-  newState.matchScore = { ...oldState.matchScore };
-  newState.handNumber = oldState.handNumber + 1;
-  newState.handScores = [...oldState.handScores];
-  room.gameState = newState;
-
-  await broadcastGameState(roomId);
-  fastify.log.info(`🤖 Auto next hand in room ${roomId} (hand #${newState.handNumber})`);
 }
 
 io.on("connection", (socket) => {
