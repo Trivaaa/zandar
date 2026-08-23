@@ -22,7 +22,9 @@ import {
   hashToken,
   hydrateRooms,
   persistRoom,
+  startRoomSweeper,
   storeRoom,
+  sweepStaleRooms,
   verifyToken,
   type JoinRequest,
   type LobbyRoom,
@@ -1533,6 +1535,16 @@ try {
 } catch (err) {
   fastify.log.error(`Hydrate failed (nastavljam in-memory): ${err}`);
 }
+
+// Sweep napuštenih soba: jednom odmah (čisti stare fajlove naslijeđene s diska)
+// pa periodično — inače rooms Map i .data rastu neograničeno.
+const sweptOnBoot = sweepStaleRooms();
+if (sweptOnBoot > 0) {
+  fastify.log.info(`🧹 Sweep na startu: uklonjeno ${sweptOnBoot} napuštenih soba`);
+}
+startRoomSweeper((removed) => {
+  fastify.log.info(`🧹 Sweep: uklonjeno ${removed} napuštenih soba`);
+});
 
 try {
   await fastify.listen({

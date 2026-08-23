@@ -32,6 +32,8 @@ export type LobbyRoom = {
   sessionTokens: Map<string, string>;
   joinRequests: Map<string, JoinRequest>;
   createdAt: number;
+  /** Zadnja aktivnost (osvježava se u persistRoom) — ulaz za sweep. */
+  lastActivityAt?: number;
   /** Javni stolovi (Quick Play) — vidljivi matchmakeru. */
   isPublic?: boolean;
   /**
@@ -124,6 +126,7 @@ const PERSIST_DEBOUNCE_MS = 400;
 
 /** Debounce-ovani upis sobe u durable store. Fire-and-forget. */
 export function persistRoom(room: LobbyRoom): void {
+  room.lastActivityAt = Date.now();
   const id = room.id;
   const existing = persistTimers.get(id);
   if (existing) clearTimeout(existing);
@@ -163,4 +166,42 @@ export function expireOldRequests(room: LobbyRoom): void {
       req.status = "expired";
     }
   }
+}
+
+// ── Sweep napuštenih soba ────────────────────────────────────────────────────
+
+/**
+ * Bez ovoga `rooms` Map i .data direktorij rastu bez granice: deleteRoom()
+ * postoji, ali ga nijedna putanja nije zvala. Sobe se čiste po TTL-u od zadnje
+ * aktivnosti (lastActivityAt, fallback createdAt).
+ */
+const FINISHED_ROOM_TTL_MS = 60 * 60 * 1000;      // 1h nakon završene partije
+const IDLE_ROOM_TTL_MS = 12 * 60 * 60 * 1000;     // 12h bez ikakve aktivnosti
+const SWEEP_INTERVAL_MS = 10 * 60 * 1000;         // provjera svakih 10 min
+
+/** Ukloni sobe kojima je istekao TTL. Vraća broj uklonjenih. */
+export function sweepStaleRooms(now: number = Date.now()): number {
+  let removed = 0;
+  for (const room of rooms.values()) {
+    const last = room.lastActivityAt ?? room.createdAt;
+    const ttl =
+      room.status === "finished" ? FINISHED_ROOM_TTL_MS : IDLE_ROOM_TTL_MS;
+    if (now - last >= ttl) {
+      deleteRoom(room.id);
+      removed += 1;
+    }
+  }
+  return removed;
+}
+
+/** Pokreni periodični sweep. unref() — ne drži proces živim. */
+export function startRoomSweeper(
+  onSweep?: (removed: number) => void,
+): ReturnType<typeof setInterval> {
+  const timer = setInterval(() => {
+    const removed = sweepStaleRooms();
+    if (removed > 0) onSweep?.(removed);
+  }, SWEEP_INTERVAL_MS);
+  timer.unref();
+  return timer;
 }
