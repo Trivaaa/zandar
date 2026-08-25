@@ -8,16 +8,17 @@ import type {
   PrivateGameStateView,
   ReactionType,
 } from "@zandar/shared-types";
-import { SeatBubble } from "@/components/SeatBubble";
-import { TableArea } from "@/components/TableArea";
-import { HandFan } from "@/components/HandFan";
-import { TurnTimer } from "@/components/TurnTimer";
+import { PlayerSeat } from "@/components/felt/PlayerSeat";
+import { TableSurface } from "@/components/felt/TableSurface";
+import { PlayerHand } from "@/components/felt/PlayerHand";
+import { TurnPill } from "@/components/felt/TurnPill";
+import { TurnBanner } from "@/components/felt/TurnBanner";
 import { ScorePill } from "@/components/ScorePill";
 import { ReactionFab } from "@/components/ReactionFab";
 import { PauseAbandonOverlay } from "@/components/PauseAbandonOverlay";
 import { RulesModal } from "@/components/RulesModal";
 import { MoveReveal } from "@/components/MoveReveal";
-import { DeckPile } from "@/components/DeckPile";
+import { DeckPile } from "@/components/felt/DeckPile";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { arrangeSeats } from "@/lib/seating";
 import { getReactionEmoji } from "@/lib/reactions";
@@ -25,7 +26,8 @@ import { vibrate, HAPTIC } from "@/lib/haptics";
 import { playSfx } from "@/lib/sound";
 import { useGameEvents } from "@/lib/useGameEvents";
 import { dealFromDeck } from "@/lib/flyAnimation";
-import type { ActiveReaction } from "@/components/GameView";
+import { useCountdown } from "@/lib/useCountdown";
+import type { ActiveReaction } from "@/lib/reactions";
 
 /**
  * GameScreen — pozicijski live game ekran (DS Faza B integracija).
@@ -35,6 +37,9 @@ import type { ActiveReaction } from "@/components/GameView";
  * aktivnom, ScorePill, ReactionFab, PauseAbandonOverlay (uklj. abandoned ekran).
  * Bot-agnostičan — koristi samo PublicPlayer/PrivateGameStateView.
  */
+
+/** Pun turn-timeout (= rulesConfig.turnTimeoutSeconds) — za ratio pilule. */
+const TURN_TOTAL_SECONDS = 30;
 
 type GameStateWithDeadline = PrivateGameStateView & { turnDeadline?: number };
 
@@ -166,6 +171,8 @@ export function GameScreen({
     state.phase === "abandoned";
 
   const turnDeadline = isPlaying ? state.turnDeadline : undefined;
+  // Sat živi ovdje; TurnPill je čista prezentacija (prima sekunde, ne rok).
+  const turnSeconds = useCountdown(turnDeadline, TURN_TOTAL_SECONDS);
   const waiting = state.players.find((p) => p.connectionStatus !== "connected");
 
   async function play(cardId: string, captureIds: string[]) {
@@ -221,15 +228,21 @@ export function GameScreen({
       null)
     : null;
 
+  // TableSurface je prezentacijska — opcije računa roditelj, kroz game-core.
+  const tableOptions: CaptureOption[] = selectedCard
+    ? getCaptureOptions(selectedCard, state.table)
+    : [];
+  const canTrail = !!selectedCard && tableOptions.length === 0;
+  // Force-capture: kad kupljenje postoji, trail je odbijen — igrač MORA dobiti
+  // objašnjenje, inače tapne sto i ništa se ne desi bez razloga.
+  // canTrail i forceCaptureBlocked su dvije polovine iste odluke.
+  const forceCaptureBlocked = !!selectedCard && tableOptions.length > 0;
+
   // Pozicijski raspored: ti dole, partner gore, protivnici lijevo/desno.
   const seats = arrangeSeats(state.players, state.myPlayerId);
 
-  function seatTimer(isTurn: boolean) {
-    if (dealing) return undefined; // dok karte "padaju" ne prikazuj timer
-    return isTurn && turnDeadline != null ? (
-      <TurnTimer deadline={turnDeadline} size="pill" />
-    ) : undefined;
-  }
+  // Dok karte "padaju" ne prikazuj odbrojavanje — jasan slijed na startu.
+  const showTimer = !dealing && turnDeadline != null;
 
   // Najnovija aktivna reakcija za dato sjedište → emoji uz tog igrača.
   function seatReaction(playerId: string) {
@@ -250,50 +263,41 @@ export function GameScreen({
     >
       {/* Partner / jedini protivnik — gore-centar */}
       {seats.partner && (
-        <SeatBubble
-          displayName={seats.partner.displayName}
+        <PlayerSeat
+          player={seats.partner}
+          isActive={state.currentPlayerId === seats.partner.id}
+          secondsRemaining={showTimer ? turnSeconds : 0}
+          totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={state.handCounts[seats.partner.id] ?? 0}
-          isCurrentTurn={state.currentPlayerId === seats.partner.id}
-          connectionStatus={seats.partner.connectionStatus}
-          teamId={seats.partner.teamId}
-          seatId={seats.partner.id}
+          orientation="top"
           reaction={seatReaction(seats.partner.id)}
-          reactionBelow
-          showBacks
-          timer={seatTimer(state.currentPlayerId === seats.partner.id)}
-          className="top-3 left-1/2 -translate-x-1/2 mt-safe-top"
+          className="absolute top-3 left-1/2 -translate-x-1/2 mt-safe-top"
         />
       )}
       {/* Protivnik lijevo */}
       {seats.oppL && (
-        <SeatBubble
-          displayName={seats.oppL.displayName}
+        <PlayerSeat
+          player={seats.oppL}
+          isActive={state.currentPlayerId === seats.oppL.id}
+          secondsRemaining={showTimer ? turnSeconds : 0}
+          totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={state.handCounts[seats.oppL.id] ?? 0}
-          isCurrentTurn={state.currentPlayerId === seats.oppL.id}
-          connectionStatus={seats.oppL.connectionStatus}
-          teamId={seats.oppL.teamId}
-          seatId={seats.oppL.id}
+          orientation="left"
           reaction={seatReaction(seats.oppL.id)}
-          showBacks
-          backsOrientation="left"
-          timer={seatTimer(state.currentPlayerId === seats.oppL.id)}
-          className="top-[42%] left-1 -translate-y-1/2"
+          className="absolute top-[42%] left-1 -translate-y-1/2"
         />
       )}
       {/* Protivnik desno */}
       {seats.oppR && (
-        <SeatBubble
-          displayName={seats.oppR.displayName}
+        <PlayerSeat
+          player={seats.oppR}
+          isActive={state.currentPlayerId === seats.oppR.id}
+          secondsRemaining={showTimer ? turnSeconds : 0}
+          totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={state.handCounts[seats.oppR.id] ?? 0}
-          isCurrentTurn={state.currentPlayerId === seats.oppR.id}
-          connectionStatus={seats.oppR.connectionStatus}
-          teamId={seats.oppR.teamId}
-          seatId={seats.oppR.id}
+          orientation="right"
           reaction={seatReaction(seats.oppR.id)}
-          showBacks
-          backsOrientation="right"
-          timer={seatTimer(state.currentPlayerId === seats.oppR.id)}
-          className="top-[42%] right-1 -translate-y-1/2"
+          className="absolute top-[42%] right-1 -translate-y-1/2"
         />
       )}
 
@@ -304,12 +308,13 @@ export function GameScreen({
           data-table-drop
           className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]"
         >
-          <TableArea
-            bare
-            table={state.table}
-            selectedCard={selectedCard}
-            onCapture={handleCapture}
+          <TableSurface
+            cards={state.table}
+            captureOptions={tableOptions}
+            onSelectOption={handleCapture}
+            canTrail={canTrail}
             onTrail={handleTrail}
+            forceCaptureBlocked={forceCaptureBlocked}
           />
           {flash.key > 0 && (
             <span
@@ -323,30 +328,39 @@ export function GameScreen({
         </div>
       </div>
 
-      {/* Ti — dole-centar iznad ruke */}
-      {seats.me && (
-        <SeatBubble
-          displayName={seats.me.displayName}
-          cardCount={state.myHand.length}
-          isCurrentTurn={myTurn}
-          connectionStatus={seats.me.connectionStatus}
-          teamId={seats.me.teamId}
-          seatId={seats.me.id}
-          reaction={seatReaction(seats.me.id)}
-          isMe
-          timer={seatTimer(myTurn)}
-          className="bottom-[150px] left-1/2 -translate-x-1/2"
-        />
+      {/* Ti — banner + samostalna pilula iznad ruke.
+          PlayerSeat namjerno nema "bottom" orijentaciju: tvoj potez se čita
+          iz pilule nad rukom, ne iz čipa. */}
+      {isPlaying && myTurn && (
+        <div className="absolute bottom-[150px] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1.5 pointer-events-none">
+          <TurnBanner isYou />
+          {showTimer && (
+            <TurnPill
+              isYou
+              secondsRemaining={turnSeconds}
+              totalSeconds={TURN_TOTAL_SECONDS}
+            />
+          )}
+        </div>
+      )}
+      {seats.me && seatReaction(seats.me.id) && (
+        <div className="absolute bottom-[196px] left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          {seatReaction(seats.me.id)}
+        </div>
       )}
 
       {/* Ruka — lepeza na dnu */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pb-safe-bottom z-20">
-        <HandFan
+      <div
+        className="absolute bottom-2 left-1/2 -translate-x-1/2 pb-safe-bottom z-20"
+        data-seat-id={state.myPlayerId}
+      >
+        <PlayerHand
           cards={state.myHand}
-          isMyTurn={myTurn}
           selectedCardId={selectedId}
-          onSelectCard={handleSelect}
-          disabled={busy}
+          disabledCardIds={
+            myTurn && !busy ? [] : state.myHand.map((card) => card.id)
+          }
+          onSelect={handleSelect}
         />
       </div>
 
@@ -360,7 +374,7 @@ export function GameScreen({
 
       {/* Špil — stanjuje se kako runde idu; sidro za deal animaciju. Pozicija tweakable. */}
       {isPlaying && (
-        <DeckPile count={state.deckCount} className="bottom-[200px] right-3" />
+        <DeckPile remaining={state.deckCount} className="absolute bottom-[200px] right-3" />
       )}
 
       {/* Move reveal — šta je zadnji potez uradio (ko/koja karta/šta pokupio) */}

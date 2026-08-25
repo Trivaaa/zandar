@@ -147,7 +147,7 @@ export function SeatBubble({
             isCurrentTurn
               ? {
                   boxShadow:
-                    "0 0 28px 8px color-mix(in srgb, var(--turn-ring) 85%, transparent)",
+                    "0 0 28px 8px color-mix(in srgb, var(--turn-active) 85%, transparent)",
                 }
               : undefined
           }

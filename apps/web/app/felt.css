@@ -1,0 +1,1013 @@
+/*
+ * felt.css — hand-authored felt layer.
+ *
+ * Every card, hand and table motion lives here as real CSS.
+ * Rules of this file:
+ *   - No hex, no literal px duration, no literal cubic-bezier. Tokens only.
+ *   - Animated properties are transform and opacity. Nothing else, ever.
+ *   - Glows are opacity cross-fades of a pseudo-element that already carries
+ *     the shadow; the shadow itself is never animated.
+ *   - Reduced motion is handled by the --t-* tokens collapsing in globals.css;
+ *     only looping/decorative animations need an explicit `animation: none`.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Card geometry
+ * ------------------------------------------------------------------ */
+
+.card {
+  --card-w: 4.5rem;
+  --card-h: 6.4rem;
+  --card-pad: 0.3rem;
+
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--card-w);
+  height: var(--card-h);
+  perspective: 40rem;
+  transform: translateZ(0);
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card--xs {
+  --card-w: 2.75rem;
+  --card-h: 3.9rem;
+  --card-pad: 0.15rem;
+}
+.card--sm {
+  --card-w: 3.5rem;
+  --card-h: 4.95rem;
+  --card-pad: 0.2rem;
+}
+.card--md {
+  --card-w: 4.5rem;
+  --card-h: 6.4rem;
+}
+.card--lg {
+  --card-w: 5.75rem;
+  --card-h: 8.15rem;
+  --card-pad: 0.4rem;
+}
+
+/* The flip carrier. Wrapper transforms stay free for deal/play/lift so the
+   two concerns never fight over one transform property. */
+.card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform var(--t-card-flip) var(--ease-card);
+}
+
+.card[data-face-up="false"] .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-side {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.card-side--back {
+  transform: rotateY(180deg);
+}
+
+/* ------------------------------------------------------------------ *
+ * Card face — warm cardstock, saturated ink
+ * ------------------------------------------------------------------ */
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  padding: var(--card-pad);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--card-face);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--card-ink) 14%, transparent),
+    0 0.15rem 0.35rem color-mix(in oklab, var(--surface) 45%, transparent);
+}
+
+/* Corner index: rank with a small suit beside it. A single-line cluster, so
+   the index never reaches down into the centre pip's area. */
+.card-face__index {
+  position: absolute;
+  top: var(--card-pad);
+  left: var(--card-pad);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.1em;
+  line-height: 1;
+}
+
+.card-face__rank {
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.card-face__suit {
+  font-size: calc(var(--card-w) * 0.15);
+  line-height: 1.1;
+}
+
+/* One large centre pip, geometrically centred on the face. Sized off the card
+   width so the clearance to the corner index is identical at every size. */
+.card-face__pip {
+  --pip-size: calc(var(--card-w) * 0.4);
+
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  line-height: 1;
+  font-size: var(--pip-size);
+  opacity: 0.9;
+}
+
+.card--xs .card-face__pip {
+  --pip-size: calc(var(--card-w) * 0.32);
+}
+.card--sm .card-face__pip {
+  --pip-size: calc(var(--card-w) * 0.36);
+}
+.card--lg .card-face__pip {
+  --pip-size: calc(var(--card-w) * 0.42);
+}
+
+.card--xs .card-face__rank,
+.card--sm .card-face__rank {
+  transform: scale(0.82);
+  transform-origin: left top;
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Card back — one visual language for deck, fans and deal ghosts
+ * ------------------------------------------------------------------ */
+
+.card-back {
+  /* Lattice pitch is geometry: one line per ~14% of the card width, so the
+     density reads the same at xs and at lg. */
+  --lattice-pitch: calc(var(--card-w) * 0.14);
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--accent) 22%, transparent) 0 1px,
+      transparent 1px var(--lattice-pitch)
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--accent) 22%, transparent) 0 1px,
+      transparent 1px var(--lattice-pitch)
+    );
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent),
+    0 0.15rem 0.4rem color-mix(in oklab, var(--surface) 55%, transparent);
+  overflow: hidden;
+}
+
+/* Under-layers of a stack: plain filled cardstock, no ornament. Only the
+   topmost card of a pile carries the lattice. */
+.card-plain {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--text) 10%, transparent),
+    0 0.1rem 0.3rem color-mix(in oklab, var(--surface) 55%, transparent);
+}
+
+
+
+
+
+/* ------------------------------------------------------------------ *
+ * Interaction states
+ * ------------------------------------------------------------------ */
+
+.card-lift {
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+
+/* Selecting LIFTS the card. It does not play it. */
+.card[data-selected="true"] .card-lift {
+  transform: translateY(-1.15rem) scale(1.04);
+}
+
+.card[data-selectable="true"]:not([data-disabled="true"]) {
+  cursor: pointer;
+}
+
+.card[data-dimmed="true"] {
+  opacity: 0.45;
+}
+
+.card[data-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Pre-rendered glow, cross-faded on opacity only. */
+.card-glow {
+  position: absolute;
+  inset: -0.3rem;
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 0 0 0.12rem var(--turn-active),
+    0 0.35rem 1.1rem color-mix(in oklab, var(--turn-active) 55%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-card-flip) var(--ease-out-soft);
+}
+
+.card[data-selected="true"] .card-glow {
+  opacity: 1;
+}
+
+.card:focus-visible {
+  outline: none;
+}
+
+.card:focus-visible .card-glow {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ *
+ * Motion — deal in, play to table, collect
+ * ------------------------------------------------------------------ */
+
+@keyframes card-deal-in {
+  from {
+    transform: translate3d(var(--deal-from-x, 0), var(--deal-from-y, -60%), 0) scale(0.86);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.card-deal {
+  animation: card-deal-in var(--t-card-deal) var(--ease-card) both;
+  animation-delay: calc(var(--deal-index, 0) * var(--t-deal-stagger));
+}
+
+@keyframes card-play-to-table {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(var(--play-to-x, 0), var(--play-to-y, -40%), 0) scale(0.95);
+  }
+}
+
+.card-play {
+  animation: card-play-to-table var(--t-card-play) var(--ease-card) both;
+}
+
+@keyframes card-collect {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(var(--collect-to-x, 0), var(--collect-to-y, 45%), 0) scale(0.7);
+    opacity: 0;
+  }
+}
+
+.card-collect {
+  animation: card-collect var(--t-card-collect) var(--ease-out-soft) both;
+}
+
+@keyframes card-flip-nudge {
+  from {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.card-flip {
+  animation: card-flip-nudge var(--t-card-flip) var(--ease-snap) both;
+}
+
+/* ------------------------------------------------------------------ *
+ * PlayerHand — shallow arc, overlapping, 3–8 cards at 360px
+ * ------------------------------------------------------------------ */
+
+.hand {
+  /* Geometry only. Fewer degrees per card as the count grows, so the total arc
+     narrows instead of widening: an 8-card fan stays inside a 360px viewport. */
+  --hand-spread: 7deg; /* per-card rotation step, 3–6 cards */
+  --hand-overlap: 18px; /* fixed bite taken out of each card at every count */
+  --hand-lift: 0.5rem; /* arc depth per step */
+  --hand-lift-cap: 4; /* lift stops growing past the third card from centre */
+
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-top: 1.5rem;
+  /* Reserves the capped lift plus rotation overshoot, so the rendered fan never
+     paints outside this box. */
+  padding-bottom: 2.75rem;
+  touch-action: manipulation;
+}
+
+.hand[data-many="true"] {
+  --hand-spread: 5deg;
+  /* 7–8 cards: the rotated outer cards add ~26px of width on top of the flat
+     row, so the bite grows just enough to keep the fan inside 360px. */
+  --hand-overlap: 24px;
+}
+
+.hand__slot {
+  /* half-step index: centre card is 0, outer cards are +/- */
+  --half: calc(var(--hand-i) - (var(--hand-n) - 1) / 2);
+
+  position: relative;
+  margin-inline: calc(var(--hand-overlap) / -2);
+  transform: rotate(calc(var(--half) * var(--hand-spread)))
+    translateY(calc(min(calc(var(--half) * var(--half)), var(--hand-lift-cap)) * var(--hand-lift)));
+  transform-origin: bottom center;
+  transition: transform var(--t-card-play) var(--ease-card);
+}
+
+.hand__slot:last-child {
+  z-index: 1;
+}
+
+.hand__slot[data-selected="true"] {
+  z-index: 2;
+}
+
+.hand__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 6.4rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * DeckPile — thins visibly as `remaining` drops. Static per-layer
+ * offsets: nothing here animates geometry.
+ * ------------------------------------------------------------------ */
+
+.deck {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  position: relative;
+}
+
+.deck__stack {
+  /* 2.5px per layer, right and down. The top card sits at the full offset. */
+  --deck-step: 0.156rem;
+
+  position: relative;
+  display: grid;
+  place-items: start;
+  padding-right: calc((var(--deck-layers, 1) - 1) * var(--deck-step));
+  padding-bottom: calc((var(--deck-layers, 1) - 1) * var(--deck-step));
+}
+
+.deck__layer {
+  grid-area: 1 / 1;
+  transform: translate3d(
+    calc(var(--deck-i) * var(--deck-step)),
+    calc(var(--deck-i) * var(--deck-step)),
+    0
+  );
+}
+
+.deck__slot {
+  width: 3.5rem;
+  height: 4.95rem;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 24%, transparent);
+}
+
+/* Small chip below the stack — never over the art. */
+.deck__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--surface) 55%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, transparent);
+  color: var(--accent);
+}
+
+.deck__count {
+  font-size: 0.6875rem; /* 11px — chip numerals, deliberately below the ramp */
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.deck[data-empty="true"] .deck__badge {
+  opacity: 0.6;
+}
+
+
+.deck__caption {
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * TurnPill — the signature element. Horizontal, never a ring.
+ * Depletion is scaleX() of a pre-rendered bar; the urgency colour is a
+ * plain property swap on a bar that is not mid-animation.
+ * ------------------------------------------------------------------ */
+
+.pill {
+  --pill-h: 1.15rem;
+  --pill-w: 7rem;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: var(--pill-w);
+  min-height: var(--pill-h);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 78%, transparent);
+  color: var(--text);
+  isolation: isolate;
+}
+
+/* You: full width of its container, heavy, pulsing. Free-standing — never
+   mounted inside a seat. */
+.pill--you {
+  --pill-h: 2.6rem;
+  --pill-w: 100%;
+
+  padding: 0.4rem 0.9rem;
+  box-shadow:
+    0 0 0 0.14rem var(--turn-active),
+    0 0.4rem 1.2rem color-mix(in oklab, var(--turn-active) 45%, transparent);
+  animation: pill-pulse var(--t-turn-pulse) var(--ease-out-soft) infinite;
+}
+
+.pill--other {
+  --pill-h: 1.5rem;
+  --pill-w: 5.5rem;
+
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--turn-active) 45%, transparent);
+}
+
+.pill__track {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.pill__fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: scaleX(var(--pill-fill, 1));
+  background-color: var(--turn-active);
+  transition: transform var(--t-card-play) var(--ease-out-soft);
+}
+
+.pill--you .pill__fill {
+  opacity: 1;
+}
+
+.pill--other .pill__fill {
+  opacity: 0.72;
+}
+
+.pill[data-urgent="true"] .pill__fill {
+  background-color: var(--danger-signal);
+}
+
+.pill__body {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.pill--you .pill__label,
+.pill--you .pill__clock {
+  color: var(--accent-contrast);
+}
+
+.pill__label {
+  white-space: nowrap;
+}
+
+.pill--you .pill__label {
+  font-weight: 700;
+}
+
+/* Upward notch: reads as "this points at your hand", no name needed. */
+.pill__notch {
+  position: absolute;
+  left: 50%;
+  bottom: -0.34rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  transform: translateX(-50%) rotate(45deg);
+  background-color: var(--turn-active);
+  opacity: 0;
+}
+
+.pill--you .pill__notch {
+  opacity: 1;
+}
+
+.pill[data-urgent="true"] .pill__notch {
+  background-color: var(--danger-signal);
+}
+
+@keyframes pill-pulse {
+  from {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.025);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Calm "thinking" state: no depletion, no urgency, no countdown. */
+.pill--thinking {
+  --pill-w: auto;
+
+  animation: none;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+.pill__dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
+}
+
+.pill__dot {
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--accent);
+  opacity: 0.35;
+  animation: pill-dot var(--t-turn-pulse) var(--ease-out-soft) infinite;
+}
+
+.pill__dot:nth-child(2) {
+  animation-delay: calc(var(--t-turn-pulse) / 6);
+}
+
+.pill__dot:nth-child(3) {
+  animation-delay: calc(var(--t-turn-pulse) / 3);
+}
+
+@keyframes pill-dot {
+  from,
+  to {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill--you,
+  .pill__dot {
+    animation: none;
+  }
+  .pill__dot {
+    opacity: 0.7;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * PlayerSeat — identical for every occupant. Team is weight + colour.
+ * ------------------------------------------------------------------ */
+
+.seat {
+  position: relative; /* sidro za .seat__reaction */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in oklab, var(--accent) 18%, transparent);
+  background-color: color-mix(in oklab, var(--surface-raised) 82%, transparent);
+  min-width: 6.5rem;
+}
+
+/* Team identity is border WEIGHT, not dash. Dashed stays reserved for the
+   table drop target. */
+.seat--team-a {
+  border-style: solid;
+  border-width: 2px;
+  border-color: color-mix(in oklab, var(--team-a) 55%, transparent);
+}
+
+.seat--team-b {
+  border-style: solid;
+  border-width: 4px;
+  border-color: color-mix(in oklab, var(--team-b) 45%, transparent);
+}
+
+
+.seat[data-current-turn] {
+  box-shadow: 0 0.35rem 1rem color-mix(in oklab, var(--turn-active) 30%, transparent);
+}
+
+.seat[data-status="abandoned"] {
+  opacity: 0.55;
+}
+
+.seat__pill {
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.seat__body {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.seat__avatar {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border-radius: var(--radius-lg);
+  background-color: var(--surface);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+.seat__meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.seat__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 7.5rem;
+}
+
+.seat__numbers {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.seat__coins {
+  color: var(--accent);
+}
+
+.seat__fan {
+  display: flex;
+  justify-content: center;
+  /* Rotated slots overshoot their row box on all three edges; reserve that room
+     so the fan is never clipped by the seat frame. */
+  padding-bottom: 0.5rem;
+  padding-inline: 0.5rem;
+}
+
+.seat__fan-slot {
+  margin-inline: -0.65rem;
+  transform: rotate(calc((var(--fan-i) - 2) * 2.2deg));
+  transform-origin: bottom center;
+}
+
+.seat--left,
+.seat--right {
+  max-width: 9rem;
+}
+
+/* Narrow orientations are width-capped, so the fan takes a bigger bite to stay
+   inside the frame. */
+.seat--left .seat__fan-slot,
+.seat--right .seat__fan-slot {
+  margin-inline: -0.85rem;
+}
+
+/* Connection state outranks the team mark, but stays one step below
+   --danger-signal, which is reserved for the turn pill's final seconds. */
+.seat[data-status="reconnecting"] .seat__status {
+  color: var(--warn);
+  animation: seat-reconnect var(--t-turn-pulse) var(--ease-out-soft) infinite;
+}
+
+@keyframes seat-reconnect {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seat[data-status="reconnecting"] .seat__status {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * TurnBanner — a sentence, so font-sans. Fades in on --t-toast-in.
+ * ------------------------------------------------------------------ */
+
+.banner {
+  display: flex;
+  justify-content: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 80%, transparent);
+  animation: banner-in var(--t-toast-in) var(--ease-out-soft) both;
+}
+
+.banner--you {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--turn-active) 55%, transparent);
+}
+
+.banner__text {
+  text-align: center;
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -0.4rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * TableSurface — cards land from any seat direction and wrap to rows.
+ * ------------------------------------------------------------------ */
+
+.table {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.table__pot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
+  min-width: 3.5rem;
+  min-height: 2.4rem;
+}
+
+.table__drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 7rem;
+  padding: 0.6rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--felt) 85%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 14%, transparent);
+}
+
+.table__cards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.75rem 0.6rem;
+}
+
+.table__slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.table__slot--tappable {
+  cursor: pointer;
+}
+
+/* In-place highlight on the table: a ring hugging the card silhouette plus a
+   diffuse halo. Never a frame — the frame belongs to the chooser strip, where a
+   tap does something. */
+.table__glow {
+  position: absolute;
+  top: -0.1rem;
+  left: -0.1rem;
+  right: -0.1rem;
+  bottom: -0.1rem;
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 0 0 0.09rem color-mix(in oklab, var(--turn-active) 85%, transparent),
+    0 0 0.85rem 0.2rem color-mix(in oklab, var(--turn-active) 35%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-card-flip) var(--ease-out-soft);
+}
+
+
+.table__slot--capturable .table__glow {
+  opacity: 0.55;
+}
+
+.table__slot[data-option-selected="true"] .table__glow {
+  opacity: 1;
+}
+
+.table__slot--tappable:focus-visible {
+  outline: none;
+}
+
+.table__slot--tappable:focus-visible .table__glow {
+  opacity: 1;
+}
+
+/* Chooser strip — the only place options are grouped. Below the table so the
+   table layout never reflows when the hand selection changes. */
+.table__chooser {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.table__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-lg);
+  border: 2px solid color-mix(in oklab, var(--turn-active) 55%, transparent);
+  background-color: color-mix(in oklab, var(--surface) 55%, transparent);
+  cursor: pointer;
+  transition: transform var(--t-card-flip) var(--ease-snap);
+}
+
+.table__group[data-option-selected="true"],
+.table__group:focus-visible {
+  outline: none;
+  border-color: var(--turn-active);
+  transform: translateY(-0.15rem);
+}
+
+.table__group-cards {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.table__reason {
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.table__hint {
+  color: var(--text);
+}
+
+
+/* Landing: direction comes from the seat, the distance from these offsets. */
+.table__slot--landing {
+  animation: table-land var(--t-card-play) var(--ease-card) both;
+}
+
+.table[data-land-from="bottom"] .table__slot--landing {
+  --land-x: 0;
+  --land-y: 55%;
+}
+.table[data-land-from="top"] .table__slot--landing {
+  --land-x: 0;
+  --land-y: -55%;
+}
+.table[data-land-from="left"] .table__slot--landing {
+  --land-x: -70%;
+  --land-y: 0;
+}
+.table[data-land-from="right"] .table__slot--landing {
+  --land-x: 70%;
+  --land-y: 0;
+}
+
+@keyframes table-land {
+  from {
+    transform: translate3d(var(--land-x, 0), var(--land-y, 0), 0) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.table__empty {
+  text-align: center;
+}
+
+/* Trail — cijela play-zona je tap-meta kad kupljenja nema.
+   Isprekidana ivica je u ovoj aplikaciji REZERVISANA za drop-target,
+   pa je ovdje tačno na mjestu. */
+.table__drop--trail {
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 2px
+    color-mix(in oklab, var(--accent) 45%, transparent);
+  transition: box-shadow var(--t-toast-in) var(--ease-out-soft);
+}
+
+.table__drop--trail:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--accent);
+}
+
+.table__trail {
+  color: var(--accent);
+  text-align: center;
+}
+
+/* Reakcija uz sjedište — emoji mjehur pored pošiljaoca. */
+.seat__reaction {
+  position: absolute;
+  top: calc(var(--radius-lg) * -1.6);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--surface-raised) 95%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
+  pointer-events: none;
+}
+
+.table__blocked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--surface) 88%, transparent);
+  box-shadow: inset 0 0 0 1px var(--danger-signal);
+}
+
+.table__blocked-title {
+  color: var(--danger-signal);
+}

@@ -164,7 +164,7 @@ export function SeatChip({
   // identityKey: remount avatara/imena na promjeni identiteta → fade (DS §7.5).
   const identityKey = `${displayName}|${avatar ?? ""}`;
 
-  // Turn ring: token --turn-ring (=accent). Suptilan puls dok je aktivan.
+  // Turn indikator: token --turn-active (=accent). Suptilan puls dok je aktivan.
   const ring = isCurrentTurn
     ? "ring-2 ring-turn animate-turn-pulse"
     : "ring-1 ring-white/5";

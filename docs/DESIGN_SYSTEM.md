@@ -204,7 +204,7 @@ Neutralno stilizovano (tokeni), jasna stanja. Game-agnostic gdje može (kartaoni
   --text:#f4f4f5; --text-muted:#a1a1aa;
   --accent:#e0a92e; --accent-contrast:#1a1a1a;
   --team-a:#3b9e75; --team-b:#c2603a;
-  --turn-ring:var(--accent); --danger:#d24b4b; --success:#3b9e75; --warn:#e0a92e;
+  --turn-active:var(--accent); --danger:#d24b4b; --success:#3b9e75; --warn:#e0a92e;
   --radius-sm:6px; --radius-md:10px; --radius-lg:14px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);

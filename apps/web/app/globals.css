@@ -1,39 +1,55 @@
 @import "tailwindcss";
+/* Felt sloj — ručno pisani CSS za karte, ruku, sto, pilulu i sjedišta.
+   Čita samo tokene definisane niže; ništa ne definiše sam. */
+@import "./felt.css";
 
 /* =====================================================
-   DESIGN TOKENS — Kartaonica v3.1  (DS §6)
-   Pravilo: nijedna komponenta ne smije imati hardkodiranu
-   hex vrijednost. Sve ide kroz ove tokene.
+   DESIGN TOKENS — Kartaonica v3.2
+   Jedini izvor istine za boje, radijuse, tipografiju i motion.
+   Pravilo: nijedna komponenta nema hardkodiranu hex vrijednost,
+   px/ms trajanje ni doslovan cubic-bezier.
+
+   Prefiks pravilo:
+     --t-*  motion trajanje   → kolapsira pod prefers-reduced-motion
+     --d-*  display trajanje  → NIKAD ne kolapsira
+     --type-* skala veličina  → mapira se na --text-* utility imena
    ===================================================== */
 
 :root {
   /* Površine */
-  --surface:        #18181b;
-  --surface-raised: #232327;
-  --felt:           #1f3a2e;
+  --surface:        #131e1b;
+  --surface-raised: #245046;
+  --felt:           #1b3a34;
 
   /* Tekst */
-  --text:           #f4f4f5;
-  --text-muted:     #a1a1aa;
+  --text:           #f2efe6;
+  --text-muted:     #b2c5be;
 
-  /* Akcent (CTA, turn ring, highlight) */
-  --accent:         #e0a92e;
-  --accent-contrast:#1a1a1a;
+  /* Akcent — mesing. Samo žetoni i primarni CTA. */
+  --accent:         #c9a227;
+  --accent-contrast:#16221f;
 
-  /* Timovi (4P) */
-  --team-a:         #3b9e75;
-  --team-b:         #c2603a;
+  /* Timovi (4P) — nikad samo bojom; debljina bordera i pozicija
+     nose razliku. Plavo vs roza preživljava deuteranopiju. */
+  --team-a:         #5a9bd3;
+  --team-b:         #cc6b92;
 
-  /* Semantički aliasi */
-  --turn-ring:      var(--accent);
-  --danger:         #d24b4b;
-  --success:        #3b9e75;
-  --warn:           #e0a92e;
+  /* Semantički */
+  --turn-active:    #e0b93a;
+  --danger:         #a6432e;
+  --danger-signal:  #e4714a;
+  --success:        #7fc9a0;
+  --warn:           #d9773d;
+
+  /* Kartonski papir */
+  --card-face:      #f7f3e8;
+  --card-ink:       #16221f;
+  --card-ink-red:   #b03a2e;
 
   /* Radijus */
-  --radius-sm:      6px;
-  --radius-md:      10px;
-  --radius-lg:      14px;
+  --radius-sm:      0.25rem;
+  --radius-md:      0.5rem;
+  --radius-lg:      0.875rem;
 
   /* Safe area (notch / home indicator) */
   --safe-top:    env(safe-area-inset-top,    0px);
@@ -41,66 +57,114 @@
   --safe-left:   env(safe-area-inset-left,   0px);
   --safe-right:  env(safe-area-inset-right,  0px);
 
-  /* Backwards compat — mapeći na nove tokene */
-  --background: var(--surface);
-  --foreground: var(--text);
+  /* Tipografija — samo imena stackova. Lica se učitavaju preko
+     next/font u app/layout.tsx; ovdje se samo pokazuje na njihove
+     varijable. Zamjena lica = jedna linija po licu.
+     --font-mono-stack je SISTEMSKI mono: nula bajtova, nedvosmislene
+     cifre (0 vs O, 1 vs l) i tabular po defaultu. Archivo Black nema
+     tnum i ima usku jedinicu — loše za šifru sobe koju čovjek prepisuje. */
+  --font-display-stack: var(--font-archivo-black), system-ui, sans-serif;
+  --font-sans-stack:    var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono-stack:    ui-monospace, SFMono-Regular, Menlo, "Liberation Mono", monospace;
+
+  /* Type skala — jedna neprekidna rampa, rem kroz cijelu.
+     Imenovana --type-* na :root da se ne miješa sa --text / --text-muted
+     (boje); @theme blok je mapira na --text-* utility imena.
+     Body pod = 16px (type-base); numerički pod = 20px (type-num-sm). */
+  --type-xs:    0.8125rem; /* 13px — labele, natpisi */
+  --type-sm:    0.875rem;  /* 14px — sekundarni UI */
+  --type-base:  1rem;      /* 16px — body pod */
+  --type-lg:    1.125rem;  /* 18px */
+  --type-xl:    1.25rem;   /* 20px */
+  --type-2xl:   1.5rem;    /* 24px */
+  --type-3xl:   1.875rem;  /* 30px */
+  --type-4xl:   2.25rem;   /* 36px */
+  --type-5xl:   3rem;      /* 48px */
+
+  /* Numerika — rangovi, rezultati, žetoni, timeri */
+  --type-num-sm:  1.25rem; /* 20px — pod za rezultat/žetone */
+  --type-num-md:  1.75rem; /* 28px — rang karte, timer */
+  --type-num-lg:  2.5rem;  /* 40px — glavni rezultat */
+  --type-display: 3.25rem; /* 52px — naslovi ekrana, reveal */
+
+  /* Motion trajanja — po gestu, podešava se nezavisno */
+  --t-card-play:     260ms;
+  --t-card-deal:     180ms;
+  --t-deal-stagger:  55ms;
+  --t-card-flip:     200ms;
+  --t-card-collect:  320ms;
+  --t-turn-pulse:    1400ms;
+  --t-toast-in:      200ms;
+  --t-screen-fade:   240ms;
+
+  /* Display trajanje — čitljivost sadržaja, nije pokret */
+  --d-reveal-hold:   1200ms;
+
+  /* Easing */
+  --ease-card:     cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-snap:     cubic-bezier(0.34, 1.3, 0.64, 1);
+  --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 /* =====================================================
    TAILWIND v4 THEME MAPPING
-   Prefixi --color-* → bg-*, text-*, border-*, ring-*
+   Prefiksi --color-* → bg-*, text-*, border-*, ring-*
+   Prefiksi --text-*  → text-* (font-size)
    ===================================================== */
 
 @theme inline {
-  /* Površine */
-  --color-surface:        var(--surface);
-  --color-surface-raised: var(--surface-raised);
-  --color-felt:           var(--felt);
+  --color-surface:         var(--surface);
+  --color-surface-raised:  var(--surface-raised);
+  --color-felt:            var(--felt);
+  --color-muted:           var(--text-muted);
+  --color-accent:          var(--accent);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-team-a:          var(--team-a);
+  --color-team-b:          var(--team-b);
+  --color-turn:            var(--turn-active);
+  --color-danger:          var(--danger);
+  --color-danger-signal:   var(--danger-signal);
+  --color-success:         var(--success);
+  --color-warn:            var(--warn);
+  --color-card-face:       var(--card-face);
+  --color-card-ink:        var(--card-ink);
+  --color-card-ink-red:    var(--card-ink-red);
 
-  /* Tekst */
-  --color-muted:          var(--text-muted);
+  --font-display: var(--font-display-stack);
+  --font-sans:    var(--font-sans-stack);
+  --font-mono:    var(--font-mono-stack);
 
-  /* Akcent */
-  --color-accent:         var(--accent);
-  --color-accent-contrast:var(--accent-contrast);
-
-  /* Timovi */
-  --color-team-a:         var(--team-a);
-  --color-team-b:         var(--team-b);
-
-  /* Semantički */
-  --color-turn:           var(--turn-ring);
-  --color-danger:         var(--danger);
-  --color-success:        var(--success);
-  --color-warn:           var(--warn);
-
-  /* Fontovi */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-/* Radijus tokeni — koristi rounded-token-sm/md/lg ili var(--radius-*) direktno.
-   (Ne mapiramo na Tailwind rounded-sm/md/lg da ne pregazimo postojeće utility-je.) */
-@layer utilities {
-  .rounded-token-sm { border-radius: var(--radius-sm); }
-  .rounded-token-md { border-radius: var(--radius-md); }
-  .rounded-token-lg { border-radius: var(--radius-lg); }
+  --text-xs:      var(--type-xs);
+  --text-sm:      var(--type-sm);
+  --text-base:    var(--type-base);
+  --text-lg:      var(--type-lg);
+  --text-xl:      var(--type-xl);
+  --text-2xl:     var(--type-2xl);
+  --text-3xl:     var(--type-3xl);
+  --text-4xl:     var(--type-4xl);
+  --text-5xl:     var(--type-5xl);
+  --text-num-sm:  var(--type-num-sm);
+  --text-num-md:  var(--type-num-md);
+  --text-num-lg:  var(--type-num-lg);
+  --text-display: var(--type-display);
 }
 
 /* =====================================================
-   SAFE AREA UTILITIES
-   Koristi: pt-safe-top, pb-safe-bottom, pl-safe-left, pr-safe-right
+   PRESERVED UTILITIES
+   Imena klasa su bajt-identična postojećim ~102 poziva.
+   @utility je v4 idiom (nosi i podršku za varijante).
    ===================================================== */
 
-@layer utilities {
-  .pt-safe-top    { padding-top:    var(--safe-top); }
-  .pb-safe-bottom { padding-bottom: var(--safe-bottom); }
-  .pl-safe-left   { padding-left:   var(--safe-left); }
-  .pr-safe-right  { padding-right:  var(--safe-right); }
+@utility rounded-token-sm { border-radius: var(--radius-sm); }
+@utility rounded-token-md { border-radius: var(--radius-md); }
+@utility rounded-token-lg { border-radius: var(--radius-lg); }
 
-  .mt-safe-top    { margin-top:    var(--safe-top); }
-  .mb-safe-bottom { margin-bottom: var(--safe-bottom); }
-}
+@utility pt-safe-top    { padding-top:    var(--safe-top); }
+@utility pb-safe-bottom { padding-bottom: var(--safe-bottom); }
+@utility pl-safe-left   { padding-left:   var(--safe-left); }
+@utility pr-safe-right  { padding-right:  var(--safe-right); }
+@utility mt-safe-top    { margin-top:     var(--safe-top); }
+@utility mb-safe-bottom { margin-bottom:  var(--safe-bottom); }
 
 /* =====================================================
    HOVER — Tailwind v4 default: hover: je već omotan u
@@ -121,15 +185,31 @@
    BASE
    ===================================================== */
 
-body {
-  background: var(--background);
-  color:      var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-tap-highlight-color: transparent;
+@layer base {
+  * {
+    border-color: var(--surface-raised);
+  }
+
+  body {
+    background-color: var(--surface);
+    color: var(--text);
+    font-family: var(--font-sans-stack);
+    font-size: var(--type-base);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Cifre timera i rezultata ne smiju da poskakuju između frejmova. */
+  .font-mono,
+  [class*="text-num-"] {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* =====================================================
    ANIMACIJE
+   Postojeće — koristi ih 12 komponenti. Trajanja su i dalje
+   hardkodirana; retokenizacija na --t-* je zaseban korak
+   (mijenja tempo, pa ide uz provjeru na uređaju).
    ===================================================== */
 
 @keyframes fade-in {
@@ -163,7 +243,7 @@ body {
   animation: identity-fade 0.39s ease-out both;
 }
 
-/* Turn ring puls — suptilan "živ" osjećaj na aktivnom sjedištu (DS §1.4, §4.3). */
+/* Turn puls — suptilan "živ" osjećaj na aktivnom sjedištu (DS §1.4, §4.3). */
 @keyframes turn-pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.55; }
@@ -193,11 +273,12 @@ body {
   animation: card-in 0.31s cubic-bezier(0.34, 1.3, 0.64, 1) both;
 }
 
-/* Capture flash — kratko zasvijetli play-zona kad se kupi. */
+/* Capture flash — kratko zasvijetli play-zona kad se kupi.
+   Boja ide kroz --turn-active (ranije hardkodiran stari akcent). */
 @keyframes capture-flash {
-  0%   { box-shadow: inset 0 0 0 0 rgba(224, 169, 46, 0); }
-  35%  { box-shadow: inset 0 0 24px 2px rgba(224, 169, 46, 0.35); }
-  100% { box-shadow: inset 0 0 0 0 rgba(224, 169, 46, 0); }
+  0%   { box-shadow: inset 0 0 0 0 transparent; }
+  35%  { box-shadow: inset 0 0 24px 2px color-mix(in srgb, var(--turn-active) 35%, transparent); }
+  100% { box-shadow: inset 0 0 0 0 transparent; }
 }
 
 .animate-capture-flash {
@@ -206,17 +287,39 @@ body {
 
 /* Jack-sweep — jači, duži zlatni sjaj + blagi scale (čišćenje cijelog stola). */
 @keyframes jack-sweep {
-  0%   { box-shadow: inset 0 0 0 0 rgba(224, 169, 46, 0); transform: scale(1); }
-  25%  { box-shadow: inset 0 0 40px 6px rgba(224, 169, 46, 0.6); transform: scale(1.015); }
-  100% { box-shadow: inset 0 0 0 0 rgba(224, 169, 46, 0); transform: scale(1); }
+  0%   { box-shadow: inset 0 0 0 0 transparent; transform: scale(1); }
+  25%  { box-shadow: inset 0 0 40px 6px color-mix(in srgb, var(--turn-active) 60%, transparent); transform: scale(1.015); }
+  100% { box-shadow: inset 0 0 0 0 transparent; transform: scale(1); }
 }
 
 .animate-jack-sweep {
   animation: jack-sweep 0.77s ease-out;
 }
 
-/* Reduce-motion: ugasi sve dekorativne animacije (a11y). */
+/* =====================================================
+   REDUCED MOTION
+
+   Svako --t-* trajanje pada na 1ms, pa nijedna komponenta ne
+   treba drugu kodnu putanju. Dva namjerna izuzetka:
+     --d-reveal-hold  zadržava punu vrijednost (display, ne pokret).
+     --t-turn-pulse   ide na 0s, ne 1ms — 1ms petlja je stroboskop.
+
+   Postojeće animacije gore imaju hardkodirana trajanja, pa ih
+   token-kolaps NE dodiruje — gase se eksplicitno.
+   ===================================================== */
+
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-card-play:    1ms;
+    --t-card-deal:    1ms;
+    --t-deal-stagger: 1ms;
+    --t-card-flip:    1ms;
+    --t-card-collect: 1ms;
+    --t-toast-in:     1ms;
+    --t-screen-fade:  1ms;
+    --t-turn-pulse:   0s;
+  }
+
   .animate-seat-pop,
   .animate-identity-fade,
   .animate-turn-pulse,
