@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ReactionType } from "@zandar/shared-types";
-import { REACTIONS } from "@/lib/reactions";
+import { EmojiReactionRow } from "@/components/overlay/EmojiReactions";
 
 /**
  * ReactionFab — reakcije kao floating dugme (DS §1.3, §4.4, B7).
@@ -72,22 +72,11 @@ export function ReactionFab({
       <div className="absolute bottom-0 right-0 z-40 p-3 pb-safe-bottom pr-safe-right flex flex-col items-end gap-2">
         {/* Emoji panel */}
         {panelOpen && (
-          <div className="rounded-token-lg bg-surface-raised border border-white/10 shadow-xl p-2 animate-fade-in">
-            <div className="grid grid-cols-4 gap-1">
-              {REACTIONS.map((r) => (
-                <button
-                  key={r.type}
-                  type="button"
-                  onClick={() => handlePick(r.type)}
-                  title={r.label}
-                  aria-label={r.label}
-                  className="text-2xl p-2 rounded-token-md active:scale-110 active:bg-surface transition-transform"
-                >
-                  {r.emoji}
-                </button>
-              ))}
-            </div>
-          </div>
+          <EmojiReactionRow
+            onSend={(type) => void handlePick(type)}
+            disabled={blocked}
+            className="animate-fade-in"
+          />
         )}
 
         {/* FAB */}

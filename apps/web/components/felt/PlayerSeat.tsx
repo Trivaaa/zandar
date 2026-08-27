@@ -40,7 +40,7 @@ export function PlayerSeat({
   secondsRemaining = 0,
   totalSeconds = 20,
   cardCount = 0,
-  score = 0,
+  score,
   coins = 0,
   showCoins = false,
   isThinking = false,
@@ -63,8 +63,11 @@ export function PlayerSeat({
         </div>
       ) : null}
 
+      {/* Pilula se crta samo kad stvarno ima šta da odbrojava. Bez ovoga je
+          sjedište na potezu prikazivalo "0" kad rok još nije stigao sa servera —
+          broj koji laže je gori od praznog mjesta. */}
       <div className="seat__pill">
-        {isActive ? (
+        {isActive && (isThinking || secondsRemaining > 0) ? (
           <TurnPill
             isYou={false}
             variant={isThinking ? "thinking" : "countdown"}
@@ -81,15 +84,23 @@ export function PlayerSeat({
 
         <div className="seat__meta">
           <span className="seat__name font-sans text-base">{player.displayName}</span>
-          <span className="seat__numbers">
-            <span className="seat__score font-display text-num-sm">{score}</span>
-            {showCoins ? (
-              <span className="seat__coins font-display text-num-sm">{coins}</span>
-            ) : null}
-          </span>
-          <span className="seat__status font-sans text-sm text-muted">
-            {statusLabel[player.connectionStatus]}
-          </span>
+          {score !== undefined || showCoins ? (
+            <span className="seat__numbers">
+              {score !== undefined ? (
+                <span className="seat__score font-display text-num-sm">{score}</span>
+              ) : null}
+              {showCoins ? (
+                <span className="seat__coins font-display text-num-sm">{coins}</span>
+              ) : null}
+            </span>
+          ) : null}
+          {/* Status je izuzetak, ne ukras: "Na vezi" ispod svakog imena je sum.
+              Boja stanja zivi u felt.css (.seat__status), ne u utility klasi. */}
+          {player.connectionStatus !== "connected" ? (
+            <span className="seat__status font-sans text-sm">
+              {statusLabel[player.connectionStatus]}
+            </span>
+          ) : null}
         </div>
       </div>
 

@@ -1,0 +1,785 @@
+/*
+ * overlay.css — hand-authored in-game overlays (reveal, score, reactions,
+ * pause/abandon). Same rules as felt.css:
+ *   - No hex, no literal px duration, no literal cubic-bezier. Tokens only.
+ *   - Animated properties are transform and opacity. Nothing else, ever.
+ *   - Adds no design tokens; globals.css is untouched.
+ */
+
+/* ------------------------------------------------------------------ *
+ * MoveReveal
+ * ------------------------------------------------------------------ */
+
+.reveal {
+  --reveal-i: 0;
+  position: relative;
+  isolation: isolate; /* drzi ::before(z-index:-1) unutar panela */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  /* Na telefonu panel mora ostati traka preko sredine, ne stub preko pola
+     ekrana: bez gornje granice se .reveal__body lomio u kolonu (odigrana karta
+     IZNAD kupljenih) pa je prikaz zaklanjao sto i sjediste partnera. */
+  max-width: min(21rem, 92vw);
+  padding: 0.75rem 0.9rem 0.85rem;
+  animation: reveal-in var(--t-toast-in) var(--ease-snap) both;
+}
+
+/* Kulisa panela je zaseban sloj, ne pozadina .reveal-a. Karte su djeca
+   .reveal-a i roditelj ih odnese u pile (WAAPI, `collectToPile`) — zato collect
+   faza smije gasiti SAMO ovaj pseudo-element i tekst, nikad element koji je
+   predak kartama. */
+.reveal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 92%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent),
+    0 0.75rem 1.5rem color-mix(in oklab, black 45%, transparent);
+}
+
+/* Sweep: brightest brass in the app, mixed in place from --accent.
+   --turn-active is the pill's and is never borrowed here. */
+.reveal--sweep::before {
+  box-shadow:
+    inset 0 0 0 2px color-mix(in oklab, var(--accent) 70%, var(--text)),
+    0 0.9rem 2rem color-mix(in oklab, black 55%, transparent);
+}
+
+.reveal--sweep {
+  animation: reveal-sweep-in var(--t-card-play) var(--ease-snap) both;
+}
+
+.reveal__headline {
+  margin: 0;
+  text-align: center;
+  color: var(--text);
+}
+
+.reveal--sweep .reveal__headline {
+  color: color-mix(in oklab, var(--accent) 72%, var(--text));
+  letter-spacing: 0.01em;
+}
+
+.reveal__body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.75rem;
+  /* Dvije grupe stoje jedna uz drugu; unutar grupe kupljene karte i dalje smiju
+     da se prelome (.reveal__cards). */
+  flex-wrap: nowrap;
+}
+
+.reveal__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.reveal__cards {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 11rem;
+}
+
+.reveal__card {
+  display: inline-flex;
+  animation: reveal-card-in var(--t-card-deal) var(--ease-card) both;
+  animation-delay: calc(var(--reveal-i) * var(--t-deal-stagger));
+}
+
+.reveal__auto {
+  opacity: 0.85;
+}
+
+/* Collect: roditelj nosi karte u pile; kulisa i tekst se povlace, a podstablo
+   sa kartama ostaje netaknuto (vidi komentar uz .reveal::before). */
+.reveal--collect::before,
+.reveal--collect .reveal__headline,
+.reveal--collect .reveal__label,
+.reveal--collect .reveal__auto {
+  animation: reveal-collect var(--t-card-collect) var(--ease-out-soft) both;
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes reveal-sweep-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes reveal-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes reveal-collect {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * ScorePill
+ * ------------------------------------------------------------------ */
+
+.scorepill {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 100%;
+}
+
+.scorepill__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.7rem;
+  border: none;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 94%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 45%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform var(--t-card-play) var(--ease-out-soft);
+}
+
+.scorepill__bar:active {
+  transform: scale(0.98);
+}
+
+.scorepill__bar:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.scorepill__rows {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.scorepill__row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.scorepill__name {
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 6.5rem;
+}
+
+.scorepill__value {
+  color: var(--text);
+}
+
+.scorepill__target {
+  margin-left: auto;
+  color: color-mix(in oklab, var(--accent) 80%, var(--text));
+  white-space: nowrap;
+}
+
+.scorepill__chevron {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform var(--t-card-play) var(--ease-out-soft);
+}
+
+.scorepill--open .scorepill__chevron {
+  transform: rotate(225deg);
+}
+
+.scorepill__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.8rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 96%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
+  transform-origin: top center;
+  animation: scorepill-open var(--t-toast-in) var(--ease-out-soft) both;
+}
+
+@keyframes scorepill-open {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.scorepill__hand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.scorepill__totals {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.scorepill__total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.scorepill__cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.scorepill__cat {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.scorepill__members:empty {
+  display: none;
+}
+
+/* Compact: na feltu je vrh ekrana zauzet (Pravila lijevo, sjediste partnera u
+   sredini), pa collapsed pilula nosi samo brojeve. Imena pila su jedan tap
+   daleko, u razradi — a u 4P boja ivice sjedista ionako kaze ko je ciji.
+   Van felta (/dev, siri ekrani) pilula ostaje puna. */
+.scorepill--compact .scorepill__rows {
+  gap: 0.4rem;
+}
+
+.scorepill--compact .scorepill__name {
+  display: none;
+}
+
+.scorepill--compact .scorepill__row + .scorepill__row::before {
+  content: "·";
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------- *
+ * EmojiReactions
+ * ---------------------------------------------------------------- */
+
+.sr-only-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.reactions {
+  --reaction-btn: 44px;
+  display: grid;
+  grid-template-columns: repeat(4, var(--reaction-btn));
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 94%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 34%, transparent);
+}
+
+.reactions__btn {
+  width: var(--reaction-btn);
+  height: var(--reaction-btn);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent);
+  cursor: pointer;
+  transition:
+    transform var(--t-card-play) var(--ease-snap),
+    opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.reactions__btn:active {
+  transform: scale(0.92);
+}
+
+.reactions__btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.reactions__glyph {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.bubble {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--surface) 92%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 45%, transparent);
+  transform-origin: bottom center;
+  animation: bubble-in var(--t-toast-in) var(--ease-snap) both;
+}
+
+.bubble__glyph {
+  font-size: 22px;
+  line-height: 1;
+}
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * PauseAbandonOverlay
+ * ---------------------------------------------------------------- */
+
+.pause {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 22rem;
+  padding: 0.9rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 96%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 38%, transparent);
+  animation: pause-in var(--t-toast-in) var(--ease-out-soft) both;
+}
+
+@keyframes pause-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pause--modal {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--warn) 55%, transparent);
+}
+
+.pause--full {
+  max-width: none;
+  min-height: 100%;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: var(--surface);
+}
+
+.pause__row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.pause__title {
+  margin: 0;
+}
+
+.pause__clock {
+  margin-left: auto;
+  color: color-mix(in oklab, var(--accent) 82%, var(--text));
+}
+
+.pause__body {
+  margin: 0;
+}
+
+.pause__track {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--text) 14%, transparent);
+}
+
+.pause__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background-color: var(--warn);
+  transform-origin: left center;
+  transform: scaleX(var(--pause-fill, 1));
+  transition: transform var(--t-card-play) var(--ease-out-soft);
+}
+
+.pause__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pause__voter {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+}
+
+.pause__vote {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+.pause__voter[data-vote="end"] .pause__vote {
+  color: color-mix(in oklab, var(--danger) 80%, var(--text));
+}
+
+.pause__voter[data-vote="wait"] .pause__vote {
+  color: color-mix(in oklab, var(--success) 80%, var(--text));
+}
+
+.pause__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pause__btn {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 0.5rem 0.9rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text);
+  background-color: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 28%, transparent);
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+
+.pause__btn:active {
+  transform: scale(0.97);
+}
+
+.pause__btn--primary {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.pause__btn--danger[data-active="true"] {
+  background-color: color-mix(in oklab, var(--danger) 82%, var(--surface));
+}
+
+.pause__btn--ghost[data-active="true"] {
+  background-color: color-mix(in oklab, var(--success) 70%, var(--surface));
+}
+
+/* ---------------------------------------------------------------- *
+ * RoundEndOverlay
+ *
+ * Colour ownership: this file is imported inside layer(components) in the
+ * host app, so Tailwind utilities outrank everything here. Every element
+ * whose colour is state-dependent — the waiting line, the values, the
+ * member names, all button variants — sets its own colour below, including
+ * the base. No colour utility goes on those in JSX.
+ *
+ * No animation sits on .roundend__scroll or on any element that could be an
+ * ancestor of something the parent animates. This overlay renders no cards.
+ * No scrim: the parent frames the match-finished state.
+ * ---------------------------------------------------------------- */
+
+.roundend {
+  --roundend-max-h: 76dvh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 22rem;
+  /* min() so a bounded parent wins over the viewport cap; when the parent has
+     no definite height the 100% term is ignored and --roundend-max-h applies. */
+  max-height: min(var(--roundend-max-h), 100%);
+  padding: 1rem 0.9rem 0.9rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent),
+    0 0.9rem 2rem color-mix(in oklab, black 50%, transparent);
+  animation: roundend-in var(--t-toast-in) var(--ease-out-soft) both;
+}
+
+/* The one emphatic entrance, for the win. transform + opacity only. */
+.roundend--match {
+  box-shadow:
+    inset 0 0 0 2px color-mix(in oklab, var(--accent) 66%, var(--text)),
+    0 1rem 2.4rem color-mix(in oklab, black 58%, transparent);
+  animation: roundend-win-in var(--t-card-play) var(--ease-snap) both;
+}
+
+@keyframes roundend-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes roundend-win-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  62% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.roundend__close {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+
+.roundend__close:active {
+  transform: scale(0.9);
+}
+
+.roundend__headline {
+  margin: 0;
+  padding-right: 2.75rem;
+  color: var(--text);
+}
+
+.roundend--match .roundend__headline {
+  color: color-mix(in oklab, var(--accent) 72%, var(--text));
+  letter-spacing: 0.01em;
+}
+
+/* The body scrolls; the action stack stays pinned. Never grows. */
+.roundend__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding-right: 0.15rem;
+}
+
+.roundend__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.roundend__block-title {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.roundend__row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  color: var(--text);
+}
+
+.roundend__pile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.roundend__members {
+  color: var(--text-muted);
+}
+
+.roundend__value {
+  margin-left: auto;
+  white-space: nowrap;
+  color: color-mix(in oklab, var(--accent) 82%, var(--text));
+}
+
+.roundend__actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.roundend__waiting {
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.roundend__btn {
+  min-height: 44px;
+  padding: 0.5rem 0.9rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text);
+  background-color: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 28%, transparent);
+  transition:
+    transform var(--t-card-play) var(--ease-snap),
+    opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.roundend__btn:active {
+  transform: scale(0.97);
+}
+
+.roundend__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.roundend__btn--primary {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: none;
+}
+
+.roundend__btn--secondary {
+  background-color: var(--surface-raised);
+  color: var(--text);
+}
+
+.roundend__btn--tertiary {
+  background-color: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------- *
+ * Toast — danger notice above the hand. Parent owns the timer.
+ * ---------------------------------------------------------------- */
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 22rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--danger) 24%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--danger) 70%, transparent);
+  color: var(--text);
+  animation: toast-in var(--t-toast-in) var(--ease-snap) both;
+}
+
+/* No clamping: the whole message wraps, comfortably to about three lines. */
+.toast__text {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

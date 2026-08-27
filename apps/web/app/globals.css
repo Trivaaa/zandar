@@ -1,7 +1,10 @@
 @import "tailwindcss";
 /* Felt sloj — ručno pisani CSS za karte, ruku, sto, pilulu i sjedišta.
    Čita samo tokene definisane niže; ništa ne definiše sam. */
-@import "./felt.css";
+@import "./felt.css" layer(components);
+/* Overlay sloj — reveal, rezultat, reakcije, pauza/prekid. Isti dogovor:
+   layer(components) da utility klase iz komponenti mogu da nadjacaju. */
+@import "./overlay.css" layer(components);
 
 /* =====================================================
    DESIGN TOKENS — Kartaonica v3.2

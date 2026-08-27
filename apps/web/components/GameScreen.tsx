@@ -13,15 +13,17 @@ import { TableSurface } from "@/components/felt/TableSurface";
 import { PlayerHand } from "@/components/felt/PlayerHand";
 import { TurnPill } from "@/components/felt/TurnPill";
 import { TurnBanner } from "@/components/felt/TurnBanner";
-import { ScorePill } from "@/components/ScorePill";
+import { ScorePill } from "@/components/overlay/ScorePill";
 import { ReactionFab } from "@/components/ReactionFab";
-import { PauseAbandonOverlay } from "@/components/PauseAbandonOverlay";
+import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
+import { RoundEndOverlay } from "@/components/overlay/RoundEndOverlay";
+import { Toast } from "@/components/overlay/Toast";
 import { RulesModal } from "@/components/RulesModal";
-import { MoveReveal } from "@/components/MoveReveal";
+import { MoveRevealLive } from "@/components/overlay/MoveRevealLive";
 import { DeckPile } from "@/components/felt/DeckPile";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { arrangeSeats } from "@/lib/seating";
-import { getReactionEmoji } from "@/lib/reactions";
+import { ReactionBubble } from "@/components/overlay/EmojiReactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
 import { playSfx } from "@/lib/sound";
 import { useGameEvents } from "@/lib/useGameEvents";
@@ -58,29 +60,6 @@ type GameScreenProps = {
   activeReactions: ActiveReaction[];
 };
 
-function pileLabel(
-  pileId: string,
-  players: PrivateGameStateView["players"],
-): string {
-  if (pileId === "team-0") return "Tim A";
-  if (pileId === "team-1") return "Tim B";
-  return players.find((p) => p.id === pileId)?.displayName ?? pileId;
-}
-
-/** Imena članova tima (za pile "team-N"); null za individualni pile. */
-function pileMembers(
-  pileId: string,
-  players: PrivateGameStateView["players"],
-): string | null {
-  const m = /^team-(\d+)$/.exec(pileId);
-  if (!m) return null;
-  const teamId = Number(m[1]);
-  const names = players
-    .filter((p) => p.teamId === teamId)
-    .map((p) => p.displayName);
-  return names.length > 0 ? names.join(" · ") : null;
-}
-
 export function GameScreen({
   state,
   onPlayCard,
@@ -96,6 +75,8 @@ export function GameScreen({
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  // ScorePill je prezentacijski; otvorenost i backdrop drži ekran.
+  const [scoreOpen, setScoreOpen] = useState(false);
 
   useEffect(() => {
     if (!error) return;
@@ -165,10 +146,17 @@ export function GameScreen({
     ? (state.myHand.find((c) => c.id === selectedId) ?? null)
     : null;
 
-  const reactionsDisabled =
+  const interrupted =
     state.phase === "paused_for_reconnect" ||
     state.phase === "abandon_vote" ||
     state.phase === "abandoned";
+  const reactionsDisabled = interrupted;
+  const pauseFrame =
+    state.phase === "abandoned"
+      ? "absolute inset-0 z-50"
+      : state.phase === "abandon_vote"
+        ? "absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        : "absolute inset-x-0 top-0 z-50 flex justify-center p-3 pt-safe-top";
 
   const turnDeadline = isPlaying ? state.turnDeadline : undefined;
   // Sat živi ovdje; TurnPill je čista prezentacija (prima sekunde, ne rok).
@@ -247,7 +235,9 @@ export function GameScreen({
   // Najnovija aktivna reakcija za dato sjedište → emoji uz tog igrača.
   function seatReaction(playerId: string) {
     const r = [...activeReactions].reverse().find((x) => x.playerId === playerId);
-    return r ? <span>{getReactionEmoji(r.type as ReactionType)}</span> : undefined;
+    return r ? (
+      <ReactionBubble type={r.type as ReactionType} visible />
+    ) : undefined;
   }
 
   return (
@@ -303,7 +293,10 @@ export function GameScreen({
 
       {/* Centralna play-zona — odigrane karte + capture/trail.
           Desktop (md): šira da se karte ne gomilaju u usku kolonu. */}
-      <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[64%] max-w-[230px] md:max-w-[380px] z-10">
+      {/* Sirina je 100% minus zljebovi bocnih sjedista (2 × 5.5rem + zrak),
+          ne procenat: procenat se lomi cim se viewport suzi (zoom, uzi
+          telefon) pa sjedista udju u sto. */}
+      <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-13rem)] min-w-[9rem] max-w-[230px] md:max-w-[380px] z-10">
         <div
           data-table-drop
           className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]"
@@ -364,21 +357,37 @@ export function GameScreen({
         />
       </div>
 
-      {/* Overlay: rezultat */}
+      {/* Overlay: rezultat. Backdrop i `expanded` drži ekran — ScorePill je
+          čista prezentacija i namjerno ne hvata tapove preko felta.
+          Razrada dobija SAMO zadnju ruku: meč ide do 21, sve ruke su zid. */}
+      {scoreOpen && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setScoreOpen(false)}
+          aria-hidden
+        />
+      )}
       <ScorePill
         players={state.players}
         matchScore={state.matchScore}
         targetScore={state.targetScore}
-        handScores={state.handScores}
+        handScores={lastHandScore ? [lastHandScore] : []}
+        expanded={scoreOpen}
+        onToggle={() => setScoreOpen((v) => !v)}
+        className="scorepill--compact absolute top-0 right-0 z-40 m-2 mt-safe-top mr-safe-right max-w-[68%]"
       />
 
       {/* Špil — stanjuje se kako runde idu; sidro za deal animaciju. Pozicija tweakable. */}
       {isPlaying && (
-        <DeckPile remaining={state.deckCount} className="absolute bottom-[200px] right-3" />
+        <DeckPile
+          remaining={state.deckCount}
+          size="xs"
+          className="deck--bare absolute bottom-[132px] left-2"
+        />
       )}
 
       {/* Move reveal — šta je zadnji potez uradio (ko/koja karta/šta pokupio) */}
-      {isPlaying && <MoveReveal state={state} />}
+      {isPlaying && <MoveRevealLive state={state} />}
 
       {/* Overlay: rules (gornji lijevi) */}
       <button
@@ -398,138 +407,49 @@ export function GameScreen({
       {/* Reakcije se sad prikazuju uz svako sjedište (seatReaction) — vidi gore. */}
 
       {/* Pause / abandon */}
-      <PauseAbandonOverlay
-        phase={state.phase}
-        waitingForName={waiting?.displayName}
-        myPlayerId={state.myPlayerId}
-        onLeave={onLeave}
-      />
+      {/* Pauza je baner na vrhu, glasanje je modal nad scrimom, prekid je pun
+          ekran — komponenta crta sadržaj, ekran bira gdje sjedi.
+          `remainingMs` se namjerno ne šalje: PrivateGameStateView ne nosi
+          pauseStartedAt, pa bi svako odbrojavanje ovdje bilo izmišljeno. */}
+      {interrupted && (
+        <div className={pauseFrame}>
+          <PauseAbandonOverlay
+            phase={state.phase}
+            players={state.players}
+            waitingForName={waiting?.displayName}
+            myPlayerId={state.myPlayerId}
+            onLeave={onLeave}
+          />
+        </div>
+      )}
 
-      {/* End-of-hand / end-of-match modal */}
+      {/* Kraj ruke / kraj meča. Ekran daje scrim i okvir, komponenta sadržaj —
+          isto kao kod pauze. */}
       {(isHandOver || isMatchOver) && lastHandScore && (
-        <div className="absolute inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-sm rounded-token-lg bg-surface-raised border border-white/10 shadow-xl p-4 max-h-[90vh] overflow-y-auto animate-fade-in">
-            {/* X — ostani na sajtu bez revanša (idi na početnu). Samo kraj meča. */}
-            {isMatchOver && onLeave && (
-              <button
-                type="button"
-                onClick={onLeave}
-                aria-label="Zatvori i idi na početnu"
-                className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-white/10 active:scale-95 transition"
-              >
-                ✕
-              </button>
-            )}
-
-            <h2 className="text-xl font-bold mb-3 text-center px-6">
-              {isMatchOver
-                ? `🏆 ${matchWinner ? pileLabel(matchWinner, state.players) : ""} pobjeđuje!`
-                : `Ruka #${lastHandScore.handNumber} gotova`}
-            </h2>
-
-            <div className="rounded-token-md bg-surface p-3 mb-3">
-              <p className="font-semibold mb-2 text-sm text-muted">
-                Poeni iz ove ruke:
-              </p>
-              {Object.entries(lastHandScore.pointsByPile).map(([pileId, pts]) => {
-                const members = pileMembers(pileId, state.players);
-                return (
-                  <div key={pileId} className="flex justify-between items-start text-sm gap-2 py-0.5">
-                    <span className="min-w-0">
-                      <span className="font-medium">{pileLabel(pileId, state.players)}</span>
-                      {members && (
-                        <span className="block text-[11px] text-muted truncate">{members}</span>
-                      )}
-                    </span>
-                    <span className={pts > 0 ? "text-accent font-bold" : "text-muted"}>
-                      +{pts}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="rounded-token-md bg-surface p-3 mb-4">
-              <p className="font-semibold mb-2 text-sm text-muted">
-                Ukupni rezultat:
-              </p>
-              {Object.entries(state.matchScore).map(([pileId, score]) => {
-                const members = pileMembers(pileId, state.players);
-                return (
-                  <div key={pileId} className="flex justify-between items-start text-sm gap-2 py-0.5">
-                    <span className="min-w-0">
-                      <span className="font-medium">{pileLabel(pileId, state.players)}</span>
-                      {members && (
-                        <span className="block text-[11px] text-muted truncate">{members}</span>
-                      )}
-                    </span>
-                    <span className="font-bold tabular-nums shrink-0">
-                      {score} / {state.targetScore}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {isMatchOver ? (
-              <div className="space-y-2">
-                {isHost ? (
-                  <button
-                    type="button"
-                    onClick={() => runAction(onRematch)}
-                    disabled={pendingAction}
-                    className="w-full px-4 py-3 bg-accent text-accent-contrast rounded-token-md font-bold active:scale-95 disabled:opacity-50 transition-transform"
-                  >
-                    {pendingAction ? "..." : "🔄 Revanš (isti sto)"}
-                  </button>
-                ) : (
-                  <p className="text-center text-muted text-sm py-1">
-                    Čeka se da host pokrene revanš…
-                  </p>
-                )}
-                {onFindNewTable && (
-                  <button
-                    type="button"
-                    onClick={onFindNewTable}
-                    className="w-full px-4 py-3 bg-surface border border-white/15 rounded-token-md font-semibold active:scale-95 transition-transform"
-                  >
-                    🔎 Novi sto i igrači
-                  </button>
-                )}
-                {onLeave && (
-                  <button
-                    type="button"
-                    onClick={onLeave}
-                    className="w-full text-center text-muted text-sm py-1.5 hover:text-white transition-colors"
-                  >
-                    Izađi na početnu
-                  </button>
-                )}
-              </div>
-            ) : isHost ? (
-              <button
-                type="button"
-                onClick={() => runAction(onNextHand)}
-                disabled={pendingAction}
-                className="w-full px-4 py-3 bg-accent text-accent-contrast rounded-token-md font-bold active:scale-95 disabled:opacity-50 transition-transform"
-              >
-                {pendingAction ? "..." : "Sljedeća ruka →"}
-              </button>
-            ) : (
-              <p className="text-center text-muted text-sm py-2">
-                Čeka se da host pokrene sljedeću ruku…
-              </p>
-            )}
-          </div>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <RoundEndOverlay
+            phase={isMatchOver ? "match_finished" : "hand_finished"}
+            players={state.players}
+            handScore={lastHandScore}
+            matchScore={state.matchScore}
+            targetScore={state.targetScore}
+            {...(matchWinner ? { winnerPileId: matchWinner } : {})}
+            isHost={isHost}
+            pending={pendingAction}
+            onNextHand={() => void runAction(onNextHand)}
+            onRematch={() => void runAction(onRematch)}
+            {...(onFindNewTable ? { onFindNewTable } : {})}
+            {...(onLeave ? { onLeave } : {})}
+          />
         </div>
       )}
 
-      {/* Error toast */}
-      {error && (
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 bg-danger rounded-token-md px-4 py-2 max-w-[90vw] shadow-lg text-sm text-white">
-          ⚠️ {error}
-        </div>
-      )}
+      {/* Greška na potez — iznad ruke, roditelj drži i tajmer gašenja (4s). */}
+      <Toast
+        message={error ?? ""}
+        visible={error != null}
+        className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-[90vw]"
+      />
 
       <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
     </div>

@@ -435,6 +435,12 @@
   white-space: nowrap;
 }
 
+/* Na feltu spil stoji u zlijebu uz ivicu: natpis je nowrap i siri od zlijeba,
+   a broj vec stoji na chip-badgeu. /dev pregledi ga zadrzavaju. */
+.deck--bare .deck__caption {
+  display: none;
+}
+
 /* ------------------------------------------------------------------ *
  * TurnPill — the signature element. Horizontal, never a ring.
  * Depletion is scaleX() of a pre-rendered bar; the urgency colour is a
@@ -715,20 +721,55 @@
   transform-origin: bottom center;
 }
 
+/* Bocna sjedista dijele uzak pojas izmedju play-zone i ivice felta (~5rem na
+   telefonu), pa su kompaktan vertikalni cip: avatar IZNAD imena, ne pored. */
 .seat--left,
 .seat--right {
-  max-width: 9rem;
+  min-width: 0;
+  max-width: 5.5rem;
+  padding-inline: 0.35rem;
+}
+
+.seat--left .seat__body,
+.seat--right .seat__body {
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.seat--left .seat__meta,
+.seat--right .seat__meta {
+  align-items: center;
+  text-align: center;
+}
+
+.seat--left .seat__name,
+.seat--right .seat__name {
+  max-width: 4.75rem;
+}
+
+.seat--left .seat__numbers,
+.seat--right .seat__numbers {
+  justify-content: center;
 }
 
 /* Narrow orientations are width-capped, so the fan takes a bigger bite to stay
    inside the frame. */
+.seat--left .seat__fan,
+.seat--right .seat__fan {
+  padding-inline: 0.25rem;
+}
+
 .seat--left .seat__fan-slot,
 .seat--right .seat__fan-slot {
-  margin-inline: -0.85rem;
+  margin-inline: -1.05rem;
 }
 
 /* Connection state outranks the team mark, but stays one step below
    --danger-signal, which is reserved for the turn pill's final seconds. */
+.seat__status {
+  color: var(--text-muted);
+}
+
 .seat[data-status="reconnecting"] .seat__status {
   color: var(--warn);
   animation: seat-reconnect var(--t-turn-pulse) var(--ease-out-soft) infinite;
