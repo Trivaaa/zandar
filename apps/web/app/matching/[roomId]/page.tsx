@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getRoom, type RoomPlayer } from "@/lib/api";
 import { getSession } from "@/lib/session";
-import { MatchingTable } from "@/components/MatchingTable";
+import { MatchingTable } from "@/components/funnel/MatchingTable";
+import { sr } from "@/lib/sr";
 
 /**
  * Matching ekran za privatnu sobu (mid-flow). "Sto se postavlja" — ovalni sto
@@ -20,7 +21,7 @@ export default function MatchingPage() {
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(0);
   const [stage, setStage] = useState<"loading" | "filling" | "done">("loading");
-  const [statusText, setStatusText] = useState("Pripremamo sto...");
+  const [statusText, setStatusText] = useState<string>(sr.matching.preparing);
   const playerCount = 4;
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function MatchingPage() {
           return a.seatIndex - b.seatIndex;
         });
         setPlayers(sorted);
-        setStatusText("Igrači sjedaju...");
+        setStatusText(sr.matching.seating);
         setStage("filling");
       })
       .catch(() => {
@@ -66,7 +67,7 @@ export default function MatchingPage() {
     const allRevealedAt = FIRST_DELAY + STAGGER * (players.length - 1);
     timers.push(
       setTimeout(() => {
-        setStatusText("Sto je popunjen");
+        setStatusText(sr.matching.ready);
         setStage("done");
       }, allRevealedAt + 600),
     );

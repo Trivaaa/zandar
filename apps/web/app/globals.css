@@ -5,6 +5,8 @@
 /* Overlay sloj — reveal, rezultat, reakcije, pauza/prekid. Isti dogovor:
    layer(components) da utility klase iz komponenti mogu da nadjacaju. */
 @import "./overlay.css" layer(components);
+/* Funnel sloj — home, matching. Puni ekrani (ne overlay-i), isti dogovor. */
+@import "./funnel.css" layer(components);
 
 /* =====================================================
    DESIGN TOKENS — Kartaonica v3.2

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { quickPlay, getRoom } from "@/lib/api";
 import type { RoomPlayer } from "@/lib/api";
 import { saveSession } from "@/lib/session";
-import { MatchingTable } from "@/components/MatchingTable";
+import { MatchingTable } from "@/components/funnel/MatchingTable";
+import { sr } from "@/lib/sr";
 
 // ---- constants ----
 
@@ -50,7 +51,7 @@ export default function BrzaPage() {
 
   // matching state
   const [stage, setStage] = useState<Stage>("input");
-  const [statusText, setStatusText] = useState("Pripremamo sto...");
+  const [statusText, setStatusText] = useState<string>(sr.matching.preparing);
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(0);
@@ -79,7 +80,7 @@ export default function BrzaPage() {
     localStorage.setItem(NAME_KEY, name);
     setSavedName(name);
     setStage("searching");
-    setStatusText("Pripremamo sto...");
+    setStatusText(sr.matching.preparing);
     setFormError(null);
 
     // Min-duration timer — enforce theatre floor of 3 s
@@ -91,7 +92,7 @@ export default function BrzaPage() {
     // Slow-path timer — calm message if server takes > 5 s
     const maxTimer = setTimeout(() => {
       setStage("slow");
-      setStatusText("Pripremamo sto...");
+      setStatusText(sr.matching.preparing);
     }, MAX_WAIT_MS);
 
     try {
@@ -118,7 +119,7 @@ export default function BrzaPage() {
 
       setPlayers(sorted);
       roomReady.current = true;
-      setStatusText("Igrači sjedaju...");
+      setStatusText(sr.matching.seating);
       setStage("animating");
     } catch {
       clearTimeout(minTimer);
@@ -153,7 +154,7 @@ export default function BrzaPage() {
     });
 
     timers.push(
-      setTimeout(() => setStatusText("Sto je popunjen"), DONE_TEXT_AT),
+      setTimeout(() => setStatusText(sr.matching.ready), DONE_TEXT_AT),
     );
 
     timers.push(

@@ -77,6 +77,21 @@ export const sr = {
       respect: "Svaka čast",
     },
   },
+  home: {
+    brand: "Tablić - Žandar",
+    domain: "kartaonica.com",
+    playingAs: (name: string) => `Igraš kao ${name}`,
+    changeName: "Promijeni",
+    namePlaceholder: "Tvoje ime",
+    play: "Igra – nađi sto",
+    playLoading: "Tražim sto...",
+    createRoom: "Kreiraj privatnu sobu →",
+  },
+  matching: {
+    preparing: "Pripremamo sto...",
+    seating: "Igrači sjedaju...",
+    ready: "Sto je popunjen",
+  },
   end: {
     handTitle: (n: number) => `Ruka #${n} gotova`,
     handPoints: "Poeni iz ove ruke:",

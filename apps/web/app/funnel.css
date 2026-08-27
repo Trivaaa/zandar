@@ -1,0 +1,360 @@
+/*
+ * funnel.css — the screens before the table (HomeScreen, MatchingTable).
+ * Same rules as felt.css / overlay.css:
+ *   - No hex, no literal px duration, no literal cubic-bezier. Tokens only.
+ *   - Animated properties are transform and opacity. Nothing else, ever.
+ *   - Adds no design tokens; globals.css is untouched.
+ *   - Every state-dependent colour is owned here, base included, because a
+ *     Tailwind colour utility in JSX would outrank this file (layer(components)).
+ *
+ * Local geometry knobs (not tokens): --funnel-pad, --cta-h, --oval-w,
+ * --oval-h, --place-size, --matching-bar-h.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Shared screen shell
+ * ------------------------------------------------------------------ */
+
+.screen {
+  --funnel-pad: 1rem;
+  box-sizing: border-box;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--felt);
+  color: var(--text);
+  padding-top: calc(var(--funnel-pad) + var(--safe-top));
+  padding-bottom: calc(var(--funnel-pad) + var(--safe-bottom));
+  padding-left: calc(var(--funnel-pad) + var(--safe-left));
+  padding-right: calc(var(--funnel-pad) + var(--safe-right));
+}
+
+/* ------------------------------------------------------------------ *
+ * HomeScreen
+ * ------------------------------------------------------------------ */
+
+.home {
+  --cta-h: 3.25rem;
+  gap: 1.25rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding-top: 1.5rem;
+  text-align: center;
+}
+
+.home__name {
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+
+.home__domain {
+  color: var(--text-muted);
+}
+
+.home__body {
+  width: 100%;
+  max-width: min(20rem, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+/* Saved-name mode */
+.home__as {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.home__as-text {
+  color: var(--text);
+}
+
+.home__change {
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  transition: opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.home__change:hover,
+.home__change:focus-visible {
+  opacity: 0.75;
+}
+
+/* Name field */
+.home__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.home__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--text-muted) 45%, transparent);
+  background-color: color-mix(in oklab, var(--surface) 92%, transparent);
+  color: var(--text);
+}
+
+.home__input::placeholder {
+  color: var(--text-muted);
+}
+
+.home__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* The one loud action */
+.home__cta {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--cta-h);
+  padding: 0 1rem;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  transition:
+    transform var(--t-card-play) var(--ease-snap),
+    opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.home__cta:active {
+  transform: scale(0.98);
+}
+
+.home__cta[data-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Reserved line: the error never shifts the CTA. */
+.home__error {
+  min-height: 1.35rem;
+  text-align: center;
+  color: var(--danger-signal);
+  transition: opacity var(--t-toast-in) var(--ease-out-soft);
+}
+
+.home__error[data-empty="true"] {
+  opacity: 0;
+}
+
+.home__secondary {
+  min-height: 2.75rem;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.home__secondary:hover,
+.home__secondary:focus-visible {
+  opacity: 0.75;
+}
+
+.home__feedback {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-bottom: 0.25rem;
+  min-height: 2.75rem;
+  align-items: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * MatchingTable
+ * ------------------------------------------------------------------ */
+
+.matching {
+  --oval-w: min(19rem, 100%);
+  --oval-h: 15rem;
+  --place-size: 4.5rem;
+  --matching-bar-h: 0.25rem;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.matching__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: min(20rem, 100%);
+}
+
+.matching__headline {
+  text-align: center;
+  color: var(--text-muted);
+  transition:
+    transform var(--t-card-play) var(--ease-out-soft),
+    opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.matching[data-done="true"] .matching__headline {
+  color: var(--accent);
+  transform: scale(1.04);
+}
+
+/* Preparing indicator: a thin bar, no numbers, no counter, no spinner. */
+.matching__bar {
+  position: relative;
+  overflow: hidden;
+  width: 60%;
+  height: var(--matching-bar-h);
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in oklab, var(--surface) 80%, transparent);
+}
+
+.matching__fill {
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in oklab, var(--accent) 70%, var(--felt));
+  animation: matching-bar var(--t-turn-pulse) var(--ease-out-soft) infinite;
+}
+
+@keyframes matching-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+/* The oval felt table itself */
+.matching__table {
+  position: relative;
+  width: var(--oval-w);
+  height: var(--oval-h);
+  margin: 0 auto;
+}
+
+.matching__oval {
+  position: absolute;
+  inset: 12% 8%;
+  border-radius: 50% / 50%;
+  background-color: color-mix(in oklab, var(--felt) 78%, black);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in oklab, var(--accent) 28%, transparent),
+    inset 0 0 2rem color-mix(in oklab, black 35%, transparent);
+}
+
+.matching__place {
+  position: absolute;
+  width: var(--place-size);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.matching__place--bottom {
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+.matching__place--top {
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.matching__place--left {
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.matching__place--right {
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.matching__avatar {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background-color: var(--surface-raised);
+  color: var(--text);
+  border: 2px solid color-mix(in oklab, var(--accent) 45%, transparent);
+}
+
+.matching__name {
+  color: var(--text);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.matching__you {
+  color: var(--accent);
+}
+
+/* An empty place, never a gap: the table always reads as a table. */
+.matching__place[data-filled="false"] .matching__avatar {
+  background-color: color-mix(in oklab, var(--surface) 55%, transparent);
+  border-style: dashed;
+  border-color: color-mix(in oklab, var(--text-muted) 35%, transparent);
+}
+
+.matching__place[data-filled="false"] .matching__name {
+  color: color-mix(in oklab, var(--text-muted) 55%, transparent);
+}
+
+.matching__place[data-filled="true"] {
+  animation: matching-seat-in var(--t-card-play) var(--ease-snap) both;
+}
+
+@keyframes matching-seat-in {
+  from {
+    opacity: 0;
+    transform-origin: center;
+    scale: 0.9;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matching__fill {
+    animation: none;
+  }
+}
