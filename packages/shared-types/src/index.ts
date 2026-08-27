@@ -379,16 +379,22 @@ export type PrivateGameStateView = {
   handScores: HandScore[];
   myPlayerId: string;
   myHand: Card[];
-  /**
-   * Zadnji odigrani potez (javno — odigrana/pokupljene karte su otkrivene).
-   * Za vizuelni prikaz "ko je šta odigrao i šta je pokupio" (žandar/capture/trail).
-   * null na početku ruke (nema poteza). Žandar-sweep: playedCard.rank === "J" && capturedCards.length > 0.
-   */
-  lastMove?: {
-    moveId: string;
-    playerId: string;
-    playedCard: Card;
-    capturedCards: Card[];
-    isAutoPlay: boolean;
-  } | null;
+  /** Zadnji odigrani potez — vidi `LastMove`. null na početku ruke. */
+  lastMove?: LastMove | null;
+};
+
+/**
+ * Zadnji odigrani potez (javno — odigrana/pokupljene karte su otkrivene).
+ * Za vizuelni prikaz "ko je šta odigrao i šta je pokupio" (žandar/capture/trail).
+ * Žandar-sweep: playedCard.rank === "J" && capturedCards.length > 0.
+ *
+ * Oblik je nepromijenjen od kad je bio inline u PrivateGameStateView — imenovan
+ * je da ga prezentacijske komponente mogu tipizirati bez indexed-access trika.
+ */
+export type LastMove = {
+  moveId: string;
+  playerId: string;
+  playedCard: Card;
+  capturedCards: Card[];
+  isAutoPlay: boolean;
 };
