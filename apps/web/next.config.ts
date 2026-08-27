@@ -2,6 +2,13 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Testiranje sa telefona na LAN adresi: Next 16 po defaultu blokira
+  // cross-origin pristup dev resursima (error overlay, HMR), pa se greska na
+  // uredjaju ne moze procitati. Vazi SAMO u dev-u; postavi NEXT_DEV_ORIGIN na
+  // IP svog PC-a (npr. 192.168.100.184) prije `pnpm dev`.
+  ...(process.env.NEXT_DEV_ORIGIN
+    ? { allowedDevOrigins: [process.env.NEXT_DEV_ORIGIN] }
+    : {}),
   // /zandar/room/:roomId → /room/:roomId (308 trajni redirect; zadrži oba linka).
   async redirects() {
     return [
