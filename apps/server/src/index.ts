@@ -1178,15 +1178,22 @@ function emitEndAnalytics(
   }
 }
 
-async function broadcastGameState(roomId: string): Promise<void> {
+/**
+ * Rutiranje timera + postavljanje roka poteza ZA PRIKAZ. Rok se šalje za SVAKI
+ * aktivni potez — i čovjeka i bota (puni turnTimeoutSeconds). Bot odigra brzo
+ * unutar toga (kao brz čovjek) → timer izgleda isto za sve (anti-leak).
+ *
+ * Zove se iz broadcastGameState (rok se čita POSLE rutiranja, pa je tačan za
+ * aktuelni potez) i iz room:subscribe. Ovo drugo je bitno: svježa soba je
+ * "playing" prije nego iko otvori socket, a broadcastGameState — jedino mjesto
+ * koje je ranije postavljalo rok — do tada nije bio pozvan. Prvi state je zato
+ * stizao bez `turnDeadline`, pa je klijent crtao pilulu na 0.
+ */
+function routeTurnTimers(roomId: string): void {
   const room = getRoom(roomId);
-  if (!room || !room.gameState) return;
+  if (!room?.gameState) return;
   const gs = room.gameState;
 
-  // Rutiranje timera + postavljanje roka poteza ZA PRIKAZ. Rok se šalje za
-  // SVAKI aktivni potez — i čovjeka i bota (puni turnTimeoutSeconds). Bot odigra
-  // brzo unutar toga (kao brz čovjek) → timer izgleda isto za sve (anti-leak).
-  // Rok se čita POSLE rutiranja → tačan je za aktuelni potez (ne kasni jedan tur).
   if (gs.phase === "playing") {
     const currentPlayer = gs.players.find((p) => p.id === gs.currentPlayerId);
     if (currentPlayer?.isBot) {
@@ -1207,6 +1214,14 @@ async function broadcastGameState(roomId: string): Promise<void> {
     // ("Sljedeća ruka →" → game:nextHand). Ranije: auto-advance posle 4s u bot
     // partijama; uklonjeno na zahtjev (igrač kontroliše tempo).
   }
+}
+
+async function broadcastGameState(roomId: string): Promise<void> {
+  const room = getRoom(roomId);
+  if (!room || !room.gameState) return;
+  const gs = room.gameState;
+
+  routeTurnTimers(roomId);
 
   const deadline =
     gs.phase === "playing" ? turnDeadlines.get(roomId) : undefined;
@@ -1274,6 +1289,9 @@ io.on("connection", (socket) => {
       }
 
       if (room.gameState) {
+        // Svježa soba jos nije prošla kroz broadcastGameState, pa rok ne postoji.
+        // Rutiraj ovdje da prvi state koji igrač vidi već nosi turnDeadline.
+        if (!turnDeadlines.has(roomId)) routeTurnTimers(roomId);
         const deadline = turnDeadlines.get(roomId);
         const privateState = buildPrivateGameStateView(
           room.gameState,
