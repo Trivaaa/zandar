@@ -18,8 +18,11 @@ import { getSocket } from "@/lib/socket";
 import { assertNoBotLeak } from "@/lib/antiLeak";
 import { JoinFlow } from "@/components/JoinFlow";
 import { GameScreen } from "@/components/GameScreen";
-import type { ActiveReaction } from "@/components/GameView";
-import type { PrivateGameStateView } from "@zandar/shared-types";
+import type { ActiveReaction } from "@/lib/reactions";
+import type {
+  AbandonVote,
+  PrivateGameStateView,
+} from "@zandar/shared-types";
 
 type ReactionEvent = {
   playerId: string;
@@ -346,6 +349,16 @@ export default function RoomPage() {
     await emitAction("game:rematch", {});
   }
 
+  /** "Sačekaj još" — resetuje rok pauze na serveru (§32.3). */
+  async function handleWaitMore(): Promise<void> {
+    await emitAction("game:waitMore", {});
+  }
+
+  /** Glas u glasanju o prekidu (§32.4). */
+  async function handleAbandonVote(vote: AbandonVote): Promise<void> {
+    await emitAction("game:abandonVote", { vote });
+  }
+
   async function handleFindNewTable(): Promise<void> {
     // Napusti ovaj sto i nađi novi (Quick Play sa novim igračima).
     const myName =
@@ -420,6 +433,8 @@ export default function RoomPage() {
           onReact={handleReact}
           onLeave={() => router.push("/")}
           onFindNewTable={handleFindNewTable}
+          onWaitMore={handleWaitMore}
+          onAbandonVote={handleAbandonVote}
           activeReactions={activeReactions}
         />
         {autoPlayToast && (

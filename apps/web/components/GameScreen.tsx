@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCaptureOptions, type GameEvent } from "@zandar/game-core";
 import type {
+  AbandonVote,
   Card as CardType,
   CaptureOption,
   PrivateGameStateView,
@@ -57,6 +58,10 @@ type GameScreenProps = {
   onLeave?: () => void;
   /** Napusti ovaj sto i nađi novi (Quick Play sa novim igračima). */
   onFindNewTable?: () => void;
+  /** "Sačekaj još" tokom pauze — resetuje rok na serveru. */
+  onWaitMore?: () => Promise<void>;
+  /** Glas u glasanju o prekidu partije. */
+  onAbandonVote?: (vote: AbandonVote) => Promise<void>;
   activeReactions: ActiveReaction[];
 };
 
@@ -68,6 +73,8 @@ export function GameScreen({
   onReact,
   onLeave,
   onFindNewTable,
+  onWaitMore,
+  onAbandonVote,
   activeReactions,
 }: GameScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -161,6 +168,12 @@ export function GameScreen({
   const turnDeadline = isPlaying ? state.turnDeadline : undefined;
   // Sat živi ovdje; TurnPill je čista prezentacija (prima sekunde, ne rok).
   const turnSeconds = useCountdown(turnDeadline, TURN_TOTAL_SECONDS);
+
+  // Pauza/glasanje: server šalje apsolutni rok, sat je isti kao za potez.
+  // `totalMs` je nominalno trajanje faze — kod produženja od 5 min traka samo
+  // stoji puna dok ne padne ispod (PauseAbandonOverlay klampuje fill na 1).
+  const pauseTotalMs = state.phase === "abandon_vote" ? 60_000 : 120_000;
+  const pauseSeconds = useCountdown(state.pauseEndsAt, pauseTotalMs / 1000);
   const waiting = state.players.find((p) => p.connectionStatus !== "connected");
 
   async function play(cardId: string, captureIds: string[]) {
@@ -408,9 +421,7 @@ export function GameScreen({
 
       {/* Pause / abandon */}
       {/* Pauza je baner na vrhu, glasanje je modal nad scrimom, prekid je pun
-          ekran — komponenta crta sadržaj, ekran bira gdje sjedi.
-          `remainingMs` se namjerno ne šalje: PrivateGameStateView ne nosi
-          pauseStartedAt, pa bi svako odbrojavanje ovdje bilo izmišljeno. */}
+          ekran — komponenta crta sadržaj, ekran bira gdje sjedi. */}
       {interrupted && (
         <div className={pauseFrame}>
           <PauseAbandonOverlay
@@ -418,6 +429,14 @@ export function GameScreen({
             players={state.players}
             waitingForName={waiting?.displayName}
             myPlayerId={state.myPlayerId}
+            {...(state.pauseEndsAt !== undefined
+              ? { remainingMs: pauseSeconds * 1000, totalMs: pauseTotalMs }
+              : {})}
+            {...(state.abandonVotes ? { abandonVotes: state.abandonVotes } : {})}
+            {...(onWaitMore ? { onWait: () => void runAction(onWaitMore) } : {})}
+            {...(onAbandonVote
+              ? { onVote: (v: AbandonVote) => void runAction(() => onAbandonVote(v)) }
+              : {})}
             onLeave={onLeave}
           />
         </div>

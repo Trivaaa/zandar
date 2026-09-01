@@ -30,6 +30,13 @@ import {
   type LobbyRoom,
 } from "./rooms";
 import { buildPrivateGameStateView } from "./gameStateView";
+import {
+  connectedHumans,
+  hasReconnectingHuman,
+  nextPhaseAfterGrace,
+  resolveVote,
+  resolveVoteTimeout,
+} from "./pause";
 import { posthog, track } from "./lib/posthog";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
@@ -728,10 +735,28 @@ const turnTimers = new Map<string, NodeJS.Timeout>();
 // Mapa roomId → timestamp kad ističe turn (za client UI)
 const turnDeadlines = new Map<string, number>();
 
-// ---- DISCONNECT TIMERS ----
-// playerId → timeout. Posle 2 min disconnect-a partija ide u abandoned.
+// ---- PREKID PARTIJE (PRD v2 §32) ----
+// playerId → timeout. Grace period: partija JOŠ NE staje, samo indikator na
+// sjedištu. Tek po isteku ide pauza (ili odmah prekid ako nema drugog čovjeka).
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
-const ABANDON_TIMEOUT_MS = 2 * 60 * 1000;
+// roomId → timeout. Pauza i glasanje su stanje SOBE, ne igrača — dvoje ljudi
+// može otpasti a pauza je jedna.
+const pauseTimers = new Map<string, NodeJS.Timeout>();
+
+/**
+ * Trajanja iz PRD §32. Override kroz env postoji zbog testiranja: pun tok na
+ * default vrijednostima traje 3.5 minuta po prolazu, što ručnu provjeru čini
+ * neupotrebljivom.
+ */
+const ms = (name: string, fallback: number): number => {
+  const raw = process.env[name];
+  const n = raw === undefined ? NaN : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+const GRACE_MS = ms("GRACE_MS", 30 * 1000);
+const PAUSE_MS = ms("PAUSE_MS", 2 * 60 * 1000);
+const VOTE_MS = ms("VOTE_MS", 60 * 1000);
+const WAIT_EXTENSION_MS = ms("WAIT_EXTENSION_MS", 5 * 60 * 1000);
 
 // ---- BOT MOVE TIMERS ----
 // roomId → timeout. Kad je bot na potezu, server interno odigra potez.
@@ -1056,21 +1081,30 @@ async function handlePlayerDisconnect(
   await broadcastGameState(roomId);
   fastify.log.info(`📶 Player ${playerId} reconnecting...`);
 
+  // Grace period (§32.2): partija NE staje. Turn timer teče dalje i auto-play
+  // važi — kratak prekid veze ne smije da zaustavi sto.
   const existing = disconnectTimers.get(playerId);
   if (existing) clearTimeout(existing);
 
   const timer = setTimeout(async () => {
+    disconnectTimers.delete(playerId);
     const room = getRoom(roomId);
     if (!room?.gameState) return;
-    const p = room.gameState.players.find((p) => p.id === playerId);
+    const p = room.gameState.players.find((x) => x.id === playerId);
     if (!p || p.connectionStatus !== "reconnecting") return;
 
-    p.connectionStatus = "abandoned";
-    room.gameState.phase = "abandoned";
-    await broadcastGameState(roomId);
-    fastify.log.info(`⚠ Match abandoned: ${playerId} did not return`);
-    disconnectTimers.delete(playerId);
-  }, ABANDON_TIMEOUT_MS);
+    // Neko drugi je već zaustavio sto (dva igrača otpala jedan za drugim) —
+    // ne diraj rok koji već teče, inače bi drugi otpad produžio pauzu.
+    const phase = room.gameState.phase;
+    if (phase !== "playing") return;
+
+    if (nextPhaseAfterGrace(room.gameState) === "abandoned") {
+      // Sto pun botova: nema koga pitati, raspusti bez glasanja (PRD v3.1 #5).
+      await enterAbandoned(roomId);
+    } else {
+      await enterPause(roomId);
+    }
+  }, GRACE_MS);
 
   disconnectTimers.set(playerId, timer);
 }
@@ -1216,6 +1250,136 @@ function routeTurnTimers(roomId: string): void {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Prekid partije (PRD v2 §32)
+ *
+ *  playing ──disconnect──▶ playing + "reconnecting"   (grace, partija teče)
+ *          ──GRACE_MS───▶ paused_for_reconnect        (ili odmah abandoned
+ *                                                      ako nema drugog čovjeka)
+ *          ──PAUSE_MS───▶ abandon_vote
+ *          ──VOTE_MS────▶ abandoned  (osim ako neko glasa "čekaj")
+ *
+ * Povratak igrača u bilo kojoj fazi osim `abandoned` vraća partiju u `playing`.
+ * ------------------------------------------------------------------ */
+
+function clearPauseTimer(roomId: string): void {
+  const timer = pauseTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    pauseTimers.delete(roomId);
+  }
+}
+
+/**
+ * Naoruža timer prema `gs.pauseEndsAt`. Rok je APSOLUTAN, pa ovo radi i poslije
+ * restarta servera: hidrirana soba nastavi odbrojavanje, a ako je rok u
+ * međuvremenu prošao, tranzicija se izvrši odmah. Bez toga bi soba zaglavljena
+ * u pauzi preživjela deploy i ostala zaglavljena zauvijek.
+ */
+function armPauseTimer(roomId: string): void {
+  clearPauseTimer(roomId);
+  const gs = getRoom(roomId)?.gameState;
+  if (gs?.pauseEndsAt === undefined) return;
+  const delay = Math.max(0, gs.pauseEndsAt - Date.now());
+  pauseTimers.set(
+    roomId,
+    setTimeout(() => void onPauseDeadline(roomId), delay),
+  );
+}
+
+async function onPauseDeadline(roomId: string): Promise<void> {
+  pauseTimers.delete(roomId);
+  const gs = getRoom(roomId)?.gameState;
+  if (!gs) return;
+
+  if (gs.phase === "paused_for_reconnect") {
+    await enterVote(roomId);
+    return;
+  }
+  if (gs.phase === "abandon_vote") {
+    const voterIds = connectedHumans(gs.players).map((p) => p.id);
+    if (resolveVoteTimeout(gs.abandonVotes, voterIds) === "extend") {
+      await enterPause(roomId, WAIT_EXTENSION_MS);
+    } else {
+      await enterAbandoned(roomId);
+    }
+  }
+}
+
+async function enterPause(
+  roomId: string,
+  durationMs: number = PAUSE_MS,
+): Promise<void> {
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+  const gs = room.gameState;
+
+  const now = Date.now();
+  gs.phase = "paused_for_reconnect";
+  gs.pauseStartedAt = now;
+  gs.pauseEndsAt = now + durationMs;
+  delete gs.abandonVotes;
+
+  await broadcastGameState(roomId); // gasi turn i bot timere (routeTurnTimers)
+  armPauseTimer(roomId);
+  fastify.log.info(`⏸ Room ${roomId} paused for ${Math.round(durationMs / 1000)}s`);
+}
+
+async function enterVote(roomId: string): Promise<void> {
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+  const gs = room.gameState;
+
+  const now = Date.now();
+  gs.phase = "abandon_vote";
+  gs.pauseStartedAt = now;
+  gs.pauseEndsAt = now + VOTE_MS;
+  gs.abandonVotes = {};
+
+  await broadcastGameState(roomId);
+  armPauseTimer(roomId);
+  fastify.log.info(`🗳 Room ${roomId} abandon vote started`);
+}
+
+async function enterAbandoned(roomId: string): Promise<void> {
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+  const gs = room.gameState;
+
+  clearPauseTimer(roomId);
+  for (const p of gs.players) {
+    if (p.connectionStatus === "reconnecting") p.connectionStatus = "abandoned";
+  }
+  gs.phase = "abandoned";
+  delete gs.pauseEndsAt;
+  delete gs.pauseStartedAt;
+  delete gs.abandonVotes;
+  // Sweeper time dobija kraći TTL za završene sobe umjesto 12h idle.
+  room.status = "finished";
+
+  await broadcastGameState(roomId);
+  fastify.log.info(`⚠ Match abandoned in room ${roomId}`);
+}
+
+async function resumeFromPause(roomId: string): Promise<void> {
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+  const gs = room.gameState;
+  if (gs.phase !== "paused_for_reconnect" && gs.phase !== "abandon_vote") return;
+
+  clearPauseTimer(roomId);
+  gs.phase = "playing";
+  delete gs.pauseEndsAt;
+  delete gs.pauseStartedAt;
+  delete gs.abandonVotes;
+
+  // routeTurnTimers unutar broadcast-a naoružava potez ispočetka — punih
+  // turnTimeoutSeconds, ne ostatak. Namjerno velikodušno prema igraču koji se
+  // upravo vratio.
+  await broadcastGameState(roomId);
+  fastify.log.info(`▶ Room ${roomId} resumed`);
+}
+
 async function broadcastGameState(roomId: string): Promise<void> {
   const room = getRoom(roomId);
   if (!room || !room.gameState) return;
@@ -1246,7 +1410,7 @@ io.on("connection", (socket) => {
 
   socket.on(
     "room:subscribe",
-    (
+    async (
       payload: SubscribePayload,
       ack?: (res: { ok: boolean; error?: string }) => void,
     ) => {
@@ -1285,6 +1449,12 @@ io.on("connection", (socket) => {
           player.connectionStatus = "connected";
           fastify.log.info(`✓ Player ${playerId} reconnected`);
           // broadcast će ići za nekoliko linija dole
+
+          // Vratio se posljednji koga smo čekali → partija se nastavlja.
+          // Iz `abandoned` se NE vraća: taj meč je zaključan.
+          if (!hasReconnectingHuman(room.gameState)) {
+            await resumeFromPause(roomId);
+          }
         }
       }
 
@@ -1517,6 +1687,83 @@ io.on("connection", (socket) => {
     },
   );
 
+  // ---- PREKID: "Sačekaj još" (§32.3) ----
+  // Bilo koji igrač za stolom, ne samo host — onaj ko zna da se Marko vraća
+  // ne mora biti host da bi to rekao stolu.
+  socket.on(
+    "game:waitMore",
+    async (
+      _payload: unknown,
+      ack?: (res: { ok: boolean; error?: string }) => void,
+    ) => {
+      const playerId = socket.data.playerId;
+      const roomId = socket.data.roomId;
+      if (typeof playerId !== "string" || typeof roomId !== "string") {
+        ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+      const room = getRoom(roomId);
+      if (!room?.gameState) {
+        ack?.({ ok: false, error: "GAME_NOT_STARTED" });
+        return;
+      }
+      if (room.gameState.phase !== "paused_for_reconnect") {
+        ack?.({ ok: false, error: "INVALID_PHASE" });
+        return;
+      }
+
+      await enterPause(roomId); // resetuje rok na pun PAUSE_MS
+      ack?.({ ok: true });
+      fastify.log.info(`⏸ Room ${roomId}: ${playerId} traži još vremena`);
+    },
+  );
+
+  // ---- PREKID: glasanje (§32.4) ----
+  socket.on(
+    "game:abandonVote",
+    async (
+      payload: { vote?: unknown },
+      ack?: (res: { ok: boolean; error?: string }) => void,
+    ) => {
+      const playerId = socket.data.playerId;
+      const roomId = socket.data.roomId;
+      if (typeof playerId !== "string" || typeof roomId !== "string") {
+        ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+      const vote = payload?.vote;
+      if (vote !== "wait" && vote !== "end") {
+        ack?.({ ok: false, error: "INVALID_VOTE" });
+        return;
+      }
+      const room = getRoom(roomId);
+      if (!room?.gameState) {
+        ack?.({ ok: false, error: "GAME_NOT_STARTED" });
+        return;
+      }
+      const gs = room.gameState;
+      if (gs.phase !== "abandon_vote") {
+        ack?.({ ok: false, error: "INVALID_PHASE" });
+        return;
+      }
+
+      gs.abandonVotes = { ...(gs.abandonVotes ?? {}), [playerId]: vote };
+      ack?.({ ok: true });
+
+      const voterIds = connectedHumans(gs.players).map((p) => p.id);
+      const outcome = resolveVote(gs.abandonVotes, voterIds);
+      if (outcome === "extend") {
+        // Jedan glas za čekanje pobjeđuje sve ostale — prekid samo ako NIKO
+        // ne želi da nastavi.
+        await enterPause(roomId, WAIT_EXTENSION_MS);
+      } else if (outcome === "end") {
+        await enterAbandoned(roomId);
+      } else {
+        await broadcastGameState(roomId); // tally se vidi odmah
+      }
+    },
+  );
+
   socket.on("disconnect", (reason) => {
     fastify.log.info(
       `✗ Socket disconnected: ${socket.id} (${reason})`,
@@ -1547,6 +1794,14 @@ try {
           (p) => p.id === room.gameState!.currentPlayerId,
         );
         if (cp?.isBot) scheduleBotMove(id);
+      }
+      // Soba zatečena u pauzi ili glasanju: rok je apsolutan, pa se timer
+      // naoruža na ostatak — a ako je rok prošao dok je server bio dolje,
+      // tranzicija ide odmah. Bez ovoga bi pauza preživjela deploy i ostala
+      // zaglavljena zauvijek (ista klasa greške kao bot-stuck 2026-06-10).
+      const phase = room?.gameState?.phase;
+      if (phase === "paused_for_reconnect" || phase === "abandon_vote") {
+        armPauseTimer(id);
       }
     }
   }

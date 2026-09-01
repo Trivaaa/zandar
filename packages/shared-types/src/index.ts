@@ -311,7 +311,17 @@ export type GameState = {
   moveHistory: MoveHistoryItem[];
   rulesConfig: RulesConfig;
   stateVersion: number;
+  /** Kad je trenutna faza prekida počela (pauza ili glasanje). */
   pauseStartedAt?: number;
+  /**
+   * Apsolutni rok trenutne faze prekida (epoch ms): kraj pauze ili kraj
+   * glasanja. Apsolutan, ne trajanje, jer se pauza produžava ("Sačekaj još",
+   * glas "Čekaj") pa jedno trajanje ne bi opisalo sve slučajeve.
+   *
+   * Opciono: stari perzistirani snapshot-i ga nemaju i hidriraju se kao soba
+   * bez pauze.
+   */
+  pauseEndsAt?: number;
   abandonVotes?: Record<string, AbandonVote>;
 };
 // ====================================================
@@ -381,6 +391,13 @@ export type PrivateGameStateView = {
   myHand: Card[];
   /** Zadnji odigrani potez — vidi `LastMove`. null na početku ruke. */
   lastMove?: LastMove | null;
+  /**
+   * Rok trenutne faze prekida (epoch ms) — klijent iz njega crta odbrojavanje
+   * pauze/glasanja. Postoji samo u `paused_for_reconnect` i `abandon_vote`.
+   */
+  pauseEndsAt?: number;
+  /** Glasovi o prekidu. Javni po dizajnu — modal prikazuje ko je kako glasao. */
+  abandonVotes?: Record<string, AbandonVote>;
 };
 
 /**
