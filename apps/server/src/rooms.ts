@@ -65,11 +65,20 @@ export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+/**
+ * Provjera session tokena.
+ *
+ * Ulaz dolazi sa mreže, pa se ne smije vjerovati tipovima: `hashToken` na
+ * `undefined` baca ERR_INVALID_ARG_TYPE i — pošto je poziv u socket handleru —
+ * ruši CIJELI proces. Jedan malformiran `room:subscribe` je do sad obarao
+ * server. Nevalidan ulaz je odbijen token, ne pad.
+ */
 export function verifyToken(
   room: LobbyRoom,
   playerId: string,
   token: string,
 ): boolean {
+  if (typeof playerId !== "string" || typeof token !== "string") return false;
   return room.sessionTokens.get(playerId) === hashToken(token);
 }
 
