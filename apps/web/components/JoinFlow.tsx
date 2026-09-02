@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   submitJoinRequest,
@@ -13,6 +13,10 @@ import {
   getJoinPending,
   clearJoinPending,
 } from "@/lib/session";
+import {
+  JoinRequestScreen,
+  type JoinRequestPhase,
+} from "@/components/lobby/JoinRequestScreen";
 
 type State =
   | { kind: "form" }
@@ -106,8 +110,7 @@ export function JoinFlow({
     };
   }, [state, roomId]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleSubmit() {
     if (!displayName.trim()) return;
     setState({ kind: "submitting" });
     try {
@@ -138,162 +141,28 @@ export function JoinFlow({
 
   if (!state) return null;
 
-  // FORM (with optional error message)
-  if (state.kind === "form" || state.kind === "error") {
-    return (
-      <form
-        onSubmit={handleSubmit}
-        className="max-w-md w-full bg-zinc-900 rounded-lg p-6 space-y-4"
-      >
-        <h1 className="text-2xl font-bold">Pridruži se sobi</h1>
-        <p className="text-sm text-zinc-400">
-          Soba <span className="font-mono">{room.id}</span> ·{" "}
-          {room.players.length}/{room.playerCount} igrača · {room.targetScore}{" "}
-          poena
-        </p>
+  // Naša stanja se poklapaju sa fazama ekrana jedan-na-jedan, osim greške:
+  // ona ostaje UZ formu (retryable), pa ide kao `form` + `message`.
+  const phase: JoinRequestPhase =
+    state.kind === "submitting"
+      ? "sending"
+      : state.kind === "error"
+        ? "form"
+        : state.kind;
 
-        <div>
-          <label className="block text-sm text-zinc-400 mb-1">Tvoje ime</label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            required
-            maxLength={30}
-            autoFocus
-            className="w-full px-3 py-2 bg-zinc-800 rounded border border-zinc-700 focus:border-yellow-500 outline-none"
-            placeholder="npr. Marko"
-          />
-        </div>
-
-        {state.kind === "error" && (
-          <div className="px-3 py-2 bg-red-800 rounded text-sm">
-            ⚠️ {state.message}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={!displayName.trim()}
-          className="w-full px-4 py-3 bg-yellow-500 text-zinc-900 rounded font-bold hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Pošalji zahtjev hostu
-        </button>
-
-        <button
-          type="button"
-          onClick={() => router.push("/")}
-          className="w-full px-4 py-2 text-sm text-zinc-400 hover:text-white"
-        >
-          Otkaži
-        </button>
-      </form>
-    );
-  }
-
-  // SUBMITTING
-  if (state.kind === "submitting") {
-    return (
-      <div className="max-w-md w-full bg-zinc-900 rounded-lg p-6 text-center">
-        <p className="text-zinc-400">Šaljem zahtjev...</p>
-      </div>
-    );
-  }
-
-  // PENDING
-  if (state.kind === "pending") {
-    const minutes = Math.floor(remaining / 60000);
-    const seconds = Math.floor((remaining % 60000) / 1000);
-    return (
-      <div className="max-w-md w-full bg-zinc-900 rounded-lg p-6 space-y-4 text-center">
-        <div className="text-5xl animate-pulse">⏳</div>
-        <h2 className="text-xl font-bold">Čeka se odobrenje hosta...</h2>
-        <p className="text-zinc-400 text-sm">
-          Tvoj zahtjev kao{" "}
-          <strong className="text-white">{displayName}</strong> je poslan.
-        </p>
-        <div className="bg-zinc-800 rounded p-3 font-mono text-2xl tabular-nums">
-          {minutes}:{seconds.toString().padStart(2, "0")}
-        </div>
-        <p className="text-xs text-zinc-500">
-          Ako host ne odgovori, zahtjev će isteći.
-        </p>
-        <button
-          onClick={retry}
-          className="text-sm text-zinc-400 hover:text-white"
-          type="button"
-        >
-          Otkaži zahtjev
-        </button>
-      </div>
-    );
-  }
-
-  // APPROVED
-  if (state.kind === "approved") {
-    return (
-      <div className="max-w-md w-full bg-green-700 rounded-lg p-6 text-center space-y-3">
-        <div className="text-5xl">✅</div>
-        <h2 className="text-xl font-bold">Odobreno! Ulaziš u sobu...</h2>
-      </div>
-    );
-  }
-
-  // REJECTED
-  if (state.kind === "rejected") {
-    return (
-      <div className="max-w-md w-full bg-zinc-900 rounded-lg p-6 space-y-4 text-center">
-        <div className="text-5xl">🚫</div>
-        <h2 className="text-xl font-bold">Host te je odbio</h2>
-        <p className="text-zinc-400 text-sm">
-          Možeš pokušati ponovo ili otići.
-        </p>
-        <div className="space-y-2">
-          <button
-            onClick={retry}
-            className="w-full px-4 py-2 bg-yellow-500 text-zinc-900 rounded font-bold hover:bg-yellow-400"
-            type="button"
-          >
-            Pokušaj ponovo
-          </button>
-          <button
-            onClick={() => router.push("/")}
-            className="w-full px-4 py-2 text-sm text-zinc-400 hover:text-white"
-            type="button"
-          >
-            Nazad na home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // EXPIRED
-  if (state.kind === "expired") {
-    return (
-      <div className="max-w-md w-full bg-zinc-900 rounded-lg p-6 space-y-4 text-center">
-        <div className="text-5xl">⏰</div>
-        <h2 className="text-xl font-bold">Zahtjev je istekao</h2>
-        <p className="text-zinc-400 text-sm">Host nije odgovorio na vrijeme.</p>
-        <div className="space-y-2">
-          <button
-            onClick={retry}
-            className="w-full px-4 py-2 bg-yellow-500 text-zinc-900 rounded font-bold hover:bg-yellow-400"
-            type="button"
-          >
-            Pokušaj ponovo
-          </button>
-          <button
-            onClick={() => router.push("/")}
-            className="w-full px-4 py-2 text-sm text-zinc-400 hover:text-white"
-            type="button"
-          >
-            Nazad
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <JoinRequestScreen
+      roomId={roomId}
+      playersJoined={room.players.length}
+      playerCount={room.playerCount}
+      targetScore={room.targetScore}
+      phase={phase}
+      displayName={displayName}
+      onDisplayName={setDisplayName}
+      onSubmit={() => void handleSubmit()}
+      {...(state.kind === "pending" ? { remainingMs: remaining } : {})}
+      {...(state.kind === "error" ? { message: state.message } : {})}
+      onBack={state.kind === "rejected" || state.kind === "expired" ? retry : () => router.push("/")}
+    />
+  );
 }

@@ -18,6 +18,7 @@ import { getSocket } from "@/lib/socket";
 import { assertNoBotLeak } from "@/lib/antiLeak";
 import { JoinFlow } from "@/components/JoinFlow";
 import { GameScreen } from "@/components/GameScreen";
+import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import type { ActiveReaction } from "@/lib/reactions";
 import type {
   AbandonVote,
@@ -471,175 +472,41 @@ export default function RoomPage() {
   }[socketStatus];
 
   return (
-    <main className="min-h-screen bg-green-900 text-white p-8 relative">
+    <div className="relative">
+      {/* Stanje veze je stanje SOCKET-a, ne lobija — ekran ga uokviruje,
+          komponenta ga ne poznaje. */}
       <div
-        className={`absolute top-4 right-4 px-3 py-1 rounded text-xs ${statusBadge.color}`}
+        className={`absolute top-2 right-2 z-10 rounded-token-md px-2.5 py-1 text-xs ${statusBadge.color}`}
       >
         {statusBadge.text}
       </div>
 
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="bg-zinc-900 rounded-lg p-6">
-          <div className="flex items-baseline justify-between mb-4">
-            <h1 className="text-2xl font-bold">Soba {room.id}</h1>
-            <span className="text-sm text-zinc-400">
-              {room.players.length} / {room.playerCount} igrača ·{" "}
-              {room.targetScore} poena
-            </span>
-          </div>
-
-          <div className="bg-green-800 rounded p-3 mb-4">
-            <p className="text-xs text-green-300 mb-2">Pozovi prijatelje:</p>
-            <div className="flex gap-2">
-              <input
-                readOnly
-                value={inviteUrl}
-                className="flex-1 px-3 py-2 bg-green-950 rounded font-mono text-sm"
-                onClick={(e) => e.currentTarget.select()}
-              />
-              <button
-                onClick={copyInviteLink}
-                className="px-4 py-2 bg-yellow-500 text-zinc-900 rounded font-bold hover:bg-yellow-400 whitespace-nowrap"
-                type="button"
-              >
-                {copied ? "✓ Kopirano" : "Kopiraj"}
-              </button>
-            </div>
-          </div>
-
-          {isHost && pendingRequests.length > 0 && (
-            <div className="bg-yellow-900/40 border border-yellow-700 rounded p-3 mb-4">
-              <p className="text-sm font-semibold mb-2 text-yellow-200">
-                🔔 Zahtjevi za ulazak ({pendingRequests.length}):
-              </p>
-              <div className="space-y-2">
-                {pendingRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="flex items-center gap-2 bg-yellow-950/60 rounded p-2"
-                  >
-                    <div className="w-9 h-9 bg-yellow-700 rounded-full flex items-center justify-center text-sm font-bold">
-                      {req.displayName.charAt(0).toUpperCase()}
-                    </div>
-                    <p className="flex-1 font-semibold text-sm">
-                      {req.displayName}
-                    </p>
-                    <button
-                      onClick={() => handleApprove(req.id)}
-                      disabled={actionLoading !== null}
-                      className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-sm font-bold disabled:opacity-50"
-                      type="button"
-                    >
-                      {actionLoading === req.id ? "..." : "✓ Odobri"}
-                    </button>
-                    <button
-                      onClick={() => handleReject(req.id)}
-                      disabled={actionLoading !== null}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-sm font-bold disabled:opacity-50"
-                      type="button"
-                    >
-                      ✗ Odbij
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-semibold">Igrači:</p>
-            {room.players.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-3 bg-zinc-800 rounded p-3"
-              >
-                <div className="w-10 h-10 bg-green-700 rounded-full flex items-center justify-center font-bold">
-                  {p.displayName.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold">
-                    {p.displayName}
-                    {p.id === session.playerId && (
-                      <span className="text-xs text-zinc-400 ml-2">(ti)</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-zinc-400">
-                    Sjedište {p.seatIndex}
-                    {p.isHost && " · Host"}
-                    {p.teamId !== undefined &&
-                      ` · Tim ${p.teamId === 0 ? "A" : "B"}`}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {Array.from({ length: playersNeeded }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                className="flex items-center gap-3 bg-zinc-800/50 rounded p-3 border border-dashed border-zinc-700"
-              >
-                <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center text-zinc-500">
-                  ?
-                </div>
-                <p className="text-zinc-500 italic">Čeka se igrač...</p>
-              </div>
-            ))}
-          </div>
-
-          {isHost && (
-            <button
-              disabled={botFillLoading}
-              onClick={handleToggleBotFill}
-              className={`w-full px-4 py-2.5 rounded font-semibold mb-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                room.botFill
-                  ? "bg-zinc-700 hover:bg-zinc-600 text-white"
-                  : "bg-green-700 hover:bg-green-600 text-white"
-              }`}
-              type="button"
-            >
-              {botFillLoading
-                ? "..."
-                : room.botFill
-                  ? "🤖 Ukloni botove"
-                  : "🤖 Popuni mjesta botovima"}
-            </button>
-          )}
-
-          {isHost && room.botFill && (
-            <p className="text-xs text-zinc-400 mb-2 text-center">
-              Prazna mjesta popunjavaju protivnici. Ljudi koji se pridruže
-              zauzimaju njihovo mjesto.
-            </p>
-          )}
-
-          {isHost ? (
-            <button
-              disabled={!canStart || starting}
-              onClick={handleStartGame}
-              className="w-full px-4 py-3 bg-yellow-500 text-zinc-900 rounded font-bold hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
-              type="button"
-            >
-              {starting
-                ? "Pokretanje..."
-                : canStart
-                  ? "Pokreni igru"
-                  : `Čeka se još ${playersNeeded} igrača`}
-            </button>
-          ) : (
-            <p className="text-center text-zinc-400 text-sm">
-              Čeka se da host pokrene igru...
-            </p>
-          )}
-        </div>
-
-        <button
-          onClick={() => router.push("/")}
-          className="text-sm text-zinc-400 hover:text-white"
-          type="button"
-        >
-          ← Nazad
-        </button>
-      </div>
-    </main>
+      <LobbyScreen
+        roomId={room.id}
+        players={room.players}
+        playerCount={room.playerCount}
+        targetScore={room.targetScore}
+        myPlayerId={session.playerId}
+        isHost={isHost}
+        inviteUrl={inviteUrl}
+        copied={copied}
+        onCopyInvite={copyInviteLink}
+        joinRequests={
+          isHost
+            ? pendingRequests.map((r) => ({ id: r.id, displayName: r.displayName }))
+            : []
+        }
+        onApprove={(id) => void handleApprove(id)}
+        onReject={(id) => void handleReject(id)}
+        {...(actionLoading ? { pendingRequestId: actionLoading } : {})}
+        fillEmptySeats={room.botFill ?? false}
+        onToggleFill={() => void handleToggleBotFill()}
+        fillPending={botFillLoading}
+        canStart={canStart}
+        starting={starting}
+        onStart={() => void handleStartGame()}
+        onBack={() => router.push("/")}
+      />
+    </div>
   );
 }
