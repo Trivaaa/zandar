@@ -79,12 +79,14 @@ function flyGhostCard(
     width: "30px",
     height: "42px",
     borderRadius: "6px",
-    // Isti vizuelni jezik kao CardBack (token-only): felt + zlatna rešetka.
-    background: "var(--surface-raised)",
-    backgroundImage:
-      "repeating-linear-gradient(45deg, color-mix(in srgb, var(--accent) 30%, transparent) 0 1px, transparent 1px 7px), repeating-linear-gradient(-45deg, color-mix(in srgb, var(--accent) 30%, transparent) 0 1px, transparent 1px 7px)",
+    // Isti vizuelni jezik kao `.card-back` (token-only): neproziran karton sa
+    // zlatnom ivicom. Duh se crta ovdje inline, pa NIJE pokriven felt.css-om —
+    // kad se poleđina mijenja, mijenja se i ovo, inače karta leti jednako a
+    // sleti drugačije.
+    background: "var(--card-back)",
     border: "1px solid color-mix(in srgb, var(--accent) 50%, transparent)",
-    boxShadow: "0 3px 8px rgba(0,0,0,0.4)",
+    boxShadow:
+      "inset 0 0 0 1px color-mix(in oklab, var(--surface) 60%, transparent), 0 3px 8px color-mix(in oklab, var(--surface) 70%, transparent)",
     pointerEvents: "none",
     zIndex: "65",
     willChange: "transform, opacity",

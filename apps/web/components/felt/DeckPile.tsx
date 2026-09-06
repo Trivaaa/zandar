@@ -35,8 +35,8 @@ export function DeckPile({ remaining, size = "sm", className = "" }: DeckPilePro
           Array.from({ length: layers }, (_, i) => {
             const isTop = i === layers - 1;
             const style = { "--deck-i": i } as React.CSSProperties;
-            /* Only the top card wears the lattice; the layers under it are
-               plain cardstock, which is what makes a stack read as a stack. */
+            /* Only the top card wears the back's frame; the layers under it
+               are plain cardstock, which is what makes a stack read as a stack. */
             return isTop ? (
               <div key={i} className="deck__layer" style={style}>
                 <CardBack size={size} />

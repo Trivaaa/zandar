@@ -152,39 +152,48 @@
  * ------------------------------------------------------------------ */
 
 .card-back {
-  /* Lattice pitch is geometry: one line per ~14% of the card width, so the
-     density reads the same at xs and at lg. */
-  --lattice-pitch: calc(var(--card-w) * 0.14);
+  /* Artwork hook: when a real back image lands, setting
+     --card-back-art: url("…") is the only change needed. */
+  --card-back-art: none;
 
+  /* position: relative anchors ::after; overflow: hidden clips the future
+     cover artwork to the card radius. Both are load-bearing. */
   position: relative;
+  overflow: hidden;
   width: 100%;
   height: 100%;
   border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
-  background-image:
-    repeating-linear-gradient(
-      45deg,
-      color-mix(in srgb, var(--accent) 22%, transparent) 0 1px,
-      transparent 1px var(--lattice-pitch)
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      color-mix(in srgb, var(--accent) 22%, transparent) 0 1px,
-      transparent 1px var(--lattice-pitch)
-    );
+  background-color: var(--card-back);
+  background-image: var(--card-back-art);
+  background-size: cover;
+  background-position: center;
   box-shadow:
-    inset 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--surface) 60%, transparent),
     0 0.15rem 0.4rem color-mix(in oklab, var(--surface) 55%, transparent);
-  overflow: hidden;
 }
 
-/* Under-layers of a stack: plain filled cardstock, no ornament. Only the
-   topmost card of a pile carries the lattice. */
+/* The single piece of ornament: a gold frame inset in proportion to the card
+   width, so it holds the same ratio from xs to lg.
+   CSS cannot detect that --card-back-art has been set; when the artwork lands
+   and the frame clashes with it, switch the frame off with one rule:
+   .card-back::after { display: none } */
+.card-back::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--card-w) * 0.07);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: calc(var(--radius-md) - 0.15rem);
+  pointer-events: none;
+}
+
+/* Under-layers of a stack: the same cardstock, no ornament, so a pile and its
+   top card read as one object. */
 .card-plain {
   width: 100%;
   height: 100%;
   border-radius: var(--radius-md);
-  background-color: var(--surface-raised);
+  background-color: var(--card-back);
   box-shadow:
     inset 0 0 0 1px color-mix(in oklab, var(--text) 10%, transparent),
     0 0.1rem 0.3rem color-mix(in oklab, var(--surface) 55%, transparent);
@@ -715,9 +724,21 @@
   padding-inline: 0.5rem;
 }
 
+/* A dark rim outside the gold border, plus a lateral shadow, so two
+   overlapping neighbours never present one merged border line. Identical on
+   every back — a back that looks different leaks information. */
+.seat__fan-slot .card-back {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--surface) 60%, transparent),
+    0 0 0 1.5px var(--surface),
+    0.12rem 0.1rem 0.35rem color-mix(in oklab, var(--surface) 70%, transparent);
+}
+
 .seat__fan-slot {
   margin-inline: -0.65rem;
-  transform: rotate(calc((var(--fan-i) - 2) * 2.2deg));
+  /* Pivot je sredina STVARNOG broja karata, ne fiksni indeks 2: sa 4 karte je
+     lepeza inace bila nakrivljena ulijevo umjesto simetricna. */
+  transform: rotate(calc((var(--fan-i) - (var(--fan-n) - 1) / 2) * 2.2deg));
   transform-origin: bottom center;
 }
 

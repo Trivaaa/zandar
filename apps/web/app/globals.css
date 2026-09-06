@@ -52,6 +52,9 @@
   --card-face:      #f7f3e8;
   --card-ink:       #16221f;
   --card-ink-red:   #b03a2e;
+  /* Poleđina je vlastiti karton, tamniji od felta — karta mora da se ČITA kao
+     predmet na stolu, ne kao rupa kroz koju se vidi sto. */
+  --card-back:      #10302a;
 
   /* Radijus */
   --radius-sm:      0.25rem;
@@ -134,6 +137,7 @@
   --color-success:         var(--success);
   --color-warn:            var(--warn);
   --color-card-face:       var(--card-face);
+  --color-card-back:       var(--card-back);
   --color-card-ink:        var(--card-ink);
   --color-card-ink-red:    var(--card-ink-red);
 

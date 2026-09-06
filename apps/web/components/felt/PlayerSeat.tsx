@@ -104,7 +104,11 @@ export function PlayerSeat({
         </div>
       </div>
 
-      <div className="seat__fan" aria-label={sr.seat.cards(cardCount)}>
+      <div
+        className="seat__fan"
+        aria-label={sr.seat.cards(cardCount)}
+        style={{ "--fan-n": Math.min(cardCount, 8) } as React.CSSProperties}
+      >
         {Array.from({ length: Math.min(cardCount, 8) }, (_, i) => (
           <span key={i} className="seat__fan-slot" style={{ "--fan-i": i } as React.CSSProperties}>
             <CardBack size="xs" />
