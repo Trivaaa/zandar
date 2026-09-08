@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Capacitor native projekat: Gradle izvor + kopija web bundle-a
+    // (`android/app/src/main/assets/public`). Nije naš kod.
+    "android/**",
   ]),
 ]);
 

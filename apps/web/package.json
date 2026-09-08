@@ -6,9 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:mobile": "node scripts/build-mobile.mjs",
+    "cap:sync": "pnpm build:mobile && cap sync android"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@sentry/nextjs": "^10.56.0",
     "@zandar/game-core": "workspace:*",
     "@zandar/shared-types": "workspace:*",
@@ -19,6 +25,8 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/cli": "^8.5.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

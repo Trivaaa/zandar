@@ -4,6 +4,13 @@ import type { MetadataRoute } from "next";
  * PWA manifest (DS §9 D1). Generiše /manifest.webmanifest.
  * Ikone su renderovane brand "Ž" na feltu (public/icon-*.png).
  */
+/**
+ * Manifest se kompajlira u route handler (`/manifest.webmanifest`), a
+ * `output: "export"` traži da svaki handler eksplicitno kaže da je statičan.
+ * Sadržaj ovdje ne zavisi od request-a, pa force-static važi i za web build.
+ */
+export const dynamic = "force-static";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Tablić - Žandar",
