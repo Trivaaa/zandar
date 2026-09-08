@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   getRoom,
   getPendingJoinRequests,
@@ -16,9 +16,10 @@ import {
 import { getSession, saveSession, type RoomSession } from "@/lib/session";
 import { getSocket } from "@/lib/socket";
 import { assertNoBotLeak } from "@/lib/antiLeak";
+import { inviteLink, matchingPath } from "@/lib/routes";
 import { JoinFlow } from "@/components/JoinFlow";
-import { GameScreen } from "@/components/GameScreen";
 import { LobbyScreen } from "@/components/lobby/LobbyScreen";
+import { GameScreen } from "@/components/GameScreen";
 import type { ActiveReaction } from "@/lib/reactions";
 import type {
   AbandonVote,
@@ -41,10 +42,12 @@ type GameStateWithDeadline = PrivateGameStateView & {
   turnDeadline?: number;
 };
 
-export default function RoomPage() {
-  const params = useParams<{ roomId: string }>();
+/**
+ * Soba — lobby, join flow i Sto. Dijele je path ruta (`/room/:id`, samo web,
+ * invite linkovi) i query ruta (`/room?id=`, kanonska za in-app + WebView).
+ */
+export function RoomScreen({ roomId }: { roomId: string }) {
   const router = useRouter();
-  const roomId = params.roomId;
 
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +74,7 @@ export default function RoomPage() {
   useEffect(() => {
     setSession(getSession(roomId));
     setSessionLoaded(true);
-    setInviteUrl(`${window.location.origin}/room/${roomId}`);
+    setInviteUrl(inviteLink(roomId));
   }, [roomId]);
 
   useEffect(() => {
@@ -373,7 +376,7 @@ export default function RoomPage() {
         playerId: res.playerId,
         sessionToken: res.playerSessionToken,
       });
-      router.push(`/matching/${res.roomId}`);
+      router.push(matchingPath(res.roomId));
     } catch (err) {
       alert("Greška: " + (err instanceof Error ? err.message : "Nepoznato"));
     }
@@ -384,7 +387,10 @@ export default function RoomPage() {
   }
 
   function copyInviteLink() {
-    navigator.clipboard.writeText(inviteUrl);
+    // `navigator.clipboard` traži siguran kontekst i može biti odbijen. U
+    // Capacitoru je origin `https://localhost` (androidScheme), pa radi — ali
+    // odbijanje ne smije srušiti handler.
+    void navigator.clipboard?.writeText(inviteUrl).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }

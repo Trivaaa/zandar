@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { roomPath } from "@/lib/routes";
 import { createRoom } from "@/lib/api";
 import { saveSession } from "@/lib/session";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
@@ -24,7 +25,7 @@ export default function CreatePage() {
         playerId: res.playerId,
         sessionToken: res.playerSessionToken,
       });
-      router.push(`/room/${res.roomId}`);
+      router.push(roomPath(res.roomId));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nepoznata greška");
       setLoading(false);

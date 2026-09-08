@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { roomPath } from "@/lib/routes";
 import { quickPlay, getRoom } from "@/lib/api";
 import type { RoomPlayer } from "@/lib/api";
 import { saveSession } from "@/lib/session";
@@ -171,9 +172,11 @@ export default function BrzaPage() {
 
   // ---- Effect 2: redirect — separate so Effect 1's cleanup can't cancel it ----
   useEffect(() => {
-    if (stage !== "done" || !roomId.current) return;
-    // NOTE: prompt says /zandar/room/:id — using existing /room/:id route
-    const t = setTimeout(() => router.replace(`/room/${roomId.current}`), 900);
+    // Pin-uj id sad: ref se može promijeniti prije nego timeout okine, a i TS
+    // ne umije suziti `.current` kroz closure.
+    const id = roomId.current;
+    if (stage !== "done" || !id) return;
+    const t = setTimeout(() => router.replace(roomPath(id)), 900);
     return () => clearTimeout(t);
   }, [stage, router]);
 

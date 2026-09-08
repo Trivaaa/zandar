@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { matchingPath } from "@/lib/routes";
 import { quickPlay } from "@/lib/api";
 import { saveSession } from "@/lib/session";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
@@ -32,7 +33,7 @@ export default function Home() {
         playerId: res.playerId,
         sessionToken: res.playerSessionToken,
       });
-      router.push(`/matching/${res.roomId}`);
+      router.push(matchingPath(res.roomId));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greška");
       setLoading(false);

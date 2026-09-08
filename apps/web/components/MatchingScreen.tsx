@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { getRoom, type RoomPlayer } from "@/lib/api";
 import { getSession } from "@/lib/session";
+import { roomPath } from "@/lib/routes";
 import { MatchingTable } from "@/components/funnel/MatchingTable";
 import { sr } from "@/lib/sr";
 
@@ -11,11 +12,11 @@ import { sr } from "@/lib/sr";
  * Matching ekran za privatnu sobu (mid-flow). "Sto se postavlja" — ovalni sto
  * sa sjedištima okolo (DS §7.3), bez "tražim igrače" copy-ja, brojača ni
  * "se pridružio" log-a.
+ *
+ * Dijele ga path ruta (`/matching/:id`, samo web) i query ruta (`/matching?id=`).
  */
-export default function MatchingPage() {
-  const params = useParams<{ roomId: string }>();
+export function MatchingScreen({ roomId }: { roomId: string }) {
   const router = useRouter();
-  const roomId = params.roomId;
 
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
@@ -46,7 +47,7 @@ export default function MatchingPage() {
       })
       .catch(() => {
         // Fallback — idi direktno u igru
-        router.replace(`/room/${roomId}`);
+        router.replace(roomPath(roomId));
       });
   }, [roomId, router]);
 
@@ -78,7 +79,7 @@ export default function MatchingPage() {
   // Effect 2: redirect kad je stage "done" — odvojen da ga cleanup Effect 1 ne obriše
   useEffect(() => {
     if (stage !== "done") return;
-    const t = setTimeout(() => router.replace(`/room/${roomId}`), 900);
+    const t = setTimeout(() => router.replace(roomPath(roomId)), 900);
     return () => clearTimeout(t);
   }, [stage, roomId, router]);
 
