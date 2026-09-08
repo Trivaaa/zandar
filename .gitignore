@@ -13,3 +13,13 @@ coverage/
 # Persistence snapshots (file adapter)
 .data/
 **/.data/
+
+# Headless screenshot output (dev skice)
+.tmp-shots/
+# Local scratch notes
+*.ignore
+
+# Android potpisivanje — upload key i njegova lozinka NIKAD u repo.
+*.jks
+*.keystore
+keystore.properties
