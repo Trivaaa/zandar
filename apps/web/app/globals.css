@@ -107,6 +107,11 @@
   --t-toast-in:      200ms;
   --t-screen-fade:   240ms;
 
+  /* Feedback blicevi u play-zoni. Vrijednosti su ISTE kao ranija hardkodirana
+     trajanja (0.55s / 0.77s) — ovo je tokenizacija, ne promjena tempa. */
+  --t-capture-flash: 550ms;
+  --t-jack-sweep:    770ms;
+
   /* Display trajanje — čitljivost sadržaja, nije pokret */
   --d-reveal-hold:   1200ms;
 
@@ -286,25 +291,39 @@
 
 /* Capture flash — kratko zasvijetli play-zona kad se kupi.
    Boja ide kroz --turn-active (ranije hardkodiran stari akcent). */
-@keyframes capture-flash {
-  0%   { box-shadow: inset 0 0 0 0 transparent; }
-  35%  { box-shadow: inset 0 0 24px 2px color-mix(in srgb, var(--turn-active) 35%, transparent); }
-  100% { box-shadow: inset 0 0 0 0 transparent; }
+/* Sjenka je PRE-RENDEROVANA statički na elementu; animira se samo `opacity`.
+   Animirani `box-shadow` tjera browser da preračunava sjenku svaki frejm i
+   glavni je izvor zastajkivanja na srednjem Androidu. Element je gol overlay
+   (`absolute inset-0`) iznad play-zone, pa mu statična sjenka ne smeta. */
+.animate-capture-flash,
+.animate-jack-sweep {
+  opacity: 0;
+  will-change: opacity, transform;
 }
 
 .animate-capture-flash {
-  animation: capture-flash 0.55s ease-out;
+  box-shadow: inset 0 0 24px 2px
+    color-mix(in srgb, var(--turn-active) 35%, transparent);
+  animation: capture-flash var(--t-capture-flash) ease-out;
+}
+
+@keyframes capture-flash {
+  0%   { opacity: 0; }
+  35%  { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* Jack-sweep — jači, duži zlatni sjaj + blagi scale (čišćenje cijelog stola). */
-@keyframes jack-sweep {
-  0%   { box-shadow: inset 0 0 0 0 transparent; transform: scale(1); }
-  25%  { box-shadow: inset 0 0 40px 6px color-mix(in srgb, var(--turn-active) 60%, transparent); transform: scale(1.015); }
-  100% { box-shadow: inset 0 0 0 0 transparent; transform: scale(1); }
+.animate-jack-sweep {
+  box-shadow: inset 0 0 40px 6px
+    color-mix(in srgb, var(--turn-active) 60%, transparent);
+  animation: jack-sweep var(--t-jack-sweep) ease-out;
 }
 
-.animate-jack-sweep {
-  animation: jack-sweep 0.77s ease-out;
+@keyframes jack-sweep {
+  0%   { opacity: 0; transform: scale(1); }
+  25%  { opacity: 1; transform: scale(1.015); }
+  100% { opacity: 0; transform: scale(1); }
 }
 
 /* =====================================================
@@ -328,6 +347,8 @@
     --t-card-collect: 1ms;
     --t-toast-in:     1ms;
     --t-screen-fade:  1ms;
+    --t-capture-flash: 1ms;
+    --t-jack-sweep:    1ms;
     --t-turn-pulse:   0s;
   }
 
