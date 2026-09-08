@@ -99,7 +99,7 @@ export function JoinRequestScreen({
                 formu umjesto da vodi u `error` fazu — ta je slijepa ulica sa
                 samo "Nazad". Linija je rezervisana da dugme ne skače. */}
             <p
-              className="joinreq__error font-sans text-sm"
+              className="joinreq__error font-sans text-base"
               data-empty={!message}
               role="status"
             >

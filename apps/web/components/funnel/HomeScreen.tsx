@@ -84,7 +84,7 @@ export function HomeScreen({
         </button>
 
         {/* Reserved line — the CTA never moves when an error appears. */}
-        <p className="home__error font-sans text-sm" data-empty={!error} role="status">
+        <p className="home__error font-sans text-base" data-empty={!error} role="status">
           {error ?? ""}
         </p>
 

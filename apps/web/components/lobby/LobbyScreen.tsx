@@ -225,7 +225,7 @@ export function LobbyScreen({
               </button>
 
               {!canStart && !starting ? (
-                <p className="lobby__need-more font-sans text-sm">
+                <p className="lobby__need-more font-sans text-base">
                   {sr.lobby.needMore(seatsNeeded)}
                 </p>
               ) : null}

@@ -106,7 +106,7 @@ export function CreateRoomScreen({
           {loading ? sr.create.submitting : sr.create.submit}
         </button>
 
-        <p className="create__error font-sans text-sm" data-empty={!error} role="status">
+        <p className="create__error font-sans text-base" data-empty={!error} role="status">
           {error ?? ""}
         </p>
 
