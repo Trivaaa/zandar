@@ -10,7 +10,7 @@ import type {
   ReactionType,
 } from "@zandar/shared-types";
 import { PlayerSeat } from "@/components/felt/PlayerSeat";
-import { TableSurface } from "@/components/felt/TableSurface";
+import { TableSurface, type LandFrom } from "@/components/felt/TableSurface";
 import { PlayerHand } from "@/components/felt/PlayerHand";
 import { TurnPill } from "@/components/felt/TurnPill";
 import { TurnBanner } from "@/components/felt/TurnBanner";
@@ -245,6 +245,26 @@ export function GameScreen({
   // Dok karte "padaju" ne prikazuj odbrojavanje — jasan slijed na startu.
   const showTimer = !dealing && turnDeadline != null;
 
+  // Sa kojeg sjedišta je zadnja karta sletjela na sto. Smjer je RELATIVAN na
+  // tebe (ti si uvijek dole), isto kao raspored sjedišta.
+  function landDirection(playerId: string | undefined): LandFrom {
+    if (!playerId) return "bottom";
+    if (playerId === seats.oppL?.id) return "left";
+    if (playerId === seats.oppR?.id) return "right";
+    if (playerId === seats.partner?.id) return "top";
+    return "bottom";
+  }
+
+  // Karta koja je upravo spuštena i JOŠ je na stolu (trail). Kod kupljenja je
+  // odigrana karta odmah sa stola, pa nema šta da sleti — `landingCardIds`
+  // ostaje prazan i animacija se ne pali.
+  const justPlayed = state.lastMove?.playedCard;
+  const landingCardIds =
+    justPlayed && state.table.some((c) => c.id === justPlayed.id)
+      ? [justPlayed.id]
+      : [];
+  const landFrom = landDirection(state.lastMove?.playerId);
+
   // Najnovija aktivna reakcija za dato sjedište → emoji uz tog igrača.
   function seatReaction(playerId: string) {
     const r = [...activeReactions].reverse().find((x) => x.playerId === playerId);
@@ -321,6 +341,8 @@ export function GameScreen({
             canTrail={canTrail}
             onTrail={handleTrail}
             forceCaptureBlocked={forceCaptureBlocked}
+            landFrom={landFrom}
+            landingCardIds={landingCardIds}
           />
           {flash.key > 0 && (
             <span
@@ -406,7 +428,7 @@ export function GameScreen({
       <button
         type="button"
         onClick={() => setRulesOpen(true)}
-        className="absolute top-0 left-0 z-40 m-2 mt-safe-top ml-safe-left rounded-token-md bg-surface-raised/95 border border-white/10 px-2.5 py-1.5 text-xs font-bold text-muted active:bg-surface"
+        className="absolute top-0 left-0 z-40 m-2 mt-safe-top ml-safe-left rounded-token-md bg-surface-raised/95 border border-white/10 min-h-12 px-3 flex items-center text-sm font-bold text-muted active:bg-surface"
       >
         ? Pravila
       </button>
