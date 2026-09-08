@@ -1,7 +1,7 @@
 import { getGuestId } from "@/lib/guestId";
+import { resolveApiBase } from "@/lib/platform";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE = resolveApiBase();
 
 export type RoomPlayer = {
   id: string;

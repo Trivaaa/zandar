@@ -2,9 +2,9 @@
 
 import { io, type Socket } from "socket.io-client";
 import { getGuestId } from "@/lib/guestId";
+import { resolveApiBase } from "@/lib/platform";
 
-const SOCKET_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const SOCKET_URL = resolveApiBase();
 
 let socket: Socket | null = null;
 

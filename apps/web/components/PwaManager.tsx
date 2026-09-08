@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { isNative } from "@/lib/platform";
 
 /**
  * PwaManager (DS §9 D1) — registruje service worker (samo statika),
@@ -14,14 +15,23 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+/**
+ * U native shell-u nema šta da radi: `beforeinstallprompt` nikad ne stigne u
+ * WebView, a update banner bi nudio web osvježavanje pored Play-evog update
+ * toka. Omotač je odvojen da rani `return` ne bude ispred hook-ova.
+ */
 export function PwaManager() {
+  return isNative ? null : <PwaBanner />;
+}
+
+function PwaBanner() {
   const [installEvt, setInstallEvt] = useState<BeforeInstallPromptEvent | null>(
     null,
   );
   const [updateReady, setUpdateReady] = useState<ServiceWorker | null>(null);
   const pathname = usePathname();
   // U sobi je dno zauzeto rukom + reaction FAB-om → prikaži banner na vrhu.
-  const inRoom = pathname?.startsWith("/room/") ?? false;
+  const inRoom = pathname?.startsWith("/room") ?? false;
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
