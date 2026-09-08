@@ -132,6 +132,8 @@ export const sr = {
     play: "Igra – nađi sto",
     playLoading: "Tražim sto...",
     createRoom: "Kreiraj privatnu sobu →",
+    privacy: "Privatnost",
+    terms: "Uslovi korišćenja",
   },
   matching: {
     preparing: "Pripremamo sto...",

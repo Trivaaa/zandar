@@ -189,6 +189,26 @@
   align-items: center;
 }
 
+/* Tiha pravna traka. Play traži javni link na politiku privatnosti, a
+ * uslovi nose objavu o kompjuterskim protivnicima (HARD RULE 5). Namjerno
+ * najtiši element na ekranu — home ima jednu glasnu akciju. */
+.home__legal {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+}
+
+.home__legal a {
+  color: var(--text-muted);
+  text-decoration: underline;
+}
+
+.home__legal a:active,
+.home__legal a:focus-visible {
+  color: var(--text);
+}
+
 /* ------------------------------------------------------------------ *
  * MatchingTable
  * ------------------------------------------------------------------ */

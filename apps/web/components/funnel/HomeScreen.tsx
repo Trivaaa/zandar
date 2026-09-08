@@ -16,6 +16,8 @@ export type HomeScreenProps = {
   error?: string | undefined;
   /** Sound/haptics toggles, mounted by the host. */
   feedbackSlot?: ReactNode;
+  /** Privacy / terms links, mounted by the host — Play requires them. */
+  legalSlot?: ReactNode;
   className?: string | undefined;
 };
 
@@ -33,6 +35,7 @@ export function HomeScreen({
   loading,
   error,
   feedbackSlot,
+  legalSlot,
   className = "",
 }: HomeScreenProps) {
   const named = savedName !== null;
@@ -94,6 +97,8 @@ export function HomeScreen({
       </div>
 
       <div className="home__feedback">{feedbackSlot}</div>
+
+      <div className="home__legal">{legalSlot}</div>
     </div>
   );
 }

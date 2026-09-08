@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { matchingPath } from "@/lib/routes";
 import { quickPlay } from "@/lib/api";
 import { saveSession } from "@/lib/session";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
+import { sr } from "@/lib/sr";
 
 const NAME_KEY = "zandar_name";
 
@@ -55,6 +57,16 @@ export default function Home() {
       loading={loading}
       {...(error ? { error } : {})}
       feedbackSlot={<FeedbackToggles />}
+      legalSlot={
+        <>
+          <Link href="/privatnost" className="font-sans text-base">
+            {sr.home.privacy}
+          </Link>
+          <Link href="/uslovi" className="font-sans text-base">
+            {sr.home.terms}
+          </Link>
+        </>
+      }
     />
   );
 }
