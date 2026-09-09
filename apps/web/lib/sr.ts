@@ -14,11 +14,14 @@ export const sr = {
     jackClear: "Žandar — kupi sve",
     rankMatch: "Isti rank",
     sumMatch: "Zbir",
-    chooseCapture: "Izaberi koje karte kupiš",
-    trailHint: "Tapni sto da spustiš kartu",
+    // Kratko: traka stoji iznad ruke i dijeli taj pojas sa spilom, pa duga
+    // recenica pocne da mu se penje preko. Karte koje treba tapnuti ionako
+    // svijetle — recenica nosi PRAVILO, glow nosi metu.
+    chooseCapture: "Izaberi grupu",
+    trailHint: "Tapni sto da spustiš",
     // Uputstvo, ne panel: puno objasnjenje pravila zivi u RulesModal-u. Ranija
     // dva stringa (103 znaka) su stajala U play-zoni i rasla je za ~9 redova.
-    mustCapture: "Moraš kupiti — tapni označene karte",
+    mustCapture: "Moraš kupiti označene",
     pot: "Ulog",
   },
   deck: {
