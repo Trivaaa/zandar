@@ -424,17 +424,30 @@ export function GameScreen({
       {/* Move reveal — šta je zadnji potez uradio (ko/koja karta/šta pokupio) */}
       {isPlaying && <MoveRevealLive state={state} />}
 
-      {/* Overlay: rules (gornji lijevi) */}
-      <button
-        type="button"
-        onClick={() => setRulesOpen(true)}
-        className="absolute top-0 left-0 z-40 m-2 mt-safe-top ml-safe-left rounded-token-md bg-surface-raised/95 border border-white/10 min-h-12 px-3 flex items-center text-sm font-bold text-muted active:bg-surface"
-      >
-        ? Pravila
-      </button>
+      {/* Overlay: pravila + zvuk/vibracija (gornji lijevi) — §50.4.
+        *
+        * Jedna kolona, razmak kroz `gap`. Ranije su bila dva odvojena
+        * `absolute` elementa gdje je preklopkama `top-9` (36px) trebalo da ih
+        * spusti ispod dugmeta — ali dugme je `min-h-12` (48px) i nosi `m-2`, pa
+        * mu donja ivica pada na 56px + safe-area. Preklapanje je bilo zagarantovano
+        * (najmanje 12px, više na uređaju sa zarezom, jer preklopke nisu ni
+        * primjenjivale `mt-safe-top`). Kolona to rješava po konstrukciji: razmak
+        * više ne zavisi od visine dugmeta ni od inset-a.
+        *
+        * Omotač je `pointer-events-none` da razmak između njih ne guta tapove
+        * po feltu; djeca ih vraćaju.
+        */}
+      <div className="absolute top-0 left-0 z-40 m-2 mt-safe-top ml-safe-left flex flex-col items-start gap-2 pointer-events-none">
+        <button
+          type="button"
+          onClick={() => setRulesOpen(true)}
+          className="pointer-events-auto rounded-token-md bg-surface-raised/95 border border-white/10 min-h-12 px-3 flex items-center text-sm font-bold text-muted active:bg-surface"
+        >
+          ? Pravila
+        </button>
 
-      {/* Overlay: zvuk/vibracija (ispod Pravila) — §50.4 */}
-      <FeedbackToggles className="absolute top-9 left-0 z-40 m-2 ml-safe-left" />
+        <FeedbackToggles className="pointer-events-auto" />
+      </div>
 
       {/* Overlay: reactions */}
       <ReactionFab onReact={onReact} disabled={reactionsDisabled} />
