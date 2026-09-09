@@ -16,7 +16,7 @@ export type TurnBannerProps = {
 export function TurnBanner({ isYou, displayName = "", className = "" }: TurnBannerProps) {
   return (
     <div className={`banner ${isYou ? "banner--you" : ""} ${className}`} role="status">
-      <span className="banner__text font-sans text-xl font-bold">
+      <span className="banner__text font-sans text-base font-bold">
         {isYou ? sr.turn.you : sr.turn.other(displayName)}
       </span>
     </div>

@@ -474,16 +474,19 @@
   isolation: isolate;
 }
 
-/* You: full width of its container, heavy, pulsing. Free-standing — never
-   mounted inside a seat. */
+/* You: heavy and pulsing, but sized to its own content. Free-standing — never
+   mounted inside a seat.
+   fit-content, ne 100%: pilula i banner dijele jedan flex-col omotac, pa je
+   sirina 100% vezivala sirinu pilule za duzinu recenice iznad nje. */
 .pill--you {
-  --pill-h: 2.6rem;
-  --pill-w: 100%;
+  --pill-h: 1.9rem;
+  --pill-w: fit-content;
 
-  padding: 0.4rem 0.9rem;
+  min-width: 4.5rem;
+  padding: 0.28rem 0.8rem;
   box-shadow:
-    0 0 0 0.14rem var(--turn-active),
-    0 0.4rem 1.2rem color-mix(in oklab, var(--turn-active) 45%, transparent);
+    0 0 0 0.1rem var(--turn-active),
+    0 0.3rem 0.85rem color-mix(in oklab, var(--turn-active) 45%, transparent);
   animation: pill-pulse var(--t-turn-pulse) var(--ease-out-soft) infinite;
 }
 
@@ -530,9 +533,24 @@
   min-width: 0;
 }
 
-.pill--you .pill__label,
-.pill--you .pill__clock {
+.pill--you .pill__label {
   color: var(--accent-contrast);
+}
+
+/* Broj mora da se cita u SVAKOM stanju trake. Bez ovoga digit stoji tacno na
+   granici izmedju zlatnog fila i tamne podloge, pa kako vrijeme istice tone u
+   tamno — nestaje bas u zadnjim sekundama, kad je najvazniji. Zato broj nosi
+   svoju tamnu plocicu i svijetlo mastilo, a traka iza njega zadrzava pun
+   kontrast prema filu. */
+.pill--you .pill__body {
+  align-items: center;
+  padding: 0.02rem 0.45rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 90%, transparent);
+}
+
+.pill--you .pill__clock {
+  color: var(--text);
 }
 
 .pill__label {
@@ -547,9 +565,9 @@
 .pill__notch {
   position: absolute;
   left: 50%;
-  bottom: -0.34rem;
-  width: 0.7rem;
-  height: 0.7rem;
+  bottom: -0.26rem;
+  width: 0.55rem;
+  height: 0.55rem;
   transform: translateX(-50%) rotate(45deg);
   background-color: var(--turn-active);
   opacity: 0;
@@ -627,39 +645,48 @@
 }
 
 /* ------------------------------------------------------------------ *
- * PlayerSeat — identical for every occupant. Team is weight + colour.
+ * PlayerSeat — identical for every occupant. No frame, no panel: the player
+ * stands on the felt. Team and turn are the ring around the avatar.
  * ------------------------------------------------------------------ */
 
 .seat {
+  /* Stanje sjedista zivi u ovim varijablama, a trosi ih .seat__avatar. Podrazumijevana
+     vrijednost MORA stajati ovdje, ne na avataru: deklaracija na samom elementu
+     pobjedjuje naslijedjenu, pa bi default na avataru gasio boju tima. */
+  --seat-ring-w: 1px;
+  --seat-ring: color-mix(in oklab, var(--accent) 35%, transparent);
+  --seat-glow: transparent;
+
   position: relative; /* sidro za .seat__reaction */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
+  /* Padding i min-width nisu kutija nego rezervisan prostor: drze gornje sjediste
+     da ne poskakuje kad se ime promijeni. Okvira i podloge nema — igrac stoji
+     direktno na feltu. */
   padding: 0.45rem 0.6rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid color-mix(in oklab, var(--accent) 18%, transparent);
-  background-color: color-mix(in oklab, var(--surface-raised) 82%, transparent);
   min-width: 6.5rem;
 }
 
-/* Team identity is border WEIGHT, not dash. Dashed stays reserved for the
-   table drop target. */
+/* Tim je boja prstena oko avatara, ne okvir oko igraca. Boja NIJE jedini nosilac:
+   arrangeSeats drzi partnera uvijek gore a protivnike sa strane, pa je pozicija
+   nekolorni kanal — istu ulogu je ranije igrala debljina bordera. */
 .seat--team-a {
-  border-style: solid;
-  border-width: 2px;
-  border-color: color-mix(in oklab, var(--team-a) 55%, transparent);
+  --seat-ring-w: 2px;
+  --seat-ring: color-mix(in oklab, var(--team-a) 70%, transparent);
 }
 
 .seat--team-b {
-  border-style: solid;
-  border-width: 4px;
-  border-color: color-mix(in oklab, var(--team-b) 45%, transparent);
+  --seat-ring-w: 2px;
+  --seat-ring: color-mix(in oklab, var(--team-b) 70%, transparent);
 }
 
-
+/* Na potezu = sjaj OKO avatara, u zasebnom slotu box-shadow-a, pa boja tima u
+   prstenu prezivi. Swap svojstva izmedju stanja, bez transition-a: sjenka se
+   ovdje ne animira. */
 .seat[data-current-turn] {
-  box-shadow: 0 0.35rem 1rem color-mix(in oklab, var(--turn-active) 30%, transparent);
+  --seat-glow: color-mix(in oklab, var(--turn-active) 55%, transparent);
 }
 
 .seat[data-status="abandoned"] {
@@ -679,6 +706,8 @@
   min-width: 0;
 }
 
+/* Jedini nosilac stanja sjedista otkad je okvir pao. Dva odvojena slota: prsten
+   nosi tim, spoljni sjaj nosi potez — nikad se ne gaze. */
 .seat__avatar {
   display: grid;
   place-items: center;
@@ -688,7 +717,9 @@
   border-radius: var(--radius-lg);
   background-color: var(--surface);
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
+  box-shadow:
+    inset 0 0 0 var(--seat-ring-w, 1px) var(--seat-ring, transparent),
+    0 0 0.75rem var(--seat-glow, transparent);
 }
 
 .seat__meta {
@@ -819,7 +850,7 @@
 .banner {
   display: flex;
   justify-content: center;
-  padding: 0.35rem 0.85rem;
+  padding: 0.3rem 0.75rem;
   border-radius: var(--radius-lg);
   background-color: color-mix(in oklab, var(--surface) 80%, transparent);
   animation: banner-in var(--t-toast-in) var(--ease-out-soft) both;
