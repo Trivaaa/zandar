@@ -6,7 +6,6 @@ export type TurnPillProps = {
   /** Remaining seconds. The clock lives in the parent; this only renders it. */
   secondsRemaining?: number;
   totalSeconds?: number;
-  isYou?: boolean;
   variant?: "countdown" | "thinking";
   className?: string | undefined;
 };
@@ -14,16 +13,15 @@ export type TurnPillProps = {
 const URGENT_AT = 5;
 
 /**
- * The signature element. A horizontal pill, never a ring or arc.
- * Depletion is scaleX() of a pre-rendered bar; the urgency colour is a plain
- * property swap, not an animated one.
+ * Odbrojavanje na TUDJEM sjedistu. Horizontalna pilula, nikad prsten ni luk.
+ * Praznjenje je scaleX() unaprijed nacrtane trake; boja hitnosti je obicna
+ * zamjena svojstva, ne animirana.
  *
- * `isYou` is free-standing — it is never mounted inside PlayerSeat.
+ * Tvoj potez NE ide kroz ovu komponentu — on je traka u TurnBanner-u.
  */
 export function TurnPill({
   secondsRemaining = 0,
   totalSeconds = 1,
-  isYou = false,
   variant = "countdown",
   className = "",
 }: TurnPillProps) {
@@ -35,7 +33,7 @@ export function TurnPill({
   if (variant === "thinking") {
     return (
       <div
-        className={`pill pill--thinking ${isYou ? "pill--you" : "pill--other"} ${className}`}
+        className={`pill pill--thinking ${className}`}
         role="status"
       >
         <span className="pill__label font-sans text-base">{sr.turn.thinking}</span>
@@ -50,10 +48,9 @@ export function TurnPill({
 
   return (
     <div
-      className={`pill pill--countdown ${isYou ? "pill--you" : "pill--other"} ${className}`}
+      className={`pill pill--countdown ${className}`}
       data-urgent={urgent}
       role="timer"
-      aria-label={isYou ? sr.turn.you : undefined}
     >
       <span className="pill__track">
         <span
@@ -64,8 +61,6 @@ export function TurnPill({
       <span className="pill__body">
         <span className="pill__clock font-display text-num-sm">{Math.ceil(clamped)}</span>
       </span>
-
-      <span className="pill__notch" aria-hidden="true" />
     </div>
   );
 }

@@ -113,9 +113,11 @@ export default function FeltTwoPreview() {
             }}
             forceCaptureBlocked={blocked}
           />
-          <TurnBanner isYou />
           <div className="flex justify-center">
-            <TurnPill isYou secondsRemaining={seconds} totalSeconds={30} />
+            <TurnBanner isYou secondsRemaining={seconds} totalSeconds={30} />
+          </div>
+          <div className="flex justify-center">
+            <TurnPill secondsRemaining={seconds} totalSeconds={30} />
           </div>
           <PlayerHand
             cards={cards}

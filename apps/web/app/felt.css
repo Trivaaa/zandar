@@ -451,14 +451,15 @@
 }
 
 /* ------------------------------------------------------------------ *
- * TurnPill — the signature element. Horizontal, never a ring.
- * Depletion is scaleX() of a pre-rendered bar; the urgency colour is a
- * plain property swap on a bar that is not mid-animation.
+ * TurnPill — odbrojavanje na TUDJEM sjedistu. Horizontalno, nikad prsten.
+ * Praznjenje je scaleX() unaprijed nacrtane trake; boja hitnosti je obicna
+ * zamjena svojstva na traci koja nije usred animacije.
+ * Tvoj potez ne prolazi ovuda — on je traka u .banner-u.
  * ------------------------------------------------------------------ */
 
 .pill {
-  --pill-h: 1.15rem;
-  --pill-w: 7rem;
+  --pill-h: 1.5rem;
+  --pill-w: 5.5rem;
 
   position: relative;
   display: inline-flex;
@@ -470,31 +471,9 @@
   padding: 0.25rem 0.6rem;
   border-radius: var(--radius-lg);
   background-color: color-mix(in oklab, var(--surface) 78%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--turn-active) 45%, transparent);
   color: var(--text);
   isolation: isolate;
-}
-
-/* You: heavy and pulsing, but sized to its own content. Free-standing — never
-   mounted inside a seat.
-   fit-content, ne 100%: pilula i banner dijele jedan flex-col omotac, pa je
-   sirina 100% vezivala sirinu pilule za duzinu recenice iznad nje. */
-.pill--you {
-  --pill-h: 1.9rem;
-  --pill-w: fit-content;
-
-  min-width: 4.5rem;
-  padding: 0.28rem 0.8rem;
-  box-shadow:
-    0 0 0 0.1rem var(--turn-active),
-    0 0.3rem 0.85rem color-mix(in oklab, var(--turn-active) 45%, transparent);
-  animation: pill-pulse var(--t-turn-pulse) var(--ease-out-soft) infinite;
-}
-
-.pill--other {
-  --pill-h: 1.5rem;
-  --pill-w: 5.5rem;
-
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--turn-active) 45%, transparent);
 }
 
 .pill__track {
@@ -514,11 +493,7 @@
   transition: transform var(--t-card-play) var(--ease-out-soft);
 }
 
-.pill--you .pill__fill {
-  opacity: 1;
-}
-
-.pill--other .pill__fill {
+.pill__fill {
   opacity: 0.72;
 }
 
@@ -533,64 +508,8 @@
   min-width: 0;
 }
 
-.pill--you .pill__label {
-  color: var(--accent-contrast);
-}
-
-/* Broj mora da se cita u SVAKOM stanju trake. Bez ovoga digit stoji tacno na
-   granici izmedju zlatnog fila i tamne podloge, pa kako vrijeme istice tone u
-   tamno — nestaje bas u zadnjim sekundama, kad je najvazniji. Zato broj nosi
-   svoju tamnu plocicu i svijetlo mastilo, a traka iza njega zadrzava pun
-   kontrast prema filu. */
-.pill--you .pill__body {
-  align-items: center;
-  padding: 0.02rem 0.45rem;
-  border-radius: var(--radius-lg);
-  background-color: color-mix(in oklab, var(--surface) 90%, transparent);
-}
-
-.pill--you .pill__clock {
-  color: var(--text);
-}
-
 .pill__label {
   white-space: nowrap;
-}
-
-.pill--you .pill__label {
-  font-weight: 700;
-}
-
-/* Upward notch: reads as "this points at your hand", no name needed. */
-.pill__notch {
-  position: absolute;
-  left: 50%;
-  bottom: -0.26rem;
-  width: 0.55rem;
-  height: 0.55rem;
-  transform: translateX(-50%) rotate(45deg);
-  background-color: var(--turn-active);
-  opacity: 0;
-}
-
-.pill--you .pill__notch {
-  opacity: 1;
-}
-
-.pill[data-urgent="true"] .pill__notch {
-  background-color: var(--danger-signal);
-}
-
-@keyframes pill-pulse {
-  from {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.025);
-  }
-  to {
-    transform: scale(1);
-  }
 }
 
 /* Calm "thinking" state: no depletion, no urgency, no countdown. */
@@ -635,11 +554,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pill--you,
   .pill__dot {
     animation: none;
-  }
-  .pill__dot {
     opacity: 0.7;
   }
 }
@@ -844,14 +760,23 @@
 }
 
 /* ------------------------------------------------------------------ *
- * TurnBanner — a sentence, so font-sans. Fades in on --t-toast-in.
+ * TurnBanner — recenica I odbrojavanje u jednom elementu. Ranije su to bila
+ * dva sloja (banner + samostalna pilula) koja su nad rukom pravila blok
+ * dvostruke visine i dva puta govorila istu stvar.
+ * Vrijeme curi kao tanka linija po donjoj ivici: prisutna, ali tiha —
+ * hitnost se javlja bojom, ne velicinom.
  * ------------------------------------------------------------------ */
 
 .banner {
+  position: relative; /* sidro za .banner__track */
   display: flex;
+  align-items: baseline;
   justify-content: center;
+  gap: 0.5rem;
   padding: 0.3rem 0.75rem;
   border-radius: var(--radius-lg);
+  /* Traka sjedi na donjoj ivici, pa mora biti odsjecena na isti radijus. */
+  overflow: hidden;
   background-color: color-mix(in oklab, var(--surface) 80%, transparent);
   animation: banner-in var(--t-toast-in) var(--ease-out-soft) both;
 }
@@ -862,6 +787,41 @@
 
 .banner__text {
   text-align: center;
+}
+
+/* Broj stoji UZ recenicu, ne na traci — pa ga praznjenje nikad ne prekrije.
+   Tabularne cifre da se traka ne siri i skuplja dok broj pada 10 -> 9. */
+.banner__clock {
+  color: var(--turn-active);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.banner[data-urgent="true"] .banner__clock {
+  color: var(--danger-signal);
+}
+
+.banner__track {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 0.15rem;
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--turn-active) 20%, transparent);
+}
+
+.banner__fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: scaleX(var(--banner-fill, 1));
+  background-color: var(--turn-active);
+  transition: transform var(--t-card-play) var(--ease-out-soft);
+}
+
+.banner[data-urgent="true"] .banner__fill {
+  background-color: var(--danger-signal);
 }
 
 @keyframes banner-in {

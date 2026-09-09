@@ -69,7 +69,6 @@ export function PlayerSeat({
       <div className="seat__pill">
         {isActive && (isThinking || secondsRemaining > 0) ? (
           <TurnPill
-            isYou={false}
             variant={isThinking ? "thinking" : "countdown"}
             secondsRemaining={secondsRemaining}
             totalSeconds={totalSeconds}

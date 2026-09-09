@@ -12,7 +12,6 @@ import type {
 import { PlayerSeat } from "@/components/felt/PlayerSeat";
 import { TableSurface, type LandFrom } from "@/components/felt/TableSurface";
 import { PlayerHand } from "@/components/felt/PlayerHand";
-import { TurnPill } from "@/components/felt/TurnPill";
 import { TurnBanner } from "@/components/felt/TurnBanner";
 import { ScorePill } from "@/components/overlay/ScorePill";
 import { ReactionFab } from "@/components/ReactionFab";
@@ -166,7 +165,7 @@ export function GameScreen({
         : "absolute inset-x-0 top-0 z-50 flex justify-center p-3 pt-safe-top";
 
   const turnDeadline = isPlaying ? state.turnDeadline : undefined;
-  // Sat živi ovdje; TurnPill je čista prezentacija (prima sekunde, ne rok).
+  // Sat živi ovdje; TurnBanner/TurnPill su čista prezentacija (primaju sekunde, ne rok).
   const turnSeconds = useCountdown(turnDeadline, TURN_TOTAL_SECONDS);
 
   // Pauza/glasanje: server šalje apsolutni rok, sat je isti kao za potez.
@@ -356,19 +355,18 @@ export function GameScreen({
         </div>
       </div>
 
-      {/* Ti — banner + samostalna pilula iznad ruke.
+      {/* Ti — jedna traka iznad ruke: rečenica, broj i linija koja se prazni.
           PlayerSeat namjerno nema "bottom" orijentaciju: tvoj potez se čita
-          iz pilule nad rukom, ne iz čipa. */}
+          iz trake nad rukom, ne iz čipa. Dok karte padaju (showTimer=false)
+          traka je gola rečenica — nema roka da se odbrojava. */}
       {isPlaying && myTurn && (
-        <div className="absolute bottom-[150px] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1.5 pointer-events-none">
-          <TurnBanner isYou />
-          {showTimer && (
-            <TurnPill
-              isYou
-              secondsRemaining={turnSeconds}
-              totalSeconds={TURN_TOTAL_SECONDS}
-            />
-          )}
+        <div className="absolute bottom-[150px] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none">
+          <TurnBanner
+            isYou
+            {...(showTimer
+              ? { secondsRemaining: turnSeconds, totalSeconds: TURN_TOTAL_SECONDS }
+              : {})}
+          />
         </div>
       )}
       {seats.me && seatReaction(seats.me.id) && (
