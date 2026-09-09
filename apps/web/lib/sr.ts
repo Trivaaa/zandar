@@ -16,8 +16,9 @@ export const sr = {
     sumMatch: "Zbir",
     chooseCapture: "Izaberi koje karte kupiš",
     trailHint: "Tapni sto da spustiš kartu",
-    blockedTitle: "Moraš kupiti karte",
-    blockedBody: "Sa ovom kartom postoji kupovina, pa ne možeš ostaviti kartu na stolu. Izaberi jednu od označenih grupa.",
+    // Uputstvo, ne panel: puno objasnjenje pravila zivi u RulesModal-u. Ranija
+    // dva stringa (103 znaka) su stajala U play-zoni i rasla je za ~9 redova.
+    mustCapture: "Moraš kupiti — tapni označene karte",
     pot: "Ulog",
   },
   deck: {

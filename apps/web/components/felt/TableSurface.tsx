@@ -1,6 +1,9 @@
 "use client";
 
+import { useRef } from "react";
 import { PlayingCard } from "./PlayingCard";
+import { shake } from "@/lib/motion";
+import { vibrate, HAPTIC } from "@/lib/haptics";
 import { sr } from "@/lib/sr";
 import type { Card, CaptureOption, CaptureReason } from "@/components/felt/types";
 
@@ -15,7 +18,12 @@ export type TableSurfaceProps = {
   captureOptions?: CaptureOption[];
   selectedOptionId?: string | null;
   onSelectOption?: ((option: CaptureOption) => void) | undefined;
-  /** A capture exists, so trailing is refused. Needs a visible explanation. */
+  /**
+   * Kupovina postoji, pa je trail odbijen. Objašnjenje NE crta sto — ono je
+   * rečenica u traci iznad ruke; ovdje ostaje samo osjetno odbijanje na tap.
+   * Sto koji objašnjava pravila mijenja svoju visinu, a karte ne smiju da se
+   * pomjere zato što si izabrao kartu u ruci.
+   */
   forceCaptureBlocked?: boolean;
   /**
    * Trail — spuštanje karte na sto kad nema kupljenja. Legalan potez, pa je
@@ -62,8 +70,27 @@ export function TableSurface({
 
   const activate = (option: CaptureOption) => onSelectOption?.(option);
 
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Jedan tap na play-zonu, dvije mogućnosti: legalan trail ide kao potez,
+   * a odbijen se OSJETI (trzaj + vibracija) umjesto da se pročita iz panela
+   * koji zauzima pola stola. Prolazno stanje ne može ništa da prekrije.
+   */
+  const activateDrop = () => {
+    if (canTrail) {
+      onTrail?.();
+      return;
+    }
+    if (!forceCaptureBlocked) return;
+    vibrate(HAPTIC.error);
+    shake(dropRef.current);
+  };
+
+  const dropInteractive = canTrail || forceCaptureBlocked;
+
   return (
-    <div className={`table ${className}`} data-land-from={landFrom}>
+    <div className={`felt-table ${className}`} data-land-from={landFrom}>
       {showPot ? (
         <div className="table__pot">
           <span className="table__pot-label font-sans text-sm text-muted">{sr.table.pot}</span>
@@ -72,19 +99,22 @@ export function TableSurface({
       ) : null}
 
       {/* Stable order, always. Cards never move until someone plays. */}
+      {/* `data-table-drop` NE stoji ovdje: nosi ga omotač u GameScreen-u, a
+          `flyAnimation` ga hvata querySelector-om — dva ista sidra znače da
+          meta deal animacije zavisi od redoslijeda u DOM-u. */}
       <div
+        ref={dropRef}
         className={`table__drop ${canTrail ? "table__drop--trail" : ""}`}
-        data-table-drop
-        role={canTrail ? "button" : undefined}
-        tabIndex={canTrail ? 0 : undefined}
-        aria-label={canTrail ? sr.table.trailHint : undefined}
-        onClick={canTrail ? () => onTrail?.() : undefined}
+        role={dropInteractive ? "button" : undefined}
+        tabIndex={dropInteractive ? 0 : undefined}
+        aria-label={canTrail ? sr.table.trailHint : forceCaptureBlocked ? sr.table.mustCapture : undefined}
+        onClick={dropInteractive ? activateDrop : undefined}
         onKeyDown={
-          canTrail
+          dropInteractive
             ? (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  onTrail?.();
+                  activateDrop();
                 }
               }
             : undefined
@@ -109,12 +139,23 @@ export function TableSurface({
                   role={tappable ? "button" : undefined}
                   tabIndex={tappable ? 0 : undefined}
                   aria-label={tappable && single ? reasonLabel[single.reason] : undefined}
-                  onClick={tappable && single ? () => activate(single) : undefined}
+                  /* stopPropagation: slot je UNUTAR tap-mete play-zone, a ta
+                     meta u istom stanju znaci "odbijeno" — bez ovoga bi uspjelo
+                     kupljenje istim tapom okinulo i trzaj odbijanja. */
+                  onClick={
+                    tappable && single
+                      ? (e) => {
+                          e.stopPropagation();
+                          activate(single);
+                        }
+                      : undefined
+                  }
                   onKeyDown={
                     tappable && single
                       ? (e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
+                            e.stopPropagation();
                             activate(single);
                           }
                         }
@@ -130,11 +171,11 @@ export function TableSurface({
         )}
       </div>
 
-      {/* Two or more options: grouping is visible here, the table stays put. */}
+      {/* Two or more options: grouping is visible here, the table stays put.
+          Uputstvo ("Izaberi koje karte kupiš") crta traka iznad ruke — ovdje
+          bi bio još jedan red koji gura karte. */}
       {needsChooser ? (
-        <>
-          <p className="table__hint font-sans text-base">{sr.table.chooseCapture}</p>
-          <div className="table__chooser">
+        <div className="table__chooser">
             {captureOptions.map((option) => (
               <div
                 key={option.optionId}
@@ -163,20 +204,6 @@ export function TableSurface({
                 </span>
               </div>
             ))}
-          </div>
-        </>
-      ) : null}
-
-      {canTrail ? (
-        <p className="table__trail font-sans text-base">{sr.table.trailHint}</p>
-      ) : null}
-
-      {forceCaptureBlocked ? (
-        <div className="table__blocked" role="alert">
-          <span className="table__blocked-title font-sans text-base font-bold">
-            {sr.table.blockedTitle}
-          </span>
-          <span className="table__blocked-body font-sans text-base">{sr.table.blockedBody}</span>
         </div>
       ) : null}
     </div>

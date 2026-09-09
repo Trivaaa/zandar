@@ -23,6 +23,7 @@ import { MoveRevealLive } from "@/components/overlay/MoveRevealLive";
 import { DeckPile } from "@/components/felt/DeckPile";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { arrangeSeats } from "@/lib/seating";
+import { sr } from "@/lib/sr";
 import { ReactionBubble } from "@/components/overlay/EmojiReactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
 import { playSfx } from "@/lib/sound";
@@ -238,6 +239,22 @@ export function GameScreen({
   // canTrail i forceCaptureBlocked su dvije polovine iste odluke.
   const forceCaptureBlocked = !!selectedCard && tableOptions.length > 0;
 
+  // Uputstvo igraču ima JEDAN kanal — traku iznad ruke. Ranije su ove tri
+  // rečenice rasle unutar play-zone, pa je izbor karte u ruci mijenjao visinu
+  // stola: force-capture objašnjenje je bilo 103 znaka u ~109px širokoj kutiji
+  // (~9 prelomljenih redova) i preklapalo se sa samom trakom.
+  const instruction =
+    tableOptions.length > 1
+      ? sr.table.chooseCapture
+      : forceCaptureBlocked
+        ? sr.table.mustCapture
+        : canTrail
+          ? sr.table.trailHint
+          : sr.turn.you;
+  // Ton je "must" SAMO za odbijanje trailu. "Izaberi koje karte kupiš" je
+  // ponuda, ne prekršaj — narandžasto bi od nje napravilo upozorenje.
+  const instructionTone = instruction === sr.table.mustCapture ? "must" : "turn";
+
   // Pozicijski raspored: ti dole, partner gore, protivnici lijevo/desno.
   const seats = arrangeSeats(state.players, state.myPlayerId);
 
@@ -306,7 +323,7 @@ export function GameScreen({
           cardCount={state.handCounts[seats.oppL.id] ?? 0}
           orientation="left"
           reaction={seatReaction(seats.oppL.id)}
-          className="absolute top-[42%] left-1 -translate-y-1/2"
+          className="absolute top-[20%] left-1 -translate-y-1/2"
         />
       )}
       {/* Protivnik desno */}
@@ -319,20 +336,29 @@ export function GameScreen({
           cardCount={state.handCounts[seats.oppR.id] ?? 0}
           orientation="right"
           reaction={seatReaction(seats.oppR.id)}
-          className="absolute top-[42%] right-1 -translate-y-1/2"
+          className="absolute top-[20%] right-1 -translate-y-1/2"
         />
       )}
 
       {/* Centralna play-zona — odigrane karte + capture/trail.
-          Desktop (md): šira da se karte ne gomilaju u usku kolonu. */}
-      {/* Sirina je 100% minus zljebovi bocnih sjedista (2 × 5.5rem + zrak),
-          ne procenat: procenat se lomi cim se viewport suzi (zoom, uzi
-          telefon) pa sjedista udju u sto. */}
-      <div className="absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-13rem)] min-w-[9rem] max-w-[230px] md:max-w-[380px] z-10">
-        <div
-          data-table-drop
-          className="relative rounded-token-lg border border-white/10 bg-white/[0.03] shadow-[inset_0_0_40px_rgba(0,0,0,0.35)] px-3 py-2 min-h-[120px]"
-        >
+
+          Sredina ekrana je REZERVISANA za karte: sjedišta stoje na luku oko
+          vrha, pa sto uzima skoro punu širinu i karte se čitaju horizontalno.
+          Ranije je zona bila `w-[calc(100%-13rem)]` jer su joj bočna sjedišta
+          na `top-[42%]` uzimala 13rem — na 360px je ostajalo ~109px, tačno
+          jedna karta po redu.
+
+          POJAS (top+bottom), ne centrirana kutija: sadržaj se centrira flexom
+          UNUTAR fiksnih granica, pa traka izbora ili drugi red karata ne mogu
+          da gurnu sto u sjedišta ni u ruku. Donja granica je iznad trake na
+          `bottom-[150px]` i namjerno je ista i kad trake nema — sto koji ne
+          poskakuje vrijedi više od 40px viška. */}
+      <div className="absolute top-[33%] bottom-[190px] left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-[440px] md:[--table-cols:5] z-10 flex items-center justify-center">
+        {/* Omotač je proziran i pun visine pojasa: daje `.table`-u visinu na
+            koju procenti mogu da se razriješe, pa traka izbora ima gdje da se
+            zakači umjesto da izraste iz pojasa na ruku. Vidljiva površina je
+            `.table__drop`, koji se drži karata. */}
+        <div data-table-drop className="relative h-full w-full px-3 py-2">
           <TableSurface
             cards={state.table}
             captureOptions={tableOptions}
@@ -360,9 +386,11 @@ export function GameScreen({
           iz trake nad rukom, ne iz čipa. Dok karte padaju (showTimer=false)
           traka je gola rečenica — nema roka da se odbrojava. */}
       {isPlaying && myTurn && (
-        <div className="absolute bottom-[150px] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none">
+        <div className="absolute bottom-[150px] left-0 right-0 px-3 z-20 flex flex-col items-center pointer-events-none">
           <TurnBanner
             isYou
+            text={instruction}
+            tone={instructionTone}
             {...(showTimer
               ? { secondsRemaining: turnSeconds, totalSeconds: TURN_TOTAL_SECONDS }
               : {})}
