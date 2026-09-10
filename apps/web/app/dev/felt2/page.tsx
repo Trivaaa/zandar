@@ -41,12 +41,20 @@ const HAND: CardType[] = [
   c("clubs", "9"),
 ];
 
-const TABLE: CardType[] = [
+/** 12 karata = realan gornji rep stola; prekidac ispod sijece na 4 / 8 / 12. */
+const TABLE_POOL: CardType[] = [
   c("clubs", "7"),
   c("diamonds", "4"),
   c("spades", "3"),
   c("hearts", "Q"),
   c("spades", "2"),
+  c("clubs", "K"),
+  c("diamonds", "9"),
+  c("hearts", "6"),
+  c("clubs", "Q"),
+  c("diamonds", "K"),
+  c("spades", "8"),
+  c("hearts", "5"),
 ];
 
 const P = (
@@ -80,9 +88,12 @@ export default function FeltTwoPreview() {
   const [log, setLog] = useState<string>("—");
 
 
+  const [tableCount, setTableCount] = useState(4);
+  const table = TABLE_POOL.slice(0, tableCount);
+
   const cards = HAND.slice(0, handCount);
   const options: CaptureOption[] = selected
-    ? getCaptureOptions(selected, TABLE)
+    ? getCaptureOptions(selected, table)
     : [];
   const canTrail = !!selected && options.length === 0;
   const [blocked, setBlocked] = useState(false);
@@ -99,8 +110,11 @@ export default function FeltTwoPreview() {
 
       <Row title="Sto + ruka — puna petlja">
         <div className="space-y-4">
+          {/* Sirina pojasa kakvu sto stvarno dobija na telefonu (360px viewport
+              minus 1.5rem). Bez ovoga preview lazno pokazuje sve karte u redu. */}
+          <div className="mx-auto w-full max-w-[336px]">
           <TableSurface
-            cards={TABLE}
+            cards={table}
             captureOptions={options}
             onSelectOption={(o) => {
               setLog(`capture: ${o.reason} → ${o.cardIds.join(", ")}`);
@@ -113,6 +127,7 @@ export default function FeltTwoPreview() {
             }}
             forceCaptureBlocked={blocked}
           />
+          </div>
           <div className="flex justify-center">
             <TurnBanner isYou secondsRemaining={seconds} totalSeconds={30} />
           </div>
@@ -189,6 +204,18 @@ export default function FeltTwoPreview() {
             }`}
           >
             {n} karata
+          </button>
+        ))}
+        {[4, 8, 12].map((n) => (
+          <button
+            key={`t${n}`}
+            type="button"
+            onClick={() => setTableCount(n)}
+            className={`rounded-token-md px-3 py-2 text-sm ${
+              tableCount === n ? "bg-accent text-accent-contrast" : "bg-surface-raised"
+            }`}
+          >
+            sto: {n}
           </button>
         ))}
         <button

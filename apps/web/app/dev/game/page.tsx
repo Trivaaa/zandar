@@ -15,7 +15,31 @@ const card = (suit: "clubs" | "diamonds" | "hearts" | "spades", rank: string) =>
   rank: rank as never,
 });
 
-function mockState(phase: GamePhase, turnDeadline: number): PrivateGameStateView & {
+/**
+ * Realan gornji rep stola. Force-capture drzi sto oko 4-8 karata, a 12 je rijedak
+ * rep (dugi niz Q/K, koje ne ulaze u zbirove) — pojas play-zone mora da ih primi
+ * bez diranja sjedista i ruke.
+ */
+const TABLE_POOL = [
+  card("diamonds", "7"),
+  card("spades", "3"),
+  card("hearts", "4"),
+  card("spades", "A"),
+  card("clubs", "K"),
+  card("diamonds", "Q"),
+  card("hearts", "K"),
+  card("clubs", "Q"),
+  card("spades", "K"),
+  card("hearts", "Q"),
+  card("diamonds", "8"),
+  card("clubs", "6"),
+];
+
+function mockState(
+  phase: GamePhase,
+  turnDeadline: number,
+  tableCount: number,
+): PrivateGameStateView & {
   turnDeadline?: number;
 } {
   return {
@@ -28,7 +52,7 @@ function mockState(phase: GamePhase, turnDeadline: number): PrivateGameStateView
       { id: "p2", displayName: "Jovana", seatIndex: 2, isHost: false, teamId: 0, connectionStatus: "connected" },
       { id: "p3", displayName: "Stefan", seatIndex: 3, isHost: false, teamId: 1, connectionStatus: "connected" },
     ],
-    table: [card("diamonds", "7"), card("spades", "3"), card("hearts", "4"), card("spades", "A")],
+    table: TABLE_POOL.slice(0, tableCount),
     currentPlayerId: "me",
     dealerPlayerId: "p3",
     deckCount: 28,
@@ -52,21 +76,31 @@ function mockState(phase: GamePhase, turnDeadline: number): PrivateGameStateView
     ],
     myPlayerId: "me",
     myHand: [card("clubs", "7"), card("spades", "J"), card("hearts", "A"), card("diamonds", "9")],
+    // Da se move-reveal panel uopste moze pogledati u pregledniku.
+    lastMove: {
+      moveId: "dev-move",
+      playerId: "p1",
+      playedCard: card("hearts", "9"),
+      capturedCards: [card("clubs", "4"), card("spades", "5")],
+      isAutoPlay: false,
+    },
     turnDeadline,
   };
 }
 
 const PHASES: GamePhase[] = ["playing", "hand_finished", "match_finished", "abandoned"];
+const TABLE_COUNTS = [0, 4, 8, 12];
 const noop = async () => {};
 
 export default function DevGamePage() {
   const [phase, setPhase] = useState<GamePhase>("playing");
+  const [tableCount, setTableCount] = useState(4);
   const [deadline] = useState(() => Date.now() + 25_000);
 
   return (
     <div className="relative">
       <GameScreen
-        state={mockState(phase, deadline)}
+        state={mockState(phase, deadline, tableCount)}
         onPlayCard={noop}
         onNextHand={noop}
         onRematch={noop}
@@ -87,6 +121,21 @@ export default function DevGamePage() {
             }`}
           >
             {p}
+          </button>
+        ))}
+        <span className="mt-2 text-[10px] text-muted">sto</span>
+        {TABLE_COUNTS.map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setTableCount(n)}
+            className={`px-2 py-1 rounded-token-sm text-[10px] font-bold transition-colors ${
+              tableCount === n
+                ? "bg-accent text-accent-contrast"
+                : "bg-surface-raised/90 text-muted active:bg-surface"
+            }`}
+          >
+            {n}
           </button>
         ))}
       </div>

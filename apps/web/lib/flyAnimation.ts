@@ -10,12 +10,7 @@
  * identično za sva sjedišta (bot/čovjek).
  */
 
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
-  );
-}
+import { prefersReducedMotion } from "./motion";
 
 function centerOf(rect: DOMRect): { x: number; y: number } {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };

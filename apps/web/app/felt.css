@@ -785,6 +785,17 @@
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--turn-active) 55%, transparent);
 }
 
+/* Potez ogranicen pravilom. --warn, ne --danger-signal: ovo je uputstvo prije
+   nego sto igrac pogrijesi, a --danger-signal je rezervisan za zadnje sekunde
+   roka. Kad igrac ipak tapne sto, odbijanje stize kao trzaj, ne kao boja. */
+.banner--must {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--warn) 65%, transparent);
+}
+
+.banner--must .banner__text {
+  color: var(--warn);
+}
+
 .banner__text {
   text-align: center;
 }
@@ -836,16 +847,32 @@
 }
 
 /* ------------------------------------------------------------------ *
- * TableSurface — cards land from any seat direction and wrap to rows.
+ * TableSurface — karte legnu u mrezu od --table-cols kolona i drze svoj
+ * slot dok ih neko ne odigra.
+ *
+ * Ranije je ovo bio `flex-wrap: wrap`, sto na telefonu NIJE davalo redove:
+ * bocna sjedista su play-zoni ostavljala ~109px sirine (S10e, 360px), pa je
+ * u red stala tacno jedna karta i sto se citao kao kolona. Mreza sa fiksnim
+ * brojem kolona uz to drzi karte na mjestu — centrirani flex red se re-centrira
+ * na svako slijetanje, tj. pomjera karte koje niko nije dirao.
  * ------------------------------------------------------------------ */
 
-.table {
+/* `felt-table`, ne `table`: `.table` je i Tailwind utility (`display: table`),
+   koji zivi u kasnijem sloju od ovog fajla — pa `display: flex` odavde NIKAD
+   nije stizao na element, a s njim ni `justify-content`/`align-items`.
+   Isti trap kao `.seat{position:relative}` iz changelog-a, samo obrnut smjer. */
+.felt-table {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Puna visina pojasa, sadrzaj centriran u njoj. `height`, ne `max-height`:
+     procenat protiv roditelja auto visine se razrjesava u `none`, pa se traka
+     izbora nije imala o sta da zaustavi i izlazila je iz pojasa na ruku. */
+  justify-content: center;
   gap: 0.5rem;
   width: 100%;
+  height: 100%;
 }
 
 .table__pot {
@@ -863,24 +890,42 @@
   min-height: 2.4rem;
 }
 
+/* JEDINA vidljiva povrsina play-zone. Omotac u GameScreen-u je proziran —
+   dvije ugnijezdene zaobljene kutije su se na uredaju citale kao greska u
+   crtanju, ne kao dubina. */
 .table__drop {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  /* `0 1 auto`: drzi se karata (ne raste u prazan pravougaonik), ali smije da
+     se skupi kad traka izbora zatrazi mjesto — jedino tako i sto od 12 karata
+     i traka staju u pojas. Skrol se pali samo u tom rijetkom uglu; karta koja
+     stize (`table-land`) tad ulazi sa ivice stola, sto je i inace smjer iz
+     kojeg dolazi. */
+  flex: 0 1 auto;
   min-height: 7rem;
+  overflow: auto;
+  scrollbar-width: none;
   padding: 0.6rem;
   border-radius: var(--radius-lg);
   background-color: color-mix(in oklab, var(--felt) 85%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 14%, transparent);
 }
 
+.table__drop::-webkit-scrollbar {
+  display: none;
+}
+
 .table__cards {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  display: grid;
+  /* var() u repeat() se supstituise tekstualno, pa je broj kolona podesiv
+     spolja: GameScreen ga na `md` dize na 5. */
+  grid-template-columns: repeat(var(--table-cols, 4), max-content);
   justify-content: center;
-  gap: 0.75rem 0.6rem;
+  justify-items: center;
+  align-items: center;
+  gap: 0.5rem 0.55rem;
 }
 
 .table__slot {
@@ -931,21 +976,39 @@
 }
 
 /* Chooser strip — the only place options are grouped. Below the table so the
-   table layout never reflows when the hand selection changes. */
+   table layout never reflows when the hand selection changes.
+   `nowrap` + bocni skrol: traka koja se prelama raste u visinu i gura sto u
+   sjedista, a play-zona ima fiksan pojas. */
 .table__chooser {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
   gap: 0.6rem;
   width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding-bottom: 0.15rem;
+}
+
+.table__chooser::-webkit-scrollbar {
+  display: none;
+}
+
+/* Jedna opcija se centrira, vise njih pocinje slijeva da se vidi da ih ima jos. */
+.table__chooser:has(> :only-child) {
+  justify-content: center;
 }
 
 .table__group {
+  /* Karte i razlog stoje JEDNO UZ DRUGO, ne jedno nad drugim: kolona je traku
+     dizala na ~114px, sto je stolu od 8 karata oduzimalo drugi red. */
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 0.6rem;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
   border-radius: var(--radius-lg);
   border: 2px solid color-mix(in oklab, var(--turn-active) 55%, transparent);
   background-color: color-mix(in oklab, var(--surface) 55%, transparent);
@@ -970,29 +1033,25 @@
   white-space: nowrap;
 }
 
-.table__hint {
-  color: var(--text);
-}
-
 
 /* Landing: direction comes from the seat, the distance from these offsets. */
 .table__slot--landing {
   animation: table-land var(--t-card-play) var(--ease-card) both;
 }
 
-.table[data-land-from="bottom"] .table__slot--landing {
+.felt-table[data-land-from="bottom"] .table__slot--landing {
   --land-x: 0;
   --land-y: 55%;
 }
-.table[data-land-from="top"] .table__slot--landing {
+.felt-table[data-land-from="top"] .table__slot--landing {
   --land-x: 0;
   --land-y: -55%;
 }
-.table[data-land-from="left"] .table__slot--landing {
+.felt-table[data-land-from="left"] .table__slot--landing {
   --land-x: -70%;
   --land-y: 0;
 }
-.table[data-land-from="right"] .table__slot--landing {
+.felt-table[data-land-from="right"] .table__slot--landing {
   --land-x: 70%;
   --land-y: 0;
 }
@@ -1017,7 +1076,8 @@
    pa je ovdje tačno na mjestu. */
 .table__drop--trail {
   cursor: pointer;
-  border-radius: var(--radius-md);
+  /* Isti radijus kao mirno stanje: ranije je skakao na --radius-md pa se ugao
+     vidno mijenjao cim trail postane legalan. */
   box-shadow: inset 0 0 0 2px
     color-mix(in oklab, var(--accent) 45%, transparent);
   transition: box-shadow var(--t-toast-in) var(--ease-out-soft);
@@ -1026,11 +1086,6 @@
 .table__drop--trail:focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 3px var(--accent);
-}
-
-.table__trail {
-  color: var(--accent);
-  text-align: center;
 }
 
 /* Reakcija uz sjedište — emoji mjehur pored pošiljaoca. */
@@ -1050,17 +1105,3 @@
   pointer-events: none;
 }
 
-.table__blocked {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  width: 100%;
-  padding: 0.5rem 0.7rem;
-  border-radius: var(--radius-md);
-  background-color: color-mix(in oklab, var(--surface) 88%, transparent);
-  box-shadow: inset 0 0 0 1px var(--danger-signal);
-}
-
-.table__blocked-title {
-  color: var(--danger-signal);
-}

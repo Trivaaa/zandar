@@ -7,6 +7,15 @@ export type TurnBannerProps = {
   /** Ignored when isYou. */
   displayName?: string;
   /**
+   * Recenica koju traka crta umjesto "Ti si na potezu". Traka je JEDINI kanal
+   * za uputstvo igracu: sve sto je ranije raslo unutar play-zone (force-capture
+   * objasnjenje, trail hint, "izaberi grupu") dolazi ovuda, pa sto vise ne
+   * mijenja geometriju kad izaberes kartu.
+   */
+  text?: string;
+  /** "must" = potez je ogranicen pravilom; boja upozorava, ne uzbunjuje. */
+  tone?: "turn" | "must";
+  /**
    * Preostale sekunde. Sat zivi u roditelju; traka ga samo crta. Bez ovoga
    * (ili sa totalSeconds <= 0) banner je gola recenica, bez brojaca — tako
    * izgleda dok karte jos padaju na pocetku ruke.
@@ -27,6 +36,8 @@ const URGENT_AT = 5;
 export function TurnBanner({
   isYou,
   displayName = "",
+  text,
+  tone = "turn",
   secondsRemaining,
   totalSeconds = 0,
   className = "",
@@ -38,12 +49,15 @@ export function TurnBanner({
 
   return (
     <div
-      className={`banner ${isYou ? "banner--you" : ""} ${className}`}
+      className={`banner ${isYou ? "banner--you" : ""} ${
+        tone === "must" ? "banner--must" : ""
+      } ${className}`}
       role="status"
+      aria-live="polite"
       data-urgent={urgent}
     >
       <span className="banner__text font-sans text-base font-bold">
-        {isYou ? sr.turn.you : sr.turn.other(displayName)}
+        {text ?? (isYou ? sr.turn.you : sr.turn.other(displayName))}
       </span>
 
       {/* Cifre su aria-hidden: recenica je vec objavljena kroz role="status",

@@ -53,7 +53,11 @@ export function MoveRevealLive({ state }: { state: PrivateGameStateView }) {
   return (
     <div
       ref={boxRef}
-      className="absolute top-[18%] left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[92vw]"
+      /* Centrirano na play-zonu, ne na gornju trecinu: otkad sjedista stoje na
+         luku oko vrha, `top-[18%]` je padao preko protivnika — a panel govori
+         KO je odigrao, pa je zaklanjao upravo ono sto imenuje. Preko stola je
+         u redu: karte koje panel pokazuje ionako odlete u pile. */
+      className="absolute top-[54%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none max-w-[92vw]"
     >
       <MoveReveal
         move={move}
