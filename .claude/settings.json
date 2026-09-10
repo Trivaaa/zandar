@@ -3,7 +3,7 @@
     "allow": [
       "Bash(pnpm tsc *)",
       "Bash(pnpm --filter @zandar/server exec tsc --noEmit)",
-      "Bash(pnpm --filter @zandar/web exec tsc --noEmit)",
+      "Bash(pnpm --filter web exec tsc --noEmit)",
       "Bash(git commit -m ' *)",
       "Bash(git merge *)",
       "Bash(git push *)",
@@ -37,7 +37,6 @@
       "Bash(rg -rn \"PwaManager\" apps/web --glob '*.tsx')",
       "Bash(rg -n \"function persistRoom|function storeRoom|function getRoom\\\\b\" apps/server/src/*.ts)",
       "Bash(cd /c/Users/User/projects/zandar/apps/web && cat package.json | grep -A6 '\"scripts\"')",
-      "Read(//c/c/Users/User/projects/zandar/apps/web/**)",
       "Bash(pnpm -r test)",
       "Bash(rg -n \"fade-in|keyframes|animate-|flash|pulse\" apps/web/app/globals.css apps/web/tailwind.config.*)",
       "Bash(rg -ni \"deploy|produkcij|production|hosting|vps|vm |droplet|server.*pokret|domain|nginx\" docs/CURRENT_STATE README.md docs/*.md)",
@@ -48,10 +47,11 @@
       "Bash(sed -n '383,420p' docs/DESIGN_SYSTEM.md)",
       "Bash(git diff *)",
       "Bash(cd /c/Users/User/projects/zandar && rg -n \"allow_on_table|award_to_cutter\" --glob '!docs/**' --glob '!*.test.ts' apps packages | rg -v \"JackOnInitialBehavior|// award_to_cutter|award_to_cutter: J ide\")",
-      "Read(//c/c/Users/User/projects/zandar/**)",
       "Bash(cd /c/Users/User/projects/zandar/apps/web && npx tsc --noEmit 2>&1 | tail -10 && echo \"=== WEB TSC ===\" && npx eslint components/MoveReveal.tsx components/GameScreen.tsx 2>&1 | tail -10 && echo \"=== ESLINT ===\" && cd ../server && pnpm typecheck 2>&1 | tail -5 && echo \"=== SERVER TSC ===\")",
-      "Read(//c/Users/User/projects/**)",
-      "Bash(git commit *)"
+      "Read(//c/Users/User/projects/zandar/**)",
+      "Bash(git commit *)",
+      "Bash(git -C /c/Users/User/projects/zandar diff .claude/settings.json)",
+      "Bash(python -c ' *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\User\\projects\\zandar\\.git"
