@@ -8,6 +8,8 @@ export type DeckPileProps = {
   remaining: number;
   size?: CardSize;
   className?: string | undefined;
+  /** Pozicija na pozornici — dolazi kao `--stage-*` varijabla iz GameScreen-a. */
+  style?: React.CSSProperties | undefined;
 };
 
 const sizeClass: Record<CardSize, string> = {
@@ -15,6 +17,8 @@ const sizeClass: Record<CardSize, string> = {
   sm: "card--sm",
   md: "card--md",
   lg: "card--lg",
+  /** Sirina dolazi iz --table-card-w koji postavlja .table__cards. */
+  fluid: "card--fluid",
 };
 
 /** Physical layers for a given count: clamp(round(count / 5), 1, 9). */
@@ -23,11 +27,11 @@ function layersFor(remaining: number): number {
   return Math.min(9, Math.max(1, Math.round(remaining / 5)));
 }
 
-export function DeckPile({ remaining, size = "sm", className = "" }: DeckPileProps) {
+export function DeckPile({ remaining, size = "sm", className = "", style }: DeckPileProps) {
   const layers = layersFor(remaining);
 
   return (
-    <div className={`deck ${className}`} data-deck data-empty={layers === 0}>
+    <div className={`deck ${className}`} style={style} data-deck data-empty={layers === 0}>
       <div className="deck__stack" style={{ "--deck-layers": layers } as React.CSSProperties}>
         {layers === 0 ? (
           <div className="deck__slot" aria-hidden="true" />

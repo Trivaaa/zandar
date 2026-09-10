@@ -50,6 +50,23 @@
   --card-pad: 0.4rem;
 }
 
+/* Fluidna karta — sirinu NE bira komponenta nego kutija stola. `.table__cards`
+   racuna `--table-card-w` iz broja kolona/redova i vlastite velicine (container
+   query jedinice), pa mreza uvijek STANE umjesto da se skroluje. Zato ovdje
+   nema brojeva: sve je izvedeno iz `--card-w`, kao i kod fiksnih velicina.
+
+   Fallback `3.5rem` = `sm`: ako browser ne zna `cqw`/`cqh`, cijeli calc je
+   nevalidan-na-vrijednosti i sto izgleda tacno kao prije ove promjene. Zato
+   nema `@supports` grane — pod je vec graciozan. */
+.card--fluid {
+  --card-w: var(--table-card-w, 3.5rem);
+  --card-h: calc(var(--card-w) * 1.417);
+  --card-pad: calc(var(--card-w) * 0.06);
+  /* Radijus je jedina apsolutna mjera na karti: `--radius-md` (8px) na karti
+     od 36px je mrlja, a ne ugao. `min()` drzi velike karte na tokenu. */
+  --card-radius: min(var(--radius-md), calc(var(--card-w) * 0.13));
+}
+
 /* The flip carrier. Wrapper transforms stay free for deal/play/lift so the
    two concerns never fight over one transform property. */
 .card-inner {
@@ -139,6 +156,26 @@
 .card--lg .card-face__pip {
   --pip-size: calc(var(--card-w) * 0.42);
 }
+.card--fluid .card-face__pip {
+  --pip-size: calc(var(--card-w) * 0.36);
+}
+
+/* Rank fluidne karte. Odnos 0.38 je isti koji `text-num-md` (28px) daje na
+   `md` karti (72px) — ista karta, ista tezina, samo skalirana. Fiksne
+   velicine i dalje nose utility iz JSX-a; ovdje ga nema, pa font-size iz ovog
+   sloja ima kome da se obrati. */
+.card--fluid .card-face__rank {
+  font-size: calc(var(--card-w) * 0.38);
+}
+
+.card--fluid .card-side,
+.card--fluid .card-face,
+.card--fluid .card-back {
+  border-radius: var(--card-radius);
+}
+.card--fluid .card-back::after {
+  border-radius: calc(var(--card-radius) - 0.1rem);
+}
 
 .card--xs .card-face__rank,
 .card--sm .card-face__rank {
@@ -208,6 +245,15 @@
  * ------------------------------------------------------------------ */
 
 .card-lift {
+  /* `position: absolute; inset: 0` NIJE ukras.
+     `.card-glow` i `.card-inner` su apsolutni sa `inset: 0`, a cim `.card-lift`
+     dobije `transform` (a dobija ga na izbor karte), ON postaje njihov
+     containing block. Bez sopstvene velicine `.card-lift` je blok bez ijednog
+     djeteta u toku, dakle visine 0 — pa je izabrana karta ostajala kao prazan
+     zlatni obris bez lica. Ovako mu velicinu daje `.card`, koji je `relative`.
+     Izmjereno prije popravke: lice izabrane karte 58x17 umjesto 58x79. */
+  position: absolute;
+  inset: 0;
   transition: transform var(--t-card-play) var(--ease-snap);
 }
 
@@ -572,16 +618,26 @@
   --seat-ring-w: 1px;
   --seat-ring: color-mix(in oklab, var(--accent) 35%, transparent);
   --seat-glow: transparent;
+  /* Precnik avatara NAMJERNO nije deklarisan ovdje. Deklaracija na samom
+     elementu pobjedjuje naslijedjenu, pa bi `--seat-avatar` sa `.felt-stage`
+     (kratak ekran, desktop) nikad ne stigao do sjedista — isti trap koji je
+     vec dokumentovan iznad za `--seat-ring`. Vrijednost dolazi sa pozornice;
+     fallback je za preglednike koji sjediste crtaju van nje (/dev/felt2). */
 
   position: relative; /* sidro za .seat__reaction */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
-  /* Padding i min-width nisu kutija nego rezervisan prostor: drze gornje sjediste
-     da ne poskakuje kad se ime promijeni. Okvira i podloge nema — igrac stoji
-     direktno na feltu. */
-  padding: 0.45rem 0.6rem;
+  /* Padding nije kutija nego rezervisan prostor. Okvira i podloge nema —
+     igrac stoji direktno na feltu. */
+  padding: 0.2rem 0.4rem;
+  min-width: 0;
+}
+
+/* Gornje sjediste zadrzava rezervisanu sirinu da ne poskakuje kad se ime
+   promijeni; bocna i donje su ogranicena pojasom, pa im rezervacija smeta. */
+.seat--top {
   min-width: 6.5rem;
 }
 
@@ -615,11 +671,22 @@
   align-items: center;
 }
 
+/* Referenca: avatar GORE, cip sa imenom i rezultatom ISPOD — na svakoj
+   orijentaciji, ne samo na bocnoj. Zato je kolona baza, a ne izuzetak.
+
+   `z-index: 1` drzi avatar i cip IZNAD lepeze poledjina, koja je apsolutna i
+   stoji iza njih. Ne moze se rijesiti sa `z-index: -1` na lepezi: `.felt-stage`
+   ne pravi stacking context, pa bi negativan sloj otisao iza felt pozadine i
+   lepeza bi nestala. */
 .seat__body {
+  position: relative;
+  z-index: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   min-width: 0;
+  max-width: 100%;
 }
 
 /* Jedini nosilac stanja sjedista otkad je okvir pao. Dva odvojena slota: prsten
@@ -627,10 +694,14 @@
 .seat__avatar {
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--seat-avatar, 3.25rem);
+  height: var(--seat-avatar, 3.25rem);
   flex: 0 0 auto;
-  border-radius: var(--radius-lg);
+  border-radius: 999px;
+  /* Slovo se skalira sa avatarom. Zato JSX vise ne nosi `text-num-sm`: utility
+     bi, iz kasnijeg sloja, pobijedio svaki font-size napisan ovdje. */
+  font-size: calc(var(--seat-avatar, 3.25rem) * 0.42);
+  line-height: 1;
   background-color: var(--surface);
   color: var(--accent);
   box-shadow:
@@ -638,11 +709,19 @@
     0 0 0.75rem var(--seat-glow, transparent);
 }
 
+/* Cip ispod avatara: ime, pa rezultat. Tamna podloga je ono sto ime odvaja od
+   sukna — bez nje bijeli tekst na zelenom gubi ivicu cim karta prodje iza. */
 .seat__meta {
   display: flex;
   flex-direction: column;
+  align-items: center;
   min-width: 0;
-  line-height: 1.15;
+  max-width: 100%;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 82%, transparent);
+  line-height: 1.2;
+  text-align: center;
 }
 
 .seat__name {
@@ -658,11 +737,29 @@
   gap: 0.55rem;
 }
 
+/* Rezultat u mentnoj, kao na referenci — razlikuje se od zlatnih zetona i od
+   bijelog imena, pa se broj cita bez citanja labele. */
+.seat__score {
+  color: var(--success);
+}
+
 .seat__coins {
   color: var(--accent);
 }
 
+/* Lepeza poledjina NE trosi visinu sjedista: stoji apsolutno IZA avatara i
+   viri mu iznad glave.
+
+   Izmjereno na 360x760: u toku je gornje sjediste bilo 219px visoko i ulazilo
+   75px U STO. Lepeza je 70 od tih 219. Broj karata u ruci je informacija koja
+   se ne smije izgubiti (otud su i uklonjeni count-badge-evi), ali ne mora da
+   je placa sto — a referenca sjediste ionako crta kao avatar plus cip. */
 .seat__fan {
+  position: absolute;
+  top: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 0;
   display: flex;
   justify-content: center;
   /* Rotated slots overshoot their row box on all three edges; reserve that room
@@ -681,55 +778,69 @@
     0.12rem 0.1rem 0.35rem color-mix(in oklab, var(--surface) 70%, transparent);
 }
 
+/* Karte lepeze su sitne i jako preklopljene, pa cijela lepeza ostane siroka
+   otprilike koliko i avatar iza kojeg stoji. Sirina je vazna: sire od cipa i
+   lepeza pocne da gazi ime, sto je na bocnim sjedistima odmah vidljivo.
+   (0,2,0) protiv (0,1,0) od `.card--xs` — pobjedjuje u istom sloju. */
+.seat__fan .card {
+  --card-w: 1.55rem;
+  --card-h: 2.2rem;
+}
+
 .seat__fan-slot {
-  margin-inline: -0.65rem;
+  margin-inline: -0.5rem;
   /* Pivot je sredina STVARNOG broja karata, ne fiksni indeks 2: sa 4 karte je
      lepeza inace bila nakrivljena ulijevo umjesto simetricna. */
   transform: rotate(calc((var(--fan-i) - (var(--fan-n) - 1) / 2) * 2.2deg));
   transform-origin: bottom center;
 }
 
-/* Bocna sjedista dijele uzak pojas izmedju play-zone i ivice felta (~5rem na
-   telefonu), pa su kompaktan vertikalni cip: avatar IZNAD imena, ne pored. */
+/* Bocna sjedista dijele pojas izmedju stola i ivice felta. Sirina im je TACNO
+   `--seat-gutter`, a sto je uvucen za isto toliko — pa se cip i karta ne mogu
+   sudariti ni na jednoj sirini ni pri jednoj velicini karte. Sudar se ovdje
+   sprjecava geometrijom; ranije se sprjecavao pomjeranjem sjedista. */
 .seat--left,
 .seat--right {
   min-width: 0;
-  max-width: 5.5rem;
-  padding-inline: 0.35rem;
-}
-
-.seat--left .seat__body,
-.seat--right .seat__body {
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.seat--left .seat__meta,
-.seat--right .seat__meta {
-  align-items: center;
-  text-align: center;
+  max-width: var(--seat-gutter, 5rem);
+  padding-inline: 0.2rem;
 }
 
 .seat--left .seat__name,
 .seat--right .seat__name {
-  max-width: 4.75rem;
+  max-width: calc(var(--seat-gutter, 5rem) - 1.4rem);
 }
 
-.seat--left .seat__numbers,
-.seat--right .seat__numbers {
-  justify-content: center;
+/* Tvoje sjediste. Sat ti je u traci nad rukom, a ruku vec vidis — pa ni pilula
+   ni lepeza poledjina nemaju sta da kazu. Oba se gase po ORIJENTACIJI (koja
+   znaci "ja"), nikad po nekom svojstvu igraca: svako tude sjediste se i dalje
+   crta identicno, pa bot i covjek ostaju nerazlucivi. */
+.seat--bottom {
+  --seat-avatar: 3.5rem;
 }
 
-/* Narrow orientations are width-capped, so the fan takes a bigger bite to stay
-   inside the frame. */
-.seat--left .seat__fan,
-.seat--right .seat__fan {
-  padding-inline: 0.25rem;
+.seat--bottom .seat__pill,
+.seat--bottom .seat__fan {
+  display: none;
 }
 
-.seat--left .seat__fan-slot,
-.seat--right .seat__fan-slot {
-  margin-inline: -1.05rem;
+/* Ti si na potezu: jaci prsten nego kod ostalih, jer je to poziv na akciju a
+   ne obavjestenje. Swap svojstva, bez animacije. */
+.seat--bottom[data-current-turn] {
+  --seat-ring-w: 3px;
+  --seat-ring: var(--turn-active);
+  --seat-glow: color-mix(in oklab, var(--turn-active) 75%, transparent);
+}
+
+/* Pilula bocnog sjedista ne smije da trosi visinu — bocni pojas je nema odakle
+   uzeti, a rezervisanih 1.5rem je guralo avatar iz sredine stola. Gornje
+   sjediste je NAMJERNO izuzeto: njegova bi pilula uletjela u zaglavlje i
+   zavrsila iza njegove podloge. Tamo prostora ima, pa ostaje u toku. */
+.seat--left .seat__pill,
+.seat--right .seat__pill {
+  position: absolute;
+  bottom: 100%;
+  min-height: 0;
 }
 
 /* Connection state outranks the team mark, but stays one step below
@@ -890,27 +1001,42 @@
   min-height: 2.4rem;
 }
 
-/* JEDINA vidljiva povrsina play-zone. Omotac u GameScreen-u je proziran —
-   dvije ugnijezdene zaobljene kutije su se na uredaju citale kao greska u
-   crtanju, ne kao dubina. */
+/* Kutija stola. Karte leze DIREKTNO na feltu — nema panela, nema pozadine,
+   nema ring-a: dvije ugnijezdene zaobljene kutije su se na uredaju citale kao
+   greska u crtanju, a referenca sto crta kao slobodne karte na suknu. Element
+   ipak ostaje, jer nosi jos dvije uloge: tap-metu za trail i metu za `shake`
+   kad je trail odbijen.
+
+   `container-type: size` ga pretvara u query container iz kojeg `.table__cards`
+   cita `100cqw`/`100cqh`. Uslov za `contain: size` je da velicina kutije NE
+   zavisi od sadrzaja — otud `flex: 1 1 0` (basis 0, ne auto): visina dolazi iz
+   pojasa umanjenog za traku izbora, nikad iz karata. Posljedica koja rjesava
+   stari poznati rez: kad se traka izbora pojavi, karte se SMANJE umjesto da
+   ispadnu iz pojasa.
+
+   INVARIANTA: pojas u GameScreen-u mora uvijek imati i `top` i `bottom`, a
+   `.felt-table` mora zadrzati `height: 100%`. Ako iko na tom putu dobije `auto`
+   visinu, size containment srusi kutiju na nulu i sve karte padnu na minimum.
+
+   `overflow-y: auto` je POD, ne mehanizam. Fit racun je izmjeren i u svakom
+   normalnom slucaju mreza staje tacno (provjereno na 360x640, 360x760, 390x844
+   i 600x900, za 0-12 karata, sa trakom izbora i bez nje) — skrol se tad ne
+   pojavljuje. Ostaje jedan degenerisan ugao: ekran visine 640 SA 10-12 karata
+   I otvorenom trakom izbora trazi tri reda u 84px, sto ne staje ni na
+   `--card-w-min`. Tamo je skrol jedini izbor koji ne krije kartu zauvijek.
+   `overflow-x: hidden` jer po sirini mreza staje uvijek. */
 .table__drop {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  /* `0 1 auto`: drzi se karata (ne raste u prazan pravougaonik), ali smije da
-     se skupi kad traka izbora zatrazi mjesto — jedino tako i sto od 12 karata
-     i traka staju u pojas. Skrol se pali samo u tom rijetkom uglu; karta koja
-     stize (`table-land`) tad ulazi sa ivice stola, sto je i inace smjer iz
-     kojeg dolazi. */
-  flex: 0 1 auto;
-  min-height: 7rem;
-  overflow: auto;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   scrollbar-width: none;
-  padding: 0.6rem;
-  border-radius: var(--radius-lg);
-  background-color: color-mix(in oklab, var(--felt) 85%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 14%, transparent);
+  container-type: size;
 }
 
 .table__drop::-webkit-scrollbar {
@@ -918,14 +1044,44 @@
 }
 
 .table__cards {
+  /* `--table-cols` / `--table-rows` postavlja TableSurface inline: JS zna broj
+     karata, CSS zna kutiju. var() u repeat() se supstituise tekstualno, pa je
+     broj kolona podesiv spolja. */
+  --table-cols: 3;
+  --table-rows: 1;
+  --table-gap-x: 0.4rem;
+  --table-gap-y: 0.4rem;
+  --card-ratio: 1.417; /* h/w — isti odnos koji vec nose xs/sm/md/lg */
+  /* Pod citljivosti. Mora biti nizak koliko i najgori slucaj koji se zaista
+     desava (12 karata + traka izbora na 360x640), inace `max()` nadjaca fit i
+     mreza se ODSIJECE umjesto da se smanji — a odsjecena karta je gora od
+     sitne. Izmjereno: traka izbora ostavi stolu 145px, tri reda tad traze 30px
+     po karti. */
+  --card-w-min: 1.9rem;
+  --card-w-max: 4.5rem; /* iznad ovoga jedna karta nadglasa lepezu */
+
+  --fit-w: calc(
+    (100cqw - (var(--table-cols) - 1) * var(--table-gap-x)) / var(--table-cols)
+  );
+  --fit-h: calc(
+    (100cqh - (var(--table-rows) - 1) * var(--table-gap-y)) / var(--table-rows) /
+      var(--card-ratio)
+  );
+  --table-card-w: max(
+    var(--card-w-min),
+    min(var(--fit-w), var(--fit-h), var(--card-w-max))
+  );
+
   display: grid;
-  /* var() u repeat() se supstituise tekstualno, pa je broj kolona podesiv
-     spolja: GameScreen ga na `md` dize na 5. */
-  grid-template-columns: repeat(var(--table-cols, 4), max-content);
+  /* Eksplicitna sirina kolone, NE `max-content`: racun i iscrtana staza moraju
+     biti isti broj, inace greska zaokruzivanja iseli mrezu iz kutije po jednu
+     kartu. */
+  grid-template-columns: repeat(var(--table-cols), var(--table-card-w));
+  gap: var(--table-gap-y) var(--table-gap-x);
   justify-content: center;
+  align-content: center;
   justify-items: center;
   align-items: center;
-  gap: 0.5rem 0.55rem;
 }
 
 .table__slot {
@@ -1023,6 +1179,14 @@
   transform: translateY(-0.15rem);
 }
 
+/* Karte u traci izbora su podsjetnik na grupu, ne meta za citanje — sto ih
+   crta u punoj velicini iznad. Sitnije su da traka ne uzme visinu koja
+   pripada stolu (svaki njen piksel je piksel manje za karte). */
+.table__chooser .card {
+  --card-w: 2.1rem;
+  --card-h: 2.98rem;
+}
+
 .table__group-cards {
   display: flex;
   gap: 0.3rem;
@@ -1067,25 +1231,26 @@
   }
 }
 
+/* Bez panela ovaj tekst pluta na suknu unutar ovala. */
 .table__empty {
   text-align: center;
 }
 
-/* Trail — cijela play-zona je tap-meta kad kupljenja nema.
-   Isprekidana ivica je u ovoj aplikaciji REZERVISANA za drop-target,
-   pa je ovdje tačno na mjestu. */
+/* Trail affordance vise NE crta ova kutija — nema pozadinu na kojoj bi se ring
+   vidio. Signal je presao na `.felt-ring[data-trail="true"]`, tj. na ovalni
+   obod stola: isti podatak, veca povrsina, i cross-fade opacity-ja umjesto
+   tranzicije `box-shadow`-a (koja je tjerala preracunavanje sjenke po frejmu).
+
+   Fokus MORA ostati vidljiv i bez pozadine, inace tastatura gubi metu. `outline`
+   se crta van box-a i ne animira se, pa ne pomjera nijednu kartu. */
 .table__drop--trail {
   cursor: pointer;
-  /* Isti radijus kao mirno stanje: ranije je skakao na --radius-md pa se ugao
-     vidno mijenjao cim trail postane legalan. */
-  box-shadow: inset 0 0 0 2px
-    color-mix(in oklab, var(--accent) 45%, transparent);
-  transition: box-shadow var(--t-toast-in) var(--ease-out-soft);
 }
 
 .table__drop--trail:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 3px var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-lg);
 }
 
 /* Reakcija uz sjedište — emoji mjehur pored pošiljaoca. */
@@ -1105,3 +1270,265 @@
   pointer-events: none;
 }
 
+
+/* ------------------------------------------------------------------ *
+ * Pozornica — vertikalni budzet ekrana, deklarisan JEDNOM
+ *
+ * Skoro svaki bug ovog ekrana dosao je iz magicnih brojeva koji se raziđu:
+ * `top-[33%]`, `bottom-[190px]`, `bottom-[150px]`, `bottom-[132px]`,
+ * `top-[54%]`, `bottom-24`. Redizajn dodaje jos dva potrosaca istog prostora
+ * (zaglavlje i tvoje sjediste), pa se budzet ovdje deklarise jednom, a svako
+ * apsolutno pozicionirano dijete cita varijablu umjesto da nosi svoj px.
+ * Trake se onda ne mogu razici, a 2P/3P/nizak-ekran su override od tri linije
+ * umjesto drugog rasporeda.
+ *
+ * Vrijednosti su izmjerene iz ovog fajla i svaka nosi pravilo koje preslikava.
+ * Ako se promijeni ono na sta pokazuju, mora i vrijednost.
+ * ------------------------------------------------------------------ */
+
+.felt-stage {
+  --seat-avatar: 3.25rem;
+  /* Sirina bocnog pojasa = sirina bocnog cipa. Sto je uvucen za tacno ovoliko.
+     `clamp` jer na 320px fiksnih 5rem pojede skoro pola sirine stola. */
+  --seat-gutter: clamp(3.75rem, 20vw, 5rem);
+
+  --stage-gap: 0.375rem;
+  /* `--stage-header-h` NIJE ovdje nego u globals.css `:root`: PWA banner je
+     `fixed` element IZVAN pozornice, pa varijablu s nje ne bi naslijedio, a
+     mora da se skloni ispod istog zaglavlja. Jedna vrijednost, jedno mjesto. */
+  /* Izmjereno na 360x760 (/dev/frame?measure=1), ne procijenjeno: pilula 1.5
+     + avatar 3.25 + cip ~3 + razmaci. Lepeza je van toka, pa se ne racuna. */
+  --stage-partner-h: 8.75rem;
+  --stage-seat-h: 7.5rem; /* tvoj avatar 3.5 + cip; bez pilule i lepeze */
+  --stage-banner-h: 2rem;
+  --stage-hand-h: 9.2rem; /* preslikava .hand: 1.5 + 4.95 + 2.75rem */
+
+  --stage-hand-top: calc(var(--safe-bottom) + var(--stage-hand-h));
+  --stage-banner-top: calc(
+    var(--stage-hand-top) + var(--stage-gap) + var(--stage-banner-h)
+  );
+  --stage-seat-top: calc(
+    var(--stage-banner-top) + var(--stage-gap) + var(--stage-seat-h)
+  );
+
+  --table-top: calc(
+    var(--safe-top) + var(--stage-header-h) + var(--stage-partner-h) +
+      var(--stage-gap)
+  );
+  --table-bottom: calc(var(--stage-seat-top) + var(--stage-gap));
+  /* Vertikalna sredina kutije stola. Dijele je bocna sjedista i move-reveal —
+     oba moraju da prate sto, a ne da nose svoj procenat koji se s njim raziđe. */
+  --table-mid: calc(
+    var(--table-top) + (100% - var(--table-top) - var(--table-bottom)) / 2
+  );
+}
+
+/* 3P: nema partnera gore, pa sto krece odmah ispod zaglavlja. */
+.felt-stage[data-partner="false"] {
+  --stage-partner-h: 0rem;
+}
+
+/* 2P: nema bocnih sjedista, pa sto uzima skoro punu sirinu. */
+.felt-stage[data-sides="false"] {
+  --seat-gutter: 0.75rem;
+}
+
+/* Nizak ekran (npr. 360x640): budzet ne staje. Placa se zaglavljem, avatarima
+   i lepezom poledjina — NE kartama, jer su karte razlog postojanja ekrana. */
+@media (max-height: 700px) {
+  .felt-stage {
+    --seat-avatar: 2.75rem;
+    /* Manji avatar skida ~0.5rem svakom sjedistu; ostalo je isto kao u bazi.
+       Procijenjene vrijednosti su ovdje ranije bile 1-2.5rem premale, pa su
+       partnerov cip i tvoj avatar ulazili u sto — na kratkom ekranu se to vidi
+       prvo. */
+    --stage-partner-h: 8.5rem;
+    --stage-seat-h: 7rem;
+    /* Kratak ekran placa i ruka: bez ovoga stolu ostane 141px, sto je ispod
+       tri reda cak i na `--card-w-min`. Smanjuje se REZERVA oko lepeze
+       (podizanje izabrane karte i luk), ne same karte. */
+    --stage-hand-h: 7.95rem;
+  }
+
+  /* `.seat--bottom` deklarise svoj precnik, pa mu override mora doci
+     specificnijim selektorom, ne nasljedjivanjem. */
+  .felt-stage .seat--bottom {
+    --seat-avatar: 3rem;
+  }
+
+  .felt-stage .hand {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+  }
+}
+
+@media (min-width: 48rem) {
+  .felt-stage {
+    --seat-avatar: 3.75rem;
+    --seat-gutter: 6rem;
+    --stage-partner-h: 9.5rem;
+    /* 8rem, ne 6: izmjereno je tvoje sjediste 119px i na desktopu je sa 6rem
+       ulazilo 7px u sto. */
+    --stage-seat-h: 8rem;
+    --stage-gap: 0.5rem;
+  }
+  /* Isti razlog kao na kratkom ekranu: `.seat--bottom` deklarise svoj precnik,
+     pa mu override mora doci specificnijim selektorom. */
+  .felt-stage .seat--bottom {
+    --seat-avatar: 4rem;
+  }
+  .felt-stage .table__cards {
+    --card-w-max: 5.75rem;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Zaglavlje — naziv, podnaslov, runda, meni, zvuk
+ * ------------------------------------------------------------------ */
+
+.felt-header {
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  z-index: 40;
+  display: grid;
+  /* Bocne kolone su jednake sirine da bi naslov bio centriran na EKRANU, a ne
+     u ostatku koji preostane poslije dugmadi. */
+  grid-template-columns: minmax(5.5rem, 1fr) auto minmax(5.5rem, 1fr);
+  align-items: center;
+  gap: 0.25rem;
+  min-height: var(--stage-header-h);
+  padding-top: calc(var(--safe-top) + 0.25rem);
+  padding-bottom: 0.25rem;
+  padding-inline: calc(var(--safe-left) + 0.5rem)
+    calc(var(--safe-right) + 0.5rem);
+  /* Traka ne smije da pojede tapove po feltu izmedju svoje dugmadi. */
+  pointer-events: none;
+}
+
+.felt-header > * {
+  pointer-events: auto;
+}
+
+.felt-header__menu {
+  justify-self: start;
+  display: grid;
+  place-items: center;
+  width: 3rem; /* 48px tap-meta */
+  height: 3rem;
+  border-radius: var(--radius-lg);
+  color: var(--text);
+}
+
+.felt-header__menu:active {
+  background-color: color-mix(in oklab, var(--surface) 60%, transparent);
+}
+
+/* Tri crte: srednja je sam element, gornja i donja su pseudo-elementi. */
+.felt-header__bars,
+.felt-header__bars::before,
+.felt-header__bars::after {
+  display: block;
+  width: 1.35rem;
+  height: 2px;
+  border-radius: 999px;
+  background-color: currentColor;
+}
+
+.felt-header__bars {
+  position: relative;
+}
+
+.felt-header__bars::before,
+.felt-header__bars::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+
+.felt-header__bars::before {
+  top: -0.45rem;
+}
+
+.felt-header__bars::after {
+  top: 0.45rem;
+}
+
+.felt-header__titles {
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.felt-header__title {
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.felt-header__subtitle {
+  color: var(--text-muted);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.felt-header__chip {
+  margin-top: 0.15rem;
+  padding: 0.05rem 0.6rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--surface) 75%, transparent);
+  color: var(--accent);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.felt-header__right {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * Ovalni obod stola
+ *
+ * Granice su vezane za ISTE varijable kao sto, pa partnerov avatar sjedi na
+ * gornjoj ivici a tvoj na donjoj — bez drugog seta brojeva koji bi se s njima
+ * razisao. Ime je `felt-ring`, ne `ring`: `ring` je Tailwind utility iz
+ * kasnijeg sloja, ista zamka kao `.table` vs `.felt-table`.
+ * ------------------------------------------------------------------ */
+
+.felt-ring {
+  position: absolute;
+  top: calc(var(--table-top) - 2.75rem);
+  bottom: calc(var(--table-bottom) - 2.25rem);
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 0; /* ispod karata i sjedista */
+  border-radius: 45% / 22%;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklab, var(--accent) 16%, transparent);
+  pointer-events: none;
+}
+
+/* Trail je legalan: obod se pojaca. Svjetlija kopija je UNAPRIJED nacrtana i
+   ukrsta se po opacity-ju — animirani `box-shadow` bi tjerao preracunavanje
+   sjenke po frejmu, sto je glavni izvor zastajkivanja na srednjem Androidu. */
+.felt-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px
+    color-mix(in oklab, var(--accent) 55%, transparent);
+  opacity: 0;
+  transition: opacity var(--t-toast-in) var(--ease-out-soft);
+}
+
+.felt-ring[data-trail="true"]::after {
+  opacity: 1;
+}

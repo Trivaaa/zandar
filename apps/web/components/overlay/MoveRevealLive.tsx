@@ -57,7 +57,11 @@ export function MoveRevealLive({ state }: { state: PrivateGameStateView }) {
          luku oko vrha, `top-[18%]` je padao preko protivnika — a panel govori
          KO je odigrao, pa je zaklanjao upravo ono sto imenuje. Preko stola je
          u redu: karte koje panel pokazuje ionako odlete u pile. */
-      className="absolute top-[54%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none max-w-[92vw]"
+      /* `--table-mid` je vertikalna sredina kutije stola. Fiksnih 54% je otkad
+         sjedista imaju drugu visinu padalo preko protivnika — panel koji imenuje
+         igraca je zaklanjao upravo njega. Fallback za /dev/overlays, gdje
+         pozornice nema. */
+      className="absolute top-[var(--table-mid,54%)] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none max-w-[92vw]"
     >
       <MoveReveal
         move={move}

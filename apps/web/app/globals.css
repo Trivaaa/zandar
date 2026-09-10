@@ -61,6 +61,11 @@
   --radius-md:      0.5rem;
   --radius-lg:      0.875rem;
 
+  /* Visina zaglavlja stola. Zivi ovdje, a ne na `.felt-stage`, jer je citaju
+     DVA stabla: felt (sve ispod zaglavlja) i PWA banner, koji je `fixed` izvan
+     pozornice i ne bi naslijedio njenu varijablu. */
+  --stage-header-h: 4rem;
+
   /* Safe area (notch / home indicator) */
   --safe-top:    env(safe-area-inset-top,    0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -337,6 +342,19 @@
    Postojeće animacije gore imaju hardkodirana trajanja, pa ih
    token-kolaps NE dodiruje — gase se eksplicitno.
    ===================================================== */
+
+/* Zaglavlje prati isti budzet kao ostatak pozornice (vidi felt.css). */
+@media (max-height: 700px) {
+  :root {
+    --stage-header-h: 3.25rem;
+  }
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --stage-header-h: 4.5rem;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   :root {

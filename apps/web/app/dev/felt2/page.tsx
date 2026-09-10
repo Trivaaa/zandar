@@ -171,6 +171,15 @@ export default function FeltTwoPreview() {
             orientation="right"
             reaction={<span className="text-xl">🔥</span>}
           />
+          {/* Tvoje sjediste: bez pilule i bez lepeze (sat je u traci, ruku vec
+              vidis), a na potezu nosi jaci zlatni prsten nego ostali. */}
+          <PlayerSeat
+            player={P("me", "Ti", 0, 0)}
+            isYou
+            isActive
+            score={14}
+            orientation="bottom"
+          />
         </div>
       </Row>
 

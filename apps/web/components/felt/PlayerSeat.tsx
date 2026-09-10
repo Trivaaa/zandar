@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { CardBack } from "./CardBack";
 import { TurnPill } from "./TurnPill";
 import { sr } from "@/lib/sr";
@@ -9,7 +9,7 @@ import type { PublicPlayer } from "@/components/felt/types";
 export type PlayerSeatProps = {
   player: PublicPlayer;
   isActive?: boolean;
-  /** Kept for API symmetry; a seat is never the local player in this layout. */
+  /** Tvoje sjediste (orientation="bottom"): jaci prsten na potezu. */
   isYou?: boolean;
   secondsRemaining?: number;
   totalSeconds?: number;
@@ -18,10 +18,12 @@ export type PlayerSeatProps = {
   coins?: number;
   showCoins?: boolean;
   isThinking?: boolean;
-  orientation?: "top" | "left" | "right";
+  orientation?: "top" | "left" | "right" | "bottom";
   /** Emoji reakcija uz sjedište — da se vidi KO je reagovao. */
   reaction?: ReactNode;
   className?: string | undefined;
+  /** Pozicija na pozornici — dolazi kao `--stage-*` varijabla iz GameScreen-a. */
+  style?: CSSProperties | undefined;
 };
 
 const statusLabel = {
@@ -47,12 +49,18 @@ export function PlayerSeat({
   orientation = "top",
   reaction,
   className = "",
+  style,
 }: PlayerSeatProps) {
   const team = player.teamId === undefined ? undefined : player.teamId === 0 ? "a" : "b";
 
   return (
     <div
       className={`seat seat--${orientation} ${team ? `seat--team-${team}` : ""} ${className}`}
+      style={style}
+      /* Jedino sidro ovog igraca za `flyAnimation`. Omotac ruke ga je nekad
+         nosio takode; dva ista sidra su znacila da `collectToPile`
+         (querySelector, jednina) bira po redoslijedu u DOM-u, a `dealFromDeck`
+         (querySelectorAll) tebi dijeli dvaput. Ne vracati ga nazad. */
       data-seat-id={player.id}
       {...(isActive ? { "data-current-turn": true } : {})}
       data-status={player.connectionStatus}
@@ -77,7 +85,10 @@ export function PlayerSeat({
       </div>
 
       <div className="seat__body">
-        <div className="seat__avatar font-display text-num-sm" aria-hidden="true">
+        {/* Bez `text-num-sm`: utility bi iz kasnijeg sloja pobijedio font-size
+            koji `.seat__avatar` racuna iz `--seat-avatar`, pa slovo ne bi
+            pratilo velicinu avatara. */}
+        <div className="seat__avatar font-display" aria-hidden="true">
           {initial(player.displayName)}
         </div>
 

@@ -107,7 +107,10 @@ function PwaBanner() {
     <div
       className={`fixed left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-token-lg bg-surface-raised border border-white/10 shadow-xl px-3 py-2 max-w-[92vw] ${
         inRoom
-          ? "top-3 mt-safe-top"
+          ? // U sobi je vrh ekrana zaglavlje stola; banner ide ispod njega.
+            // `--stage-header-h` je u globals.css `:root` bas zato sto je ovaj
+            // element `fixed` i ne bi ga naslijedio sa `.felt-stage`.
+            "top-[calc(var(--safe-top)+var(--stage-header-h)+0.5rem)]"
           : "bottom-3 mb-safe-bottom"
       }`}
     >

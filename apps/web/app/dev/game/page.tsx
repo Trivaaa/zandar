@@ -1,12 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { GamePhase, PrivateGameStateView } from "@zandar/shared-types";
 import { GameScreen } from "@/components/GameScreen";
 
 /**
- * Dev preview za GameScreen (Faza B integracija). Mock 4P state; prebacuj fazu
- * (playing / hand_finished / abandoned). onPlayCard je no-op. Nije produkcijski.
+ * Dev preview za GameScreen. Mock state; prebacuj fazu i broj karata na stolu.
+ * onPlayCard je no-op. Nije produkcijski (/dev/* je 404 u produkciji).
+ *
+ * Stanje se moze zadati i iz URL-a:
+ *   /dev/game?cards=9&players=4&phase=playing&chooser=1&name=Aleksandra
+ *
+ * To NIJE ukras: headless Chrome (`--screenshot`) ne moze da klikne dugmad, pa
+ * bi bez URL-a svaki snimak bio isto pocetno stanje — a raspored se lomi bas u
+ * rubnim kombinacijama (12 karata, 2P, dugo ime).
+ *
+ * Citanje ide kroz `useSyncExternalStore` (isti obrazac kao `FeedbackToggles`),
+ * a ne kroz `useSearchParams` (trazio bi Suspense granicu na `output: "export"`)
+ * ni kroz `useEffect` + `setState` (kaskadni render). URL je OSNOVA, dugmad su
+ * sloj preko nje — pa nema ni stanja koje treba sinhronizovati.
  */
 
 const card = (suit: "clubs" | "diamonds" | "hearts" | "spades", rank: string) => ({
@@ -35,30 +47,60 @@ const TABLE_POOL = [
   card("clubs", "6"),
 ];
 
-function mockState(
-  phase: GamePhase,
-  turnDeadline: number,
-  tableCount: number,
-): PrivateGameStateView & {
+type Opts = {
+  phase: GamePhase;
+  turnDeadline: number;
+  tableCount: number;
+  playerCount: 2 | 3 | 4;
+  longName: string | null;
+};
+
+/**
+ * Roster za dati broj igraca. 4P nosi `teamId`, 2P i 3P ga NEMAJU — bez toga bi
+ * `pilesOf`/`pileIdOf` u dvojcu i dalje racunali po timovima, pa preview ne bi
+ * pokazivao ono sto server salje.
+ */
+function rosterFor(playerCount: 2 | 3 | 4, longName: string | null) {
+  // `name=...` mijenja ime SVIM igracima: najgori slucaj za bocni cip je dugo
+  // ime na bocnom sjedistu, ne na tvom (tvoje nema pojas koji ga ogranicava).
+  const names = longName
+    ? [longName, longName, longName, longName]
+    : ["Ti", "Marko", "Jovana", "Stefan"];
+  return Array.from({ length: playerCount }, (_, i) => ({
+    id: i === 0 ? "me" : `p${i}`,
+    displayName: names[i]!,
+    seatIndex: i,
+    isHost: i === 0,
+    ...(playerCount === 4 ? { teamId: i % 2 } : {}),
+    connectionStatus: "connected" as const,
+  }));
+}
+
+function mockState({
+  phase,
+  turnDeadline,
+  tableCount,
+  playerCount,
+  longName,
+}: Opts): PrivateGameStateView & {
   turnDeadline?: number;
 } {
+  const players = rosterFor(playerCount, longName);
   return {
     roomId: "dev",
     matchId: "dev",
     phase,
-    players: [
-      { id: "me", displayName: "Ti", seatIndex: 0, isHost: true, teamId: 0, connectionStatus: "connected" },
-      { id: "p1", displayName: "Marko", seatIndex: 1, isHost: false, teamId: 1, connectionStatus: "connected" },
-      { id: "p2", displayName: "Jovana", seatIndex: 2, isHost: false, teamId: 0, connectionStatus: "connected" },
-      { id: "p3", displayName: "Stefan", seatIndex: 3, isHost: false, teamId: 1, connectionStatus: "connected" },
-    ],
+    players,
     table: TABLE_POOL.slice(0, tableCount),
     currentPlayerId: "me",
     dealerPlayerId: "p3",
     deckCount: 28,
-    handCounts: { me: 4, p1: 4, p2: 3, p3: 4 },
+    handCounts: Object.fromEntries(players.map((p, i) => [p.id, 4 - (i % 2)])),
     capturedCounts: { "team-0": 6, "team-1": 4 },
-    matchScore: { "team-0": 14, "team-1": 9 },
+    matchScore:
+      playerCount === 4
+        ? { "team-0": 14, "team-1": 9 }
+        : Object.fromEntries(players.map((p, i) => [p.id, 21 - i * 3])),
     targetScore: 21,
     stateVersion: 1,
     handNumber: 3,
@@ -92,28 +134,133 @@ const PHASES: GamePhase[] = ["playing", "hand_finished", "match_finished", "aban
 const TABLE_COUNTS = [0, 4, 8, 12];
 const noop = async () => {};
 
+type UrlOpts = {
+  phase: GamePhase;
+  tableCount: number;
+  playerCount: 2 | 3 | 4;
+  longName: string | null;
+  chooser: boolean;
+  /** `measure=1`: ispisi rect-ove i sakrij kontrolnu traku (ona pokriva sto). */
+  measure: boolean;
+};
+
+function parseParams(search: string): UrlOpts {
+  const q = new URLSearchParams(search);
+  const cards = q.get("cards");
+  const players = q.get("players");
+  const phase = q.get("phase");
+  return {
+    phase: phase && (PHASES as string[]).includes(phase) ? (phase as GamePhase) : "playing",
+    tableCount:
+      cards === null ? 4 : Math.max(0, Math.min(TABLE_POOL.length, Number(cards) || 0)),
+    playerCount: players === "2" ? 2 : players === "3" ? 3 : 4,
+    longName: q.get("name"),
+    chooser: q.get("chooser") === "1",
+    measure: q.get("measure") === "1",
+  };
+}
+
+/** URL se ne mijenja bez reload-a, pa je pretplata prazna. */
+const subscribeToNothing = () => () => {};
+
+/**
+ * Mjerna traka (`?measure=1`). Headless snimak pokazuje DA nesto ne valja, ali
+ * ne i KOJI element je krive sirine — a raspored se drzi na tome da se pojas
+ * stola i bocni cip dodiruju tacno. Ispisuje rect-ove u DOM, pa ih `--dump-dom`
+ * pokupi bez CDP-a.
+ */
+function Measure() {
+  const [rows, setRows] = useState<string[]>([]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const pick: [string, Element | null][] = [
+        ["stage", document.querySelector(".felt-stage")],
+        ["band", document.querySelector("[data-table-drop]")],
+        ["drop", document.querySelector(".table__drop")],
+        ["cards", document.querySelector(".table__cards")],
+        ["card1", document.querySelector(".table__slot .card")],
+        ["seatL", document.querySelector(".seat--left")],
+        ["seatR", document.querySelector(".seat--right")],
+        ["seatTop", document.querySelector(".seat--top")],
+        ["seatMe", document.querySelector(".seat--bottom")],
+        ["hand", document.querySelector(".hand")],
+        ["deck", document.querySelector(".deck")],
+        ["banner", document.querySelector(".banner")],
+        ["chooser", document.querySelector(".table__chooser")],
+        ["selCard", document.querySelector('.hand__slot[data-selected="true"] .card')],
+        ["selFace", document.querySelector('.hand__slot[data-selected="true"] .card-face')],
+      ];
+      setRows(
+        pick.map(([k, el]) => {
+          if (!el) return `${k}: MISSING`;
+          const r = el.getBoundingClientRect();
+          return `${k}: x=${Math.round(r.x)} y=${Math.round(r.y)} w=${Math.round(r.width)} h=${Math.round(r.height)}`;
+        }),
+      );
+    }, 600);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <pre data-measure className="fixed bottom-0 left-0 right-0 z-[70] bg-black/95 text-[9px] leading-[1.15] text-white p-1">
+      {rows.join(String.fromCharCode(10))}
+    </pre>
+  );
+}
+
 export default function DevGamePage() {
-  const [phase, setPhase] = useState<GamePhase>("playing");
-  const [tableCount, setTableCount] = useState(4);
+  const search = useSyncExternalStore(
+    subscribeToNothing,
+    () => window.location.search,
+    () => "", // server: default stanje, bez hydration mismatch-a
+  );
+  const url = useMemo(() => parseParams(search), [search]);
+
+  // Dugmad su sloj PREKO URL-a: dok nisi ni jedno pritisnuo, vazi URL.
+  const [phaseOverride, setPhaseOverride] = useState<GamePhase | null>(null);
+  const [tableOverride, setTableOverride] = useState<number | null>(null);
+  const [playersOverride, setPlayersOverride] = useState<2 | 3 | 4 | null>(null);
+
+  const phase = phaseOverride ?? url.phase;
+  const tableCount = tableOverride ?? url.tableCount;
+  const playerCount = playersOverride ?? url.playerCount;
+
   const [deadline] = useState(() => Date.now() + 25_000);
+
+  // U /dev/frame-u je stranica u iframe-u i kontrolna traka bi pokrila bocno
+  // sjediste — bas ono sto se na tim snimcima provjerava.
+  const framed = useSyncExternalStore(
+    subscribeToNothing,
+    () => window.self !== window.top,
+    () => false,
+  );
 
   return (
     <div className="relative">
       <GameScreen
-        state={mockState(phase, deadline, tableCount)}
+        /* `initialSelectedCardId` cita se samo pri montiranju, a URL stigne tek
+           poslije hidracije (server snapshot je prazan string) — bez `key`-a bi
+           `chooser=1` uvijek zatekao vec inicijalizovano stanje bez selekcije. */
+        key={url.chooser ? "chooser" : "plain"}
+        state={mockState({ phase, turnDeadline: deadline, tableCount, playerCount, longName: url.longName })}
+        {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
         onPlayCard={noop}
         onNextHand={noop}
         onRematch={noop}
         onReact={noop}
-        onLeave={() => setPhase("playing")}
+        onLeave={() => setPhaseOverride("playing")}
         activeReactions={[]}
       />
-      <div className="fixed top-1/2 left-2 -translate-y-1/2 z-[60] flex flex-col gap-1">
+      {url.measure ? <Measure /> : null}
+      <div
+        className={`fixed top-1/2 left-2 -translate-y-1/2 z-[60] flex-col gap-1 ${
+          url.measure || framed ? "hidden" : "flex"
+        }`}
+      >
         {PHASES.map((p) => (
           <button
             key={p}
             type="button"
-            onClick={() => setPhase(p)}
+            onClick={() => setPhaseOverride(p)}
             className={`px-2 py-1 rounded-token-sm text-[10px] font-bold transition-colors ${
               phase === p
                 ? "bg-accent text-accent-contrast"
@@ -123,12 +270,27 @@ export default function DevGamePage() {
             {p}
           </button>
         ))}
+        <span className="mt-2 text-[10px] text-muted">igrači</span>
+        {([2, 3, 4] as const).map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setPlayersOverride(n)}
+            className={`px-2 py-1 rounded-token-sm text-[10px] font-bold transition-colors ${
+              playerCount === n
+                ? "bg-accent text-accent-contrast"
+                : "bg-surface-raised/90 text-muted active:bg-surface"
+            }`}
+          >
+            {n}P
+          </button>
+        ))}
         <span className="mt-2 text-[10px] text-muted">sto</span>
         {TABLE_COUNTS.map((n) => (
           <button
             key={n}
             type="button"
-            onClick={() => setTableCount(n)}
+            onClick={() => setTableOverride(n)}
             className={`px-2 py-1 rounded-token-sm text-[10px] font-bold transition-colors ${
               tableCount === n
                 ? "bg-accent text-accent-contrast"

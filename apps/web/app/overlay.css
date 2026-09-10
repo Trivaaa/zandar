@@ -783,3 +783,95 @@
     transform: none;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * GameMenuSheet — meni stola (odrediste hamburgera)
+ *
+ * Donji sheet: palac je na dnu ekrana, pa su i akcije tamo. Scrim i
+ * pozicioniranje daje GameScreen — ovdje je samo povrsina.
+ * ------------------------------------------------------------------ */
+
+.gamemenu {
+  --gamemenu-max-h: 80dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 26rem;
+  max-height: min(var(--gamemenu-max-h), 100%);
+  padding: 0.5rem 0.9rem calc(var(--safe-bottom) + 0.9rem);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background-color: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent),
+    0 -0.9rem 2rem color-mix(in oklab, black 50%, transparent);
+  animation: gamemenu-in var(--t-toast-in) var(--ease-out-soft) both;
+}
+
+@keyframes gamemenu-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.gamemenu__grip {
+  align-self: center;
+  width: 2.5rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--text) 25%, transparent);
+}
+
+/* Razrada rezultata zna da naraste; sheet se ne siri preko ekrana, nego skroluje. */
+.gamemenu__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gamemenu__label {
+  padding-inline: 0.15rem;
+}
+
+.gamemenu__item {
+  display: flex;
+  align-items: center;
+  min-height: 3rem; /* 48px tap-meta */
+  padding-inline: 0.9rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.gamemenu__item:active {
+  background-color: color-mix(in oklab, var(--surface-raised) 80%, var(--surface));
+}
+
+.gamemenu__item--danger {
+  color: var(--danger-signal);
+}
+
+.gamemenu__close {
+  min-height: 3rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--surface-raised) 60%, transparent);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.gamemenu__close:active {
+  background-color: var(--surface-raised);
+}

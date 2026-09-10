@@ -7,6 +7,8 @@ const sizeClass: Record<CardSize, string> = {
   sm: "card--sm",
   md: "card--md",
   lg: "card--lg",
+  /** Sirina dolazi iz --table-card-w koji postavlja .table__cards. */
+  fluid: "card--fluid",
 };
 
 export type CardBackProps = {
