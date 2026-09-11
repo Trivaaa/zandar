@@ -165,6 +165,19 @@ pokrene ga. Poslije toga izmjena koda ide kroz HMR — **bez** novog builda. Uz 
 Next 16 prosljeđuje konzolu iz WebView-a u PC terminal, pa se greške sa uređaja
 čitaju bez `logcat`-a.
 
+**Ako već vrtiš dev server za `apps/web`, posudi ga:**
+
+```
+PORT=<njegov port> pnpm dev:android
+```
+
+Next 16 dozvoljava samo JEDAN dev server po projektu. Bez `PORT`-a skripta digne
+svoj, Next ga odmah ugasi, a gradle i instalacija ipak prođu — pa ostaneš sa
+APK-om koji nema šta da čita, bez ijedne poruke da je nešto pošlo po zlu. Zato
+skripta sad prepozna server koji odgovara na zadatom portu i posudi ga umjesto
+da dizne svoj; jedina cijena je da posuđeni nema `NEXT_PUBLIC_PLATFORM=native`,
+pa se native grane ponašaju kao na webu.
+
 ### Šta je moralo da se riješi
 
 | Zamka | Rješenje |

@@ -131,7 +131,10 @@ packages/shared-types TS types shared by web + server
 
 `pnpm --filter web mirror` — telefon na monitoru (scrcpy). `pnpm --filter web
 dev:android` — APK čita `next dev` sa LAN adrese, pa izmjena ide kroz HMR bez
-`build:mobile`/`cap sync`/`gradlew`. Detalji i zamke: `docs/MOBILE_PLAN_STATUS.md` §4.
+`build:mobile`/`cap sync`/`gradlew`. **Ako dev server za `apps/web` već radi,
+posudi ga:** `PORT=<njegov port> pnpm dev:android` — Next 16 dozvoljava samo
+jedan po projektu, a bez toga instalacija prođe i ostaviš APK bez sadržaja.
+Detalji i zamke: `docs/MOBILE_PLAN_STATUS.md` §4.
 
 **Nije zamjena za pravi APK prije izdanja** — `output: "export"` i
 `pageExtensions` grane se u dev-u ne izvršavaju. `CAP_LIVE_RELOAD_URL` je jedini

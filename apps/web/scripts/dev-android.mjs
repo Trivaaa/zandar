@@ -143,9 +143,8 @@ console.log(`▲ live reload  ${url}`);
 let dev = null;
 if (borrowed) {
   console.log(
-    `  posudjujem dev server koji vec radi na ${PORT}
-` +
-      `  (nema NEXT_PUBLIC_PLATFORM=native — native grane se ponasaju kao na webu)`,
+    `  posudjujem dev server koji vec radi na ${PORT}\n` +
+      `  (bez NEXT_PUBLIC_PLATFORM=native — native grane rade kao na webu)`,
   );
 } else {
   dev = spawn(process.execPath, [nextBin, "dev", "-H", "0.0.0.0", "-p", PORT], {
@@ -157,15 +156,13 @@ if (borrowed) {
     },
   });
   dev.on("exit", (code) => {
-    // Najcesci uzrok ranog izlaza: Next vec vrti dev server za ovaj projekat.
+    // Najcesci uzrok ranog izlaza: Next 16 vec vrti dev server za ovaj projekat
+    // i drugi ne dozvoljava. Poruka mora da kaze izlaz, jer se inace vidi samo
+    // APK koji nema sta da cita.
     console.error(
-      `
-✗ dev server je izasao (${code}).
-` +
-        `  Ako Next javlja da vec radi drugi za ovaj direktorijum, posudi ga:
-` +
-        `    PORT=<njegov port> pnpm dev:android
-`,
+      `\n✗ dev server je izasao (${code}).\n` +
+        `  Ako Next javlja da vec radi drugi za ovaj direktorijum, posudi ga:\n` +
+        `    PORT=<njegov port> pnpm dev:android\n`,
     );
     process.exit(code ?? 1);
   });
@@ -248,16 +245,13 @@ try {
       "  Snimi fajl → ekran se osvježi.",
       dev
         ? "  Ctrl+C gasi dev server."
-        : "  Dev server je tvoj (posudjen) — ova skripta se sad zavrsava, on ostaje.",
+        : "  Dev server je posuđen — skripta izlazi, on ostaje da radi.",
       "  Za pravi APK poslije: pnpm cap:sync (skida live-reload config).",
       "",
-    ].join("
-"),
+    ].join("\n"),
   );
 } catch (error) {
-  console.error(`
-✗ ${error.message}
-`);
+  console.error(`\n✗ ${error.message}\n`);
   dev?.kill();
   process.exit(1);
 }
