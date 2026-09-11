@@ -13,7 +13,7 @@ import { PlayerSeat } from "@/components/felt/PlayerSeat";
 import { TableSurface, type LandFrom } from "@/components/felt/TableSurface";
 import { PlayerHand } from "@/components/felt/PlayerHand";
 import { TurnBanner } from "@/components/felt/TurnBanner";
-import { ScorePill } from "@/components/overlay/ScorePill";
+import { GameMenuSheet } from "@/components/overlay/GameMenuSheet";
 import { ReactionFab } from "@/components/ReactionFab";
 import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
 import { RoundEndOverlay } from "@/components/overlay/RoundEndOverlay";
@@ -22,7 +22,9 @@ import { RulesModal } from "@/components/RulesModal";
 import { MoveRevealLive } from "@/components/overlay/MoveRevealLive";
 import { DeckPile } from "@/components/felt/DeckPile";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
+import { FeltHeader } from "@/components/felt/FeltHeader";
 import { arrangeSeats } from "@/lib/seating";
+import { pileIdOf } from "@/lib/piles";
 import { sr } from "@/lib/sr";
 import { ReactionBubble } from "@/components/overlay/EmojiReactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
@@ -63,6 +65,15 @@ type GameScreenProps = {
   /** Glas u glasanju o prekidu partije. */
   onAbandonVote?: (vote: AbandonVote) => Promise<void>;
   activeReactions: ActiveReaction[];
+  /** Podnaslov u zaglavlju: javni sto vs prijateljska partija. */
+  isPublicTable?: boolean;
+  /**
+   * Početno izabrana karta u ruci. Postoji zbog `/dev/game`: traka izbora se
+   * pojavi tek kad je karta izabrana, a headless snimak ne može da tapne —
+   * bez ovoga se stanje sa trakom ne bi moglo ni izmjeriti. U produkciji je
+   * `undefined` i ekran kreće bez selekcije, kao i do sad.
+   */
+  initialSelectedCardId?: string;
 };
 
 export function GameScreen({
@@ -76,13 +87,18 @@ export function GameScreen({
   onWaitMore,
   onAbandonVote,
   activeReactions,
+  isPublicTable = false,
+  initialSelectedCardId,
 }: GameScreenProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialSelectedCardId ?? null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  // ScorePill je prezentacijski; otvorenost i backdrop drži ekran.
+  // Meni i razrada rezultata su prezentacijski; otvorenost drži ekran.
+  const [menuOpen, setMenuOpen] = useState(false);
   const [scoreOpen, setScoreOpen] = useState(false);
 
   useEffect(() => {
@@ -163,7 +179,7 @@ export function GameScreen({
       ? "absolute inset-0 z-50"
       : state.phase === "abandon_vote"
         ? "absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-        : "absolute inset-x-0 top-0 z-50 flex justify-center p-3 pt-safe-top";
+        : "absolute inset-x-0 z-50 flex justify-center p-3 top-[calc(var(--safe-top)+var(--stage-header-h))]";
 
   const turnDeadline = isPlaying ? state.turnDeadline : undefined;
   // Sat živi ovdje; TurnBanner/TurnPill su čista prezentacija (primaju sekunde, ne rok).
@@ -258,6 +274,16 @@ export function GameScreen({
   // Pozicijski raspored: ti dole, partner gore, protivnici lijevo/desno.
   const seats = arrangeSeats(state.players, state.myPlayerId);
 
+  // Rezultat ispod imena, kao na referenci. `pileIdOf` je isto pravilo koje
+  // razrada koristi za redove: u 4P ti i partner nosite ISTI broj — to i jeste
+  // rezultat u timskoj igri. Prosljeđuje se SVIM sjedištima ili nijednom, pa
+  // se bot i čovjek ne mogu razlikovati po tome što neko ima broj a neko ne.
+  const scoreOf = (playerId: string) => {
+    const player = state.players.find((p) => p.id === playerId);
+    if (!player) return undefined;
+    return state.matchScore[pileIdOf(player, state.players)] ?? 0;
+  };
+
   // Dok karte "padaju" ne prikazuj odbrojavanje — jasan slijed na startu.
   const showTimer = !dealing && turnDeadline != null;
 
@@ -294,13 +320,32 @@ export function GameScreen({
     // podloga. Na mobilu (stage = w-full) izgleda identično kao prije.
     <div className="h-[100dvh] w-full bg-surface flex justify-center">
     <div
-      className="relative h-full w-full max-w-[600px] overflow-hidden bg-felt md:shadow-2xl md:ring-1 md:ring-black/40"
+      /* `felt-stage` nosi CIJELI vertikalni budžet ekrana kao varijable (vidi
+         felt.css). Svako apsolutno dijete ispod čita `--stage-*` / `--table-*`
+         umjesto da nosi svoj px — zato se trake ne mogu razići kad se doda još
+         jedan sloj. `data-*` biraju varijantu: 3P nema partnera, 2P nema bočnih. */
+      className="felt-stage relative h-full w-full max-w-[600px] overflow-hidden bg-felt md:shadow-2xl md:ring-1 md:ring-black/40"
+      data-partner={seats.partner ? "true" : "false"}
+      data-sides={seats.oppL || seats.oppR ? "true" : "false"}
       style={{
         backgroundImage:
           "radial-gradient(120% 90% at 50% 28%, rgba(255,255,255,0.06), transparent 55%), radial-gradient(140% 130% at 50% 125%, rgba(0,0,0,0.45), transparent 60%)",
       }}
     >
-      {/* Partner / jedini protivnik — gore-centar */}
+      {/* Ovalni obod stola. Prvi u DOM-u i na z-0, pa ga sjedišta i karte
+          prekrivaju. Kad je trail legalan, obod se pojača — to je zamjena za
+          ring koji je nekad crtala play-zona. */}
+      <span className="felt-ring" data-trail={canTrail ? "true" : "false"} aria-hidden="true" />
+
+      <FeltHeader
+        title={sr.header.brand}
+        subtitle={isPublicTable ? sr.header.publicTable : sr.header.friendly}
+        roundLabel={sr.header.round(state.handNumber)}
+        onMenu={() => setMenuOpen(true)}
+        rightSlot={<FeedbackToggles />}
+      />
+
+      {/* Partner / jedini protivnik — gore-centar, odmah ispod zaglavlja */}
       {seats.partner && (
         <PlayerSeat
           player={seats.partner}
@@ -308,12 +353,16 @@ export function GameScreen({
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={state.handCounts[seats.partner.id] ?? 0}
+          score={scoreOf(seats.partner.id)}
           orientation="top"
           reaction={seatReaction(seats.partner.id)}
-          className="absolute top-3 left-1/2 -translate-x-1/2 mt-safe-top"
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{ top: "calc(var(--safe-top) + var(--stage-header-h))" }}
         />
       )}
-      {/* Protivnik lijevo */}
+      {/* Protivnici sa strane — u visini sredine stola, kao na referenci.
+          Širina im je `--seat-gutter`, a sto je uvučen za isto toliko, pa se
+          čip i karta ne mogu sudariti ni na jednoj širini ekrana. */}
       {seats.oppL && (
         <PlayerSeat
           player={seats.oppL}
@@ -321,12 +370,13 @@ export function GameScreen({
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={state.handCounts[seats.oppL.id] ?? 0}
+          score={scoreOf(seats.oppL.id)}
           orientation="left"
           reaction={seatReaction(seats.oppL.id)}
-          className="absolute top-[20%] left-1 -translate-y-1/2"
+          className="absolute left-0 -translate-y-1/2 pl-safe-left"
+          style={{ top: "var(--table-mid)" }}
         />
       )}
-      {/* Protivnik desno */}
       {seats.oppR && (
         <PlayerSeat
           player={seats.oppR}
@@ -334,31 +384,34 @@ export function GameScreen({
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={state.handCounts[seats.oppR.id] ?? 0}
+          score={scoreOf(seats.oppR.id)}
           orientation="right"
           reaction={seatReaction(seats.oppR.id)}
-          className="absolute top-[20%] right-1 -translate-y-1/2"
+          className="absolute right-0 -translate-y-1/2 pr-safe-right"
+          style={{ top: "var(--table-mid)" }}
         />
       )}
 
-      {/* Centralna play-zona — odigrane karte + capture/trail.
+      {/* Kutija stola — odigrane karte, kupljenje i trail.
 
-          Sredina ekrana je REZERVISANA za karte: sjedišta stoje na luku oko
-          vrha, pa sto uzima skoro punu širinu i karte se čitaju horizontalno.
-          Ranije je zona bila `w-[calc(100%-13rem)]` jer su joj bočna sjedišta
-          na `top-[42%]` uzimala 13rem — na 360px je ostajalo ~109px, tačno
-          jedna karta po redu.
+          Granice dolaze iz `--table-top` / `--table-bottom`, a širina je puna
+          minus dva bočna pojasa (`--seat-gutter`), tačno onoliko koliko sjedišta
+          zauzimaju. Sudar karte i čipa je time spriječen GEOMETRIJOM; ranije se
+          sprječavao pomjeranjem sjedišta gore, što je sto svelo na jednu kartu
+          po redu na 360px.
 
-          POJAS (top+bottom), ne centrirana kutija: sadržaj se centrira flexom
-          UNUTAR fiksnih granica, pa traka izbora ili drugi red karata ne mogu
-          da gurnu sto u sjedišta ni u ruku. Donja granica je iznad trake na
-          `bottom-[150px]` i namjerno je ista i kad trake nema — sto koji ne
-          poskakuje vrijedi više od 40px viška. */}
-      <div className="absolute top-[33%] bottom-[190px] left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-[440px] md:[--table-cols:5] z-10 flex items-center justify-center">
-        {/* Omotač je proziran i pun visine pojasa: daje `.table`-u visinu na
-            koju procenti mogu da se razriješe, pa traka izbora ima gdje da se
-            zakači umjesto da izraste iz pojasa na ruku. Vidljiva površina je
-            `.table__drop`, koji se drži karata. */}
-        <div data-table-drop className="relative h-full w-full px-3 py-2">
+          Kutija ima i `top` i `bottom`: `.table__drop` je query container sa
+          `contain: size`, pa mu visina MORA doći odozgo. Ako iko na ovom putu
+          dobije `auto` visinu, sve karte padnu na minimum. */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 z-10 flex items-center justify-center"
+        style={{
+          top: "var(--table-top)",
+          bottom: "var(--table-bottom)",
+          width: "calc(100% - 2 * var(--seat-gutter))",
+        }}
+      >
+        <div data-table-drop className="relative h-full w-full">
           <TableSurface
             cards={state.table}
             captureOptions={tableOptions}
@@ -386,7 +439,10 @@ export function GameScreen({
           iz trake nad rukom, ne iz čipa. Dok karte padaju (showTimer=false)
           traka je gola rečenica — nema roka da se odbrojava. */}
       {isPlaying && myTurn && (
-        <div className="absolute bottom-[150px] left-0 right-0 px-3 z-20 flex flex-col items-center pointer-events-none">
+        <div
+          className="absolute left-0 right-0 px-3 z-20 flex flex-col items-center pointer-events-none"
+          style={{ bottom: "var(--stage-hand-top)" }}
+        >
           <TurnBanner
             isYou
             text={instruction}
@@ -397,17 +453,30 @@ export function GameScreen({
           />
         </div>
       )}
-      {seats.me && seatReaction(seats.me.id) && (
-        <div className="absolute bottom-[196px] left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-          {seatReaction(seats.me.id)}
-        </div>
+      {/* Tvoje sjedište — avatar sa čipom ime/rezultat, kao i ostali.
+          Ranije ga uopšte nije bilo: sto je imao tri igrača i prazno dno.
+          Reakcija ide kroz sjedište (ne kao zaseban mjehur), pa je emoji uz
+          tebe na isti način kao uz svakoga drugog. */}
+      {seats.me && (
+        <PlayerSeat
+          player={seats.me}
+          isYou
+          isActive={myTurn}
+          cardCount={0}
+          score={scoreOf(seats.me.id)}
+          orientation="bottom"
+          reaction={seatReaction(seats.me.id)}
+          className="absolute left-1/2 -translate-x-1/2 z-20"
+          style={{ bottom: "var(--stage-banner-top)" }}
+        />
       )}
 
-      {/* Ruka — lepeza na dnu */}
-      <div
-        className="absolute bottom-2 left-1/2 -translate-x-1/2 pb-safe-bottom z-20"
-        data-seat-id={state.myPlayerId}
-      >
+      {/* Ruka — lepeza na dnu.
+          `data-seat-id` NAMJERNO nije ovdje: nosi ga tvoje sjedište iznad.
+          Dva ista sidra su značila da `collectToPile` (querySelector, jednina)
+          bira po redoslijedu u DOM-u, a `dealFromDeck` (querySelectorAll) tebi
+          dijeli dvaput. Ne vraćati ga. */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 pb-safe-bottom z-20">
         <PlayerHand
           cards={state.myHand}
           selectedCardId={selectedId}
@@ -418,62 +487,54 @@ export function GameScreen({
         />
       </div>
 
-      {/* Overlay: rezultat. Backdrop i `expanded` drži ekran — ScorePill je
-          čista prezentacija i namjerno ne hvata tapove preko felta.
-          Razrada dobija SAMO zadnju ruku: meč ide do 21, sve ruke su zid. */}
-      {scoreOpen && (
-        <div
-          className="fixed inset-0 z-30"
-          onClick={() => setScoreOpen(false)}
-          aria-hidden
-        />
-      )}
-      <ScorePill
-        players={state.players}
-        matchScore={state.matchScore}
-        targetScore={state.targetScore}
-        handScores={lastHandScore ? [lastHandScore] : []}
-        expanded={scoreOpen}
-        onToggle={() => setScoreOpen((v) => !v)}
-        className="scorepill--compact absolute top-0 right-0 z-40 m-2 mt-safe-top mr-safe-right max-w-[68%]"
-      />
+      {/* Rezultat vise nije pilula u cosku — presao je u meni (hamburger).
+          Gornji desni cosak je po referenci zvuk, a broj po igracu sad stoji
+          ispod imena na svakom sjedistu. */}
 
-      {/* Špil — stanjuje se kako runde idu; sidro za deal animaciju. Pozicija tweakable. */}
+      {/* Špil — stanjuje se kako runde idu; sidro za deal animaciju. Lijevi
+          pojas u visini tvog sjedišta: donji lijevi ugao je sad tvoje sjedište,
+          a ne prazan felt. */}
       {isPlaying && (
         <DeckPile
           remaining={state.deckCount}
           size="xs"
-          className="deck--bare absolute bottom-[132px] left-2"
+          className="deck--bare absolute left-2 pl-safe-left"
+          style={{ bottom: "var(--stage-banner-top)" }}
         />
       )}
 
       {/* Move reveal — šta je zadnji potez uradio (ko/koja karta/šta pokupio) */}
       {isPlaying && <MoveRevealLive state={state} />}
 
-      {/* Overlay: pravila + zvuk/vibracija (gornji lijevi) — §50.4.
-        *
-        * Jedna kolona, razmak kroz `gap`. Ranije su bila dva odvojena
-        * `absolute` elementa gdje je preklopkama `top-9` (36px) trebalo da ih
-        * spusti ispod dugmeta — ali dugme je `min-h-12` (48px) i nosi `m-2`, pa
-        * mu donja ivica pada na 56px + safe-area. Preklapanje je bilo zagarantovano
-        * (najmanje 12px, više na uređaju sa zarezom, jer preklopke nisu ni
-        * primjenjivale `mt-safe-top`). Kolona to rješava po konstrukciji: razmak
-        * više ne zavisi od visine dugmeta ni od inset-a.
-        *
-        * Omotač je `pointer-events-none` da razmak između njih ne guta tapove
-        * po feltu; djeca ih vraćaju.
-        */}
-      <div className="absolute top-0 left-0 z-40 m-2 mt-safe-top ml-safe-left flex flex-col items-start gap-2 pointer-events-none">
-        <button
-          type="button"
-          onClick={() => setRulesOpen(true)}
-          className="pointer-events-auto rounded-token-md bg-surface-raised/95 border border-white/10 min-h-12 px-3 flex items-center text-sm font-bold text-muted active:bg-surface"
-        >
-          ? Pravila
-        </button>
+      {/* Ugao sa "? Pravila" i preklopkama je rasformiran: pravila su u meniju,
+          preklopke su u zaglavlju (desni slot = "zvuk" iz reference). Time je
+          nestao i cijeli razlog za `pointer-events` gimnastiku oko njih. */}
 
-        <FeedbackToggles className="pointer-events-auto" />
-      </div>
+      {/* Meni stola. Scrim i pozicioniranje daje ekran, komponenta samo
+          sadržaj — isti dogovor kao kod pauze i kraja ruke. */}
+      {menuOpen && (
+        <div
+          className="absolute inset-0 z-50 flex items-end justify-center bg-black/60"
+          onClick={() => setMenuOpen(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="w-full flex justify-center">
+            <GameMenuSheet
+              players={state.players}
+              matchScore={state.matchScore}
+              targetScore={state.targetScore}
+              handScores={lastHandScore ? [lastHandScore] : []}
+              scoreExpanded={scoreOpen}
+              onToggleScore={() => setScoreOpen((v) => !v)}
+              onRules={() => {
+                setMenuOpen(false);
+                setRulesOpen(true);
+              }}
+              {...(onLeave ? { onLeave } : {})}
+              onClose={() => setMenuOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Overlay: reactions */}
       <ReactionFab onReact={onReact} disabled={reactionsDisabled} />
@@ -528,7 +589,8 @@ export function GameScreen({
       <Toast
         message={error ?? ""}
         visible={error != null}
-        className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-[90vw]"
+        className="absolute left-1/2 -translate-x-1/2 z-50 max-w-[90vw]"
+        style={{ bottom: "var(--stage-banner-top)" }}
       />
 
       <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />

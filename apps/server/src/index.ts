@@ -17,6 +17,7 @@ import {
   createRoomId,
   createSessionToken,
   expireOldRequests,
+  flushPendingPersists,
   getAllRooms,
   getRoom,
   hashToken,
@@ -757,6 +758,8 @@ const GRACE_MS = ms("GRACE_MS", 30 * 1000);
 const PAUSE_MS = ms("PAUSE_MS", 2 * 60 * 1000);
 const VOTE_MS = ms("VOTE_MS", 60 * 1000);
 const WAIT_EXTENSION_MS = ms("WAIT_EXTENSION_MS", 5 * 60 * 1000);
+/** Koliko čekamo ispiranje pri gašenju prije nego svejedno izađemo. */
+const SHUTDOWN_FLUSH_MS = ms("SHUTDOWN_FLUSH_MS", 3000);
 
 // ---- BOT MOVE TIMERS ----
 // roomId → timeout. Kad je bot na potezu, server interno odigra potez.
@@ -1829,9 +1832,64 @@ try {
   process.exit(1);
 }
 
-for (const sig of ["SIGTERM", "SIGINT"] as const) {
-  process.on(sig, async () => {
-    await posthog.shutdown();
-    process.exit(0);
-  });
+/**
+ * Gašenje — uredan signal i pad idu kroz ISTI put, jer je posljedica ista:
+ * proces prestaje da postoji, a sve partije žive u memorijskim Map-ovima.
+ *
+ * Ispiranje je obavezno: `persistRoom` je debounce-ovan, pa bi `process.exit`
+ * bez njega pojeo zadnji potez svake aktivne sobe.
+ */
+let shuttingDown = false;
+
+async function shutdown(code: number, reason: string, err?: unknown): Promise<void> {
+  // Druga greška usred gašenja ne smije da prekine ispiranje koje već traje.
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  if (err !== undefined) fastify.log.error({ err }, `Gašenje: ${reason}`);
+  else fastify.log.info(`Gašenje: ${reason}`);
+
+  try {
+    // Timeout jer Railway ne čeka vječno; bolje ispisati većinu soba nego visiti.
+    await Promise.race([
+      (async () => {
+        const n = await flushPendingPersists();
+        if (n > 0) fastify.log.info(`💾 Ispisano ${n} soba prije gašenja`);
+        await posthog.shutdown();
+      })(),
+      new Promise((r) => setTimeout(r, SHUTDOWN_FLUSH_MS)),
+    ]);
+  } catch (e) {
+    fastify.log.error(`Ispiranje pri gašenju nije uspjelo: ${e}`);
+  }
+
+  process.exit(code);
 }
+
+for (const sig of ["SIGTERM", "SIGINT"] as const) {
+  process.on(sig, () => void shutdown(0, sig));
+}
+
+/**
+ * NE nastavljamo poslije neuhvaćene greške.
+ *
+ * Node garantuje da je proces poslije `uncaughtException` u nedefinisanom
+ * stanju, a ovdje su SVE sobe u memoriji — rad sa pokvarenim stanjem je gori
+ * od restarta, jer perzistencija + hydrate restart već čine preživljivim.
+ * Izlazni kod != 0 da Railway digne novi proces.
+ *
+ * Bez ove straže jedan loš paket obara SVE stolove istovremeno, i to se već
+ * desilo: malformiran `room:subscribe` → `ERR_INVALID_ARG_TYPE` u socket
+ * handleru → pad procesa (vidi changelog). Straža ne sprječava takav bug —
+ * ona osigurava da se stanje ispiše prije pada, pa se restart vrati na potez
+ * koji su igrači stvarno vidjeli.
+ *
+ * `unhandledRejection` od Node 15 ionako obara proces; ovdje samo dobija
+ * ispiranje i log koji se može pročitati u Railway logovima.
+ */
+process.on("uncaughtException", (err) => {
+  void shutdown(1, "uncaughtException", err);
+});
+process.on("unhandledRejection", (reason) => {
+  void shutdown(1, "unhandledRejection", reason);
+});

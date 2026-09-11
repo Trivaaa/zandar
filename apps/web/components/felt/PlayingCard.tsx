@@ -7,6 +7,8 @@ const sizeClass: Record<CardSize, string> = {
   sm: "card--sm",
   md: "card--md",
   lg: "card--lg",
+  /** Sirina dolazi iz --table-card-w koji postavlja .table__cards. */
+  fluid: "card--fluid",
 };
 
 const suitGlyph: Record<Suit, string> = {
@@ -31,7 +33,11 @@ const suitLabel: Record<Suit, string> = {
 };
 
 /* Corner suit size and centre pip size are geometry, driven off --card-w in
-   felt.css. Rank never drops below text-num-md. */
+   felt.css. Rank is text-num-md at the fixed sizes.
+
+   `text-num-md` je UTILITY — sjedi u sloju IZNAD `layer(components)`, pa bi
+   svaki font-size koji bi felt.css napisao za rank izgubio. Fluidna karta ga
+   zato ne smije nositi: njen rank vodi `.card--fluid` iz `--card-w`. */
 
 
 export type PlayingCardProps = {
@@ -112,7 +118,11 @@ export function PlayingCard({
           <div className="card-side">
             <div className={`card-face ${suitInk[card.suit]}`}>
               <span className="card-face__index">
-                <span className="card-face__rank font-display text-num-md">{card.rank}</span>
+                <span
+                  className={`card-face__rank font-display ${size === "fluid" ? "" : "text-num-md"}`}
+                >
+                  {card.rank}
+                </span>
                 <span className="card-face__suit" aria-hidden="true">
                   {suitGlyph[card.suit]}
                 </span>

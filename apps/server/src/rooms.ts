@@ -150,6 +150,33 @@ export function persistRoom(room: LobbyRoom): void {
   );
 }
 
+/**
+ * Ispiši SVE debounce-ovane upise odmah i sačekaj ih.
+ *
+ * `persistRoom` čeka `PERSIST_DEBOUNCE_MS` prije upisa, a `process.exit` ubija
+ * tajmere prije nego opale — bez ovoga svako gašenje (uredan SIGTERM jednako
+ * kao pad) pojede do 400ms stanja po sobi. Restart bi onda hidrirao sto
+ * stariji od onoga što su igrači vidjeli na ekranu.
+ *
+ * `allSettled`, ne `all`: jedan neuspio upis ne smije da spriječi ostale.
+ */
+export async function flushPendingPersists(): Promise<number> {
+  const ids = Array.from(persistTimers.keys());
+  for (const id of ids) {
+    clearTimeout(persistTimers.get(id)!);
+    persistTimers.delete(id);
+  }
+  const writes = ids
+    .map((id) => {
+      const room = rooms.get(id);
+      // Soba je u međuvremenu obrisana — `deleteRoom` je već pozvao remove().
+      return room ? persistence.save(id, serializeRoom(room)) : null;
+    })
+    .filter((p): p is Promise<void> => p !== null);
+  await Promise.allSettled(writes);
+  return writes.length;
+}
+
 /** Učitaj perzistirane sobe u memoriju na startu. Vraća ID-eve vraćenih soba. */
 export async function hydrateRooms(): Promise<string[]> {
   await persistence.init();

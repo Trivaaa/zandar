@@ -443,9 +443,10 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           onWaitMore={handleWaitMore}
           onAbandonVote={handleAbandonVote}
           activeReactions={activeReactions}
+          isPublicTable={room.isPublic}
         />
         {autoPlayToast && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-surface-raised border border-warn/40 text-white rounded-token-md px-4 py-2 z-50 max-w-md shadow-lg text-sm">
+          <div className="fixed top-[calc(var(--safe-top)+var(--stage-header-h)+0.5rem)] left-1/2 -translate-x-1/2 bg-surface-raised border border-warn/40 text-white rounded-token-md px-4 py-2 z-50 max-w-md shadow-lg text-sm">
             {autoPlayToast}
           </div>
         )}

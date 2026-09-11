@@ -37,6 +37,21 @@ export type TableSurfaceProps = {
   className?: string | undefined;
 };
 
+/**
+ * Koliko kolona i redova za dati broj karata na stolu.
+ *
+ * Najvise 3 u redu — to je princip iz referenci: mreza koja raste nadolje, a
+ * velicinu karte bira kutija (vidi `--table-card-w` u felt.css), ne komponenta.
+ * 10-12 karata je rijedak rep (dug niz Q/K): na 3 kolone to je 4 reda, sto na
+ * ekranu od 640px padne ispod `--card-w-min` i pocne da se odsijeca. Cetvrta
+ * kolona je ventil za taj rep, ne pravilo.
+ */
+export function tableGrid(n: number): { cols: number; rows: number } {
+  if (n <= 0) return { cols: 1, rows: 1 };
+  const cols = n <= 2 ? n : n <= 9 ? 3 : 4;
+  return { cols, rows: Math.ceil(n / cols) };
+}
+
 const reasonLabel: Record<CaptureReason, string> = {
   rank_match: sr.table.rankMatch,
   sum_match: sr.table.sumMatch,
@@ -89,6 +104,8 @@ export function TableSurface({
 
   const dropInteractive = canTrail || forceCaptureBlocked;
 
+  const grid = tableGrid(cards.length);
+
   return (
     <div className={`felt-table ${className}`} data-land-from={landFrom}>
       {showPot ? (
@@ -123,7 +140,17 @@ export function TableSurface({
         {cards.length === 0 ? (
           <p className="table__empty font-sans text-base text-muted">{sr.table.empty}</p>
         ) : (
-          <div className="table__cards">
+          <div
+            className="table__cards"
+            /* JS zna broj karata, CSS zna kutiju. Ove dvije varijable su jedini
+               most izmedju njih — sirinu karte odatle izvodi felt.css. */
+            style={
+              {
+                "--table-cols": grid.cols,
+                "--table-rows": grid.rows,
+              } as React.CSSProperties
+            }
+          >
             {cards.map((c) => {
               const option = optionOf.get(c.id);
               const tappable = single !== undefined && option?.optionId === single.optionId;
@@ -163,7 +190,7 @@ export function TableSurface({
                   }
                 >
                   <span className="table__glow" aria-hidden="true" />
-                  <PlayingCard card={c} size="sm" />
+                  <PlayingCard card={c} size="fluid" />
                 </div>
               );
             })}

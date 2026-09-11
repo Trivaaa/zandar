@@ -25,6 +25,19 @@ class FileAdapter implements PersistenceAdapter {
 
   async init(): Promise<void> {
     await mkdir(this.dir, { recursive: true });
+    // Pokupi .tmp siročiće: `save` piše tmp pa radi rename, a gašenje usred te
+    // dvije operacije ostavlja tmp bez para. `loadAll` ih ionako preskače, ali
+    // bez ovoga bi se gomilali na volumenu bez gornje granice.
+    try {
+      const files = await readdir(this.dir);
+      await Promise.allSettled(
+        files
+          .filter((f) => f.endsWith(".tmp"))
+          .map((f) => unlink(join(this.dir, f))),
+      );
+    } catch {
+      // direktorijum tek napravljen ili nedostupan — nema šta da se čisti
+    }
   }
 
   async loadAll(): Promise<unknown[]> {

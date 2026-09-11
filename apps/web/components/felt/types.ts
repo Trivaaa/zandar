@@ -16,4 +16,4 @@ export type {
   CaptureReason,
 } from "@zandar/shared-types";
 
-export type CardSize = "xs" | "sm" | "md" | "lg";
+export type CardSize = "xs" | "sm" | "md" | "lg" | "fluid";

@@ -2,6 +2,22 @@
 // Single source for every visible string. No component hardcodes copy.
 
 export const sr = {
+  // Zaglavlje stola. "Runda" je ono sto igrac broji za stolom; u kodu je to
+  // `handNumber` (dijeljenje). Ne mijenjati jedno bez drugog.
+  header: {
+    brand: "Kartaonica",
+    friendly: "Prijateljska partija",
+    publicTable: "Javni sto",
+    round: (n: number) => `Runda ${n}`,
+    menu: "Meni",
+  },
+  menu: {
+    title: "Meni",
+    rules: "Pravila igre",
+    score: "Rezultat",
+    leave: "Izađi na početnu",
+    close: "Zatvori",
+  },
   turn: {
     you: "Ti si na potezu",
     other: (name: string) => `${name} je na potezu`,

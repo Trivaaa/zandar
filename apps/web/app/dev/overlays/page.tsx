@@ -18,6 +18,7 @@ import {
 import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
 import { RoundEndOverlay } from "@/components/overlay/RoundEndOverlay";
 import { Toast } from "@/components/overlay/Toast";
+import { GameMenuSheet } from "@/components/overlay/GameMenuSheet";
 
 /**
  * Dev preview za overlay sloj (Lovable korak 3). Sve komponente su čiste —
@@ -139,6 +140,8 @@ export default function DevOverlaysPage() {
   const [endPending, setEndPending] = useState(false);
   const [longNames, setLongNames] = useState(false);
   const [toastOn, setToastOn] = useState(true);
+  const [menuScoreOpen, setMenuScoreOpen] = useState(false);
+  const [menuLeave, setMenuLeave] = useState(true);
 
   const players = four ? players4 : players2;
 
@@ -276,6 +279,37 @@ export default function DevOverlaysPage() {
               onRematch={() => setSent("revanš")}
               onFindNewTable={() => setSent("novi sto")}
               onLeave={() => setSent("izlaz")}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* id: da se sekcija moze otvoriti direktno (/dev/overlays#menu) — headless
+          snimak inace uhvati samo vrh ove duge stranice. */}
+      <section id="menu" className="space-y-3 scroll-mt-4">
+        <h2 className="font-bold">GameMenuSheet</h2>
+        <Row label="izlaz">
+          <Toggle on={menuLeave} onClick={() => setMenuLeave(true)}>ima onLeave</Toggle>
+          <Toggle on={!menuLeave} onClick={() => setMenuLeave(false)}>bez onLeave</Toggle>
+        </Row>
+        <Row label="razrada">
+          <Toggle on={!menuScoreOpen} onClick={() => setMenuScoreOpen(false)}>sklopljena</Toggle>
+          <Toggle on={menuScoreOpen} onClick={() => setMenuScoreOpen(true)}>otvorena</Toggle>
+        </Row>
+        {/* 360×760 okvir: sheet mora da stane i da se sam skroluje kad se
+            razrada rezultata otvori. */}
+        <div className="mx-auto w-[360px] h-[760px] max-w-full rounded-token-lg bg-felt relative overflow-hidden ring-1 ring-white/10">
+          <div className="absolute inset-0 z-10 flex items-end justify-center bg-black/60">
+            <GameMenuSheet
+              players={players}
+              matchScore={{ "team-0": 14, "team-1": 9 }}
+              targetScore={21}
+              handScores={[handScore4]}
+              scoreExpanded={menuScoreOpen}
+              onToggleScore={() => setMenuScoreOpen((v) => !v)}
+              onRules={() => setSent("pravila")}
+              {...(menuLeave ? { onLeave: () => setSent("izlaz") } : {})}
+              onClose={() => setSent("zatvori meni")}
             />
           </div>
         </div>

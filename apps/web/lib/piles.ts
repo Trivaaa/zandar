@@ -22,3 +22,16 @@ export function pilesOf(players: PublicPlayer[]): Pile[] {
     { id: "team-1", label: sr.score.teamB, sub: names(1) },
   ];
 }
+
+/**
+ * Koji kljuc `matchScore`-a / `capturedCounts`-a pripada ovom igracu.
+ *
+ * Isto pravilo koje `pilesOf` koristi za redove, samo obrnuto: 4P je po timu,
+ * 2P i 3P po igracu. Jedno mjesto, da se sjediste i razrada rezultata ne mogu
+ * razici. U 4P ti i partner pokazujete ISTI broj — to i jeste rezultat u timskoj
+ * igri, a ne greska u prikazu.
+ */
+export function pileIdOf(player: PublicPlayer, players: PublicPlayer[]): string {
+  const teamed = players.some((p) => p.teamId !== undefined);
+  return teamed && player.teamId !== undefined ? `team-${player.teamId}` : player.id;
+}

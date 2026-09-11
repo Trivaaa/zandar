@@ -11,7 +11,6 @@ import { PlayingCard } from "@/components/felt/PlayingCard";
 import { CardBack } from "@/components/felt/CardBack";
 import { PlayerHand } from "@/components/felt/PlayerHand";
 import { DeckPile } from "@/components/felt/DeckPile";
-import { TurnPill } from "@/components/felt/TurnPill";
 import { PlayerSeat } from "@/components/felt/PlayerSeat";
 import { TurnBanner } from "@/components/felt/TurnBanner";
 import { TableSurface } from "@/components/felt/TableSurface";
@@ -132,7 +131,6 @@ export default function FeltTwoPreview() {
             <TurnBanner isYou secondsRemaining={seconds} totalSeconds={30} />
           </div>
           <div className="flex justify-center">
-            <TurnPill secondsRemaining={seconds} totalSeconds={30} />
           </div>
           <PlayerHand
             cards={cards}
@@ -170,6 +168,15 @@ export default function FeltTwoPreview() {
             score={27}
             orientation="right"
             reaction={<span className="text-xl">🔥</span>}
+          />
+          {/* Tvoje sjediste: bez pilule i bez lepeze (sat je u traci, ruku vec
+              vidis), a na potezu nosi jaci zlatni prsten nego ostali. */}
+          <PlayerSeat
+            player={P("me", "Ti", 0, 0)}
+            isYou
+            isActive
+            score={14}
+            orientation="bottom"
           />
         </div>
       </Row>
