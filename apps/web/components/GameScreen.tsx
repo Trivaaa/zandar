@@ -24,7 +24,6 @@ import { DeckPile } from "@/components/felt/DeckPile";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { FeltHeader } from "@/components/felt/FeltHeader";
 import { arrangeSeats } from "@/lib/seating";
-import { pileIdOf } from "@/lib/piles";
 import { sr } from "@/lib/sr";
 import { ReactionBubble } from "@/components/overlay/EmojiReactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
@@ -66,7 +65,6 @@ type GameScreenProps = {
   onAbandonVote?: (vote: AbandonVote) => Promise<void>;
   activeReactions: ActiveReaction[];
   /** Podnaslov u zaglavlju: javni sto vs prijateljska partija. */
-  isPublicTable?: boolean;
   /**
    * Početno izabrana karta u ruci. Postoji zbog `/dev/game`: traka izbora se
    * pojavi tek kad je karta izabrana, a headless snimak ne može da tapne —
@@ -87,7 +85,6 @@ export function GameScreen({
   onWaitMore,
   onAbandonVote,
   activeReactions,
-  isPublicTable = false,
   initialSelectedCardId,
 }: GameScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -274,16 +271,6 @@ export function GameScreen({
   // Pozicijski raspored: ti dole, partner gore, protivnici lijevo/desno.
   const seats = arrangeSeats(state.players, state.myPlayerId);
 
-  // Rezultat ispod imena, kao na referenci. `pileIdOf` je isto pravilo koje
-  // razrada koristi za redove: u 4P ti i partner nosite ISTI broj — to i jeste
-  // rezultat u timskoj igri. Prosljeđuje se SVIM sjedištima ili nijednom, pa
-  // se bot i čovjek ne mogu razlikovati po tome što neko ima broj a neko ne.
-  const scoreOf = (playerId: string) => {
-    const player = state.players.find((p) => p.id === playerId);
-    if (!player) return undefined;
-    return state.matchScore[pileIdOf(player, state.players)] ?? 0;
-  };
-
   // Dok karte "padaju" ne prikazuj odbrojavanje — jasan slijed na startu.
   const showTimer = !dealing && turnDeadline != null;
 
@@ -332,14 +319,7 @@ export function GameScreen({
           "radial-gradient(120% 90% at 50% 28%, rgba(255,255,255,0.06), transparent 55%), radial-gradient(140% 130% at 50% 125%, rgba(0,0,0,0.45), transparent 60%)",
       }}
     >
-      {/* Ovalni obod stola. Prvi u DOM-u i na z-0, pa ga sjedišta i karte
-          prekrivaju. Kad je trail legalan, obod se pojača — to je zamjena za
-          ring koji je nekad crtala play-zona. */}
-      <span className="felt-ring" data-trail={canTrail ? "true" : "false"} aria-hidden="true" />
-
       <FeltHeader
-        title={sr.header.brand}
-        subtitle={isPublicTable ? sr.header.publicTable : sr.header.friendly}
         roundLabel={sr.header.round(state.handNumber)}
         onMenu={() => setMenuOpen(true)}
         rightSlot={<FeedbackToggles />}
@@ -353,7 +333,6 @@ export function GameScreen({
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={state.handCounts[seats.partner.id] ?? 0}
-          score={scoreOf(seats.partner.id)}
           orientation="top"
           reaction={seatReaction(seats.partner.id)}
           className="absolute left-1/2 -translate-x-1/2"
@@ -361,8 +340,10 @@ export function GameScreen({
         />
       )}
       {/* Protivnici sa strane — u visini sredine stola, kao na referenci.
-          Širina im je `--seat-gutter`, a sto je uvučen za isto toliko, pa se
-          čip i karta ne mogu sudariti ni na jednoj širini ekrana. */}
+          Uvučeni su 0.25rem od ivice (`left-1` / `right-1`), a `.seat--left` /
+          `.seat--right` su za isto toliko uži, pa desna ivica sjedišta ostaje
+          na granici `--seat-gutter` — čip i karta se i dalje ne mogu sudariti
+          ni na jednoj širini ekrana. Sto ne plaća ništa za to uvlačenje. */}
       {seats.oppL && (
         <PlayerSeat
           player={seats.oppL}
@@ -370,10 +351,9 @@ export function GameScreen({
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={state.handCounts[seats.oppL.id] ?? 0}
-          score={scoreOf(seats.oppL.id)}
           orientation="left"
           reaction={seatReaction(seats.oppL.id)}
-          className="absolute left-0 -translate-y-1/2 pl-safe-left"
+          className="absolute left-1 -translate-y-1/2 pl-safe-left"
           style={{ top: "var(--table-mid)" }}
         />
       )}
@@ -384,10 +364,9 @@ export function GameScreen({
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={state.handCounts[seats.oppR.id] ?? 0}
-          score={scoreOf(seats.oppR.id)}
           orientation="right"
           reaction={seatReaction(seats.oppR.id)}
-          className="absolute right-0 -translate-y-1/2 pr-safe-right"
+          className="absolute right-1 -translate-y-1/2 pr-safe-right"
           style={{ top: "var(--table-mid)" }}
         />
       )}
@@ -463,7 +442,6 @@ export function GameScreen({
           isYou
           isActive={myTurn}
           cardCount={0}
-          score={scoreOf(seats.me.id)}
           orientation="bottom"
           reaction={seatReaction(seats.me.id)}
           className="absolute left-1/2 -translate-x-1/2 z-20"

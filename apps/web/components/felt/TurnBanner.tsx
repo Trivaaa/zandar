@@ -47,6 +47,13 @@ export function TurnBanner({
   const fill = hasClock ? clamped / totalSeconds : 1;
   const urgent = hasClock && clamped <= URGENT_AT;
 
+  // Traka je namjerno 2px ispod ostatka UI-ja (14px tekst / 18px sat): stoji
+  // tik iznad ruke i bila je najglasniji element na feltu.
+  //
+  // Sat NEMA `text-*` utility: u Tailwindu v4 `text-lg` nosi i `line-height`
+  // (28px), koji bi iz `@layer utilities` nadjacao `line-height: 1` iz
+  // `.banner__clock` i traku UVECAO umjesto smanjio (izmjereno: 33.6 -> 37.6px).
+  // Zato velicinu sata drzi felt.css, kao i kod `.seat__avatar` i `.seat__name`.
   return (
     <div
       className={`banner ${isYou ? "banner--you" : ""} ${
@@ -56,7 +63,7 @@ export function TurnBanner({
       aria-live="polite"
       data-urgent={urgent}
     >
-      <span className="banner__text font-sans text-base font-bold">
+      <span className="banner__text font-sans text-sm font-bold">
         {text ?? (isYou ? sr.turn.you : sr.turn.other(displayName))}
       </span>
 
@@ -64,7 +71,7 @@ export function TurnBanner({
           a brojac koji se cita svake sekunde je za citac ekrana samo buka. */}
       {hasClock ? (
         <>
-          <span className="banner__clock font-display text-num-sm" aria-hidden="true">
+          <span className="banner__clock font-display" aria-hidden="true">
             {Math.ceil(clamped)}
           </span>
           <span className="banner__track" aria-hidden="true">

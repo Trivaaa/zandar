@@ -198,7 +198,7 @@ function Measure() {
         ["stage", document.querySelector(".felt-stage")],
         ["header", document.querySelector(".felt-header")],
         ["chip", document.querySelector(".felt-header__chip")],
-        ["topPill", document.querySelector(".seat--top .pill")],
+        ["topPill", document.querySelector(".seat--top .seat__meta")],
         ["band", document.querySelector("[data-table-drop]")],
         ["drop", document.querySelector(".table__drop")],
         ["cards", document.querySelector(".table__cards")],

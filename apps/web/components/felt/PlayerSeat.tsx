@@ -13,7 +13,6 @@ export type PlayerSeatProps = {
   secondsRemaining?: number;
   totalSeconds?: number;
   cardCount?: number;
-  score?: number;
   coins?: number;
   showCoins?: boolean;
   isThinking?: boolean;
@@ -41,7 +40,6 @@ export function PlayerSeat({
   secondsRemaining = 0,
   totalSeconds = 20,
   cardCount = 0,
-  score,
   coins = 0,
   showCoins = false,
   isThinking = false,
@@ -85,15 +83,17 @@ export function PlayerSeat({
         </div>
 
         <div className="seat__meta">
-          <span className="seat__name font-sans text-base">{player.displayName}</span>
-          {score !== undefined || showCoins ? (
+          {/* Bez `text-base`: velicinu drzi `.seat__name` u felt.css, pa je
+              bocno sjediste moze spustiti na 13px i prelomiti u dva reda.
+              Utility bi iz kasnijeg sloja pobijedio i to bi tiho otkazalo. */}
+          <span className="seat__name font-sans">{player.displayName}</span>
+          {/* Rezultat je skinut sa sjedista — stajao je na svakom igracu i bio
+              najglasniji broj na feltu, a cita se u meniju (hamburger →
+              Rezultat) i sam iskoci na kraju svake ruke. Zeton ostaje kao sina
+              za kasniju kozmetiku; danas ga niko ne pali. */}
+          {showCoins ? (
             <span className="seat__numbers">
-              {score !== undefined ? (
-                <span className="seat__score font-display text-num-sm">{score}</span>
-              ) : null}
-              {showCoins ? (
-                <span className="seat__coins font-display text-num-sm">{coins}</span>
-              ) : null}
+              <span className="seat__coins font-display text-num-sm">{coins}</span>
             </span>
           ) : null}
           {/* Status je izuzetak, ne ukras: "Na vezi" ispod svakog imena je sum.

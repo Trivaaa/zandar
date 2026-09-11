@@ -64,11 +64,11 @@
   /* Visina zaglavlja stola. Zivi ovdje, a ne na `.felt-stage`, jer je citaju
      DVA stabla: felt (sve ispod zaglavlja) i PWA banner, koji je `fixed` izvan
      pozornice i ne bi naslijedio njenu varijablu. */
-  /* IZMJERENA visina, ne procijenjena: naslov + podnaslov + cip "Runda N" daju
-     82px na 360px. Ranijih 4rem je bilo manje od stvarnog zaglavlja, pa je sve
-     ispod njega kretalo UNUTAR njega — na uredaju se to vidjelo tek kad je
-     protivnik bio na potezu. */
-  --stage-header-h: 5.25rem;
+  /* IZMJERENA visina, ne procijenjena. Otkad su naslov i podnaslov izbaceni,
+     zaglavlje je jedan red: dugme menija 3rem + 0.25rem paddinga gore i dolje =
+     56px. Izmjereno JEDNAKO na 360x760, 360x640 i 800x900, pa vise nema ni
+     media override-a — sadrzaj je na svim sirinama isti. */
+  --stage-header-h: 3.5rem;
 
   /* Safe area (notch / home indicator) */
   --safe-top:    env(safe-area-inset-top,    0px);
@@ -346,19 +346,6 @@
    Postojeće animacije gore imaju hardkodirana trajanja, pa ih
    token-kolaps NE dodiruje — gase se eksplicitno.
    ===================================================== */
-
-/* Zaglavlje prati isti budzet kao ostatak pozornice (vidi felt.css). */
-@media (max-height: 700px) {
-  :root {
-    --stage-header-h: 4.5rem;
-  }
-}
-
-@media (min-width: 48rem) {
-  :root {
-    --stage-header-h: 5.75rem;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   :root {
