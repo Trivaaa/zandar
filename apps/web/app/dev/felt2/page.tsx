@@ -151,13 +151,11 @@ export default function FeltTwoPreview() {
             secondsRemaining={seconds}
             totalSeconds={30}
             cardCount={5}
-            score={31}
             orientation="top"
           />
           <PlayerSeat
             player={P("p2", "Zoran", 2, 0, "reconnecting")}
             cardCount={4}
-            score={18}
             orientation="left"
           />
           <PlayerSeat
@@ -165,7 +163,6 @@ export default function FeltTwoPreview() {
             isThinking
             isActive
             cardCount={6}
-            score={27}
             orientation="right"
             reaction={<span className="text-xl">🔥</span>}
           />
@@ -175,7 +172,6 @@ export default function FeltTwoPreview() {
             player={P("me", "Ti", 0, 0)}
             isYou
             isActive
-            score={14}
             orientation="bottom"
           />
         </div>

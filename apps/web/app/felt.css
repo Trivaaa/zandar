@@ -611,7 +611,12 @@
   overflow: hidden;
 }
 
+/* Velicinu drzi CSS, ne utility u JSX-u: `felt.css` je `layer(components)`, pa
+   bi `text-base` iz `@layer utilities` pobijedio svaki `font-size` odavde — i
+   bocna sjedista se ne bi mogla smanjiti. Isti razlog zbog kojeg `.seat__avatar`
+   namjerno nema utility klasu. */
 .seat__name {
+  font-size: var(--type-base);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -654,10 +659,6 @@
 
 /* Rezultat u mentnoj, kao na referenci — razlikuje se od zlatnih zetona i od
    bijelog imena, pa se broj cita bez citanja labele. */
-.seat__score {
-  color: var(--success);
-}
-
 .seat__coins {
   color: var(--accent);
 }
@@ -717,13 +718,39 @@
 .seat--left,
 .seat--right {
   min-width: 0;
-  max-width: var(--seat-gutter, 5rem);
-  padding-inline: 0.2rem;
+  /* Uvuceno 0.25rem od ivice ekrana, pa se cip vise ne lijepi za rub. Sirina je
+     umanjena za tacno toliko, tako da desna ivica sjedista ostane na granici
+     pojasa — uvlacenje se placa iz sjedista, NIKAD iz stola. */
+  max-width: calc(var(--seat-gutter, 5rem) - 0.25rem);
+  padding-inline: 0.15rem;
 }
 
+/* Cip bocnog sjedista je najuza kutija sa tekstom u proizvodu (~54px na 360px
+   ekranu), pa mu padding ide na minimum — svaki 0.1rem je ovdje jedan znak
+   imena. Gornje i tvoje sjediste zadrzavaju siri padding. */
+.seat--left .seat__meta,
+.seat--right .seat__meta {
+  padding-inline: 0.3rem;
+}
+
+/* Ime u dva reda umjesto jednog odsjecenog. Na 13px u ~54px staje ~8 znakova po
+   redu: jednorecni nadimci iz generatora (najduzi `BataPenzioner`) staju cijeli,
+   a `Ime Prezime` se prelomi po razmaku. Samo bocna sjedista — gornje i tvoje
+   imaju sirine i ostaju na 16px u jednom redu.
+
+   `-webkit-box` + `line-clamp` je jedini nacin da se ellipsis pojavi na DRUGOM
+   redu; `text-overflow` iz baze radi samo uz `nowrap`, koji ovdje gasimo. */
 .seat--left .seat__name,
 .seat--right .seat__name {
-  max-width: calc(var(--seat-gutter, 5rem) - 1.4rem);
+  font-size: var(--type-xs);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.15;
+  max-width: none;
 }
 
 /* Tvoje sjediste. Sat ti je u traci nad rukom, a ruku vec vidis — pa ni pilula
@@ -816,7 +843,10 @@
 
 /* Broj stoji UZ recenicu, ne na traci — pa ga praznjenje nikad ne prekrije.
    Tabularne cifre da se traka ne siri i skuplja dok broj pada 10 -> 9. */
+/* Velicina i prored idu zajedno i oboje zive OVDJE. `text-lg` bi donio svoj
+   `line-height` iz `@layer utilities` i pobijedio ovaj red — vidi TurnBanner. */
 .banner__clock {
+  font-size: var(--type-lg);
   color: var(--turn-active);
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -1134,15 +1164,17 @@
   }
 }
 
-/* Bez panela ovaj tekst pluta na suknu unutar ovala. */
+/* Bez panela ovaj tekst pluta direktno na suknu. */
 .table__empty {
   text-align: center;
 }
 
-/* Trail affordance vise NE crta ova kutija — nema pozadinu na kojoj bi se ring
-   vidio. Signal je presao na `.felt-ring[data-trail="true"]`, tj. na ovalni
-   obod stola: isti podatak, veca povrsina, i cross-fade opacity-ja umjesto
-   tranzicije `box-shadow`-a (koja je tjerala preracunavanje sjenke po frejmu).
+/* Trail vise NEMA vizuelni nagovjestaj na samoj povrsini stola: prvo ga je
+   izgubila ova kutija (nema pozadine na kojoj bi se ring vidio), a onda je sa
+   ovalnim obodom otisao i njegov nasljednik. Ostaje recenica u traci iznad ruke
+   i `shake` + haptika na odbijen potez. Ako se na uredaju pokaze da igrac ne
+   pogadja gdje da baci kartu, signal se vraca OVDJE — u sloj koji je i meta
+   dodira — a ne kao novi ukras na feltu.
 
    Fokus MORA ostati vidljiv i bez pozadine, inace tastatura gubi metu. `outline`
    se crta van box-a i ne animira se, pa ne pomjera nijednu kartu. */
@@ -1199,10 +1231,13 @@
   /* `--stage-header-h` NIJE ovdje nego u globals.css `:root`: PWA banner je
      `fixed` element IZVAN pozornice, pa varijablu s nje ne bi naslijedio, a
      mora da se skloni ispod istog zaglavlja. Jedna vrijednost, jedno mjesto. */
-  /* Izmjereno na 360x760 (/dev/frame?measure=1), ne procijenjeno: pilula 1.5
-     + avatar 3.25 + cip ~3 + razmaci. Lepeza je van toka, pa se ne racuna. */
-  --stage-partner-h: 7.5rem;
-  --stage-seat-h: 7.5rem; /* tvoj avatar 3.5 + cip; bez pilule i lepeze */
+  /* Izmjereno na 360x760 (CDP, prava sirina viewporta), ne procijenjeno.
+     Sjediste se crta 86.3px (partner) / 90.3px (ti); token drzi tu visinu plus
+     rezervu za mjehur reakcije, koji visi IZNAD sjedista i nije u toku.
+     Oba su spustena za tacno 1.5rem kad je red rezultata skinut sa cipa
+     (izmjereno 24px), pa je rezerva ostala ista kao prije: 9.7 / 5.7px. */
+  --stage-partner-h: 6rem;
+  --stage-seat-h: 6rem; /* tvoj avatar 3.5 + cip; bez lepeze */
   --stage-banner-h: 2rem;
   --stage-hand-h: 9.2rem; /* preslikava .hand: 1.5 + 4.95 + 2.75rem */
 
@@ -1245,8 +1280,8 @@
        Procijenjene vrijednosti su ovdje ranije bile 1-2.5rem premale, pa su
        partnerov cip i tvoj avatar ulazili u sto — na kratkom ekranu se to vidi
        prvo. */
-    --stage-partner-h: 8.5rem;
-    --stage-seat-h: 7rem;
+    --stage-partner-h: 7rem;
+    --stage-seat-h: 5.5rem;
     /* Kratak ekran placa i ruka: bez ovoga stolu ostane 141px, sto je ispod
        tri reda cak i na `--card-w-min`. Smanjuje se REZERVA oko lepeze
        (podizanje izabrane karte i luk), ne same karte. */
@@ -1269,10 +1304,10 @@
   .felt-stage {
     --seat-avatar: 3.75rem;
     --seat-gutter: 6rem;
-    --stage-partner-h: 9.5rem;
+    --stage-partner-h: 8rem;
     /* 8rem, ne 6: izmjereno je tvoje sjediste 119px i na desktopu je sa 6rem
        ulazilo 7px u sto. */
-    --stage-seat-h: 8rem;
+    --stage-seat-h: 6.5rem;
     --stage-gap: 0.5rem;
   }
   /* Isti razlog kao na kratkom ekranu: `.seat--bottom` deklarise svoj precnik,
@@ -1357,32 +1392,13 @@
   top: 0.45rem;
 }
 
-.felt-header__titles {
-  justify-self: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.05rem;
-  min-width: 0;
-}
-
-.felt-header__title {
-  line-height: 1.1;
-  white-space: nowrap;
-}
-
-.felt-header__subtitle {
-  color: var(--text-muted);
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
+/* Runda je sad JEDINI sadrzaj zaglavlja pored dugmadi, pa je i direktno
+   srednje dijete grida — omotac `.felt-header__titles` je otisao zajedno sa
+   naslovom i podnaslovom. Bez `margin-top`: nema vise reda iznad od kojeg bi
+   se odvajala, a margina bi ga gurnula sa ose dugmadi. */
 .felt-header__chip {
-  margin-top: 0.15rem;
-  padding: 0.05rem 0.6rem;
+  justify-self: center;
+  padding: 0.15rem 0.6rem;
   border-radius: 999px;
   background-color: color-mix(in oklab, var(--surface) 75%, transparent);
   color: var(--accent);
@@ -1396,42 +1412,3 @@
   align-items: center;
 }
 
-/* ------------------------------------------------------------------ *
- * Ovalni obod stola
- *
- * Granice su vezane za ISTE varijable kao sto, pa partnerov avatar sjedi na
- * gornjoj ivici a tvoj na donjoj — bez drugog seta brojeva koji bi se s njima
- * razisao. Ime je `felt-ring`, ne `ring`: `ring` je Tailwind utility iz
- * kasnijeg sloja, ista zamka kao `.table` vs `.felt-table`.
- * ------------------------------------------------------------------ */
-
-.felt-ring {
-  position: absolute;
-  top: calc(var(--table-top) - 2.75rem);
-  bottom: calc(var(--table-bottom) - 2.25rem);
-  left: 0.75rem;
-  right: 0.75rem;
-  z-index: 0; /* ispod karata i sjedista */
-  border-radius: 45% / 22%;
-  box-shadow: inset 0 0 0 1px
-    color-mix(in oklab, var(--accent) 16%, transparent);
-  pointer-events: none;
-}
-
-/* Trail je legalan: obod se pojaca. Svjetlija kopija je UNAPRIJED nacrtana i
-   ukrsta se po opacity-ju — animirani `box-shadow` bi tjerao preracunavanje
-   sjenke po frejmu, sto je glavni izvor zastajkivanja na srednjem Androidu. */
-.felt-ring::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 2px
-    color-mix(in oklab, var(--accent) 55%, transparent);
-  opacity: 0;
-  transition: opacity var(--t-toast-in) var(--ease-out-soft);
-}
-
-.felt-ring[data-trail="true"]::after {
-  opacity: 1;
-}

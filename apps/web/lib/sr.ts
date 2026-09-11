@@ -5,9 +5,6 @@ export const sr = {
   // Zaglavlje stola. "Runda" je ono sto igrac broji za stolom; u kodu je to
   // `handNumber` (dijeljenje). Ne mijenjati jedno bez drugog.
   header: {
-    brand: "Kartaonica",
-    friendly: "Prijateljska partija",
-    publicTable: "Javni sto",
     round: (n: number) => `Runda ${n}`,
     menu: "Meni",
   },
