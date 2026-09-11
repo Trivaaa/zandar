@@ -2,7 +2,6 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { CardBack } from "./CardBack";
-import { TurnPill } from "./TurnPill";
 import { sr } from "@/lib/sr";
 import type { PublicPlayer } from "@/components/felt/types";
 
@@ -53,6 +52,11 @@ export function PlayerSeat({
 }: PlayerSeatProps) {
   const team = player.teamId === undefined ? undefined : player.teamId === 0 ? "a" : "b";
 
+  // Sat drzi roditelj; ovdje se samo crta udio preostalog vremena.
+  const countdown = isActive && !isThinking && secondsRemaining > 0;
+  const fill = countdown ? Math.max(0, Math.min(1, secondsRemaining / totalSeconds)) : 1;
+  const urgent = countdown && secondsRemaining <= 5;
+
   return (
     <div
       className={`seat seat--${orientation} ${team ? `seat--team-${team}` : ""} ${className}`}
@@ -63,6 +67,7 @@ export function PlayerSeat({
          (querySelectorAll) tebi dijeli dvaput. Ne vracati ga nazad. */
       data-seat-id={player.id}
       {...(isActive ? { "data-current-turn": true } : {})}
+      {...(urgent ? { "data-urgent": true } : {})}
       data-status={player.connectionStatus}
     >
       {reaction ? (
@@ -70,19 +75,6 @@ export function PlayerSeat({
           {reaction}
         </div>
       ) : null}
-
-      {/* Pilula se crta samo kad stvarno ima šta da odbrojava. Bez ovoga je
-          sjedište na potezu prikazivalo "0" kad rok još nije stigao sa servera —
-          broj koji laže je gori od praznog mjesta. */}
-      <div className="seat__pill">
-        {isActive && (isThinking || secondsRemaining > 0) ? (
-          <TurnPill
-            variant={isThinking ? "thinking" : "countdown"}
-            secondsRemaining={secondsRemaining}
-            totalSeconds={totalSeconds}
-          />
-        ) : null}
-      </div>
 
       <div className="seat__body">
         {/* Bez `text-num-sm`: utility bi iz kasnijeg sloja pobijedio font-size
@@ -109,6 +101,20 @@ export function PlayerSeat({
           {player.connectionStatus !== "connected" ? (
             <span className="seat__status font-sans text-sm">
               {statusLabel[player.connectionStatus]}
+            </span>
+          ) : null}
+
+          {/* Odbrojavanje tudjeg poteza je LINIJA po donjoj ivici cipa, ne
+              pilula iznad avatara. Pilula je trazila 38px iznad sjedista, a tamo
+              je zaglavlje: na uredaju je zlatna traka sjedala preko "Runda N".
+              Linija ne trosi visinu, a jezik je isti koji traka nad tvojom rukom
+              vec koristi (`banner__track`). */}
+          {countdown ? (
+            <span className="seat__track" aria-hidden="true">
+              <span
+                className="seat__fill"
+                style={{ "--seat-fill": fill } as React.CSSProperties}
+              />
             </span>
           ) : null}
         </div>

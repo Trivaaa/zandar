@@ -53,6 +53,7 @@ type Opts = {
   tableCount: number;
   playerCount: 2 | 3 | 4;
   longName: string | null;
+  turn: "me" | "partner" | "left" | "right";
 };
 
 /**
@@ -82,6 +83,7 @@ function mockState({
   tableCount,
   playerCount,
   longName,
+  turn,
 }: Opts): PrivateGameStateView & {
   turnDeadline?: number;
 } {
@@ -92,7 +94,14 @@ function mockState({
     phase,
     players,
     table: TABLE_POOL.slice(0, tableCount),
-    currentPlayerId: "me",
+    currentPlayerId:
+      turn === "me"
+        ? "me"
+        : turn === "right"
+          ? "p1"
+          : turn === "partner"
+            ? (players[2]?.id ?? "me")
+            : (players[3]?.id ?? players[1]?.id ?? "me"),
     dealerPlayerId: "p3",
     deckCount: 28,
     handCounts: Object.fromEntries(players.map((p, i) => [p.id, 4 - (i % 2)])),
@@ -140,6 +149,13 @@ type UrlOpts = {
   playerCount: 2 | 3 | 4;
   longName: string | null;
   chooser: boolean;
+  /**
+   * Ko je na potezu. Podrazumijevano si to TI — i upravo je to propustilo bug:
+   * pilula tudjeg sjedista se tad nikad ne crta, pa se na uredjaju vidjelo da
+   * partnerova pilula ulazi u zaglavlje, a ni jedan headless snimak to nije
+   * mogao uhvatiti.
+   */
+  turn: "me" | "partner" | "left" | "right";
   /** `measure=1`: ispisi rect-ove i sakrij kontrolnu traku (ona pokriva sto). */
   measure: boolean;
 };
@@ -156,6 +172,11 @@ function parseParams(search: string): UrlOpts {
     playerCount: players === "2" ? 2 : players === "3" ? 3 : 4,
     longName: q.get("name"),
     chooser: q.get("chooser") === "1",
+    turn: (["me", "partner", "left", "right"] as const).includes(
+      (q.get("turn") ?? "me") as never,
+    )
+      ? ((q.get("turn") ?? "me") as UrlOpts["turn"])
+      : "me",
     measure: q.get("measure") === "1",
   };
 }
@@ -175,6 +196,9 @@ function Measure() {
     const t = setTimeout(() => {
       const pick: [string, Element | null][] = [
         ["stage", document.querySelector(".felt-stage")],
+        ["header", document.querySelector(".felt-header")],
+        ["chip", document.querySelector(".felt-header__chip")],
+        ["topPill", document.querySelector(".seat--top .pill")],
         ["band", document.querySelector("[data-table-drop]")],
         ["drop", document.querySelector(".table__drop")],
         ["cards", document.querySelector(".table__cards")],
@@ -241,7 +265,14 @@ export default function DevGamePage() {
            poslije hidracije (server snapshot je prazan string) — bez `key`-a bi
            `chooser=1` uvijek zatekao vec inicijalizovano stanje bez selekcije. */
         key={url.chooser ? "chooser" : "plain"}
-        state={mockState({ phase, turnDeadline: deadline, tableCount, playerCount, longName: url.longName })}
+        state={mockState({
+          phase,
+          turnDeadline: deadline,
+          tableCount,
+          playerCount,
+          longName: url.longName,
+          turn: url.turn,
+        })}
         {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
         onPlayCard={noop}
         onNextHand={noop}

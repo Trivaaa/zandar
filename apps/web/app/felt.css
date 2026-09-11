@@ -497,116 +497,6 @@
 }
 
 /* ------------------------------------------------------------------ *
- * TurnPill — odbrojavanje na TUDJEM sjedistu. Horizontalno, nikad prsten.
- * Praznjenje je scaleX() unaprijed nacrtane trake; boja hitnosti je obicna
- * zamjena svojstva na traci koja nije usred animacije.
- * Tvoj potez ne prolazi ovuda — on je traka u .banner-u.
- * ------------------------------------------------------------------ */
-
-.pill {
-  --pill-h: 1.5rem;
-  --pill-w: 5.5rem;
-
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  width: var(--pill-w);
-  min-height: var(--pill-h);
-  padding: 0.25rem 0.6rem;
-  border-radius: var(--radius-lg);
-  background-color: color-mix(in oklab, var(--surface) 78%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--turn-active) 45%, transparent);
-  color: var(--text);
-  isolation: isolate;
-}
-
-.pill__track {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  border-radius: inherit;
-}
-
-.pill__fill {
-  position: absolute;
-  inset: 0;
-  transform-origin: left center;
-  transform: scaleX(var(--pill-fill, 1));
-  background-color: var(--turn-active);
-  transition: transform var(--t-card-play) var(--ease-out-soft);
-}
-
-.pill__fill {
-  opacity: 0.72;
-}
-
-.pill[data-urgent="true"] .pill__fill {
-  background-color: var(--danger-signal);
-}
-
-.pill__body {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.pill__label {
-  white-space: nowrap;
-}
-
-/* Calm "thinking" state: no depletion, no urgency, no countdown. */
-.pill--thinking {
-  --pill-w: auto;
-
-  animation: none;
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
-}
-
-.pill__dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.18rem;
-}
-
-.pill__dot {
-  width: 0.28rem;
-  height: 0.28rem;
-  border-radius: var(--radius-lg);
-  background-color: var(--accent);
-  opacity: 0.35;
-  animation: pill-dot var(--t-turn-pulse) var(--ease-out-soft) infinite;
-}
-
-.pill__dot:nth-child(2) {
-  animation-delay: calc(var(--t-turn-pulse) / 6);
-}
-
-.pill__dot:nth-child(3) {
-  animation-delay: calc(var(--t-turn-pulse) / 3);
-}
-
-@keyframes pill-dot {
-  from,
-  to {
-    opacity: 0.3;
-  }
-  40% {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pill__dot {
-    animation: none;
-    opacity: 0.7;
-  }
-}
-
-/* ------------------------------------------------------------------ *
  * PlayerSeat — identical for every occupant. No frame, no panel: the player
  * stands on the felt. Team and turn are the ring around the avatar.
  * ------------------------------------------------------------------ */
@@ -665,12 +555,6 @@
   opacity: 0.55;
 }
 
-.seat__pill {
-  min-height: 1.5rem;
-  display: flex;
-  align-items: center;
-}
-
 /* Referenca: avatar GORE, cip sa imenom i rezultatom ISPOD — na svakoj
    orijentaciji, ne samo na bocnoj. Zato je kolona baza, a ne izuzetak.
 
@@ -722,6 +606,9 @@
   background-color: color-mix(in oklab, var(--surface) 82%, transparent);
   line-height: 1.2;
   text-align: center;
+  /* sidro i klip za `.seat__track` */
+  position: relative;
+  overflow: hidden;
 }
 
 .seat__name {
@@ -735,6 +622,34 @@
   display: inline-flex;
   align-items: baseline;
   gap: 0.55rem;
+}
+
+/* Odbrojavanje TUDJEG poteza: linija po donjoj ivici cipa. Ne trosi visinu, pa
+   je sjediste jednako visoko i kad je igrac na potezu i kad nije — a to je i bio
+   problem pilule: iznad sebe je trazila 38px koje drzi zaglavlje, pa je na
+   uredaju zlatna traka sjedala preko "Runda N". Jezik je isti koji traka nad
+   tvojom rukom vec koristi (`banner__track`). Animira se `transform`. */
+.seat__track {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 0.15rem;
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--turn-active) 20%, transparent);
+}
+
+.seat__fill {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(var(--seat-fill, 1));
+  transform-origin: left center;
+  background-color: var(--turn-active);
+  transition: transform var(--t-card-play) var(--ease-out-soft);
+}
+
+.seat[data-urgent] .seat__fill {
+  background-color: var(--danger-signal);
 }
 
 /* Rezultat u mentnoj, kao na referenci — razlikuje se od zlatnih zetona i od
@@ -819,7 +734,6 @@
   --seat-avatar: 3.5rem;
 }
 
-.seat--bottom .seat__pill,
 .seat--bottom .seat__fan {
   display: none;
 }
@@ -832,19 +746,8 @@
   --seat-glow: color-mix(in oklab, var(--turn-active) 75%, transparent);
 }
 
-/* Pilula bocnog sjedista ne smije da trosi visinu — bocni pojas je nema odakle
-   uzeti, a rezervisanih 1.5rem je guralo avatar iz sredine stola. Gornje
-   sjediste je NAMJERNO izuzeto: njegova bi pilula uletjela u zaglavlje i
-   zavrsila iza njegove podloge. Tamo prostora ima, pa ostaje u toku. */
-.seat--left .seat__pill,
-.seat--right .seat__pill {
-  position: absolute;
-  bottom: 100%;
-  min-height: 0;
-}
-
 /* Connection state outranks the team mark, but stays one step below
-   --danger-signal, which is reserved for the turn pill's final seconds. */
+   --danger-signal, which is reserved for a turn's final seconds. */
 .seat__status {
   color: var(--text-muted);
 }
@@ -1298,7 +1201,7 @@
      mora da se skloni ispod istog zaglavlja. Jedna vrijednost, jedno mjesto. */
   /* Izmjereno na 360x760 (/dev/frame?measure=1), ne procijenjeno: pilula 1.5
      + avatar 3.25 + cip ~3 + razmaci. Lepeza je van toka, pa se ne racuna. */
-  --stage-partner-h: 8.75rem;
+  --stage-partner-h: 7.5rem;
   --stage-seat-h: 7.5rem; /* tvoj avatar 3.5 + cip; bez pilule i lepeze */
   --stage-banner-h: 2rem;
   --stage-hand-h: 9.2rem; /* preslikava .hand: 1.5 + 4.95 + 2.75rem */
