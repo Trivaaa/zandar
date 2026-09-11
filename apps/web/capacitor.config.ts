@@ -1,6 +1,19 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
+ * Live reload (`pnpm dev:android`): WebView ucitava `next dev` sa LAN adrese
+ * umjesto `out/`-a sa diska. Gated env varijablom, pa izvor configa ostaje
+ * isti i za izdanje — nista se ne komentarise i ne vraca rucno.
+ *
+ * `cleartext` je nuzan jer je dev server na `http://`, a Android od API 28
+ * blokira cleartext. Capacitor tu zastavicu upisuje u GENERISANI
+ * `capacitor-cordova-android-plugins` manifest (nije u gitu), ne u
+ * `app/src/main/AndroidManifest.xml` — pa izdanje ostaje bez nje cim se odradi
+ * obican `pnpm cap:sync`.
+ */
+const liveReloadUrl = process.env.CAP_LIVE_RELOAD_URL;
+
+/**
  * Capacitor (Android). `webDir` je izlaz `pnpm build:mobile` (`output: "export"`).
  *
  * `androidScheme: "https"` NIJE kozmetika: daje WebView-u origin
@@ -13,6 +26,9 @@ const config: CapacitorConfig = {
   appId: "com.kartaonica.zandar",
   appName: "Žandar",
   webDir: "out",
+  ...(liveReloadUrl
+    ? { server: { url: liveReloadUrl, cleartext: true } }
+    : {}),
   android: {
     // Sadržaj je na disku; tijelo aplikacije crta felt do ivica.
     backgroundColor: "#18181b",

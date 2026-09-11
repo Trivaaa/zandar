@@ -124,7 +124,19 @@ packages/shared-types TS types shared by web + server
 - **Language:** match existing code conventions (code/comments). User-facing copy is ijekavica.
 - **Single-player is cut** (v3.2) — do not build it.
 - **Ručno pisani CSS uvijek ide u `layer(components)`.** `@import "./felt.css" layer(components);` u `globals.css`. Neslojevit CSS pobjeđuje SVAKI `@layer`, pa bi `.seat{position:relative}` tiho nadjačao Tailwind `absolute` koji komponente prosljeđuju kroz `className`. Isto pravilo važi za svaki novi felt/overlay sloj koji stigne iz Lovablea. Posljedica: klasa iz tog fajla više ne može nadjačati utility na istom elementu — boju stanja drži CSS, a JSX ne smije nositi konkurentnu utility klasu (vidi `.seat__status` vs `text-muted`).
+- **Dev server smije na LAN.** `apps/server/src/index.ts` uz `CORS_ORIGIN` pušta i privatni LAN (`192.168.*`, `10.*`, `172.16-31.*`), ali SAMO kad `CORS_ORIGIN` nije postavljen i `NODE_ENV` nije `production` — telefon gađa `http://192.168.x.y:PORT`, ne `localhost`, pa bi inače i REST i socket handshake tiho pali. Na Railwayu je `CORS_ORIGIN` postavljen, pa tamo vazi samo ta lista.
 - **Back-compat za perzistirane podatke.** Deploy na Railway = restart = hydrate soba (vidi Deployment). Mijenjanje oblika onoga što ide u snapshot (`botProfile`, `gameState`, `LobbyRoom`…) mora tolerisati **stari** oblik na hydrate-u, inače žive partije pucaju nakon deploya. Pouka: bot-stuck regresija 2026-06-10 — promjena `botProfile.timing` oblika je nakon deploya zaglavila botove u hidriranim sobama (`scheduleBotMove` bacio na nedostajuće bendove; bot nema AFK timeout → trajno zaglavljen).
+
+## Razvojna petlja na uređaju
+
+`pnpm --filter web mirror` — telefon na monitoru (scrcpy). `pnpm --filter web
+dev:android` — APK čita `next dev` sa LAN adrese, pa izmjena ide kroz HMR bez
+`build:mobile`/`cap sync`/`gradlew`. Detalji i zamke: `docs/MOBILE_PLAN_STATUS.md` §4.
+
+**Nije zamjena za pravi APK prije izdanja** — `output: "export"` i
+`pageExtensions` grane se u dev-u ne izvršavaju. `CAP_LIVE_RELOAD_URL` je jedini
+prekidač u `capacitor.config.ts`; `server.url`/`cleartext` završe samo u
+generisanim, negitovanim fajlovima, pa ih `pnpm cap:sync` skida.
 
 ## Status maintenance
 

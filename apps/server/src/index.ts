@@ -55,12 +55,40 @@ const VALID_REACTIONS = [
 
 const fastify = Fastify({ logger: true });
 
-const allowedOrigins = (
+/**
+ * Dozvoljeni origini. Produkcija ide ISKLJUCIVO kroz `CORS_ORIGIN` (zarezom
+ * razdvojeno) — vidi CLAUDE.md Deployment; tamo su `https://kartaonica.com` i
+ * `https://localhost` (Capacitor WebView).
+ */
+const configuredOrigins = (
   process.env.CORS_ORIGIN || "http://localhost:3000"
-).split(",").map((o) => o.trim());
+).split(",").map((o) => o.trim()).filter(Boolean);
+
+/**
+ * U dev-u se uz to pusta cijeli privatni LAN. Telefon — bilo browser, bilo
+ * Capacitor live reload (`pnpm dev:android`) — gadja `http://192.168.x.y:3000`,
+ * a ne `localhost`, pa bi inace i REST i socket handshake tiho pali. Sablon
+ * umjesto fiksne liste jer se IP mijenja sa mrezom.
+ *
+ * NIKAD u produkciji. Dva signala, jer Railway ne garantuje `NODE_ENV` u
+ * runtime-u: postavljen `CORS_ORIGIN` je sam po sebi dokaz da neko vodi racuna
+ * o listi (na Railwayu jeste — nosi `https://localhost` za APK), pa se tad
+ * postuje samo ta lista.
+ */
+const isProduction =
+  process.env.NODE_ENV === "production" || Boolean(process.env.CORS_ORIGIN);
+const LAN_ORIGIN =
+  /^https?:\/\/(?:localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(?::\d+)?$/;
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  // Bez `Origin` zaglavlja: curl, health check, same-origin navigacija.
+  if (!origin) return true;
+  if (configuredOrigins.includes(origin)) return true;
+  return !isProduction && LAN_ORIGIN.test(origin);
+}
 
 await fastify.register(cors, {
-  origin: allowedOrigins,
+  origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
 });
 
 // ---- HEALTH ----
@@ -709,7 +737,7 @@ await fastify.ready();
 
 const io = new SocketIOServer(fastify.server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
   },
 });
 

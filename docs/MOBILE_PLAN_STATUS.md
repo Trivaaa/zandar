@@ -149,7 +149,47 @@ riječ smije da postoji (HARD RULE 5); u igri ostaje nevidljiva.
 
 ---
 
-## 4. iOS
+## 4. Razvojna petlja — telefon na ekranu (2026-09-11)
+
+Testiranje na uređaju je bilo sporo jer je svaka izmjena tražila
+`build:mobile` → `cap sync` → `gradlew` → instalaciju, a rezultat se gledao na
+telefonu u ruci. Sad su dvije komande:
+
+```
+pnpm --filter web mirror       # scrcpy — ekran telefona na monitoru
+pnpm --filter web dev:android  # live reload — APK čita `next dev` sa LAN-a
+```
+
+`dev:android` podigne dev server, odradi `cap sync`, instalira debug APK i
+pokrene ga. Poslije toga izmjena koda ide kroz HMR — **bez** novog builda. Uz to
+Next 16 prosljeđuje konzolu iz WebView-a u PC terminal, pa se greške sa uređaja
+čitaju bez `logcat`-a.
+
+### Šta je moralo da se riješi
+
+| Zamka | Rješenje |
+|---|---|
+| `cap run --live-reload` hardkodira `./gradlew`, cmd to ne pokreće | koraci ručno: `cap sync` + `gradlew.bat` + `adb am start` |
+| Node ≥20.12 odbija `spawn` na `.bat` (CVE-2024-27980) → `spawn EINVAL` | `shell: true` |
+| Windows dozvoljava bind na `0.0.0.0:3000` dok je `127.0.0.1:3000` zauzet | probe obje adrese, pa slobodan port (tvoj obični `pnpm dev` ostaje netaknut) |
+| scrcpy nosi svoj `adb` (37.0.0), SDK ima 37.0.1 → međusobno gase server i wireless veza pada | `ADB` env pribija scrcpy na SDK binar |
+| WebView origin je `http://192.168.x.y:PORT`, a server je puštao samo `localhost` | dev-only LAN šablon u `apps/server/src/index.ts` |
+
+### Granice
+
+Live reload NIJE zamjena za pravi APK prije izdanja: `output: "export"` i
+`pageExtensions` grane se u dev-u ne izvršavaju, pa path rute (`/room/:id`)
+ovdje postoje a u APK-u ne. `NEXT_PUBLIC_PLATFORM=native` skripta postavlja sama,
+pa native grane (`NativeShell`, `resolveApiBase`, `PwaManager`) jesu žive.
+
+`CAP_LIVE_RELOAD_URL` je jedini prekidač u `capacitor.config.ts` — bez njega je
+config identičan izdanju. `server.url` i `cleartext` završe samo u generisanim,
+negitovanim fajlovima (`assets/capacitor.config.json`,
+`capacitor-cordova-android-plugins`), pa `pnpm cap:sync` vraća čisto stanje.
+
+---
+
+## 5. iOS
 
 Ista Capacitor grana, uz Mac + Xcode + Apple Developer nalog ($99/god).
 React Native se i dalje ne preporučuje — značio bi rewrite cijelog UI sloja.
