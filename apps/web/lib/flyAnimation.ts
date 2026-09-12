@@ -73,7 +73,11 @@ function flyGhostCard(
     top: `${from.y}px`,
     width: "30px",
     height: "42px",
-    borderRadius: "6px",
+    // 7.5% sirine, isto pravilo kao `--card-radius` u felt.css: radijus prati
+    // kartu jer ga slika poledjine vec ima isjecen u alpha. Ranijih 6px na
+    // kutiji od 30px (20%) je sjeklo krem okvir crteza i ugao je izgledao
+    // otkinuto — isti bug koji je popravljen na `.card-back`.
+    borderRadius: "2.25px",
     // ISTI crtež poleđine koji nosi `.card-back`. Duh se crta ovdje inline, pa
     // NIJE pokriven felt.css-om — kad se poleđina mijenja, mijenja se i ovo,
     // inače karta leti jednom poleđinom a sleti na drugu. Boja ispod ostaje kao
