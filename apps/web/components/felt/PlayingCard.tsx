@@ -11,19 +11,21 @@ const sizeClass: Record<CardSize, string> = {
   fluid: "card--fluid",
 };
 
-const suitGlyph: Record<Suit, string> = {
-  clubs: "\u2663",
-  diamonds: "\u2666",
-  hearts: "\u2665",
-  spades: "\u2660",
+/** Znak u imenu fajla asseta: `hearts` + `Q` -> `QH.webp`. */
+const suitChar: Record<Suit, string> = {
+  clubs: "C",
+  diamonds: "D",
+  hearts: "H",
+  spades: "S",
 };
 
-const suitInk: Record<Suit, string> = {
-  clubs: "text-card-ink",
-  spades: "text-card-ink",
-  diamonds: "text-card-ink-red",
-  hearts: "text-card-ink-red",
-};
+/**
+ * Ime slike lica. Rang ide PRVI i "10" je dva znaka \u2014 pa se iz ovog id-a rang
+ * ne smije citati kao `id[0]`, nego `slice(0, -1)`. Ovdje se samo sastavlja.
+ */
+function assetId(card: Card) {
+  return `${card.rank}${suitChar[card.suit]}`;
+}
 
 const suitLabel: Record<Suit, string> = {
   clubs: "tref",
@@ -32,12 +34,13 @@ const suitLabel: Record<Suit, string> = {
   spades: "pik",
 };
 
-/* Corner suit size and centre pip size are geometry, driven off --card-w in
-   felt.css. Rank is text-num-md at the fixed sizes.
+/* Lice je SLIKA, ne DOM. Ranije su tu bili rang kao tekst i JEDAN veliki znak u
+   sredini — sedmica srca je pokazivala jedno veliko srce, ne sedam. Sada je
+   `.card-face` prazan element kojem se preko `--card-art` doda isjeceno lice
+   (vidi `scripts/build-cards.mjs`); rang, znakovi i figure dolaze iz crteza.
 
-   `text-num-md` je UTILITY — sjedi u sloju IZNAD `layer(components)`, pa bi
-   svaki font-size koji bi felt.css napisao za rank izgubio. Fluidna karta ga
-   zato ne smije nositi: njen rank vodi `.card--fluid` iz `--card-w`. */
+   `aria-label` na KORIJENU karte ostaje jedini pristupacni naziv i gradi se iz
+   propova, ne iz teksta u DOM-u, pa ga gubitak tih spanova ne dodiruje. */
 
 
 export type PlayingCardProps = {
@@ -116,22 +119,14 @@ export function PlayingCard({
         <span className="card-glow" />
         <div className="card-inner">
           <div className="card-side">
-            <div className={`card-face ${suitInk[card.suit]}`}>
-              <span className="card-face__index">
-                <span
-                  className={`card-face__rank font-display ${size === "fluid" ? "" : "text-num-md"}`}
-                >
-                  {card.rank}
-                </span>
-                <span className="card-face__suit" aria-hidden="true">
-                  {suitGlyph[card.suit]}
-                </span>
-
-              </span>
-              <span className="card-face__pip" aria-hidden="true">
-                {suitGlyph[card.suit]}
-              </span>
-            </div>
+            {/* Klasa `card-face` MORA ostati: `/dev/game?measure=1` je mjeri
+                preko `getBoundingClientRect()`. */}
+            <div
+              className="card-face"
+              style={
+                { "--card-art": `url("/cards/${assetId(card)}.webp")` } as React.CSSProperties
+              }
+            />
           </div>
 
           <div className="card-side card-side--back">

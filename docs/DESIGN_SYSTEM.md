@@ -400,7 +400,7 @@ Acceptance: background→foreground vraća živu konekciju i state bez ručnog r
 
 Mijenjaš samo vrijednosti tokena. Smjer: kafana/felt sto (topliji zeleni, suptilna tekstura, drvo + zlato akcenti — žuti CTA već nagovještava), klasične čitke karte (regionalni špil, autentičnost kasnije), folk motivi štedljivo, topla čitka tipografija sa karakternim display fontom za brand. Ton: "klasična kartaška sa rajom — sad i online" — toplo, prijateljski, nostalgično. Bot iluzija pomaže ovom tonu: stolovi uvijek "živi", imena domaća, sjedišta se popunjavaju pred tobom.
 
-> **Rana djelimična primjena (v3.2 polish):** poleđina karata i špil su već dobili §10 dašak — `CardBack` sa zlatnom rešetkom rombova na feltu (token-only). Ostalo (lica karata / regionalni špil, tekstura felta, drvo, display font) ostaje za punu Fazu 2.
+> **Isporučeno (v3.6–v3.7):** **tekstura felta** je slika (`public/felt-bg.webp`, sukno sa nacrtanim obodom stola), a **lica i poleđina karata** su pravi crtež iz isporučenog kompleta (`public/cards/*.webp`, 53 WebP-a, ~490 KB; rezano skriptom `apps/web/scripts/build-cards.mjs`). Karta se više ne crta iz DOM-a — raniji izgled je bio rang kao tekst plus JEDAN veliki znak u sredini, pa je sedmica srca pokazivala jedno srce. Zlatna rešetka rombova koju je `CardBack` crtao je time otišla. Ostaje za punu Fazu 2: drvo, display font, folk motivi.
 
 ---
 
@@ -439,7 +439,7 @@ Cilj: sto da "živi" — svaki bitan događaj ima čujni/opipljivi/vidljivi odgo
 | **collect** (`collectToPile`) | bilo koji capture | STVARNE karte iz `MoveReveal`-a (`[data-reveal-card]`) odlete ka `[data-seat-id]` kupca (Web Animations API, `fill:forwards`, staggered; samočisteće, `pointer-events-none`) |
 | **reakcija** (emoji) | igrač reaguje | emoji-bubble uz `SeatBubble` pošiljaoca (iznad avatara; ispod za gornje sjedište) |
 | **deal "iz špila"** (`dealFromDeck`) | (re)dijeljenje + **start partije** | poleđine (`CardBack` izgled) lete iz špila (`[data-deck]`) ka svakom igraču + na sto (`[data-table-drop]`), round-robin staggered; ghost elementi na `body`, samočisteći. Na startu se sintetizuje iz prvog "playing" snapshota; turn-timer se sakrije dok traje pa pokaže po završetku. *(Više NIJE odgođeno — deck-sidro riješilo problem.)* |
-| **CardBack** (poleđina) | protivnici / špil / deal | zlatna rešetka rombova na feltu, token-only; ne animira se sama nego daje jedinstven izgled svemu gore |
+| **CardBack** (poleđina) | protivnici / špil / deal | crtež poleđine iz kompleta (`/cards/back.webp`); ne animira se sama nego daje jedinstven izgled svemu gore. **Duh koji leti u `flyAnimation.ts` nosi ISTU sliku** — crta se inline u JS-u i felt.css ga ne pokriva, pa se mijenja u istom potezu |
 
 - **Sidra:** `[data-seat-id]` na `SeatBubble` (uz postojeći `data-current-turn`); `[data-reveal-card]` na karticama u `MoveReveal`-u; `[data-deck]` na `DeckPile`; `[data-table-drop]` na play-zoni.
 - Keyframes u `globals.css`; svaka nova ide i u `prefers-reduced-motion` blok.
