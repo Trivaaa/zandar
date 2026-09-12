@@ -20,14 +20,6 @@ const NAME_POOLS = {
     "Selma", "Anja", "Bojana", "Gordana", "Vesna", "Lidija", "Renata",
     "Kristina", "Vanja", "Azra", "Ermina", "Dajana", "Emina", "Alma",
   ],
-  surname: [
-    "Petrović", "Jovanović", "Marković", "Nikolić", "Kovačević", "Ilić",
-    "Đorđević", "Stanković", "Pavlović", "Lukić", "Babić", "Hodžić",
-    "Begić", "Tadić", "Vuković", "Knežević", "Mitrović", "Savić",
-    "Popović", "Tomić", "Jović", "Perić", "Lazić", "Simić", "Kostić",
-    "Stojanović", "Milošević", "Đukić", "Radić", "Matić", "Rakić",
-    "Bošnjak", "Mehić", "Softić", "Halilović", "Mahmutović", "Nuić",
-  ],
   nick: [
     "Bata", "Seka", "Cane", "Đole", "Maca", "Buca", "Pera", "Žika",
     "Mića", "Steva", "Brka", "Keba", "Coa", "Gaga", "Lola", "Buba",
@@ -50,7 +42,6 @@ const NAME_POOLS = {
     "KumIzSela", "ŠefSale", "KomšijaPero", "TaksistaJoca", "BataPenzioner",
     "UjakoBranko", "StrinaraJela", "DedaMarko", "BakaRuža",
   ],
-  initialPrefix: ["M.", "J.", "A.", "S.", "N.", "D.", "V.", "P.", "I.", "B."],
 } as const;
 
 // ====================================================
@@ -64,13 +55,20 @@ const AVATARS = {
 } as const;
 
 // ====================================================
-// CATEGORY WEIGHTS  (PRD §39.1)
+// CATEGORY WEIGHTS  (PRD §39.1, DEVIATION — vidi napomenu ispod)
 // ====================================================
 
-type NameCategory = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+// DEVIATION od PRD §39.1: originalna tabela ima 11 kategorija, od kojih 3
+// koriste prezime ("Ime + Prezime", "Inicijal + prezime"). Bot je uvijek
+// human-presenting (HARD RULE 5) — a u stvarnom životu skoro niko ne unosi
+// prezime, pa bi prezime bilo neprirodnije od nedostatka istog. Te tri
+// kategorije su uklonjene; njihova težina je prebačena na rodno odgovarajuću
+// "samo ime" kategoriju (stara 1→3, 2→4) odnosno na neutralnu guest-kategoriju
+// (stara 11→9), čime je ukupan rodni mix (m/ž/neutral %) ostao identičan.
+type NameCategory = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
-// Weights sum to 100. Order must match NameCategory 1..11.
-const WEIGHTS: number[] = [12, 10, 9, 8, 10, 14, 12, 6, 9, 6, 4];
+// Weights sum to 100. Order must match NameCategory 1..8.
+const WEIGHTS: number[] = [21, 18, 10, 14, 12, 6, 13, 6];
 
 // Cumulative weights for O(1) weighted pick
 const CUM_WEIGHTS: number[] = WEIGHTS.reduce<number[]>((acc, w, i) => {
@@ -126,12 +124,12 @@ function pickCategory(rng: () => number): NameCategory {
   for (let i = 0; i < CUM_WEIGHTS.length; i++) {
     if (r < CUM_WEIGHTS[i]!) return (i + 1) as NameCategory;
   }
-  return 11;
+  return 8;
 }
 
 function inferGender(cat: NameCategory): "m" | "f" | "neutral" {
-  if (cat === 1 || cat === 3) return "m";
-  if (cat === 2 || cat === 4) return "f";
+  if (cat === 1) return "m";
+  if (cat === 2) return "f";
   return "neutral";
 }
 
@@ -188,38 +186,29 @@ function composeName(
   let displayName: string;
 
   switch (cat) {
-    case 1: // Ime + Prezime (M)
-      displayName = `${pick(NAME_POOLS.firstM, rng)} ${pick(NAME_POOLS.surname, rng)}`;
-      break;
-    case 2: // Ime + Prezime (Ž)
-      displayName = `${pick(NAME_POOLS.firstF, rng)} ${pick(NAME_POOLS.surname, rng)}`;
-      break;
-    case 3: // Samo ime (M)
+    case 1: // Samo ime (M)
       displayName = pick(NAME_POOLS.firstM, rng);
       break;
-    case 4: // Samo ime (Ž)
+    case 2: // Samo ime (Ž)
       displayName = pick(NAME_POOLS.firstF, rng);
       break;
-    case 5: // Nadimak / hipokoristik
+    case 3: // Nadimak / hipokoristik
       displayName = pick(NAME_POOLS.nick, rng);
       break;
-    case 6: // Ime/nadimak + broj
+    case 4: // Ime/nadimak + broj
       displayName = attachNumber(pick(NAME_POOLS.nick, rng), rng);
       break;
-    case 7: // Handle / gamertag
+    case 5: // Handle / gamertag
       displayName = `${pick(NAME_POOLS.handleStem, rng)}${pick(NAME_POOLS.handleStem, rng).slice(0, 3)}`;
       break;
-    case 8: // Handle + grad tag
+    case 6: // Handle + grad tag
       displayName = `${pick(NAME_POOLS.handleStem, rng).toLowerCase()}${pick(NAME_POOLS.cityTag, rng)}`;
       break;
-    case 9: // Guest / generic
+    case 7: // Guest / generic
       displayName = attachNumber(pick(NAME_POOLS.guestStem, rng), rng);
       break;
-    case 10: // Ironični / šaljivi
+    case 8: // Ironični / šaljivi
       displayName = pick(NAME_POOLS.ironic, rng);
-      break;
-    case 11: // Inicijal + prezime
-      displayName = `${pick(NAME_POOLS.initialPrefix, rng)} ${pick(NAME_POOLS.surname, rng)}`;
       break;
   }
 
@@ -293,7 +282,7 @@ export function _generateWithMeta(
 
   return {
     identity: fallbackGuestIdentity(atTable, rng),
-    category: 9,
+    category: 7,
   };
 }
 
@@ -308,7 +297,7 @@ export function _generateWithMeta(
  * - displayName nije u `atTable` (dedup po stolu)
  * - normalizovano ime nije u `seenByUser` (recency dedup)
  * - prolazi profanity filter
- * - avatar je konzistentan s rodom (kategorije 1–4)
+ * - avatar je konzistentan s rodom (kategorije 1–2)
  * - deterministički ako je proslijeđen seeded rng
  *
  * @param atTable    Skup displayName-ova već za stolom

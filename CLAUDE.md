@@ -30,14 +30,14 @@ packages/shared-types TS types shared by web + server
 
 ---
 
-## Current state — last updated 2026-09-11
+## Current state — last updated 2026-09-12
 
 ### ✅ Done
 
 | Slice | Branch | Notes |
 |---|---|---|
 | Bot engine — `selectBotMove`, 3 tiers, BotConfig (PRD §40) | main | 18 unit tests; seeded, deterministic |
-| Identity generator — `generateBotIdentity`, dedup, profanity filter (PRD §39) | main | 20 tests; DoD distribution ±4% |
+| Identity generator — `generateBotIdentity`, dedup, profanity filter (PRD §39) | main | 20 tests; DoD distribution ±4%. **Deviation od PRD §39.1** — bot igrač nikad nema prezime (u stvarnom životu skoro niko ne unosi prezime); kategorije "Ime+Prezime"/"Inicijal+prezime" uklonjene iz 11 na 8, težina prebačena na rodno odgovarajuću "samo ime" kategoriju bez promjene ukupnog rodnog mixa |
 | Bot server integration — turn driving, bot reactions, per-tier timing (PRD §41, M9/M10) | main | bots drive turns internally; never trip AFK timer. **Sljedeća ruka je host-driven** (igrač klikne "Sljedeća ruka →"; nema auto-advance — vidi changelog 2026-06-11) |
 | Quick Play endpoint — instant bot-fill, human-human matching window | main | `POST /api/quickplay`; 4P/21 fixed |
 | Home page redizajn — name input, remember-name, dominant CTA (PRD §49.1) | main | `/` — "Igra – nađi sto" |

@@ -151,13 +151,13 @@ describe("generateBotIdentity — determinizam", () => {
 // ====================================================
 
 describe("generateBotIdentity — rod i avatar", () => {
-  it("kategorije 1 i 3 (muško) → avatar počinje sa 'm-'", () => {
+  it("kategorija 1 (muško) → avatar počinje sa 'm-'", () => {
     const rng = makeLcg(1);
     let maleChecks = 0;
 
     for (let i = 0; i < 200; i++) {
       const { identity, category } = _generateWithMeta(new Set(), new Set(), rng);
-      if (category === 1 || category === 3) {
+      if (category === 1) {
         expect(identity.avatar).toMatch(/^m-/);
         expect(identity.gender).toBe("m");
         maleChecks++;
@@ -167,13 +167,13 @@ describe("generateBotIdentity — rod i avatar", () => {
     expect(maleChecks).toBeGreaterThan(0);
   });
 
-  it("kategorije 2 i 4 (žensko) → avatar počinje sa 'f-'", () => {
+  it("kategorija 2 (žensko) → avatar počinje sa 'f-'", () => {
     const rng = makeLcg(2);
     let femaleChecks = 0;
 
     for (let i = 0; i < 200; i++) {
       const { identity, category } = _generateWithMeta(new Set(), new Set(), rng);
-      if (category === 2 || category === 4) {
+      if (category === 2) {
         expect(identity.avatar).toMatch(/^f-/);
         expect(identity.gender).toBe("f");
         femaleChecks++;
@@ -182,13 +182,13 @@ describe("generateBotIdentity — rod i avatar", () => {
     expect(femaleChecks).toBeGreaterThan(0);
   });
 
-  it("neutralne kategorije (5–11) → gender je 'neutral'", () => {
+  it("neutralne kategorije (3–8) → gender je 'neutral'", () => {
     const rng = makeLcg(3);
     let neutralChecks = 0;
 
     for (let i = 0; i < 200; i++) {
       const { identity, category } = _generateWithMeta(new Set(), new Set(), rng);
-      if (category >= 5 && category <= 11) {
+      if (category >= 3 && category <= 8) {
         expect(identity.gender).toBe("neutral");
         neutralChecks++;
       }
@@ -247,15 +247,14 @@ describe("generateTableIdentities", () => {
 
 describe("distribucija kategorija — DoD", () => {
   const TARGET_WEIGHTS: Record<number, number> = {
-    1: 12, 2: 10, 3: 9, 4: 8, 5: 10,
-    6: 14, 7: 12, 8: 6, 9: 9, 10: 6, 11: 4,
+    1: 21, 2: 18, 3: 10, 4: 14, 5: 12, 6: 6, 7: 13, 8: 6,
   };
   const TOLERANCE = 4; // ±4% (±3% iz PRD; blaga tolerancija za sampling variance)
   const N = 1000;
 
   it(`distribucija ${N} identiteta unutar ±${TOLERANCE}% od ciljnih težina`, () => {
     const counts: Record<number, number> = {};
-    for (let cat = 1; cat <= 11; cat++) counts[cat] = 0;
+    for (let cat = 1; cat <= 8; cat++) counts[cat] = 0;
 
     const rng = makeLcg(42);
     for (let i = 0; i < N; i++) {
@@ -263,7 +262,7 @@ describe("distribucija kategorija — DoD", () => {
       counts[category]! += 1;
     }
 
-    for (let cat = 1; cat <= 11; cat++) {
+    for (let cat = 1; cat <= 8; cat++) {
       const actual = (counts[cat]! / N) * 100;
       const target = TARGET_WEIGHTS[cat]!;
       expect(actual).toBeGreaterThanOrEqual(target - TOLERANCE);
