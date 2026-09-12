@@ -265,15 +265,11 @@
   animation: identity-fade 0.39s ease-out both;
 }
 
-/* Turn puls — suptilan "živ" osjećaj na aktivnom sjedištu (DS §1.4, §4.3). */
-@keyframes turn-pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.55; }
-}
-
-.animate-turn-pulse {
-  animation: turn-pulse 1.76s ease-in-out infinite;
-}
+/* Puls aktivnog sjedišta NIJE ovdje: `@keyframes seat-turn-pulse` živi u
+   `felt.css`, uz sjedište koje ga jedino koristi (isto kao `seat-reconnect`).
+   Ovdje je nekad stajao drugi, mrtav `turn-pulse` (1.76s, bez ijednog
+   korisnika) — obrisan da u projektu ne postoje dva „turn pulse"-a od kojih se
+   pri svakoj izmjeni prvo mora utvrditi koji je živ. */
 
 /* Reconnecting dot — blago treperenje da signalizira "veza se vraća". */
 @keyframes status-blink {
@@ -366,7 +362,6 @@
 
   .animate-seat-pop,
   .animate-identity-fade,
-  .animate-turn-pulse,
   .animate-status-blink,
   .animate-fade-in,
   .animate-card-in,
