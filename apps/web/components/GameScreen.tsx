@@ -326,7 +326,13 @@ export function GameScreen({
         rightSlot={<FeedbackToggles />}
       />
 
-      {/* Partner / jedini protivnik — gore-centar, odmah ispod zaglavlja */}
+      {/* Partner / jedini protivnik — gore-centar, ispod zaglavlja.
+
+          Nije više PRISLONJEN uz zaglavlje: lepeza poleđina viri iznad avatara,
+          a ona je apsolutna i ne širi kutiju sjedišta — pa bez ovog razmaka
+          karte ulaze u traku, pod čip "Runda N". `--stage-partner-lift` je ista
+          vrijednost koju `--table-top` dodaje stolu, deklarisana jednom u
+          `felt.css`. Na 3P je 0 — tamo ovog sjedišta nema. */}
       {seats.partner && (
         <PlayerSeat
           player={seats.partner}
@@ -337,7 +343,9 @@ export function GameScreen({
           orientation="top"
           reaction={seatReaction(seats.partner.id)}
           className="absolute left-1/2 -translate-x-1/2"
-          style={{ top: "calc(var(--safe-top) + var(--stage-header-h))" }}
+          style={{
+            top: "calc(var(--safe-top) + var(--stage-header-h) + var(--stage-partner-lift))",
+          }}
         />
       )}
       {/* Protivnici sa strane — u visini sredine stola, kao na referenci.

@@ -54,6 +54,8 @@ type Opts = {
   playerCount: 2 | 3 | 4;
   longName: string | null;
   turn: "me" | "partner" | "left" | "right";
+  /** Karata u ruci SVAKOG igraca. Lepeza poledjina se puni do 8. */
+  oppHand: number | null;
 };
 
 /**
@@ -84,6 +86,7 @@ function mockState({
   playerCount,
   longName,
   turn,
+  oppHand,
 }: Opts): PrivateGameStateView & {
   turnDeadline?: number;
 } {
@@ -104,7 +107,9 @@ function mockState({
             : (players[3]?.id ?? players[1]?.id ?? "me"),
     dealerPlayerId: "p3",
     deckCount: 28,
-    handCounts: Object.fromEntries(players.map((p, i) => [p.id, 4 - (i % 2)])),
+    handCounts: Object.fromEntries(
+      players.map((p, i) => [p.id, oppHand ?? 4 - (i % 2)]),
+    ),
     capturedCounts: { "team-0": 6, "team-1": 4 },
     matchScore:
       playerCount === 4
@@ -156,6 +161,13 @@ type UrlOpts = {
    * mogao uhvatiti.
    */
   turn: "me" | "partner" | "left" | "right";
+  /**
+   * `hand=8`: koliko karata svako drzi. Podrazumijevani mock daje 3-4, a lepeza
+   * poledjina je najsira na 8 — sto je i jedini slucaj u kojem moze da izadje
+   * van pojasa bocnog sjedista. Bez ovog parametra se najgori slucaj ne moze
+   * ni snimiti, isti razlog zbog kojeg postoji `turn`.
+   */
+  oppHand: number | null;
   /** `measure=1`: ispisi rect-ove i sakrij kontrolnu traku (ona pokriva sto). */
   measure: boolean;
 };
@@ -177,6 +189,7 @@ function parseParams(search: string): UrlOpts {
     )
       ? ((q.get("turn") ?? "me") as UrlOpts["turn"])
       : "me",
+    oppHand: q.get("hand") === null ? null : Math.max(0, Math.min(8, Number(q.get("hand")) || 0)),
     measure: q.get("measure") === "1",
   };
 }
@@ -206,6 +219,12 @@ function Measure() {
         ["seatL", document.querySelector(".seat--left")],
         ["seatR", document.querySelector(".seat--right")],
         ["seatTop", document.querySelector(".seat--top")],
+        /* Lepeza poledjina: otkad viri IZNAD avatara, dvije stvari se vise ne
+           vide okom nego samo brojem — da li gornja ulazi u zaglavlje i da li
+           bocnu odsijeca overflow-hidden pozornice. */
+        ["fanTop", document.querySelector(".seat--top .seat__fan")],
+        ["fanL", document.querySelector(".seat--left .seat__fan")],
+        ["fanR", document.querySelector(".seat--right .seat__fan")],
         ["seatMe", document.querySelector(".seat--bottom")],
         ["hand", document.querySelector(".hand")],
         ["deck", document.querySelector(".deck")],
@@ -272,6 +291,7 @@ export default function DevGamePage() {
           playerCount,
           longName: url.longName,
           turn: url.turn,
+          oppHand: url.oppHand,
         })}
         {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
         onPlayCard={noop}
