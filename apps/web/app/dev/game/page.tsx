@@ -249,6 +249,65 @@ const subscribeToNothing = () => () => {};
  * stola i bocni cip dodiruju tacno. Ispisuje rect-ove u DOM, pa ih `--dump-dom`
  * pokupi bez CDP-a.
  */
+/**
+ * `background-position-y` u px. Chrome vraca used vrijednost kao "50%",
+ * "-4px" ili "calc(100% + 75.2px)" — a procenat u tom
+ * svojstvu znaci (kutija - slika), ne kutiju — otud oba argumenta.
+ */
+function bgOffsetY(value: string, box: number, img: number): number {
+  let pct = 0;
+  let px = 0;
+  let sign = 1;
+  for (const tok of value.replace(/[(),]|calc/g, " ").trim().split(/\s+/)) {
+    if (tok === "+") sign = 1;
+    else if (tok === "-") sign = -1;
+    else if (tok.endsWith("%")) {
+      pct += sign * Number.parseFloat(tok);
+      sign = 1;
+    } else if (tok.endsWith("px")) {
+      px += sign * Number.parseFloat(tok);
+      sign = 1;
+    }
+  }
+  return (pct / 100) * (box - img) + px;
+}
+
+/**
+ * Obod stola je NASLIKAN u pozadini — nema rect, a cijeli raspored se drzi na
+ * tome da prolazi kroz sredinu avatara gornjeg i tvog sjedista. Racuna se iz
+ * used `background-size`/`background-position` i izmjerenih udjela oboda na
+ * slici (isti brojevi kao `--bg-rim-*` u `felt.css`; ako se slika promijeni,
+ * mijenjaju se na oba mjesta). Bez ovoga se poravnanje provjerava okom — a tako
+ * je promasaj i nastao.
+ */
+const RIM_TOP_FRACTION = 0.1398;
+const RIM_BOTTOM_FRACTION = 0.6094;
+
+function rimRow(): string {
+  const stage = document.querySelector(".felt-stage");
+  if (!stage) return "rim: MISSING";
+  const box = stage.getBoundingClientRect();
+  const cs = getComputedStyle(stage);
+  const bgH = Number.parseFloat(cs.backgroundSize.split(" ")[1] ?? "");
+  if (!Number.isFinite(bgH)) return `rim: NEPARSABILNO (${cs.backgroundSize})`;
+  const imgTop = box.y + bgOffsetY(cs.backgroundPositionY, box.height, bgH);
+  const top = imgTop + RIM_TOP_FRACTION * bgH;
+  const bottom = imgTop + RIM_BOTTOM_FRACTION * bgH;
+  const center = (sel: string) => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return r.y + r.height / 2;
+  };
+  const cTop = center(".seat--top .seat__avatar");
+  const cMe = center(".seat--bottom .seat__avatar");
+  const d = (rim: number, c: number | null) => (c === null ? "n/a" : `${(rim - c).toFixed(1)}`);
+  return (
+    `rim: top=${top.toFixed(1)} bottom=${bottom.toFixed(1)} bgH=${bgH.toFixed(1)} ` +
+    `| dTop=${d(top, cTop)} dMe=${d(bottom, cMe)}`
+  );
+}
+
 function Measure() {
   const [rows, setRows] = useState<string[]>([]);
   useEffect(() => {
@@ -272,6 +331,10 @@ function Measure() {
         ["fanL", document.querySelector(".seat--left .seat__fan")],
         ["fanR", document.querySelector(".seat--right .seat__fan")],
         ["seatMe", document.querySelector(".seat--bottom")],
+        /* Avatari: kroz njihovu sredinu prolazi naslikani obod stola, pa se bez
+           njihovih rect-ova red `rim` ispod ne moze provjeriti. */
+        ["avTop", document.querySelector(".seat--top .seat__avatar")],
+        ["avMe", document.querySelector(".seat--bottom .seat__avatar")],
         /* Beat: plutajuca odigrana karta i natpis uz sjediste su jedina dva
            nova potrosaca prostora nad stolom — i jedina koja se ne vide na
            statickom snimku bez `move=`. */
@@ -284,13 +347,14 @@ function Measure() {
         ["selCard", document.querySelector('.hand__slot[data-selected="true"] .card')],
         ["selFace", document.querySelector('.hand__slot[data-selected="true"] .card-face')],
       ];
-      setRows(
-        pick.map(([k, el]) => {
+      setRows([
+        ...pick.map(([k, el]) => {
           if (!el) return `${k}: MISSING`;
           const r = el.getBoundingClientRect();
           return `${k}: x=${Math.round(r.x)} y=${Math.round(r.y)} w=${Math.round(r.width)} h=${Math.round(r.height)}`;
         }),
-      );
+        rimRow(),
+      ]);
     }, 600);
     return () => clearTimeout(t);
   }, []);

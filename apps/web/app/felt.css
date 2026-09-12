@@ -763,7 +763,10 @@
    znaci "ja"), nikad po nekom svojstvu igraca: svako tude sjediste se i dalje
    crta identicno, pa bot i covjek ostaju nerazlucivi. */
 .seat--bottom {
-  --seat-avatar: 3.5rem;
+  /* Precnik dolazi sa pozornice jer ga cita i `--rim-bottom` — jedna
+     vrijednost, dva potrosaca. Fallback je za `/dev/felt2`, gdje se sjedista
+     crtaju VAN pozornice. */
+  --seat-avatar: var(--seat-avatar-me, 3.5rem);
 }
 
 .seat--bottom .seat__fan {
@@ -1395,22 +1398,75 @@
   /* Sukno sa nacrtanim obodom stola. Slika NOSI obod — zato je `.felt-ring`
      obrisan iz koda umjesto da se crta dvaput.
 
-     `cover` + `center`: slika je 887x1774 (odnos 1:2), telefon je oko 1:2.1, pa
-     se krati po sirini za desetak piksela i po visini staje cijela. Obod je
-     izmjeren na 14%-61% visine i 8.9%-90.6% sirine slike, sto na 360x760 znaci
-     da karte padaju UNUTAR njega, a sjedista sjede na samoj ivici — kao igraci
-     oko stola. Poravnanje je priblizno i mijenja se sa odnosom ekrana; nije
-     vezano za `--table-top`/`--table-bottom` i ne smije se tretirati kao da
-     jeste.
+     Obod se NE crta sa `cover`. Slika je proporcionalna, a sva sjedista vise o
+     FIKSNIM px od vrha i dna ekrana, pa se to dvoje razilazi kako ekran raste:
+     izmjereno, obod je zavrsavao 45px iznad tvog avatara na 360x760, 78px na
+     390x844 i 105px na 412x915 — to je i bila prijava "svijetli dio ne zahvata
+     sve igrace".
+
+     Zato se slika skalira i pozicionira IZ ISTOG budzeta koji postavlja
+     sjedista (`--stage-*` ispod): obod pada kroz sredinu avatara gornjeg i tvog
+     sjedista, na svakoj visini ekrana. Cijena je da na visokim telefonima bocni
+     lukovi izadju van ekrana (~22px na 390x844, ~44px na 412x915) — svjesno,
+     jer alternativa je vodoravno sabijanje slike.
 
      Boja ispod (`bg-felt` iz JSX-a) ostaje kao pod: ako slika ne stigne, ekran
      je i dalje zeleno sukno a ne bijelo. */
   background-image: url("/felt-bg.webp");
-  background-size: cover;
-  background-position: center;
+  background-size: auto var(--bg-h);
+  background-position: left 50% bottom
+    calc(var(--rim-bottom) - var(--bg-h) * var(--bg-rim-bottom));
   background-repeat: no-repeat;
 
+  /* Gdje je obod NA SLICI, kao udio njene visine. IZMJERENO na izvoru
+     (887x1774, ridge-detekcija po sredisnjoj koloni): vrhovi su na y=248 i
+     y=1081, dakle 13.98% i 60.94%. Svijetli dio koji glumi sukno je
+     koncentrican sa obodom (centroid osvjetljenja y=629 naspram sredine oboda
+     664), pa se oboje pomjera zajedno — dovoljno je pomjeriti sliku.
+
+     Ove tri vrijednosti opisuju SLIKU, ne raspored. Ako stigne nova pozadina,
+     mjere se ponovo: inace obod ode na pogresno mjesto bez ijedne greske. */
+  --bg-rim-top: 0.1398; /* 248 / 1774 */
+  --bg-rim-bottom: 0.3906; /* 1 - 1081 / 1774 */
+  --bg-rim-h-inv: 2.1296; /* 1 / (0.6094 - 0.1398) */
+
+  /* Gdje obod TREBA da padne: kroz sredinu avatara, isto pravilo gore i dole.
+     0.2rem je `padding-top` sjedista, linija na kojoj avatar pocinje. */
+  --rim-top: calc(
+    var(--safe-top) + var(--stage-header-h) + var(--stage-partner-lift) +
+      0.2rem + var(--seat-avatar) / 2
+  );
+  /* Od DNA pozornice: tvoje sjediste visi o `--stage-banner-top`, a avatar mu
+     stoji iznad cipa. */
+  --rim-bottom: calc(
+    var(--stage-banner-top) + var(--seat-chip-h) + var(--seat-avatar-me) / 2
+  );
+
+  /* Visina slike takva da obod padne izmedju te dvije linije. Donja granica je
+     SIRINA: ispod nje slika ne pokriva pozornicu i sa strane se vidi goli
+     `bg-felt`. Kad granica proradi (nizak ili sirok ekran), obod naraste iznad
+     potrebnog — a posto je pozicija pisana od DNA, visak se uvijek placa GORE,
+     u prazan felt iznad partnera, nikad preko tvoje ruke.
+
+     `100dvh`/`100dvw`, ne `100%`: ista varijabla ide i u `background-position`,
+     gdje procenat znaci (kutija - slika), a ne visinu kutije. Pozornica je
+     `h-full` u `h-[100dvh]` roditelju i `w-full max-w-[600px]` (GameScreen) —
+     ako se to promijeni, mora i ovo s njim. */
+  --bg-h: max(
+    calc((100dvh - var(--rim-top) - var(--rim-bottom)) * var(--bg-rim-h-inv)),
+    calc(2 * min(100dvw, 600px))
+  );
+
   --seat-avatar: 3.25rem;
+  /* Tvoj avatar je veci od ostalih. Vrijednost stoji OVDJE a ne na
+     `.seat--bottom` jer je cita i `--rim-bottom`; sjediste je preuzima kroz
+     `--seat-avatar`. */
+  --seat-avatar-me: 3.5rem;
+  /* Visina cipa ispod avatara, IZMJERENA (31.1px): gap 0.3rem + `.seat__meta`
+     padding 2x0.15rem + red imena. Ista je na sve tri tacke preloma, sto se
+     vidi iz vec izmjerenih visina sjedista: 86.3 = 3.2 + 52 + 31.1,
+     90.3 = 3.2 + 56 + 31.1, 98.3 = 3.2 + 64 + 31.1, 78.3 = 3.2 + 44 + 31.1. */
+  --seat-chip-h: 1.95rem;
   /* Sirina bocnog pojasa = sirina bocnog cipa. Sto je uvucen za tacno ovoliko.
      `clamp` jer na 320px fiksnih 5rem pojede skoro pola sirine stola. */
   --seat-gutter: clamp(3.75rem, 20vw, 5rem);
@@ -1476,6 +1532,9 @@
 .felt-stage[data-partner="false"] {
   --stage-partner-h: 0rem;
   --stage-partner-lift: 0rem;
+  /* Bez gornjeg sjedista formula za `--rim-top` pada 23px ISPOD `--table-top`,
+     pa bi obod presjekao gornji red karata. Ovdje ide odmah ispod zaglavlja. */
+  --rim-top: calc(var(--safe-top) + var(--stage-header-h) + 0.25rem);
 }
 
 /* 2P: nema bocnih sjedista, pa sto uzima skoro punu sirinu. */
@@ -1517,12 +1576,7 @@
        izgubio 8px, a on je tu vec visinski zagusen — pa bi zahtjev "+10%" na
        malom ekranu dao MINUS 4% na stolu. */
     --stage-hand-h: 7.96rem;
-  }
-
-  /* `.seat--bottom` deklarise svoj precnik, pa mu override mora doci
-     specificnijim selektorom, ne nasljedjivanjem. */
-  .felt-stage .seat--bottom {
-    --seat-avatar: 3rem;
+    --seat-avatar-me: 3rem;
   }
 
   /* `padding-bottom` rezervise prelivanje lepeze od ROTACIJE (spoljna karta pod
@@ -1546,11 +1600,7 @@
        = 104px ostavlja istu rezervu od 5.7px koju baza ima. */
     --stage-seat-h: 6.5rem;
     --stage-gap: 0.5rem;
-  }
-  /* Isti razlog kao na kratkom ekranu: `.seat--bottom` deklarise svoj precnik,
-     pa mu override mora doci specificnijim selektorom. */
-  .felt-stage .seat--bottom {
-    --seat-avatar: 4rem;
+    --seat-avatar-me: 4rem;
   }
 }
 
