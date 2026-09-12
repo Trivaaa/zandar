@@ -36,17 +36,24 @@
   --card-pad: 0.15rem;
 }
 :root {
-  /* Karta u ruci. Stoji kao varijabla jer je vezuje JOS jedno mjesto:
-     `.table__cards --card-w-max`. Pravilo je da karta na stolu nikad ne bude
-     VECA od karte u ruci — sto je bio 21% siri (67.7 vs 56px na 360px), pa su
-     karte dodirivale bocna sjedista i sto se citao kao pretrpan. Ako se ruka
-     ikad pomjeri, sto je prati sam. */
-  --card-w-hand: 3.5rem;
+  /* Karta u ruci — JEDINI broj koji odredjuje velicinu i ruke i stola.
+     `.table__cards --card-w-max` cita istu varijablu, pa je pravilo "karta na
+     stolu nikad veca od karte u ruci" ugradjeno, ne odrzavano rucno. (Sto je
+     nekad bio 21% siri — 67.7 naspram 56px — pa je dodirivao bocna sjedista.)
+
+     3.85rem = 61.6px: +10% naspram ranijih 3.5rem. Podignuto kad su lica presla
+     na pravi crtez, gdje je rang sitna oznaka u uglu umjesto velikog broja
+     preko pola karte — citljivost je trazila vecu kartu. */
+  --card-w-hand: 3.85rem;
 }
 
 .card--sm {
   --card-w: var(--card-w-hand);
-  --card-h: 4.95rem;
+  /* Visina se IZVODI, ne kuca. Ranije je stajala kao 4.95rem i nije pratila
+     sirinu — a lice se sad crta kao `background-size: 100% 100%`, pa bi svaka
+     promjena sirine razvukla crtez. Odnos 1.417 je isti koji nose `.card--fluid`
+     i `--card-ratio` na stolu. */
+  --card-h: calc(var(--card-w-hand) * 1.417);
   --card-pad: 0.2rem;
 }
 .card--md {
@@ -1212,7 +1219,10 @@
   --stage-partner-h: 6rem;
   --stage-seat-h: 6rem; /* tvoj avatar 3.5 + cip; bez lepeze */
   --stage-banner-h: 2rem;
-  --stage-hand-h: 9.2rem; /* preslikava .hand: 1.5 + 4.95 + 2.75rem */
+  /* Preslikava `.hand`: padding-top 1.5 + karta 5.456 + padding-bottom 2.75rem.
+     IZMJERENO na 360x760 (CDP): traka se crta 155.3px = 9.706rem. Mijenja se
+     kad god se mijenja `--card-w-hand`, jer visina karte iz nje proizlazi. */
+  --stage-hand-h: 9.71rem;
 
   --stage-hand-top: calc(var(--safe-bottom) + var(--stage-hand-h));
   --stage-banner-top: calc(
@@ -1257,8 +1267,14 @@
     --stage-seat-h: 5.5rem;
     /* Kratak ekran placa i ruka: bez ovoga stolu ostane 141px, sto je ispod
        tri reda cak i na `--card-w-min`. Smanjuje se REZERVA oko lepeze
-       (podizanje izabrane karte i luk), ne same karte. */
-    --stage-hand-h: 7.95rem;
+       (podizanje izabrane karte i luk), ne same karte.
+
+       7.96rem = 1 + 5.456 + 1.5rem, dakle PRAKTICNO ista visina kao raniji 7.95
+       uprkos karti visoj za 10%: razlika je vracena iz `padding-bottom`-a ruke
+       (2 -> 1.5rem, vidi `.felt-stage .hand` ispod). Bez toga bi sto na 360x640
+       izgubio 8px, a on je tu vec visinski zagusen — pa bi zahtjev "+10%" na
+       malom ekranu dao MINUS 4% na stolu. */
+    --stage-hand-h: 7.96rem;
   }
 
   /* `.seat--bottom` deklarise svoj precnik, pa mu override mora doci
@@ -1267,9 +1283,13 @@
     --seat-avatar: 3rem;
   }
 
+  /* `padding-bottom` rezervise prelivanje lepeze od ROTACIJE (spoljna karta pod
+     ~17.5 stepeni viri ~6px ispod svoje ivice); podizanje izabrane karte ide
+     nagore i pokriva ga `padding-top`. Zato se ovih 0.5rem moze vratiti stolu
+     kad karta poraste — provjereno mjerenjem da lepeza ne viri. */
   .felt-stage .hand {
     padding-top: 1rem;
-    padding-bottom: 2rem;
+    padding-bottom: 1.5rem;
   }
 }
 
