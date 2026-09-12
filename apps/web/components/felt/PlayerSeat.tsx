@@ -19,6 +19,8 @@ export type PlayerSeatProps = {
   orientation?: "top" | "left" | "right" | "bottom";
   /** Emoji reakcija uz sjedište — da se vidi KO je reagovao. */
   reaction?: ReactNode;
+  /** Natpis poteza (`SeatCaption`) — da se vidi KO je upravo odigrao. */
+  caption?: ReactNode;
   className?: string | undefined;
   /** Pozicija na pozornici — dolazi kao `--stage-*` varijabla iz GameScreen-a. */
   style?: CSSProperties | undefined;
@@ -45,6 +47,7 @@ export function PlayerSeat({
   isThinking = false,
   orientation = "top",
   reaction,
+  caption,
   className = "",
   style,
 }: PlayerSeatProps) {
@@ -60,7 +63,7 @@ export function PlayerSeat({
       className={`seat seat--${orientation} ${team ? `seat--team-${team}` : ""} ${className}`}
       style={style}
       /* Jedino sidro ovog igraca za `flyAnimation`. Omotac ruke ga je nekad
-         nosio takode; dva ista sidra su znacila da `collectToPile`
+         nosio takode; dva ista sidra su znacila da `collectCardsToSeat`
          (querySelector, jednina) bira po redoslijedu u DOM-u, a `dealFromDeck`
          (querySelectorAll) tebi dijeli dvaput. Ne vracati ga nazad. */
       data-seat-id={player.id}
@@ -73,6 +76,12 @@ export function PlayerSeat({
           {reaction}
         </div>
       ) : null}
+
+      {/* Natpis je APSOLUTAN, kao i lepeza i mjehur reakcije. Red u toku
+          sjedišta bi narastao `--stage-partner-h` / `--stage-seat-h`, a te su
+          vrijednosti IZMJERENE i svaki njihov piksel je piksel manje za sto
+          (v3.5 lekcija). */}
+      {caption}
 
       <div className="seat__body">
         {/* Bez `text-num-sm`: utility bi iz kasnijeg sloja pobijedio font-size

@@ -10,6 +10,7 @@ import { GameScreen } from "@/components/GameScreen";
  *
  * Stanje se moze zadati i iz URL-a:
  *   /dev/game?cards=9&players=4&phase=playing&chooser=1&name=Aleksandra
+ *   /dev/game?move=capture&turn=left   → pa `window.__devMove()` pusti potez
  *
  * To NIJE ukras: headless Chrome (`--screenshot`) ne moze da klikne dugmad, pa
  * bi bez URL-a svaki snimak bio isto pocetno stanje — a raspored se lomi bas u
@@ -47,6 +48,19 @@ const TABLE_POOL = [
   card("clubs", "6"),
 ];
 
+/**
+ * Vrsta poteza koji `move=` pusta. Beat (`useTableBeat`) se NE moze pogledati
+ * na statickom mock-u: pali ga tek promjena `stateVersion` sa novim `moveId`,
+ * pa preview mora da odigra pravi prelaz iz stanja PRIJE poteza u stanje
+ * POSLIJE njega — isto kako dolazi sa servera.
+ */
+const MOVES = ["capture", "trail", "sweep", "auto"] as const;
+type MoveKind = (typeof MOVES)[number];
+
+/** Karte koje NISU ni u `TABLE_POOL` ni u ruci — da se id-evi ne sudare. */
+const PLAYED = card("hearts", "10");
+const PLAYED_JACK = card("clubs", "J");
+
 type Opts = {
   phase: GamePhase;
   turnDeadline: number;
@@ -56,7 +70,18 @@ type Opts = {
   turn: "me" | "partner" | "left" | "right";
   /** Karata u ruci SVAKOG igraca. Lepeza poledjina se puni do 8. */
   oppHand: number | null;
+  move: MoveKind | null;
+  /** Da li je `move` vec pusten (`window.__devMove()`). */
+  moved: boolean;
 };
+
+/** Ko je na potezu za dati `turn` — isto pravilo i za mock i za `move=`. */
+function turnSeatId(turn: Opts["turn"], players: { id: string }[]): string {
+  if (turn === "me") return "me";
+  if (turn === "right") return "p1";
+  if (turn === "partner") return players[2]?.id ?? "me";
+  return players[3]?.id ?? players[1]?.id ?? "me";
+}
 
 /**
  * Roster za dati broj igraca. 4P nosi `teamId`, 2P i 3P ga NEMAJU — bez toga bi
@@ -87,24 +112,31 @@ function mockState({
   longName,
   turn,
   oppHand,
+  move,
+  moved,
 }: Opts): PrivateGameStateView & {
   turnDeadline?: number;
 } {
   const players = rosterFor(playerCount, longName);
+  const mover = turnSeatId(turn, players);
+  const baseTable = TABLE_POOL.slice(0, tableCount);
+
+  // Bez `move=`: staticno stanje kao i ranije. Sa `move=`: prvo stanje PRIJE
+  // poteza, pa `window.__devMove()` prebaci na stanje POSLIJE — tek taj prelaz
+  // (novi `stateVersion` + novi `moveId`) pusti beat.
+  const played = move === "sweep" ? PLAYED_JACK : PLAYED;
+  const taken =
+    move === "sweep" ? baseTable : move === "trail" ? [] : baseTable.slice(0, 2);
+  const after = move === "trail" ? [...baseTable, played] : baseTable.slice(taken.length);
+  const live = move !== null && moved;
+
   return {
     roomId: "dev",
     matchId: "dev",
     phase,
     players,
-    table: TABLE_POOL.slice(0, tableCount),
-    currentPlayerId:
-      turn === "me"
-        ? "me"
-        : turn === "right"
-          ? "p1"
-          : turn === "partner"
-            ? (players[2]?.id ?? "me")
-            : (players[3]?.id ?? players[1]?.id ?? "me"),
+    table: live ? after : baseTable,
+    currentPlayerId: live ? "me" : mover,
     dealerPlayerId: "p3",
     deckCount: 28,
     handCounts: Object.fromEntries(
@@ -116,7 +148,7 @@ function mockState({
         ? { "team-0": 14, "team-1": 9 }
         : Object.fromEntries(players.map((p, i) => [p.id, 21 - i * 3])),
     targetScore: 21,
-    stateVersion: 1,
+    stateVersion: live ? 2 : 1,
     handNumber: 3,
     handScores: [
       {
@@ -132,14 +164,19 @@ function mockState({
     ],
     myPlayerId: "me",
     myHand: [card("clubs", "7"), card("spades", "J"), card("hearts", "A"), card("diamonds", "9")],
-    // Da se move-reveal panel uopste moze pogledati u pregledniku.
-    lastMove: {
-      moveId: "dev-move",
-      playerId: "p1",
-      playedCard: card("hearts", "9"),
-      capturedCards: [card("clubs", "4"), card("spades", "5")],
-      isAutoPlay: false,
-    },
+    // Prije `__devMove()` nema poteza — kao svjeza soba. Inace bi beat na
+    // prvom snapshotu vidio "zatecen" potez koji se nikad nije desio.
+    ...(live
+      ? {
+          lastMove: {
+            moveId: "dev-m2",
+            playerId: mover,
+            playedCard: played,
+            capturedCards: taken,
+            isAutoPlay: move === "auto",
+          },
+        }
+      : {}),
     turnDeadline,
   };
 }
@@ -170,6 +207,12 @@ type UrlOpts = {
   oppHand: number | null;
   /** `measure=1`: ispisi rect-ove i sakrij kontrolnu traku (ona pokriva sto). */
   measure: boolean;
+  /**
+   * `move=capture|trail|sweep|auto`: pripremi potez te vrste. Pusta ga tek
+   * `window.__devMove()` (ili dugme "potez"), pa mjerac sam bira TRENUTAK u
+   * kojem snima fazu beat-a — land i hold traju 260 i 280ms.
+   */
+  move: MoveKind | null;
 };
 
 function parseParams(search: string): UrlOpts {
@@ -191,6 +234,9 @@ function parseParams(search: string): UrlOpts {
       : "me",
     oppHand: q.get("hand") === null ? null : Math.max(0, Math.min(8, Number(q.get("hand")) || 0)),
     measure: q.get("measure") === "1",
+    move: (MOVES as readonly string[]).includes(q.get("move") ?? "")
+      ? (q.get("move") as MoveKind)
+      : null,
   };
 }
 
@@ -203,6 +249,65 @@ const subscribeToNothing = () => () => {};
  * stola i bocni cip dodiruju tacno. Ispisuje rect-ove u DOM, pa ih `--dump-dom`
  * pokupi bez CDP-a.
  */
+/**
+ * `background-position-y` u px. Chrome vraca used vrijednost kao "50%",
+ * "-4px" ili "calc(100% + 75.2px)" — a procenat u tom
+ * svojstvu znaci (kutija - slika), ne kutiju — otud oba argumenta.
+ */
+function bgOffsetY(value: string, box: number, img: number): number {
+  let pct = 0;
+  let px = 0;
+  let sign = 1;
+  for (const tok of value.replace(/[(),]|calc/g, " ").trim().split(/\s+/)) {
+    if (tok === "+") sign = 1;
+    else if (tok === "-") sign = -1;
+    else if (tok.endsWith("%")) {
+      pct += sign * Number.parseFloat(tok);
+      sign = 1;
+    } else if (tok.endsWith("px")) {
+      px += sign * Number.parseFloat(tok);
+      sign = 1;
+    }
+  }
+  return (pct / 100) * (box - img) + px;
+}
+
+/**
+ * Obod stola je NASLIKAN u pozadini — nema rect, a cijeli raspored se drzi na
+ * tome da prolazi kroz sredinu avatara gornjeg i tvog sjedista. Racuna se iz
+ * used `background-size`/`background-position` i izmjerenih udjela oboda na
+ * slici (isti brojevi kao `--bg-rim-*` u `felt.css`; ako se slika promijeni,
+ * mijenjaju se na oba mjesta). Bez ovoga se poravnanje provjerava okom — a tako
+ * je promasaj i nastao.
+ */
+const RIM_TOP_FRACTION = 0.1398;
+const RIM_BOTTOM_FRACTION = 0.6094;
+
+function rimRow(): string {
+  const stage = document.querySelector(".felt-stage");
+  if (!stage) return "rim: MISSING";
+  const box = stage.getBoundingClientRect();
+  const cs = getComputedStyle(stage);
+  const bgH = Number.parseFloat(cs.backgroundSize.split(" ")[1] ?? "");
+  if (!Number.isFinite(bgH)) return `rim: NEPARSABILNO (${cs.backgroundSize})`;
+  const imgTop = box.y + bgOffsetY(cs.backgroundPositionY, box.height, bgH);
+  const top = imgTop + RIM_TOP_FRACTION * bgH;
+  const bottom = imgTop + RIM_BOTTOM_FRACTION * bgH;
+  const center = (sel: string) => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return r.y + r.height / 2;
+  };
+  const cTop = center(".seat--top .seat__avatar");
+  const cMe = center(".seat--bottom .seat__avatar");
+  const d = (rim: number, c: number | null) => (c === null ? "n/a" : `${(rim - c).toFixed(1)}`);
+  return (
+    `rim: top=${top.toFixed(1)} bottom=${bottom.toFixed(1)} bgH=${bgH.toFixed(1)} ` +
+    `| dTop=${d(top, cTop)} dMe=${d(bottom, cMe)}`
+  );
+}
+
 function Measure() {
   const [rows, setRows] = useState<string[]>([]);
   useEffect(() => {
@@ -226,6 +331,15 @@ function Measure() {
         ["fanL", document.querySelector(".seat--left .seat__fan")],
         ["fanR", document.querySelector(".seat--right .seat__fan")],
         ["seatMe", document.querySelector(".seat--bottom")],
+        /* Avatari: kroz njihovu sredinu prolazi naslikani obod stola, pa se bez
+           njihovih rect-ova red `rim` ispod ne moze provjeriti. */
+        ["avTop", document.querySelector(".seat--top .seat__avatar")],
+        ["avMe", document.querySelector(".seat--bottom .seat__avatar")],
+        /* Beat: plutajuca odigrana karta i natpis uz sjediste su jedina dva
+           nova potrosaca prostora nad stolom — i jedina koja se ne vide na
+           statickom snimku bez `move=`. */
+        ["played", document.querySelector(".table__played")],
+        ["caption", document.querySelector(".seat__caption")],
         ["hand", document.querySelector(".hand")],
         ["deck", document.querySelector(".deck")],
         ["banner", document.querySelector(".banner")],
@@ -233,13 +347,14 @@ function Measure() {
         ["selCard", document.querySelector('.hand__slot[data-selected="true"] .card')],
         ["selFace", document.querySelector('.hand__slot[data-selected="true"] .card-face')],
       ];
-      setRows(
-        pick.map(([k, el]) => {
+      setRows([
+        ...pick.map(([k, el]) => {
           if (!el) return `${k}: MISSING`;
           const r = el.getBoundingClientRect();
           return `${k}: x=${Math.round(r.x)} y=${Math.round(r.y)} w=${Math.round(r.width)} h=${Math.round(r.height)}`;
         }),
-      );
+        rimRow(),
+      ]);
     }, 600);
     return () => clearTimeout(t);
   }, []);
@@ -269,6 +384,18 @@ export default function DevGamePage() {
 
   const [deadline] = useState(() => Date.now() + 25_000);
 
+  // `move=` priprema potez; pusta ga tek ovo. Mjerac zove `window.__devMove()`
+  // pa snima posle zeljenog broja ms — inace bi faza beat-a bila lutrija.
+  const [moved, setMoved] = useState(false);
+  useEffect(() => {
+    if (!url.move) return;
+    const w = window as unknown as { __devMove?: () => void };
+    w.__devMove = () => setMoved(true);
+    return () => {
+      delete w.__devMove;
+    };
+  }, [url.move]);
+
   // U /dev/frame-u je stranica u iframe-u i kontrolna traka bi pokrila bocno
   // sjediste — bas ono sto se na tim snimcima provjerava.
   const framed = useSyncExternalStore(
@@ -292,6 +419,8 @@ export default function DevGamePage() {
           longName: url.longName,
           turn: url.turn,
           oppHand: url.oppHand,
+          move: url.move,
+          moved,
         })}
         {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
         onPlayCard={noop}
@@ -336,6 +465,15 @@ export default function DevGamePage() {
             {n}P
           </button>
         ))}
+        {url.move ? (
+          <button
+            type="button"
+            onClick={() => setMoved(true)}
+            className="mt-2 px-2 py-1 rounded-token-sm text-[10px] font-bold bg-accent text-accent-contrast"
+          >
+            potez ▶
+          </button>
+        ) : null}
         <span className="mt-2 text-[10px] text-muted">sto</span>
         {TABLE_COUNTS.map((n) => (
           <button
