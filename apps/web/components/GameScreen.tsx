@@ -310,14 +310,15 @@ export function GameScreen({
       /* `felt-stage` nosi CIJELI vertikalni budžet ekrana kao varijable (vidi
          felt.css). Svako apsolutno dijete ispod čita `--stage-*` / `--table-*`
          umjesto da nosi svoj px — zato se trake ne mogu razići kad se doda još
-         jedan sloj. `data-*` biraju varijantu: 3P nema partnera, 2P nema bočnih. */
+         jedan sloj. `data-*` biraju varijantu: 3P nema partnera, 2P nema bočnih.
+
+         Pozadina (sukno + nacrtani obod stola) je slika i živi u `felt.css`.
+         Ranije su ovdje stajala dva inline `radial-gradient`-a — inline stil
+         pobjeđuje svaki `@layer`, pa bi slika iz CSS-a bila nevidljiva dok god
+         su tu. */
       className="felt-stage relative h-full w-full max-w-[600px] overflow-hidden bg-felt md:shadow-2xl md:ring-1 md:ring-black/40"
       data-partner={seats.partner ? "true" : "false"}
       data-sides={seats.oppL || seats.oppR ? "true" : "false"}
-      style={{
-        backgroundImage:
-          "radial-gradient(120% 90% at 50% 28%, rgba(255,255,255,0.06), transparent 55%), radial-gradient(140% 130% at 50% 125%, rgba(0,0,0,0.45), transparent 60%)",
-      }}
     >
       <FeltHeader
         roundLabel={sr.header.round(state.handNumber)}

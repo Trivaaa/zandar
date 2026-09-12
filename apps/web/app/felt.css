@@ -35,8 +35,17 @@
   --card-h: 3.9rem;
   --card-pad: 0.15rem;
 }
+:root {
+  /* Karta u ruci. Stoji kao varijabla jer je vezuje JOS jedno mjesto:
+     `.table__cards --card-w-max`. Pravilo je da karta na stolu nikad ne bude
+     VECA od karte u ruci — sto je bio 21% siri (67.7 vs 56px na 360px), pa su
+     karte dodirivale bocna sjedista i sto se citao kao pretrpan. Ako se ruka
+     ikad pomjeri, sto je prati sam. */
+  --card-w-hand: 3.5rem;
+}
+
 .card--sm {
-  --card-w: 3.5rem;
+  --card-w: var(--card-w-hand);
   --card-h: 4.95rem;
   --card-pad: 0.2rem;
 }
@@ -991,7 +1000,10 @@
      sitne. Izmjereno: traka izbora ostavi stolu 145px, tri reda tad traze 30px
      po karti. */
   --card-w-min: 1.9rem;
-  --card-w-max: 4.5rem; /* iznad ovoga jedna karta nadglasa lepezu */
+  /* Gornja granica je karta u ruci, ne proizvoljan broj: vidi `--card-w-hand`.
+     Fit racun i dalje SMANJUJE karte kad ih je puno (10-12), pa mreza staje;
+     ovo samo sprjecava da narastu preko ruke kad ih je malo. */
+  --card-w-max: var(--card-w-hand);
 
   --fit-w: calc(
     (100cqw - (var(--table-cols) - 1) * var(--table-gap-x)) / var(--table-cols)
@@ -1222,6 +1234,24 @@
  * ------------------------------------------------------------------ */
 
 .felt-stage {
+  /* Sukno sa nacrtanim obodom stola. Slika NOSI obod — zato je `.felt-ring`
+     obrisan iz koda umjesto da se crta dvaput.
+
+     `cover` + `center`: slika je 887x1774 (odnos 1:2), telefon je oko 1:2.1, pa
+     se krati po sirini za desetak piksela i po visini staje cijela. Obod je
+     izmjeren na 14%-61% visine i 8.9%-90.6% sirine slike, sto na 360x760 znaci
+     da karte padaju UNUTAR njega, a sjedista sjede na samoj ivici — kao igraci
+     oko stola. Poravnanje je priblizno i mijenja se sa odnosom ekrana; nije
+     vezano za `--table-top`/`--table-bottom` i ne smije se tretirati kao da
+     jeste.
+
+     Boja ispod (`bg-felt` iz JSX-a) ostaje kao pod: ako slika ne stigne, ekran
+     je i dalje zeleno sukno a ne bijelo. */
+  background-image: url("/felt-bg.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
   --seat-avatar: 3.25rem;
   /* Sirina bocnog pojasa = sirina bocnog cipa. Sto je uvucen za tacno ovoliko.
      `clamp` jer na 320px fiksnih 5rem pojede skoro pola sirine stola. */
@@ -1305,8 +1335,10 @@
     --seat-avatar: 3.75rem;
     --seat-gutter: 6rem;
     --stage-partner-h: 8rem;
-    /* 8rem, ne 6: izmjereno je tvoje sjediste 119px i na desktopu je sa 6rem
-       ulazilo 7px u sto. */
+    /* Ranije 8rem uz napomenu "ne 6, jer je tvoje sjediste 119px i sa 6rem
+       ulazi 7px u sto". Ta premisa je pala kad je red rezultata skinut sa cipa:
+       sjediste se na desktopu sad crta 98.3px (izmjereno na 800x900), pa 6.5rem
+       = 104px ostavlja istu rezervu od 5.7px koju baza ima. */
     --stage-seat-h: 6.5rem;
     --stage-gap: 0.5rem;
   }
@@ -1315,13 +1347,10 @@
   .felt-stage .seat--bottom {
     --seat-avatar: 4rem;
   }
-  .felt-stage .table__cards {
-    --card-w-max: 5.75rem;
-  }
 }
 
 /* ------------------------------------------------------------------ *
- * Zaglavlje — naziv, podnaslov, runda, meni, zvuk
+ * Zaglavlje — meni, runda, zvuk (jedan red; naziv i podnaslov su izbaceni)
  * ------------------------------------------------------------------ */
 
 .felt-header {
