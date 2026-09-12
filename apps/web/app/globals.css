@@ -121,9 +121,6 @@
   --t-capture-flash: 550ms;
   --t-jack-sweep:    770ms;
 
-  /* Display trajanje — čitljivost sadržaja, nije pokret */
-  --d-reveal-hold:   1200ms;
-
   /* Easing */
   --ease-card:     cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-snap:     cubic-bezier(0.34, 1.3, 0.64, 1);
@@ -339,9 +336,15 @@
    REDUCED MOTION
 
    Svako --t-* trajanje pada na 1ms, pa nijedna komponenta ne
-   treba drugu kodnu putanju. Dva namjerna izuzetka:
-     --d-reveal-hold  zadržava punu vrijednost (display, ne pokret).
+   treba drugu kodnu putanju. Jedan namjerni izuzetak:
      --t-turn-pulse   ide na 0s, ne 1ms — 1ms petlja je stroboskop.
+
+   Prefiks --d-* (display, ne pokret) je i dalje rezervisan i NE
+   kolapsira — danas ga niko ne troši. Jedini je korisnik bio
+   --d-reveal-hold, koji je umro zajedno sa panelom prikaza poteza:
+   pravi hold mu je sve vrijeme bio READ_MS u JS-u, pa se token tiho
+   razišao od njega za 10ms poslije ×1.1 prolaza. Pouka: trajanje se
+   deklariše na JEDNOM mjestu — ili u tokenu, ili u satu koji ga troši.
 
    Postojeće animacije gore imaju hardkodirana trajanja, pa ih
    token-kolaps NE dodiruje — gase se eksplicitno.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deriveGameEvents, type EventSnapshot } from "./gameEvents";
+import { deriveGameEvents, isJackSweep, type EventSnapshot } from "./gameEvents";
 
 // Bazni snapshot: 2 igrača, faza playing, p1 na potezu, sto ima 2 karte.
 function base(overrides: Partial<EventSnapshot> = {}): EventSnapshot {
@@ -128,5 +128,31 @@ describe("deriveGameEvents", () => {
     const prev = base({ phase: "hand_finished" });
     const next = base({ phase: "hand_finished", capturedCounts: { p1: 5, p2: 0 } });
     expect(deriveGameEvents(prev, next, "p1")).toEqual([]);
+  });
+});
+
+describe("isJackSweep", () => {
+  it("pun sto koji ostane prazan je sweep", () => {
+    expect(isJackSweep(3, 0)).toBe(true);
+    expect(isJackSweep(1, 0)).toBe(true);
+  });
+
+  it("sto koji nije ispražnjen nije sweep", () => {
+    expect(isJackSweep(3, 1)).toBe(false);
+    expect(isJackSweep(3, 3)).toBe(false);
+  });
+
+  it("prazan sto prije poteza nije sweep — nema se šta počistiti", () => {
+    expect(isJackSweep(0, 0)).toBe(false);
+  });
+
+  it("isto pravilo koje deriveGameEvents prijavljuje kao jackSweep", () => {
+    // Jedan izvor za zvuk, flash i natpis uz sjedište: kad se ovo razidje,
+    // potez zvuči kao žandar a piše kao obično kupljenje (ili obrnuto).
+    const prev = base({ table: [{}, {}] });
+    const next = base({ table: [], capturedCounts: { p1: 3, p2: 0 } });
+    const [event] = deriveGameEvents(prev, next, "p1");
+    expect(event).toMatchObject({ type: "capture", jackSweep: true });
+    expect(isJackSweep(prev.table.length, next.table.length)).toBe(true);
   });
 });

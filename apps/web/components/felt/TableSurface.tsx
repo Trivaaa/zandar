@@ -15,6 +15,12 @@ export type TableSurfaceProps = {
   landFrom?: LandFrom;
   /** Ids of cards that just landed, animated in from landFrom. */
   landingCardIds?: string[];
+  /**
+   * Karte koje ovaj potez odnosi u pile: nose sjaj i sidro `data-collect-card`.
+   * Samo prikaz — NISU tapabilne. Tapabilno je ono što je u `captureOptions`,
+   * a dok kupljenje traje sto uopšte ne prima dodir (vidi `useTableBeat`).
+   */
+  takenCardIds?: string[];
   captureOptions?: CaptureOption[];
   selectedOptionId?: string | null;
   onSelectOption?: ((option: CaptureOption) => void) | undefined;
@@ -62,6 +68,7 @@ export function TableSurface({
   cards,
   landFrom = "bottom",
   landingCardIds = [],
+  takenCardIds = [],
   captureOptions = [],
   selectedOptionId = null,
   onSelectOption,
@@ -155,12 +162,16 @@ export function TableSurface({
               const option = optionOf.get(c.id);
               const tappable = single !== undefined && option?.optionId === single.optionId;
               const inSelected = option ? option.optionId === selectedOptionId : false;
+              const taken = takenCardIds.includes(c.id);
               return (
                 <div
                   key={c.id}
                   className={`table__slot ${option ? "table__slot--capturable" : ""} ${
                     tappable ? "table__slot--tappable" : ""
-                  } ${landingCardIds.includes(c.id) ? "table__slot--landing" : ""}`}
+                  } ${landingCardIds.includes(c.id) ? "table__slot--landing" : ""} ${
+                    taken ? "table__slot--taken" : ""
+                  }`}
+                  {...(taken ? { "data-collect-card": true } : {})}
                   data-option-id={option?.optionId}
                   data-option-selected={inSelected}
                   role={tappable ? "button" : undefined}

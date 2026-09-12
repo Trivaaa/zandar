@@ -60,12 +60,10 @@ export const sr = {
     spades: "Pik",
   },
   reveal: {
-    sweep: "ŽANDAR — počistio sto!",
+    sweep: "ŽANDAR!",
     captures: (name: string) => `${name} kupi`,
     trails: (name: string) => `${name} spušta`,
     autoPlay: "automatski potez",
-    playedLabel: "Odigrana karta",
-    takenLabel: "Kupljene karte",
   },
   score: {
     title: "Rezultat",

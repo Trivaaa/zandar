@@ -10,6 +10,7 @@ import { GameScreen } from "@/components/GameScreen";
  *
  * Stanje se moze zadati i iz URL-a:
  *   /dev/game?cards=9&players=4&phase=playing&chooser=1&name=Aleksandra
+ *   /dev/game?move=capture&turn=left   → pa `window.__devMove()` pusti potez
  *
  * To NIJE ukras: headless Chrome (`--screenshot`) ne moze da klikne dugmad, pa
  * bi bez URL-a svaki snimak bio isto pocetno stanje — a raspored se lomi bas u
@@ -47,6 +48,19 @@ const TABLE_POOL = [
   card("clubs", "6"),
 ];
 
+/**
+ * Vrsta poteza koji `move=` pusta. Beat (`useTableBeat`) se NE moze pogledati
+ * na statickom mock-u: pali ga tek promjena `stateVersion` sa novim `moveId`,
+ * pa preview mora da odigra pravi prelaz iz stanja PRIJE poteza u stanje
+ * POSLIJE njega — isto kako dolazi sa servera.
+ */
+const MOVES = ["capture", "trail", "sweep", "auto"] as const;
+type MoveKind = (typeof MOVES)[number];
+
+/** Karte koje NISU ni u `TABLE_POOL` ni u ruci — da se id-evi ne sudare. */
+const PLAYED = card("hearts", "10");
+const PLAYED_JACK = card("clubs", "J");
+
 type Opts = {
   phase: GamePhase;
   turnDeadline: number;
@@ -56,7 +70,18 @@ type Opts = {
   turn: "me" | "partner" | "left" | "right";
   /** Karata u ruci SVAKOG igraca. Lepeza poledjina se puni do 8. */
   oppHand: number | null;
+  move: MoveKind | null;
+  /** Da li je `move` vec pusten (`window.__devMove()`). */
+  moved: boolean;
 };
+
+/** Ko je na potezu za dati `turn` — isto pravilo i za mock i za `move=`. */
+function turnSeatId(turn: Opts["turn"], players: { id: string }[]): string {
+  if (turn === "me") return "me";
+  if (turn === "right") return "p1";
+  if (turn === "partner") return players[2]?.id ?? "me";
+  return players[3]?.id ?? players[1]?.id ?? "me";
+}
 
 /**
  * Roster za dati broj igraca. 4P nosi `teamId`, 2P i 3P ga NEMAJU — bez toga bi
@@ -87,24 +112,31 @@ function mockState({
   longName,
   turn,
   oppHand,
+  move,
+  moved,
 }: Opts): PrivateGameStateView & {
   turnDeadline?: number;
 } {
   const players = rosterFor(playerCount, longName);
+  const mover = turnSeatId(turn, players);
+  const baseTable = TABLE_POOL.slice(0, tableCount);
+
+  // Bez `move=`: staticno stanje kao i ranije. Sa `move=`: prvo stanje PRIJE
+  // poteza, pa `window.__devMove()` prebaci na stanje POSLIJE — tek taj prelaz
+  // (novi `stateVersion` + novi `moveId`) pusti beat.
+  const played = move === "sweep" ? PLAYED_JACK : PLAYED;
+  const taken =
+    move === "sweep" ? baseTable : move === "trail" ? [] : baseTable.slice(0, 2);
+  const after = move === "trail" ? [...baseTable, played] : baseTable.slice(taken.length);
+  const live = move !== null && moved;
+
   return {
     roomId: "dev",
     matchId: "dev",
     phase,
     players,
-    table: TABLE_POOL.slice(0, tableCount),
-    currentPlayerId:
-      turn === "me"
-        ? "me"
-        : turn === "right"
-          ? "p1"
-          : turn === "partner"
-            ? (players[2]?.id ?? "me")
-            : (players[3]?.id ?? players[1]?.id ?? "me"),
+    table: live ? after : baseTable,
+    currentPlayerId: live ? "me" : mover,
     dealerPlayerId: "p3",
     deckCount: 28,
     handCounts: Object.fromEntries(
@@ -116,7 +148,7 @@ function mockState({
         ? { "team-0": 14, "team-1": 9 }
         : Object.fromEntries(players.map((p, i) => [p.id, 21 - i * 3])),
     targetScore: 21,
-    stateVersion: 1,
+    stateVersion: live ? 2 : 1,
     handNumber: 3,
     handScores: [
       {
@@ -132,14 +164,19 @@ function mockState({
     ],
     myPlayerId: "me",
     myHand: [card("clubs", "7"), card("spades", "J"), card("hearts", "A"), card("diamonds", "9")],
-    // Da se move-reveal panel uopste moze pogledati u pregledniku.
-    lastMove: {
-      moveId: "dev-move",
-      playerId: "p1",
-      playedCard: card("hearts", "9"),
-      capturedCards: [card("clubs", "4"), card("spades", "5")],
-      isAutoPlay: false,
-    },
+    // Prije `__devMove()` nema poteza — kao svjeza soba. Inace bi beat na
+    // prvom snapshotu vidio "zatecen" potez koji se nikad nije desio.
+    ...(live
+      ? {
+          lastMove: {
+            moveId: "dev-m2",
+            playerId: mover,
+            playedCard: played,
+            capturedCards: taken,
+            isAutoPlay: move === "auto",
+          },
+        }
+      : {}),
     turnDeadline,
   };
 }
@@ -170,6 +207,12 @@ type UrlOpts = {
   oppHand: number | null;
   /** `measure=1`: ispisi rect-ove i sakrij kontrolnu traku (ona pokriva sto). */
   measure: boolean;
+  /**
+   * `move=capture|trail|sweep|auto`: pripremi potez te vrste. Pusta ga tek
+   * `window.__devMove()` (ili dugme "potez"), pa mjerac sam bira TRENUTAK u
+   * kojem snima fazu beat-a — land i hold traju 260 i 280ms.
+   */
+  move: MoveKind | null;
 };
 
 function parseParams(search: string): UrlOpts {
@@ -191,6 +234,9 @@ function parseParams(search: string): UrlOpts {
       : "me",
     oppHand: q.get("hand") === null ? null : Math.max(0, Math.min(8, Number(q.get("hand")) || 0)),
     measure: q.get("measure") === "1",
+    move: (MOVES as readonly string[]).includes(q.get("move") ?? "")
+      ? (q.get("move") as MoveKind)
+      : null,
   };
 }
 
@@ -226,6 +272,11 @@ function Measure() {
         ["fanL", document.querySelector(".seat--left .seat__fan")],
         ["fanR", document.querySelector(".seat--right .seat__fan")],
         ["seatMe", document.querySelector(".seat--bottom")],
+        /* Beat: plutajuca odigrana karta i natpis uz sjediste su jedina dva
+           nova potrosaca prostora nad stolom — i jedina koja se ne vide na
+           statickom snimku bez `move=`. */
+        ["played", document.querySelector(".table__played")],
+        ["caption", document.querySelector(".seat__caption")],
         ["hand", document.querySelector(".hand")],
         ["deck", document.querySelector(".deck")],
         ["banner", document.querySelector(".banner")],
@@ -269,6 +320,18 @@ export default function DevGamePage() {
 
   const [deadline] = useState(() => Date.now() + 25_000);
 
+  // `move=` priprema potez; pusta ga tek ovo. Mjerac zove `window.__devMove()`
+  // pa snima posle zeljenog broja ms — inace bi faza beat-a bila lutrija.
+  const [moved, setMoved] = useState(false);
+  useEffect(() => {
+    if (!url.move) return;
+    const w = window as unknown as { __devMove?: () => void };
+    w.__devMove = () => setMoved(true);
+    return () => {
+      delete w.__devMove;
+    };
+  }, [url.move]);
+
   // U /dev/frame-u je stranica u iframe-u i kontrolna traka bi pokrila bocno
   // sjediste — bas ono sto se na tim snimcima provjerava.
   const framed = useSyncExternalStore(
@@ -292,6 +355,8 @@ export default function DevGamePage() {
           longName: url.longName,
           turn: url.turn,
           oppHand: url.oppHand,
+          move: url.move,
+          moved,
         })}
         {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
         onPlayCard={noop}
@@ -336,6 +401,15 @@ export default function DevGamePage() {
             {n}P
           </button>
         ))}
+        {url.move ? (
+          <button
+            type="button"
+            onClick={() => setMoved(true)}
+            className="mt-2 px-2 py-1 rounded-token-sm text-[10px] font-bold bg-accent text-accent-contrast"
+          >
+            potez ▶
+          </button>
+        ) : null}
         <span className="mt-2 text-[10px] text-muted">sto</span>
         {TABLE_COUNTS.map((n) => (
           <button

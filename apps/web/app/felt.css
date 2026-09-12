@@ -1064,6 +1064,13 @@
   opacity: 1;
 }
 
+/* Karte koje ovaj potez odnosi u pile. Pun sjaj, jer se u tom trenutku ne bira
+   nista — sto ne prima dodir dok karte lete (vidi `useTableBeat`), pa se ovaj
+   sjaj ne moze pomijesati sa ponudom za kupljenje. */
+.table__slot--taken .table__glow {
+  opacity: 1;
+}
+
 .table__slot--tappable:focus-visible {
   outline: none;
 }
@@ -1172,6 +1179,61 @@
   }
 }
 
+/* Odigrana karta kod KUPLJENJA.
+
+   Lezi PREKO stola umjesto da udje u mrezu, i to je i semanticki tacno: trail
+   znaci da karta ostaje (ulazi u mrezu), kupljenje da se spusta preko onoga sto
+   odnosi. Prakticni razlog je isti toliko jak — `tableGrid()` mijenja broj
+   kolona na granicama 2->3 i 9->10, pa bi `n -> n+1` usred beat-a smanjio SVE
+   karte i vratio ih na kraju.
+
+   Sidro je omotac `[data-table-drop]` iz GameScreen-a, koji nema `overflow`.
+   `.table__drop` unutra ima `overflow-y: auto` (izmjeren ugao 360x640 + 12
+   karata + traka izbora) i sjekao bi kartu dok slijece spolja. */
+.table__played {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 4;
+  pointer-events: none;
+  animation: table-play-land var(--t-card-play) var(--ease-card) both;
+}
+
+/* Odmak je veci nego kod `table-land` (160% naspram 55/70%): ovo je jedina
+   animacija kupljenja na stolu, pa mora da se PROCITA kao dolazak s te strane,
+   a ne kao pomjeraj. Procenti se razrjesavaju na velicinu same karte, pa
+   pocetak ostaje unutar pozornice na svakoj sirini. */
+.table__played[data-land-from="bottom"] {
+  --play-x: 0;
+  --play-y: 160%;
+}
+.table__played[data-land-from="top"] {
+  --play-x: 0;
+  --play-y: -160%;
+}
+.table__played[data-land-from="left"] {
+  --play-x: -180%;
+  --play-y: 0;
+}
+.table__played[data-land-from="right"] {
+  --play-x: 180%;
+  --play-y: 0;
+}
+
+/* Centriranje je DIO keyframe-a, ne zasebno pravilo: `transform` je jedno
+   svojstvo, pa bi ga animacija inace pregazila i karta bi skocila u ugao. */
+@keyframes table-play-land {
+  from {
+    transform: translate(-50%, -50%)
+      translate3d(var(--play-x, 0), var(--play-y, 0), 0) scale(0.86) rotate(0deg);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(1) rotate(-4deg);
+    opacity: 1;
+  }
+}
+
 /* Bez panela ovaj tekst pluta direktno na suknu. */
 .table__empty {
   text-align: center;
@@ -1194,6 +1256,106 @@
   outline: 2px solid var(--accent);
   outline-offset: -2px;
   border-radius: var(--radius-lg);
+}
+
+/* Natpis poteza uz sjediste onoga ko je upravo odigrao (`SeatCaption`).
+
+   APSOLUTAN, kao lepeza i mjehur reakcije: red u toku sjedista bi narastao
+   `--stage-partner-h` / `--stage-seat-h`, a te su vrijednosti IZMJERENE i svaki
+   njihov piksel je piksel manje za sto (v3.5).
+
+   Ispod sjedista za sve osim tvog. Iznad tvog je traka nad rukom — a nju dok
+   traje tudji potez ionako niko ne crta, jer tad nisi na redu. */
+.seat__caption {
+  position: absolute;
+  top: calc(100% + 0.15rem);
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--surface) 88%, transparent);
+  pointer-events: none;
+  /* Gornja granica, pa prelom: bez nje "Aleksandar Mahmutović kupi" izraste u
+     traku preko pola stola. Sa `nowrap` je isto ime bilo JEDAN dugi red koji
+     pozornica odsijece. */
+  max-width: 8.5rem;
+  text-align: center;
+  animation: caption-in var(--t-toast-in) var(--ease-snap) both;
+}
+
+.seat--bottom .seat__caption {
+  top: auto;
+  bottom: calc(100% + 0.15rem);
+}
+
+/* Bocna sjedista stoje NA ivici pozornice, pa natpis centriran na sjediste
+   izlazi iz ekrana — a pozornica ima `overflow: hidden` i tiho ga odsijece
+   (izmjereno: "Marko spusta" je na desnom sjedistu gubio zadnja tri znaka).
+   Tamo se poravnava po unutrasnjoj ivici sjedista umjesto po sredini.
+
+   Vlastiti keyframe jer se centriranje kod gornjeg i tvog sjedista radi kroz
+   `transform`, a `transform` je JEDNO svojstvo — animacija sa `-50%` bi ovdje
+   pomjerila natpis za pola njegove sirine ulijevo. */
+.seat--left .seat__caption,
+.seat--right .seat__caption {
+  animation-name: caption-in-side;
+}
+
+.seat--left .seat__caption {
+  left: 0;
+  right: auto;
+}
+
+.seat--right .seat__caption {
+  left: auto;
+  right: 0;
+}
+
+/* Velicinu i prored drzi CSS, pa `SeatCaption` u JSX-u NE smije nositi `text-*`
+   utility: Tailwind v4 `text-*` nosi i `line-height` iz kasnijeg sloja i tiho bi
+   nadjacao ova pravila (v3.5 zamka, gdje je manji font dao veci element). */
+.seat__caption-text {
+  font-size: var(--type-xs);
+  line-height: 1.2;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.seat__caption[data-tone="sweep"] .seat__caption-text {
+  color: color-mix(in oklab, var(--accent) 72%, var(--text));
+  letter-spacing: 0.01em;
+}
+
+.seat__caption-note {
+  font-size: var(--type-xs);
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+
+@keyframes caption-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes caption-in-side {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Reakcija uz sjedište — emoji mjehur pored pošiljaoca. */

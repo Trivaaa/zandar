@@ -19,7 +19,8 @@ import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
 import { RoundEndOverlay } from "@/components/overlay/RoundEndOverlay";
 import { Toast } from "@/components/overlay/Toast";
 import { RulesModal } from "@/components/RulesModal";
-import { MoveRevealLive } from "@/components/overlay/MoveRevealLive";
+import { PlayingCard } from "@/components/felt/PlayingCard";
+import { SeatCaption } from "@/components/felt/SeatCaption";
 import { DeckPile } from "@/components/felt/DeckPile";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { FeltHeader } from "@/components/felt/FeltHeader";
@@ -29,6 +30,7 @@ import { ReactionBubble } from "@/components/overlay/EmojiReactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
 import { playSfx } from "@/lib/sound";
 import { useGameEvents } from "@/lib/useGameEvents";
+import { useTableBeat } from "@/lib/useTableBeat";
 import { dealFromDeck } from "@/lib/flyAnimation";
 import { useCountdown } from "@/lib/useCountdown";
 import type { ActiveReaction } from "@/lib/reactions";
@@ -123,16 +125,10 @@ export function GameScreen({
   );
   const handleGameEvent = useCallback((event: GameEvent) => {
     switch (event.type) {
-      case "capture":
-        // J-sweep dobija jači flash (§50.5); običan capture standardni.
-        // "Collect" let karata radi MoveReveal (karte iz reveala → pile).
-        setFlash((f) => ({ key: f.key + 1, sweep: event.jackSweep }));
-        playSfx(event.jackSweep ? "sweep" : "capture");
-        if (event.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
-        break;
-      case "trail":
-        playSfx("place");
-        break;
+      // `capture` i `trail` NISU ovdje. Njihov zvuk, flash i haptika su ranije
+      // padali svi u isti trenutak — zajedno sa panelom koji je pokrivao sto.
+      // Sad potez ima DVA trenutka (karta dodirne sto / karte odlete u pile), a
+      // vlasnik tog sata je `useTableBeat`.
       case "deal": {
         playSfx("deal");
         const durMs = dealFromDeck(); // poleđine lete iz špila ka igračima + na sto
@@ -155,16 +151,31 @@ export function GameScreen({
   }, []);
   useGameEvents(state, handleGameEvent);
 
+  // Potez kao slijed na stolu, ne kao panel preko njega (vidi `useTableBeat`).
+  const beat = useTableBeat(state, {
+    onLand: () => playSfx("place"),
+    onCollect: (m) => {
+      setFlash((f) => ({ key: f.key + 1, sweep: m.jackSweep }));
+      playSfx(m.jackSweep ? "sweep" : "capture");
+      if (m.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
+    },
+  });
+
   const me = state.players.find((p) => p.id === state.myPlayerId);
   const isHost = me?.isHost ?? false;
   const isPlaying = state.phase === "playing";
   const myTurn = isPlaying && state.currentPlayerId === state.myPlayerId;
+  // Dok beat traje sto crta ZADRŽANI raspored, a `getCaptureOptions` računa po
+  // pravom `state.table` — ponuditi potez nad zastarjelim stolom znači pustiti
+  // igrača da bira grupu koje više nema. Sto zato ne prima dodir dok karte lete.
+  const tableBusy = beat.phase !== "idle";
   const isHandOver = state.phase === "hand_finished";
   const isMatchOver = state.phase === "match_finished";
 
-  const selectedCard = myTurn
-    ? (state.myHand.find((c) => c.id === selectedId) ?? null)
-    : null;
+  const selectedCard =
+    myTurn && !tableBusy
+      ? (state.myHand.find((c) => c.id === selectedId) ?? null)
+      : null;
 
   const interrupted =
     state.phase === "paused_for_reconnect" ||
@@ -212,7 +223,7 @@ export function GameScreen({
   // Prvi tap: selekcija/lift. Drugi tap iste karte: izvrši ako je jednoznačno
   // (trail bez capture-a / jedan capture). Više opcija → tapni grupu na stolu.
   function handleSelect(card: CardType) {
-    if (!myTurn || busy) return;
+    if (!myTurn || busy || tableBusy) return;
     if (selectedId === card.id) {
       const opts = getCaptureOptions(card, state.table);
       if (opts.length === 0) return void play(card.id, []);
@@ -284,15 +295,35 @@ export function GameScreen({
     return "bottom";
   }
 
-  // Karta koja je upravo spuštena i JOŠ je na stolu (trail). Kod kupljenja je
-  // odigrana karta odmah sa stola, pa nema šta da sleti — `landingCardIds`
-  // ostaje prazan i animacija se ne pali.
+  // Trail: karta JESTE u `state.table` i sleti u samu mrežu (`table-land`).
+  // Kupljenje: karta nikad nije na stolu — pluta iznad njega do leta u pile
+  // (`beat.playedCard`), pa ovdje nema šta da sleti.
   const justPlayed = state.lastMove?.playedCard;
   const landingCardIds =
-    justPlayed && state.table.some((c) => c.id === justPlayed.id)
+    justPlayed && beat.cards.some((c) => c.id === justPlayed.id)
       ? [justPlayed.id]
       : [];
-  const landFrom = landDirection(state.lastMove?.playerId);
+  const landFrom = landDirection(beat.seatId ?? state.lastMove?.playerId);
+
+  // Natpis uz sjedište onoga ko je upravo odigrao. Atribuciju primarno nosi
+  // POKRET — karte lete ka njegovom sjedištu; natpis je potvrda, ne nosilac.
+  function seatCaption(playerId: string) {
+    if (beat.phase === "idle" || beat.seatId !== playerId) return undefined;
+    const name = state.players.find((p) => p.id === playerId)?.displayName ?? "?";
+    return (
+      <SeatCaption
+        text={
+          beat.jackSweep
+            ? sr.reveal.sweep
+            : beat.kind === "capture"
+              ? sr.reveal.captures(name)
+              : sr.reveal.trails(name)
+        }
+        tone={beat.jackSweep ? "sweep" : "normal"}
+        note={beat.isAutoPlay ? sr.reveal.autoPlay : undefined}
+      />
+    );
+  }
 
   // Najnovija aktivna reakcija za dato sjedište → emoji uz tog igrača.
   function seatReaction(playerId: string) {
@@ -342,6 +373,7 @@ export function GameScreen({
           cardCount={state.handCounts[seats.partner.id] ?? 0}
           orientation="top"
           reaction={seatReaction(seats.partner.id)}
+          caption={seatCaption(seats.partner.id)}
           className="absolute left-1/2 -translate-x-1/2"
           style={{
             top: "calc(var(--safe-top) + var(--stage-header-h) + var(--stage-partner-lift))",
@@ -362,6 +394,7 @@ export function GameScreen({
           cardCount={state.handCounts[seats.oppL.id] ?? 0}
           orientation="left"
           reaction={seatReaction(seats.oppL.id)}
+          caption={seatCaption(seats.oppL.id)}
           className="absolute left-1 -translate-y-1/2 pl-safe-left"
           style={{ top: "var(--table-mid)" }}
         />
@@ -375,6 +408,7 @@ export function GameScreen({
           cardCount={state.handCounts[seats.oppR.id] ?? 0}
           orientation="right"
           reaction={seatReaction(seats.oppR.id)}
+          caption={seatCaption(seats.oppR.id)}
           className="absolute right-1 -translate-y-1/2 pr-safe-right"
           style={{ top: "var(--table-mid)" }}
         />
@@ -401,7 +435,8 @@ export function GameScreen({
       >
         <div data-table-drop className="relative h-full w-full">
           <TableSurface
-            cards={state.table}
+            cards={beat.cards}
+            takenCardIds={beat.takenIds}
             captureOptions={tableOptions}
             onSelectOption={handleCapture}
             canTrail={canTrail}
@@ -410,6 +445,21 @@ export function GameScreen({
             landFrom={landFrom}
             landingCardIds={landingCardIds}
           />
+          {/* Odigrana karta kod KUPLJENJA — pluta IZNAD mreže, ne ulazi u nju:
+              `n → n+1` bi na granicama 2→3 i 9→10 promijenio broj kolona i
+              smanjio sve karte usred beat-a. Renderuje se ovdje, a ne u
+              `TableSurface`: `.table__drop` unutra ima `overflow-y: auto` i
+              sjekao bi kartu dok slijeće spolja. */}
+          {beat.playedCard && (
+            <div
+              className="table__played"
+              data-land-from={landFrom}
+              data-collect-card
+              aria-hidden="true"
+            >
+              <PlayingCard card={beat.playedCard} size="sm" />
+            </div>
+          )}
           {flash.key > 0 && (
             <span
               key={flash.key}
@@ -453,6 +503,7 @@ export function GameScreen({
           cardCount={0}
           orientation="bottom"
           reaction={seatReaction(seats.me.id)}
+          caption={seatCaption(seats.me.id)}
           className="absolute left-1/2 -translate-x-1/2 z-20"
           style={{ bottom: "var(--stage-banner-top)" }}
         />
@@ -460,7 +511,7 @@ export function GameScreen({
 
       {/* Ruka — lepeza na dnu.
           `data-seat-id` NAMJERNO nije ovdje: nosi ga tvoje sjedište iznad.
-          Dva ista sidra su značila da `collectToPile` (querySelector, jednina)
+          Dva ista sidra su značila da `collectCardsToSeat` (querySelector, jednina)
           bira po redoslijedu u DOM-u, a `dealFromDeck` (querySelectorAll) tebi
           dijeli dvaput. Ne vraćati ga. */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 pb-safe-bottom z-20">
@@ -489,9 +540,6 @@ export function GameScreen({
           style={{ bottom: "var(--stage-banner-top)" }}
         />
       )}
-
-      {/* Move reveal — šta je zadnji potez uradio (ko/koja karta/šta pokupio) */}
-      {isPlaying && <MoveRevealLive state={state} />}
 
       {/* Ugao sa "? Pravila" i preklopkama je rasformiran: pravila su u meniju,
           preklopke su u zaglavlju (desni slot = "zvuk" iz reference). Time je

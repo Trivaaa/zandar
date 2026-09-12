@@ -3,13 +3,10 @@
 import { useState } from "react";
 import type {
   AbandonVote,
-  Card,
   GamePhase,
   HandScore,
-  LastMove,
   PublicPlayer,
 } from "@zandar/shared-types";
-import { MoveReveal } from "@/components/overlay/MoveReveal";
 import { ScorePill } from "@/components/overlay/ScorePill";
 import {
   EmojiReactionRow,
@@ -25,12 +22,6 @@ import { GameMenuSheet } from "@/components/overlay/GameMenuSheet";
  * ovdje se stanja biraju ručno, bez sata i bez servera. Nije produkcijski.
  */
 
-const card = (suit: Card["suit"], rank: Card["rank"]): Card => ({
-  id: `${suit}-${rank}`,
-  suit,
-  rank,
-});
-
 const players4: PublicPlayer[] = [
   { id: "me", displayName: "Ti", seatIndex: 0, isHost: true, teamId: 0, connectionStatus: "connected" },
   { id: "p1", displayName: "Marko", seatIndex: 1, isHost: false, teamId: 1, connectionStatus: "connected" },
@@ -42,37 +33,6 @@ const players2: PublicPlayer[] = [
   { id: "me", displayName: "Ti", seatIndex: 0, isHost: true, connectionStatus: "connected" },
   { id: "p1", displayName: "Vesna", seatIndex: 1, isHost: false, connectionStatus: "connected" },
 ];
-
-const moves: Record<string, LastMove> = {
-  sweep: {
-    moveId: "m1",
-    playerId: "p1",
-    playedCard: card("spades", "J"),
-    capturedCards: [card("hearts", "4"), card("clubs", "7"), card("diamonds", "9"), card("spades", "3")],
-    isAutoPlay: false,
-  },
-  capture: {
-    moveId: "m2",
-    playerId: "p1",
-    playedCard: card("hearts", "A"),
-    capturedCards: [card("clubs", "A")],
-    isAutoPlay: false,
-  },
-  trail: {
-    moveId: "m3",
-    playerId: "p1",
-    playedCard: card("diamonds", "9"),
-    capturedCards: [],
-    isAutoPlay: false,
-  },
-  auto: {
-    moveId: "m4",
-    playerId: "p1",
-    playedCard: card("clubs", "2"),
-    capturedCards: [card("hearts", "2")],
-    isAutoPlay: true,
-  },
-};
 
 const handScore4: HandScore = {
   handNumber: 3,
@@ -127,8 +87,6 @@ function Toggle({
 }
 
 export default function DevOverlaysPage() {
-  const [moveKey, setMoveKey] = useState<keyof typeof moves>("sweep");
-  const [revealPhase, setRevealPhase] = useState<"read" | "collect">("read");
   const [four, setFour] = useState(true);
   const [scoreOpen, setScoreOpen] = useState(false);
   const [reactDisabled, setReactDisabled] = useState(false);
@@ -148,33 +106,6 @@ export default function DevOverlaysPage() {
   return (
     <div className="min-h-dvh bg-surface p-4 space-y-8 text-white">
       <h1 className="text-xl font-bold">Overlay sloj — port (Lovable korak 3)</h1>
-
-      <section className="space-y-3">
-        <h2 className="font-bold">MoveReveal</h2>
-        <Row label="potez">
-          {(Object.keys(moves) as (keyof typeof moves)[]).map((k) => (
-            <Toggle key={k} on={moveKey === k} onClick={() => setMoveKey(k)}>
-              {k}
-            </Toggle>
-          ))}
-        </Row>
-        <Row label="faza">
-          {(["read", "collect"] as const).map((p) => (
-            <Toggle key={p} on={revealPhase === p} onClick={() => setRevealPhase(p)}>
-              {p}
-            </Toggle>
-          ))}
-        </Row>
-        <div className="rounded-token-lg bg-felt p-6 flex justify-center">
-          <MoveReveal
-            key={`${moveKey}-${revealPhase}`}
-            move={moves[moveKey]!}
-            playerName="Marko"
-            visible
-            phase={revealPhase}
-          />
-        </div>
-      </section>
 
       <section className="space-y-3">
         <h2 className="font-bold">ScorePill</h2>

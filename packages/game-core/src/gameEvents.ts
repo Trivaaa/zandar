@@ -42,6 +42,19 @@ function myPileId(snap: EventSnapshot, myPlayerId: string): string {
 }
 
 /**
+ * Da li je kupljenje "počistilo" sto (ŽANDAR).
+ *
+ * Heuristika, ne dokaz: iz javnog view-a se ne vidi RAZLOG kupljenja, pa i
+ * nejack koji pokupi zadnju kartu ovdje prolazi kao sweep. Dovoljno za
+ * feedback (§50.6) — ali mora biti JEDNO pravilo, jer ga čita i zvuk, i flash,
+ * i natpis uz sjedište. Ranije je klijentski panel koristio `rank === "J"`, pa
+ * su zvuk i tekst umjeli da tvrde različite stvari o istom potezu.
+ */
+export function isJackSweep(prevTableSize: number, nextTableSize: number): boolean {
+  return prevTableSize > 0 && nextTableSize === 0;
+}
+
+/**
  * Detektuje feedback događaje između `prev` i `next` snapshota (PRD §50.6).
  *
  * - Potezni događaji (deal/capture/trail/yourTurn) važe samo dok je `next` u fazi
@@ -84,8 +97,12 @@ export function deriveGameEvents(
   // Kupljenje vs trailanje.
   const capturedDelta = sum(next.capturedCounts) - sum(prev.capturedCounts);
   if (capturedDelta > 0) {
-    const jackSweep = prev.table.length > 0 && next.table.length === 0;
-    events.push({ type: "capture", byMe, jackSweep, playerId: mover });
+    events.push({
+      type: "capture",
+      byMe,
+      jackSweep: isJackSweep(prev.table.length, next.table.length),
+      playerId: mover,
+    });
   } else if (next.table.length === prev.table.length + 1) {
     // Karta spuštena na sto bez kupljenja.
     events.push({ type: "trail", byMe });
