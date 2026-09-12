@@ -34,8 +34,21 @@ import { prefersReducedMotion } from "@/lib/motion";
 const LAND_MS = 260;
 /** Koliko karta stoji osvijetljena prije nego krene u pile. */
 const HOLD_MS = 280;
-/** Rep natpisa kad leta nema (reduced-motion, trail, sjedište van DOM-a). */
+/** Rep beat-a kad leta nema (reduced-motion, trail, sjedište van DOM-a). */
 const TAIL_MS = 240;
+/**
+ * Koliko natpis stoji. VLASTITI sat — namjerno NIJE vezan za trajanje beat-a:
+ * beat je gotov za ~780ms (trail) do ~1.2s (kupljenje), a to je prekratko da se
+ * rečenica pročita. Natpis zato nadživi karte.
+ *
+ * Trajanje PRIKAZA, ne pokreta, pa ostaje isto i pod `prefers-reduced-motion`
+ * (to je pravilo iza `--d-*` prefiksa). Namjerno bez CSS tokena: sat je ovdje,
+ * a `--d-reveal-hold` je bio upravo token koji se tiho razišao sa JS-om i umro
+ * bez ijednog korisnika.
+ */
+const CAPTION_MS = 1700;
+/** Zadnji dio vijeka: natpis se gasi umjesto da nestane rezom. */
+const CAPTION_FADE_MS = 200;
 
 export type BeatPhase = "idle" | "land" | "hold" | "collect";
 export type BeatKind = "capture" | "trail";
@@ -53,20 +66,32 @@ export type TableBeatHandlers = {
   onCollect?: (m: BeatMoment) => void;
 };
 
+/**
+ * Natpis uz sjedište. Zaseban od beat-a jer ga i nadživi — sve što mu treba
+ * nosi sam, da se ne čita iz beat-a koji je u tom trenutku već `null`.
+ */
+export type SeatCaptionInfo = {
+  moveId: string;
+  seatId: string;
+  kind: BeatKind;
+  jackSweep: boolean;
+  isAutoPlay: boolean;
+  /** Zadnjih `CAPTION_FADE_MS`: gasi se. */
+  leaving: boolean;
+};
+
 export type TableBeat = {
   phase: BeatPhase;
-  kind: BeatKind | null;
   /** Šta sto treba da crta SADA — zadržani raspored dok kupljenje traje. */
   cards: Card[];
   /** Odigrana karta koja pluta iznad stola. Samo kupljenje, samo do collect-a. */
   playedCard: Card | null;
   /** Karte na stolu koje odlaze — nose sjaj i sidro `data-collect-card`. */
   takenIds: string[];
-  /** Ko je odigrao: meta leta i mjesto natpisa. */
+  /** Ko je odigrao — meta leta karata. Prati BEAT, ne natpis. */
   seatId: string | null;
-  byMe: boolean;
-  jackSweep: boolean;
-  isAutoPlay: boolean;
+  /** Natpis ima vlastiti vijek; `null` kad je istekao. */
+  caption: SeatCaptionInfo | null;
 };
 
 type Beat = {
@@ -120,6 +145,8 @@ type Tracked = {
   prevSig: string;
   beat: Beat | null;
   phase: BeatPhase;
+  /** Natpis; postavlja ga `advance`, gasi ga VLASTITI tajmer, ne kraj beat-a. */
+  caption: SeatCaptionInfo | null;
   /**
    * Zadnji `moveId` koji je dobio beat. Monotono: `moveId` je `clientMoveId` i
    * nikad se ne ponavlja, pa se NE resetuje. Da se resetuje, povratak iz pauze
@@ -140,15 +167,32 @@ function advance(t: Tracked, state: PrivateGameStateView): Tracked {
   const prevSig = sigOf(state.table);
 
   // Kraj ruke, pauza ili prekid usred beat-a: prekini, snap na stvarni sto.
+  // Natpis ide sa njim — nema smisla da nadživi ruku u kojoj je potez odigran.
   if (state.phase !== "playing") {
-    return { version, prevTable, prevSig, beat: null, phase: "idle", handled: t.handled };
+    return {
+      version, prevTable, prevSig,
+      beat: null, phase: "idle", caption: null, handled: t.handled,
+    };
   }
 
   const next = decideBeat(t.prevTable, state);
   if (!next || next.moveId === t.handled) {
     return { ...t, version, prevTable, prevSig };
   }
-  return { version, prevTable, prevSig, beat: next, phase: "land", handled: next.moveId };
+  return {
+    version, prevTable, prevSig,
+    beat: next,
+    phase: "land",
+    caption: {
+      moveId: next.moveId,
+      seatId: next.seatId,
+      kind: next.kind,
+      jackSweep: next.jackSweep,
+      isAutoPlay: next.isAutoPlay,
+      leaving: false,
+    },
+    handled: next.moveId,
+  };
 }
 
 export function useTableBeat(
@@ -166,6 +210,7 @@ export function useTableBeat(
     prevSig: sigOf(state.table),
     beat: null,
     phase: "idle",
+    caption: null,
     handled: null,
   }));
 
@@ -247,17 +292,43 @@ export function useTableBeat(
     return () => timers.forEach(clearTimeout);
   }, [beat]);
 
+  /*
+   * Sat natpisa. ODVOJEN efekt, i keyed na `moveId` a NE na sam objekat:
+   *
+   *  - da živi u efektu sata beat-a, cleanup bi mu pukao čim beat završi
+   *    (`beat` je tamo zavisnost i pada na `null`), pa natpis nikad ne bi nestao;
+   *  - da je keyed na objekat, postavljanje `leaving` bi napravilo novi objekat,
+   *    efekt bi se ponovo pokrenuo i tajmeri bi se vrtjeli u krug.
+   *
+   * Novi potez donosi novi `moveId` → stari tajmeri otkazani, natpis se odmah
+   * prebaci na novi potez umjesto da lebdi preko njega.
+   */
+  const captionId = tracked.caption?.moveId ?? null;
+  useEffect(() => {
+    if (!captionId) return;
+    const still = (t: Tracked) => t.caption !== null && t.caption.moveId === captionId;
+    const fade = setTimeout(
+      () => setTracked((t) => (still(t) ? { ...t, caption: { ...t.caption!, leaving: true } } : t)),
+      CAPTION_MS - CAPTION_FADE_MS,
+    );
+    const done = setTimeout(
+      () => setTracked((t) => (still(t) ? { ...t, caption: null } : t)),
+      CAPTION_MS,
+    );
+    return () => {
+      clearTimeout(fade);
+      clearTimeout(done);
+    };
+  }, [captionId]);
+
   const holding = beat !== null && beat.hold && phase !== "idle" && phase !== "collect";
 
   return {
     phase,
-    kind: beat?.kind ?? null,
     cards: holding ? beat.heldTable : state.table,
     playedCard: holding ? beat.playedCard : null,
     takenIds: holding ? beat.takenIds : [],
     seatId: phase === "idle" ? null : (beat?.seatId ?? null),
-    byMe: beat?.byMe ?? false,
-    jackSweep: beat?.jackSweep ?? false,
-    isAutoPlay: beat?.isAutoPlay ?? false,
+    caption: tracked.caption,
   };
 }

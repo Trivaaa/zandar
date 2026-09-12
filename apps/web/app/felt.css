@@ -1354,7 +1354,11 @@
   position: absolute;
   top: calc(100% + 0.15rem);
   left: 50%;
-  z-index: 4;
+  /* IZNAD kutije stola (`z-10` iz GameScreen-a), ne samo iznad sjedista. Sa
+     `z-index: 4` je partnerov natpis bio IZA karata: `.seat` nema svoj z-index
+     pa ne pravi stacking context, i natpis se takmicio direktno sa stolom u
+     kontekstu pozornice — rijec je bila presjecena gornjim redom. */
+  z-index: 30;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1363,12 +1367,33 @@
   border-radius: var(--radius-md);
   background-color: color-mix(in oklab, var(--surface) 88%, transparent);
   pointer-events: none;
-  /* Gornja granica, pa prelom: bez nje "Aleksandar Mahmutović kupi" izraste u
-     traku preko pola stola. Sa `nowrap` je isto ime bilo JEDAN dugi red koji
-     pozornica odsijece. */
-  max-width: 8.5rem;
+
+  /* `max-content`, NE `auto`. Apsolutan element sa `width: auto` se skuplja na
+     raspolozivu sirinu svog sidra, a sidro je `.seat` — sirok tacno koliko
+     avatar i cip, uz `min-width: 0`. Sa `left: 50%` ostajala mu je jos i POLA
+     te sirine, pa se natpis lomio u kolonu od jednog znaka (`Igo / r / spu /
+     sta`). `max-width` je gornja granica i nikad ga nije mogao prosiriti. */
+  width: max-content;
+  /* Natpis je glagol (`kupi` / `spušta` / `ŽANDAR!`), ne recenica — ime stoji u
+     cipu iznad. Granica je zato niska i sluzi samo kao osigurac. */
+  max-width: 6rem;
   text-align: center;
-  animation: caption-in var(--t-toast-in) var(--ease-snap) both;
+
+  /* Centriranje je DEKLARISANO svojstvo, ne samo zavrsni kadar animacije —
+     zato `backwards` umjesto `both`: kad animacija zavrsi, vrijednosti se
+     otpuste i vrijedi ono sto pise ovdje. Da stoji `both`, fill bi zauvijek
+     drzao `opacity: 1` i gasenje ispod (`[data-leaving]`) nikad ne bi radilo —
+     animacija u kaskadi pobjedjuje i deklaraciju i tranziciju. */
+  transform: translateX(-50%);
+  opacity: 1;
+  transition: opacity var(--t-toast-in) var(--ease-out-soft);
+  animation: caption-in var(--t-toast-in) var(--ease-snap) backwards;
+}
+
+/* Natpis nadzivi karte (vlastiti sat u `useTableBeat`), pa nestaje u trenutku
+   kad se nista drugo ne mice — rez se tad primijeti. Gasi se. */
+.seat__caption[data-leaving] {
+  opacity: 0;
 }
 
 .seat--bottom .seat__caption {
@@ -1386,6 +1411,8 @@
    pomjerila natpis za pola njegove sirine ulijevo. */
 .seat--left .seat__caption,
 .seat--right .seat__caption {
+  /* Bez centriranja — poravnanje drze `left: 0` / `right: 0` ispod. */
+  transform: none;
   animation-name: caption-in-side;
 }
 
@@ -1402,11 +1429,14 @@
 /* Velicinu i prored drzi CSS, pa `SeatCaption` u JSX-u NE smije nositi `text-*`
    utility: Tailwind v4 `text-*` nosi i `line-height` iz kasnijeg sloja i tiho bi
    nadjacao ova pravila (v3.5 zamka, gdje je manji font dao veci element). */
+/* Bez `overflow-wrap: anywhere`: ono obara min-content na JEDAN znak, pa se
+   kutija smije skupiti do te mjere i lomiti rijeci nasred sloga. Prelom ide po
+   razmacima. Generator ne pravi nadimak duzi od `BataPenzioner`, pa jedan token
+   nikad ne prelazi kutiju. */
 .seat__caption-text {
   font-size: var(--type-xs);
   line-height: 1.2;
   color: var(--text);
-  overflow-wrap: anywhere;
 }
 
 .seat__caption[data-tone="sweep"] .seat__caption-text {
