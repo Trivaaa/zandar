@@ -19,6 +19,16 @@
   --card-w: 4.5rem;
   --card-h: 6.4rem;
   --card-pad: 0.3rem;
+  /* Radijus PRATI kartu, nikad apsolutna vrijednost. 7.5% je TACNO onoliko
+     koliko `scripts/build-cards.mjs` isijeca u alpha kanal same slike, pa CSS
+     rez lezi na uglu crteza umjesto da ga sijece.
+
+     Ranije je ovdje bio `--radius-md` (8px) na sva cetiri sloja. Apsolutan
+     radijus se poklapa sa slikom na TACNO jednoj velicini karte, a karta se
+     crta na pet: xs 24.8 / sm 61.6 / md 72 / lg 92 / fluid. Na lepezi
+     poledjina (24.8px) to je bilo 8px naspram 1.86px — rez je presijecao krem
+     okvir poledjine i ugao je izgledao otkinuto. Prijavljeno sa uredjaja. */
+  --card-radius: calc(var(--card-w) * 0.075);
 
   position: relative;
   flex: 0 0 auto;
@@ -78,9 +88,6 @@
   --card-w: var(--table-card-w, 3.5rem);
   --card-h: calc(var(--card-w) * 1.417);
   --card-pad: calc(var(--card-w) * 0.06);
-  /* Radijus je jedina apsolutna mjera na karti: `--radius-md` (8px) na karti
-     od 36px je mrlja, a ne ugao. `min()` drzi velike karte na tokenu. */
-  --card-radius: min(var(--radius-md), calc(var(--card-w) * 0.13));
 }
 
 /* The flip carrier. Wrapper transforms stay free for deal/play/lift so the
@@ -101,7 +108,7 @@
   inset: 0;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  border-radius: var(--radius-md);
+  border-radius: var(--card-radius);
   overflow: hidden;
 }
 
@@ -128,22 +135,13 @@
 .card-face {
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--card-radius);
   overflow: hidden;
   background-color: var(--card-face);
   background-image: var(--card-art, none);
   background-size: 100% 100%;
   background-repeat: no-repeat;
   box-shadow: 0 0.1rem 0.25rem color-mix(in oklab, var(--surface) 35%, transparent);
-}
-
-.card--fluid .card-side,
-.card--fluid .card-face,
-.card--fluid .card-back {
-  border-radius: var(--card-radius);
-}
-.card--fluid .card-back::after {
-  border-radius: calc(var(--card-radius) - 0.1rem);
 }
 
 
@@ -161,7 +159,7 @@
   overflow: hidden;
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-md);
+  border-radius: var(--card-radius);
   background-color: var(--card-back);
   background-image: var(--card-back-art);
   /* `100% 100%` kao i kod lica — crtez je 240x340 (odnos 1.4167), prakticno
@@ -188,7 +186,7 @@
 .card-plain {
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-md);
+  border-radius: var(--card-radius);
   background-color: var(--card-back);
   box-shadow:
     inset 0 0 0 1px color-mix(in oklab, var(--text) 10%, transparent),
