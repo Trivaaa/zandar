@@ -20,11 +20,18 @@ export type SeatCaptionProps = {
   tone?: "normal" | "sweep";
   /** Druga linija — danas samo "automatski potez". */
   note?: string | undefined;
+  /** Zadnji dio vijeka: natpis se gasi umjesto da nestane rezom. */
+  leaving?: boolean;
 };
 
-export function SeatCaption({ text, tone = "normal", note }: SeatCaptionProps) {
+export function SeatCaption({ text, tone = "normal", note, leaving = false }: SeatCaptionProps) {
   return (
-    <span className="seat__caption" data-tone={tone} role="status">
+    <span
+      className="seat__caption"
+      data-tone={tone}
+      {...(leaving ? { "data-leaving": true } : {})}
+      role="status"
+    >
       <span className="seat__caption-text font-sans">{text}</span>
       {note ? <span className="seat__caption-note font-sans">{note}</span> : null}
     </span>

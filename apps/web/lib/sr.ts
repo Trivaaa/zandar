@@ -61,9 +61,13 @@ export const sr = {
   },
   reveal: {
     sweep: "ŽANDAR!",
-    captures: (name: string) => `${name} kupi`,
-    trails: (name: string) => `${name} spušta`,
-    autoPlay: "automatski potez",
+    /* Natpis uz sjediste NE ponavlja ime: ono stoji u cipu tacno iznad njega.
+       Ime je bilo jedino sto je kutiju cinilo sirokom, a izmjereno je da na
+       360px tako pokriva karte na stolu — `BataPenzioner kupi` je 126px, a uz
+       bocno sjediste ili partnera to je preko pola karte. */
+    captures: "kupi",
+    trails: "spušta",
+    autoPlay: "automatski",
   },
   score: {
     title: "Rezultat",

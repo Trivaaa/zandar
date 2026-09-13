@@ -308,19 +308,22 @@ export function GameScreen({
   // Natpis uz sjedište onoga ko je upravo odigrao. Atribuciju primarno nosi
   // POKRET — karte lete ka njegovom sjedištu; natpis je potvrda, ne nosilac.
   function seatCaption(playerId: string) {
-    if (beat.phase === "idle" || beat.seatId !== playerId) return undefined;
-    const name = state.players.find((p) => p.id === playerId)?.displayName ?? "?";
+    // Natpis ima VLASTITI vijek i nadživi beat, pa se čita iz `beat.caption`, a
+    // ne iz `beat.phase` / `beat.seatId` — oni su u tom trenutku već prazni.
+    const c = beat.caption;
+    if (!c || c.seatId !== playerId) return undefined;
     return (
       <SeatCaption
         text={
-          beat.jackSweep
+          c.jackSweep
             ? sr.reveal.sweep
-            : beat.kind === "capture"
-              ? sr.reveal.captures(name)
-              : sr.reveal.trails(name)
+            : c.kind === "capture"
+              ? sr.reveal.captures
+              : sr.reveal.trails
         }
-        tone={beat.jackSweep ? "sweep" : "normal"}
-        note={beat.isAutoPlay ? sr.reveal.autoPlay : undefined}
+        tone={c.jackSweep ? "sweep" : "normal"}
+        note={c.isAutoPlay ? sr.reveal.autoPlay : undefined}
+        leaving={c.leaving}
       />
     );
   }
@@ -374,7 +377,11 @@ export function GameScreen({
           orientation="top"
           reaction={seatReaction(seats.partner.id)}
           caption={seatCaption(seats.partner.id)}
-          className="absolute left-1/2 -translate-x-1/2"
+          /* `z-20` (kao i tvoje sjediste): sjediste nosi `-translate-x-1/2`, a
+             transform pravi stacking context — pa natpis unutra ne moze da se
+             podigne iznad kutije stola (`z-10`) koliko god z-index imao.
+             Partnerov natpis je bez ovoga bio PRESJECEN gornjim redom karata. */
+          className="absolute left-1/2 -translate-x-1/2 z-20"
           style={{
             top: "calc(var(--safe-top) + var(--stage-header-h) + var(--stage-partner-lift))",
           }}
@@ -395,7 +402,7 @@ export function GameScreen({
           orientation="left"
           reaction={seatReaction(seats.oppL.id)}
           caption={seatCaption(seats.oppL.id)}
-          className="absolute left-1 -translate-y-1/2 pl-safe-left"
+          className="absolute left-1 -translate-y-1/2 pl-safe-left z-20"
           style={{ top: "var(--table-mid)" }}
         />
       )}
@@ -409,7 +416,7 @@ export function GameScreen({
           orientation="right"
           reaction={seatReaction(seats.oppR.id)}
           caption={seatCaption(seats.oppR.id)}
-          className="absolute right-1 -translate-y-1/2 pr-safe-right"
+          className="absolute right-1 -translate-y-1/2 pr-safe-right z-20"
           style={{ top: "var(--table-mid)" }}
         />
       )}

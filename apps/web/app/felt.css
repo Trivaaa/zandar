@@ -465,6 +465,22 @@
   --seat-ring-w: 1px;
   --seat-ring: color-mix(in oklab, var(--accent) 35%, transparent);
   --seat-glow: transparent;
+  /* Halo na potezu. Trosi ga `.seat__avatar::after`, a NE `box-shadow` avatara:
+     sjenka se u ovom projektu ne animira (isti razlog zbog kojeg su
+     `capture-flash` i `jack-sweep` presli na `opacity`), pa puls mora imati
+     svoj sloj. Default stoji OVDJE iz istog razloga kao `--seat-ring`. */
+  --seat-halo: transparent;
+  /* Uzi i gusci sjaj umjesto sireg i rjedjeg. Prva verzija (1.1rem blur, boja
+     na 60%) je IZMJERENA i davala je samo +10 jedinica svjetline uz ivicu
+     avatara, jer se ista boja razmaze preko 17.6px. Ovako je +35 uz ivicu i +32
+     na 5px od nje (prosjek po 24 pravca oko avatara, mjereno na snimku).
+
+     Doseg je 16.8px, u mirnom kadru (`scale(1.05)`) ~17.6px. Gornjem avataru
+     ostaje 9.9px do zaglavlja na 360x640 i 13.7px na 360x760, pa halo ne ulazi
+     pod cip "Runda N". Ako se avatar ili budzet visine pomjere, mjeri pa
+     upisi. */
+  --seat-halo-blur: 0.85rem;
+  --seat-halo-spread: 0.2rem;
   /* Precnik avatara NAMJERNO nije deklarisan ovdje. Deklaracija na samom
      elementu pobjedjuje naslijedjenu, pa bi `--seat-avatar` sa `.felt-stage`
      (kratak ekran, desktop) nikad ne stigao do sjedista — isti trap koji je
@@ -501,11 +517,18 @@
   --seat-ring: color-mix(in oklab, var(--team-b) 70%, transparent);
 }
 
-/* Na potezu = sjaj OKO avatara, u zasebnom slotu box-shadow-a, pa boja tima u
-   prstenu prezivi. Swap svojstva izmedju stanja, bez transition-a: sjenka se
-   ovdje ne animira. */
+/* Na potezu: zlatni prsten + halo koji dise. Ranije se mijenjala samo
+   prozirnost jednog staticnog sjaja, pa se kod protivnika tudji potez prakticno
+   nije vidio — tvoj jeste, jer je tvoje sjediste jedino imalo zlatni prsten.
+
+   Prsten sad privremeno preuzima zlatnu od boje tima. Smije: boja NIJE jedini
+   nosilac tima — `arrangeSeats` drzi partnera uvijek gore, pa je pozicija
+   nekolorni kanal, a na potezu je uvijek tacno jedno sjediste. */
 .seat[data-current-turn] {
+  --seat-ring-w: 3px;
+  --seat-ring: var(--turn-active);
   --seat-glow: color-mix(in oklab, var(--turn-active) 55%, transparent);
+  --seat-halo: color-mix(in oklab, var(--turn-active) 85%, transparent);
 }
 
 .seat[data-status="abandoned"] {
@@ -533,6 +556,8 @@
 /* Jedini nosilac stanja sjedista otkad je okvir pao. Dva odvojena slota: prsten
    nosi tim, spoljni sjaj nosi potez — nikad se ne gaze. */
 .seat__avatar {
+  /* Sidro za halo. Ne pomjera nista — halo je apsolutan. */
+  position: relative;
   display: grid;
   place-items: center;
   width: var(--seat-avatar, 3.25rem);
@@ -548,6 +573,56 @@
   box-shadow:
     inset 0 0 0 var(--seat-ring-w, 1px) var(--seat-ring, transparent),
     0 0 0.75rem var(--seat-glow, transparent);
+}
+
+/* Halo aktivnog sjedista. Sjenka je PRE-RENDEROVANA na klasi, a animiraju se
+   samo `opacity` i `transform` — animiran `box-shadow` tjera browser da
+   preracunava sjenku svaki frejm i glavni je izvor zastajkivanja na srednjem
+   Androidu, a to je ciljni uredaj.
+
+   `z-index: -1` je ovdje bezbjedan: `.seat__body` je `position: relative;
+   z-index: 1`, dakle pravi stacking context, pa negativan sloj ostaje u njemu i
+   ne odlazi iza felt pozadine (zamka dokumentovana uz `.seat__fan`). Posto
+   avatar ima neprozirnu podlogu, od haloa se vidi samo obruc oko njega.
+
+   Trajanje je `--t-turn-pulse`, koji pod `prefers-reduced-motion` ide na `0s`
+   (ne 1ms — 1ms petlja je stroboskop). Na `0s` vrijedi 100% keyframe, a to je
+   mirno stanje: halo ostaje, samo ne dise. Isti obrazac koristi
+   `seat-reconnect`, zato ni jedan ni drugi nisu u listi `animation: none`. */
+.seat[data-current-turn] .seat__avatar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  box-shadow: 0 0 var(--seat-halo-blur) var(--seat-halo-spread) var(--seat-halo);
+  /* `ease-in-out`, ne `--ease-out-soft`: petlja je simetricna (dise gore-dole),
+     a tokenizovane krive su ulazne. Isto radi `status-blink` u globals.css. */
+  animation: seat-turn-pulse var(--t-turn-pulse) ease-in-out infinite;
+}
+
+/* Mirni kadar je SVIJETAO I VECI, sredina prigusena i manja — ne obrnuto. Dva
+   razloga:
+
+   (1) `scale` iznad 1 izvlaci gusto jezgro sjenke iza avatara, pa VECI halo
+   nije samo veci nego i svjetliji. Kad rast ide uz pad prozirnosti, to dvoje se
+   ponistava i puls se jedva vidi; ovako idu u istom smjeru. Izmjereno na
+   zamrznutim kadrovima (WAAPI, `currentTime` 0 i 700ms): 106 -> 85 jedinica uz
+   ivicu avatara i 84 -> 60 na 5px od nje, dok je stari staticni sjaj bio 71.
+   Dakle i u najtamnijem trenutku je sjediste jace obiljezeno nego prije.
+
+   (2) Pod `prefers-reduced-motion` trajanje je `0s` i vrijedi 100% keyframe —
+   mora biti pun sjaj, inace bi taj korisnik dobio TRAJNO prigusen halo. */
+@keyframes seat-turn-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.96);
+  }
 }
 
 /* Cip ispod avatara: ime, pa rezultat. Tamna podloga je ono sto ime odvaja od
@@ -773,12 +848,18 @@
   display: none;
 }
 
-/* Ti si na potezu: jaci prsten nego kod ostalih, jer je to poziv na akciju a
-   ne obavjestenje. Swap svojstva, bez animacije. */
+/* Ti si na potezu: prsten dolazi iz baze (`.seat[data-current-turn]`), ovdje
+   ostaje samo ono sto se RAZLIKUJE — jaci sjaj. Ista specificnost (0,2,0), pa
+   pobjedjuje samo zato sto je nize u fajlu; ne premjestati iznad baze. */
 .seat--bottom[data-current-turn] {
-  --seat-ring-w: 3px;
-  --seat-ring: var(--turn-active);
   --seat-glow: color-mix(in oklab, var(--turn-active) 75%, transparent);
+}
+
+/* Tvoje sjediste NE pulsira. Puls je za cekanje na tudji potez — tamo gdje ti
+   informacija fali; tvoj red vec nosi zlatni prsten i traku sa satom nad rukom,
+   pa bi treperenje bilo sum dok biras kartu. Halo ostaje, statican. */
+.seat--bottom[data-current-turn] .seat__avatar::after {
+  animation: none;
 }
 
 /* Connection state outranks the team mark, but stays one step below
@@ -1273,7 +1354,11 @@
   position: absolute;
   top: calc(100% + 0.15rem);
   left: 50%;
-  z-index: 4;
+  /* IZNAD kutije stola (`z-10` iz GameScreen-a), ne samo iznad sjedista. Sa
+     `z-index: 4` je partnerov natpis bio IZA karata: `.seat` nema svoj z-index
+     pa ne pravi stacking context, i natpis se takmicio direktno sa stolom u
+     kontekstu pozornice — rijec je bila presjecena gornjim redom. */
+  z-index: 30;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1282,12 +1367,33 @@
   border-radius: var(--radius-md);
   background-color: color-mix(in oklab, var(--surface) 88%, transparent);
   pointer-events: none;
-  /* Gornja granica, pa prelom: bez nje "Aleksandar Mahmutović kupi" izraste u
-     traku preko pola stola. Sa `nowrap` je isto ime bilo JEDAN dugi red koji
-     pozornica odsijece. */
-  max-width: 8.5rem;
+
+  /* `max-content`, NE `auto`. Apsolutan element sa `width: auto` se skuplja na
+     raspolozivu sirinu svog sidra, a sidro je `.seat` — sirok tacno koliko
+     avatar i cip, uz `min-width: 0`. Sa `left: 50%` ostajala mu je jos i POLA
+     te sirine, pa se natpis lomio u kolonu od jednog znaka (`Igo / r / spu /
+     sta`). `max-width` je gornja granica i nikad ga nije mogao prosiriti. */
+  width: max-content;
+  /* Natpis je glagol (`kupi` / `spušta` / `ŽANDAR!`), ne recenica — ime stoji u
+     cipu iznad. Granica je zato niska i sluzi samo kao osigurac. */
+  max-width: 6rem;
   text-align: center;
-  animation: caption-in var(--t-toast-in) var(--ease-snap) both;
+
+  /* Centriranje je DEKLARISANO svojstvo, ne samo zavrsni kadar animacije —
+     zato `backwards` umjesto `both`: kad animacija zavrsi, vrijednosti se
+     otpuste i vrijedi ono sto pise ovdje. Da stoji `both`, fill bi zauvijek
+     drzao `opacity: 1` i gasenje ispod (`[data-leaving]`) nikad ne bi radilo —
+     animacija u kaskadi pobjedjuje i deklaraciju i tranziciju. */
+  transform: translateX(-50%);
+  opacity: 1;
+  transition: opacity var(--t-toast-in) var(--ease-out-soft);
+  animation: caption-in var(--t-toast-in) var(--ease-snap) backwards;
+}
+
+/* Natpis nadzivi karte (vlastiti sat u `useTableBeat`), pa nestaje u trenutku
+   kad se nista drugo ne mice — rez se tad primijeti. Gasi se. */
+.seat__caption[data-leaving] {
+  opacity: 0;
 }
 
 .seat--bottom .seat__caption {
@@ -1305,6 +1411,8 @@
    pomjerila natpis za pola njegove sirine ulijevo. */
 .seat--left .seat__caption,
 .seat--right .seat__caption {
+  /* Bez centriranja — poravnanje drze `left: 0` / `right: 0` ispod. */
+  transform: none;
   animation-name: caption-in-side;
 }
 
@@ -1321,11 +1429,14 @@
 /* Velicinu i prored drzi CSS, pa `SeatCaption` u JSX-u NE smije nositi `text-*`
    utility: Tailwind v4 `text-*` nosi i `line-height` iz kasnijeg sloja i tiho bi
    nadjacao ova pravila (v3.5 zamka, gdje je manji font dao veci element). */
+/* Bez `overflow-wrap: anywhere`: ono obara min-content na JEDAN znak, pa se
+   kutija smije skupiti do te mjere i lomiti rijeci nasred sloga. Prelom ide po
+   razmacima. Generator ne pravi nadimak duzi od `BataPenzioner`, pa jedan token
+   nikad ne prelazi kutiju. */
 .seat__caption-text {
   font-size: var(--type-xs);
   line-height: 1.2;
   color: var(--text);
-  overflow-wrap: anywhere;
 }
 
 .seat__caption[data-tone="sweep"] .seat__caption-text {
