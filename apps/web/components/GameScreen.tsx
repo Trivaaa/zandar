@@ -32,6 +32,7 @@ import { playSfx } from "@/lib/sound";
 import { useGameEvents } from "@/lib/useGameEvents";
 import { useTableBeat } from "@/lib/useTableBeat";
 import { dealFromDeck } from "@/lib/flyAnimation";
+import { prefersReducedMotion } from "@/lib/motion";
 import { useCountdown } from "@/lib/useCountdown";
 import type { ActiveReaction } from "@/lib/reactions";
 
@@ -46,6 +47,20 @@ import type { ActiveReaction } from "@/lib/reactions";
 
 /** Pun turn-timeout (= rulesConfig.turnTimeoutSeconds) — za ratio pilule. */
 const TURN_TOTAL_SECONDS = 30;
+
+/**
+ * Mir između kraja poteza i početka dijeljenja. Zadnji potez runde i novo
+ * dijeljenje stižu u istom snapshotu, pa bez ove pauze poleđine kreću dok karte
+ * poteza još lete u pile — runda se završi i počne bez ijedne tačke.
+ */
+const DEAL_PAUSE_MS = 800;
+
+/**
+ * Dijeljenje koje ne slijedi ničiji potez (početak ruke) nema šta da sačeka —
+ * pauza je odgovor na potez, ne obred pred svako dijeljenje. Ostaje samo
+ * trenutak mira da se ekran slegne prije nego što karte krenu.
+ */
+const DEAL_SETTLE_MS = 250;
 
 type GameStateWithDeadline = PrivateGameStateView & { turnDeadline?: number };
 
@@ -113,10 +128,27 @@ export function GameScreen({
     key: 0,
     sweep: false,
   });
-  // Dok traje deal animacija: sakrij timer pa ga pokaži čim karte "slegnu" →
-  // jasan slijed na startu (podijeljeno → čiji je red / koliko vremena).
-  const [dealing, setDealing] = useState(false);
+  /*
+   * Dijeljenje ima svoj red vožnje, jer server zadnji potez runde i novo
+   * dijeljenje šalje u JEDNOM snapshotu. Bez ovoga poleđine kreću iz špila dok
+   * karte tog poteza još lete u pile — "prebrzo, bez imalo pauze".
+   *
+   *   pending   potez se dovršava (beat), pa još `DEAL_PAUSE_MS` mira. Sto,
+   *             ruka i špil se drže na PRED-deal stanju (vidi `dealHold`).
+   *   running   poleđine lete; karte su u ruci.
+   *
+   * Dok traje bilo koja od te dvije faze nema odbrojavanja — jasan slijed
+   * (podijeljeno → čiji je red / koliko vremena).
+   */
+  const [deal, setDeal] = useState<{
+    phase: "none" | "pending" | "running";
+    /** Koliko je karata otišlo kome — stiže iz `deal` događaja, ne pogađa se. */
+    perSeat: number;
+    toTable: number;
+  }>({ phase: "none", perSeat: 0, toTable: 0 });
   const dealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Da li ovo dijeljenje slijedi potez (pa ima šta da sačeka) — vidi efekt. */
+  const dealAfterMoveRef = useRef(false);
   useEffect(
     () => () => {
       if (dealTimerRef.current) clearTimeout(dealTimerRef.current);
@@ -130,13 +162,13 @@ export function GameScreen({
       // Sad potez ima DVA trenutka (karta dodirne sto / karte odlete u pile), a
       // vlasnik tog sata je `useTableBeat`.
       case "deal": {
-        playSfx("deal");
-        const durMs = dealFromDeck(); // poleđine lete iz špila ka igračima + na sto
-        if (durMs > 0) {
-          setDealing(true);
-          if (dealTimerRef.current) clearTimeout(dealTimerRef.current);
-          dealTimerRef.current = setTimeout(() => setDealing(false), durMs);
+        if (prefersReducedMotion()) {
+          // Nema ni leta ni zadržavanja — karte su već u ruci, ostaje zvuk.
+          playSfx("deal");
+          break;
         }
+        // Zvuk ide UZ karte, a one lete tek kad beat prođe — vidi efekt ispod.
+        setDeal({ phase: "pending", perSeat: event.perSeat, toTable: event.toTable });
         break;
       }
       case "yourTurn":
@@ -160,6 +192,46 @@ export function GameScreen({
       if (m.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
     },
   });
+
+  /*
+   * Sat dijeljenja. Čeka da se potez odigra do kraja (`beat.phase === "idle"`)
+   * pa još `DEAL_PAUSE_MS`; dijeljenje koje ne slijedi potez (početak ruke)
+   * čeka samo `DEAL_SETTLE_MS`. `useTableBeat` fazu računa PRI RENDERU, pa je
+   * ovdje uvijek tačna — ne treba joj poseban kanal.
+   *
+   * Faza koja izađe iz "playing" (kraj ruke, pauza, reconnect) otkazuje red:
+   * karte nema smisla dijeliti preko overlay-a.
+   */
+  const dealBlocked = beat.phase !== "idle";
+  if (deal.phase !== "none" && state.phase !== "playing") {
+    // Otkazivanje ide PRI RENDERU, ne u efektu ("Adjusting state when a prop
+    // changes", isti obrazac koji koristi `useTableBeat`) — inače bi ekran
+    // stigao da nacrta jedan kadar sa zadržanom (praznom) rukom preko
+    // rezultata ruke. Guard je i zaštita od petlje: poslije ovoga je "none".
+    setDeal((d) => (d.phase === "none" ? d : { ...d, phase: "none" }));
+  }
+  useEffect(() => {
+    if (deal.phase !== "pending") return;
+    if (dealBlocked) {
+      // Beat traje → ovo dijeljenje JESTE odgovor na potez. Zapamti, jer se do
+      // trenutka kad se pauza mjeri beat već ugasio i to se više ne vidi.
+      dealAfterMoveRef.current = true;
+      return;
+    }
+    const pauseMs = dealAfterMoveRef.current ? DEAL_PAUSE_MS : DEAL_SETTLE_MS;
+    const start = setTimeout(() => {
+      dealAfterMoveRef.current = false;
+      playSfx("deal");
+      const durMs = dealFromDeck(deal.perSeat, deal.toTable); // poleđine iz špila
+      setDeal((d) => ({ ...d, phase: "running" }));
+      if (dealTimerRef.current) clearTimeout(dealTimerRef.current);
+      dealTimerRef.current = setTimeout(
+        () => setDeal((d) => ({ ...d, phase: "none" })),
+        durMs > 0 ? durMs : 0,
+      );
+    }, pauseMs);
+    return () => clearTimeout(start);
+  }, [deal, dealBlocked]);
 
   const me = state.players.find((p) => p.id === state.myPlayerId);
   const isHost = me?.isHost ?? false;
@@ -282,8 +354,24 @@ export function GameScreen({
   // Pozicijski raspored: ti dole, partner gore, protivnici lijevo/desno.
   const seats = arrangeSeats(state.players, state.myPlayerId);
 
-  // Dok karte "padaju" ne prikazuj odbrojavanje — jasan slijed na startu.
-  const showTimer = !dealing && turnDeadline != null;
+  // Dok karte "padaju" (i dok se na njih čeka) ne prikazuj odbrojavanje —
+  // jasan slijed na startu runde.
+  const showTimer = deal.phase === "none" && turnDeadline != null;
+
+  /*
+   * Zadržavanje PRED-deal stanja dok traje pauza. Bez ovoga bi popravka
+   * izgledala gore od buga koji rješava: karte se pojave u ruci čim snapshot
+   * stigne, pa bi ih animacija "dijelila" skoro dvije sekunde kasnije.
+   *
+   * Isti obrazac kojim `useTableBeat` zadržava sto — samo je ovdje zadržano
+   * stanje trivijalno: prije dijeljenja su sve ruke prazne (`advanceTurnOrPhase`
+   * dijeli tek kad su sve prazne), a špilu se vraća tačno onoliko karata koliko
+   * ih je upravo napustilo.
+   */
+  const dealHold = deal.phase === "pending";
+  const dealtCount = dealHold
+    ? deal.perSeat * state.players.length + deal.toTable
+    : 0;
 
   // Sa kojeg sjedišta je zadnja karta sletjela na sto. Smjer je RELATIVAN na
   // tebe (ti si uvijek dole), isto kao raspored sjedišta.
@@ -373,7 +461,7 @@ export function GameScreen({
           isActive={state.currentPlayerId === seats.partner.id}
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
-          cardCount={state.handCounts[seats.partner.id] ?? 0}
+          cardCount={dealHold ? 0 : (state.handCounts[seats.partner.id] ?? 0)}
           orientation="top"
           reaction={seatReaction(seats.partner.id)}
           caption={seatCaption(seats.partner.id)}
@@ -398,7 +486,7 @@ export function GameScreen({
           isActive={state.currentPlayerId === seats.oppL.id}
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
-          cardCount={state.handCounts[seats.oppL.id] ?? 0}
+          cardCount={dealHold ? 0 : (state.handCounts[seats.oppL.id] ?? 0)}
           orientation="left"
           reaction={seatReaction(seats.oppL.id)}
           caption={seatCaption(seats.oppL.id)}
@@ -412,7 +500,7 @@ export function GameScreen({
           isActive={state.currentPlayerId === seats.oppR.id}
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
-          cardCount={state.handCounts[seats.oppR.id] ?? 0}
+          cardCount={dealHold ? 0 : (state.handCounts[seats.oppR.id] ?? 0)}
           orientation="right"
           reaction={seatReaction(seats.oppR.id)}
           caption={seatCaption(seats.oppR.id)}
@@ -481,9 +569,10 @@ export function GameScreen({
 
       {/* Ti — jedna traka iznad ruke: rečenica, broj i linija koja se prazni.
           PlayerSeat namjerno nema "bottom" orijentaciju: tvoj potez se čita
-          iz trake nad rukom, ne iz čipa. Dok karte padaju (showTimer=false)
-          traka je gola rečenica — nema roka da se odbrojava. */}
-      {isPlaying && myTurn && (
+          iz trake nad rukom, ne iz čipa. Dok se dijeli traka se ne crta:
+          "Ti si na potezu" nad praznom rukom je uputstvo za nešto što igrač
+          još ne može da uradi. Vrati se čim karte slegnu. */}
+      {isPlaying && myTurn && deal.phase === "none" && (
         <div
           className="absolute left-0 right-0 px-3 z-20 flex flex-col items-center pointer-events-none"
           style={{ bottom: "var(--stage-hand-top)" }}
@@ -523,7 +612,7 @@ export function GameScreen({
           dijeli dvaput. Ne vraćati ga. */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 pb-safe-bottom z-20">
         <PlayerHand
-          cards={state.myHand}
+          cards={dealHold ? [] : state.myHand}
           selectedCardId={selectedId}
           disabledCardIds={
             myTurn && !busy ? [] : state.myHand.map((card) => card.id)
@@ -541,7 +630,7 @@ export function GameScreen({
           a ne prazan felt. */}
       {isPlaying && (
         <DeckPile
-          remaining={state.deckCount}
+          remaining={state.deckCount + dealtCount}
           size="xs"
           className="deck--bare absolute left-2 pl-safe-left"
           style={{ bottom: "var(--stage-banner-top)" }}

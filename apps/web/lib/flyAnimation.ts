@@ -158,10 +158,8 @@ export function collectCardsToSeat(
  * Deal — poleđine lete iz špila ka igračima i na sto
  * ------------------------------------------------------------------ */
 
-const CARDS_PER_SEAT = 3;
-const CARDS_TO_TABLE = 4;
-const DEAL_FLIGHT_MS = 396;
-const DEAL_STEP_MS = 61; // razmak između uzastopnih karata (round-robin)
+const DEAL_FLIGHT_MS = 515;
+const DEAL_STEP_MS = 79; // razmak između uzastopnih karata (round-robin)
 const DEAL_CARD_W = 30;
 const DEAL_CARD_H = 42;
 
@@ -170,24 +168,33 @@ const DEAL_CARD_H = 42;
  * sjedištu (`[data-seat-id]`) i na sto (`[data-table-drop]`), kao da djelitelj
  * dijeli karte u krug — više karata po meti, round-robin, staggered.
  *
+ * Koliko se dijeli NE pogađa se ovdje: `perSeat` i `toTable` stižu iz `deal`
+ * događaja (`deriveGameEvents`), koji ih čita iz razlike dva snapshota. Ranije
+ * su bile konstante (3 po igraču, uvijek 4 na sto), pa je svaki re-deal usred
+ * ruke bacao četiri karte na sto koje server nikad nije podijelio.
+ *
  * Vraća ukupno trajanje (ms) da pozivatelj može odgoditi npr. prikaz timera.
  */
-export function dealFromDeck(): number {
+export function dealFromDeck(perSeat: number, toTable: number): number {
   if (prefersReducedMotion() || typeof document === "undefined") return 0;
   const deckEl = document.querySelector("[data-deck]");
   if (!deckEl) return 0;
   const from = centerOf(deckEl.getBoundingClientRect());
 
-  // Mete dijeljenja: svako sjedište + (ako postoji) sto. Centre čitamo jednom.
+  // Mete dijeljenja: svako sjedište + sto, ali SAMO kad na njega stvarno ide
+  // karta. Centre čitamo jednom.
   const targets: { center: { x: number; y: number }; cards: number }[] = [];
-  document
-    .querySelectorAll<HTMLElement>("[data-seat-id]")
-    .forEach((el) =>
-      targets.push({ center: centerOf(el.getBoundingClientRect()), cards: CARDS_PER_SEAT }),
-    );
-  const tableEl = document.querySelector<HTMLElement>("[data-table-drop]");
+  if (perSeat > 0) {
+    document
+      .querySelectorAll<HTMLElement>("[data-seat-id]")
+      .forEach((el) =>
+        targets.push({ center: centerOf(el.getBoundingClientRect()), cards: perSeat }),
+      );
+  }
+  const tableEl =
+    toTable > 0 ? document.querySelector<HTMLElement>("[data-table-drop]") : null;
   if (tableEl) {
-    targets.push({ center: centerOf(tableEl.getBoundingClientRect()), cards: CARDS_TO_TABLE });
+    targets.push({ center: centerOf(tableEl.getBoundingClientRect()), cards: toTable });
   }
   if (targets.length === 0) return 0;
 

@@ -11,6 +11,7 @@ import { GameScreen } from "@/components/GameScreen";
  * Stanje se moze zadati i iz URL-a:
  *   /dev/game?cards=9&players=4&phase=playing&chooser=1&name=Aleksandra
  *   /dev/game?move=capture&turn=left   → pa `window.__devMove()` pusti potez
+ *   /dev/game?move=redeal              → zadnja karta runde: potez + dijeljenje
  *   /dev/game?phase=hand_finished&tie=1 → razrada ruke, nerijeseno na kartama
  *
  * To NIJE ukras: headless Chrome (`--screenshot`) ne moze da klikne dugmad, pa
@@ -55,12 +56,27 @@ const TABLE_POOL = [
  * pa preview mora da odigra pravi prelaz iz stanja PRIJE poteza u stanje
  * POSLIJE njega — isto kako dolazi sa servera.
  */
-const MOVES = ["capture", "trail", "sweep", "auto"] as const;
+const MOVES = ["capture", "trail", "sweep", "auto", "redeal"] as const;
 type MoveKind = (typeof MOVES)[number];
+
+/**
+ * `redeal` je kupljenje ZADNJOM kartom u ruci: server u istom snapshotu vodi i
+ * potez i novo dijeljenje, pa se tek tu vidi da li dijeljenje ceka da se potez
+ * odigra. Prije poteza svi drze po jednu kartu, poslije po `REDEAL_PER_SEAT`.
+ */
+const REDEAL_PER_SEAT = 4;
 
 /** Karte koje NISU ni u `TABLE_POOL` ni u ruci — da se id-evi ne sudare. */
 const PLAYED = card("hearts", "10");
 const PLAYED_JACK = card("clubs", "J");
+
+/** Tvoja ruka. `redeal` je krati na jednu kartu prije poteza. */
+const HAND = [
+  card("clubs", "7"),
+  card("spades", "J"),
+  card("hearts", "A"),
+  card("diamonds", "9"),
+];
 
 type Opts = {
   phase: GamePhase;
@@ -76,6 +92,12 @@ type Opts = {
   moved: boolean;
   /** `tie=1`: nerijeseno na "najvise karata" — kategorija ne ide nikome. */
   tie: boolean;
+  /**
+   * `fresh=1`: pocetak ruke — nijedno kupljenje jos nije zabiljezeno, pa
+   * `useGameEvents` sintetizuje `deal` na prvom snapshotu. Bez ovoga se
+   * pocetno dijeljenje (jedino koje puni i STO) ne moze ni snimiti.
+   */
+  fresh: boolean;
 };
 
 /**
@@ -181,6 +203,7 @@ function mockState({
   move,
   moved,
   tie,
+  fresh,
 }: Opts): PrivateGameStateView & {
   turnDeadline?: number;
 } {
@@ -197,6 +220,16 @@ function mockState({
   const after = move === "trail" ? [...baseTable, played] : baseTable.slice(taken.length);
   const live = move !== null && moved;
 
+  // `redeal`: prije poteza JEDINO igrac na potezu ima kartu (ostali su vec
+  // odigrali svoje), poslije poteza su sve ruke pune — tacno onaj snapshot na
+  // kojem se beat poteza i dijeljenje preklapaju. Da svi drze po kartu, porast
+  // po igracu bi bio 3 umjesto 4 i animacija bi dijelila manje nego server.
+  const redealPre = move === "redeal" && !live;
+  const myHand = HAND.slice(
+    0,
+    redealPre ? (mover === "me" ? 1 : 0) : REDEAL_PER_SEAT,
+  );
+
   return {
     roomId: "dev",
     matchId: "dev",
@@ -205,11 +238,16 @@ function mockState({
     table: live ? after : baseTable,
     currentPlayerId: live ? "me" : mover,
     dealerPlayerId: "p3",
-    deckCount: 28,
+    deckCount: redealPre ? 28 : 28 - (move === "redeal" ? REDEAL_PER_SEAT * players.length : 0),
     handCounts: Object.fromEntries(
-      players.map((p, i) => [p.id, oppHand ?? 4 - (i % 2)]),
+      players.map((p, i) => [
+        p.id,
+        move === "redeal"
+          ? (redealPre ? (p.id === mover ? 1 : 0) : REDEAL_PER_SEAT)
+          : (oppHand ?? 4 - (i % 2)),
+      ]),
     ),
-    capturedCounts: { "team-0": 6, "team-1": 4 },
+    capturedCounts: fresh ? { "team-0": 0, "team-1": 0 } : { "team-0": 6, "team-1": 4 },
     matchScore:
       playerCount === 4
         ? { "team-0": 14, "team-1": 9 }
@@ -219,7 +257,7 @@ function mockState({
     handNumber: 3,
     handScores: [mockHandScore(playerCount, tie)],
     myPlayerId: "me",
-    myHand: [card("clubs", "7"), card("spades", "J"), card("hearts", "A"), card("diamonds", "9")],
+    myHand,
     // Prije `__devMove()` nema poteza — kao svjeza soba. Inace bi beat na
     // prvom snapshotu vidio "zatecen" potez koji se nikad nije desio.
     ...(live
@@ -271,6 +309,8 @@ type UrlOpts = {
   move: MoveKind | null;
   /** `tie=1`: nerijeseno na "najvise karata" — razrada tad crta "niko" i `—`. */
   tie: boolean;
+  /** `fresh=1`: pocetak ruke → sintetizovano dijeljenje na montiranju. */
+  fresh: boolean;
 };
 
 function parseParams(search: string): UrlOpts {
@@ -296,6 +336,7 @@ function parseParams(search: string): UrlOpts {
       ? (q.get("move") as MoveKind)
       : null,
     tie: q.get("tie") === "1",
+    fresh: q.get("fresh") === "1",
   };
 }
 
@@ -468,8 +509,12 @@ export default function DevGamePage() {
       <GameScreen
         /* `initialSelectedCardId` cita se samo pri montiranju, a URL stigne tek
            poslije hidracije (server snapshot je prazan string) — bez `key`-a bi
-           `chooser=1` uvijek zatekao vec inicijalizovano stanje bez selekcije. */
-        key={url.chooser ? "chooser" : "plain"}
+           `chooser=1` uvijek zatekao vec inicijalizovano stanje bez selekcije.
+           `fresh` je u kljucu iz istog razloga, samo jos strozeg: sintetizovani
+           `deal` se javlja SAMO na prvom snapshotu koji komponenta vidi, a to je
+           hidracijski (bez URL-a). Bez remounta se pocetno dijeljenje ne bi
+           pustilo nikad. */
+        key={`${url.chooser ? "chooser" : "plain"}-${url.fresh ? "fresh" : "std"}`}
         state={mockState({
           phase,
           turnDeadline: deadline,
@@ -481,6 +526,7 @@ export default function DevGamePage() {
           move: url.move,
           moved,
           tie: url.tie,
+          fresh: url.fresh,
         })}
         {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
         onPlayCard={noop}

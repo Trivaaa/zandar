@@ -87,7 +87,54 @@ describe("deriveGameEvents", () => {
   it("deal — ukupan broj karata u rukama poraste (re-deal)", () => {
     const prev = base({ handCounts: { p1: 0, p2: 0 }, currentPlayerId: "p1" });
     const next = base({ handCounts: { p1: 4, p2: 4 }, currentPlayerId: "p1" });
-    expect(deriveGameEvents(prev, next, "p1")).toContainEqual({ type: "deal" });
+    expect(deriveGameEvents(prev, next, "p1")).toContainEqual({
+      type: "deal",
+      perSeat: 4,
+      toTable: 0,
+    });
+  });
+
+  it("deal (re-deal poslije traila) — sto NE dobija kartu koju je igrač spustio", () => {
+    // Zadnja karta runde spuštena na sto: sto poraste za 1, ali to nije dijeljenje.
+    const prev = base({
+      handCounts: { p1: 1, p2: 0 },
+      currentPlayerId: "p1",
+      table: [{}, {}],
+    });
+    const next = base({
+      handCounts: { p1: 4, p2: 4 },
+      currentPlayerId: "p2",
+      table: [{}, {}, {}],
+    });
+    expect(deriveGameEvents(prev, next, "p1")).toContainEqual({
+      type: "deal",
+      perSeat: 4,
+      toTable: 0,
+    });
+  });
+
+  it("deal (početak ruke) — sto dobija karte, prethodna faza nije igra", () => {
+    const prev = base({
+      phase: "hand_finished",
+      handCounts: { p1: 0, p2: 0 },
+      table: [],
+    });
+    const next = base({ handCounts: { p1: 4, p2: 4 }, table: [{}, {}, {}, {}] });
+    expect(deriveGameEvents(prev, next, "p1")).toContainEqual({
+      type: "deal",
+      perSeat: 4,
+      toTable: 4,
+    });
+  });
+
+  it("deal — nepun zadnji deal (špil se ispraznio) daje manji perSeat", () => {
+    const prev = base({ handCounts: { p1: 0, p2: 0 }, currentPlayerId: "p1" });
+    const next = base({ handCounts: { p1: 2, p2: 1 }, currentPlayerId: "p1" });
+    expect(deriveGameEvents(prev, next, "p1")).toContainEqual({
+      type: "deal",
+      perSeat: 2,
+      toTable: 0,
+    });
   });
 
   it("handEnd — prelazak playing → hand_finished (bez poteznih događaja)", () => {
