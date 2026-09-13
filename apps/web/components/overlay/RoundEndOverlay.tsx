@@ -1,6 +1,7 @@
 "use client";
 
 import type { HandScore, PublicPlayer } from "@zandar/shared-types";
+import { breakdownRows } from "@/lib/handBreakdown";
 import { pilesOf } from "@/lib/piles";
 import { sr } from "@/lib/sr";
 
@@ -40,6 +41,7 @@ export function RoundEndOverlay({
 }: RoundEndOverlayProps) {
   const piles = pilesOf(players);
   const isMatch = phase === "match_finished";
+  const labelOf = (id?: string) => piles.find((p) => p.id === id)?.label ?? sr.score.nobody;
 
   const headline = isMatch
     ? sr.end.matchWinner(piles.find((p) => p.id === winnerPileId)?.label ?? "—")
@@ -69,8 +71,17 @@ export function RoundEndOverlay({
       </p>
 
       <div className="roundend__scroll">
+        {/* Poeni ruke i ukupan rezultat su SPOJENI u jedan blok, po jedan red
+            po pilu. Ranije su bila dva odvojena spiska, pa je igrac morao sam
+            da spoji "+3" iz jednog sa "17 / 21" iz drugog. Spajanje je usput
+            oslobodilo ~110px, koje razrada ispod zauzima — bez toga panel
+            skroluje na svakoj velicini ekrana (izmjereno). */}
         <section className="roundend__block">
-          <p className="roundend__block-title font-sans text-base">{sr.end.handPoints}</p>
+          <p className="roundend__block-title font-sans text-base">{sr.end.result}</p>
+          <div className="roundend__head font-sans text-sm">
+            <span className="roundend__head-hand">{sr.end.colHand}</span>
+            <span className="roundend__head-total">{sr.end.colTotal}</span>
+          </div>
           {piles.map((pile) => (
             <div key={pile.id} className="roundend__row" data-pile-id={pile.id}>
               <span className="roundend__pile">
@@ -82,25 +93,67 @@ export function RoundEndOverlay({
               <span className="roundend__value font-display text-num-sm">
                 +{handScore.pointsByPile[pile.id] ?? 0}
               </span>
-            </div>
-          ))}
-        </section>
-
-        <section className="roundend__block">
-          <p className="roundend__block-title font-sans text-base">{sr.end.matchTotal}</p>
-          {piles.map((pile) => (
-            <div key={pile.id} className="roundend__row" data-pile-id={pile.id}>
-              <span className="roundend__pile">
-                <span className="font-sans text-base">{pile.label}</span>
-                {pile.sub ? (
-                  <span className="roundend__members font-sans text-sm">{pile.sub}</span>
-                ) : null}
-              </span>
-              <span className="roundend__value font-display text-num-sm">
+              <span className="roundend__total font-display text-num-sm">
                 {matchScore[pile.id] ?? 0} / {targetScore}
               </span>
             </div>
           ))}
+        </section>
+
+        {/* Razrada: ODAKLE su poeni iz bloka iznad. Podatak postoji u
+            `HandScore.breakdown` otkad postoji bodovanje i stize do klijenta
+            netaknut — ovaj ekran ga je do sad bacao.
+
+            Dva reda po kategoriji, a ne jedan: na 360px je sadrzaj overlay-a
+            ~281px, a natpis + ime pobjednika + poeni u jednom redu ne staju
+            (izmjereno sa `BataPenzioner`). Zato natpis i poeni gore, a ime i
+            brojevi dolje.
+
+            Brojevi nose IME pila (`Tim A 32 · Tim B 20`), ne golo `32 : 20` —
+            u 3P ima tri pila i golo nabrajanje ne kaze ciji je koji broj. */}
+        <section className="roundend__block">
+          <p className="roundend__block-title font-sans text-base">{sr.end.handBreakdown}</p>
+          <ul className="roundend__cats">
+            {breakdownRows(handScore).map((row) => {
+              const won = row.winnerPileId !== undefined;
+              const counts = row.countByPile;
+              const chips = counts
+                ? piles.map((p) => ({ id: p.id, text: `${p.label} ${counts[p.id] ?? 0}` }))
+                : won
+                  ? [{ id: row.winnerPileId, text: labelOf(row.winnerPileId) }]
+                  : [];
+              return (
+                <li
+                  key={row.key}
+                  /* Bez brojeva po pilu (velika/mala) ime pobjednika staje uz
+                     natpis, pa red ne trosi drugu liniju. */
+                  className={`roundend__cat ${counts ? "" : "roundend__cat--inline"}`}
+                  data-pile-id={row.winnerPileId}
+                >
+                  <span className="roundend__cat-label font-sans text-base">{row.label}</span>
+                  {/* Nerijeseno ne dodjeljuje nista, pa ovdje NE smije stajati
+                      `+2` — to bi izgledalo kao da su poeni nekome otisli. */}
+                  <span className="roundend__value font-display text-num-sm">
+                    {won ? `+${row.points}` : "—"}
+                  </span>
+                  <span className="roundend__cat-chips font-sans text-sm">
+                    {won ? null : (
+                      <span className="roundend__cat-chip">{sr.score.nobody}</span>
+                    )}
+                    {chips.map((chip) => (
+                      <span
+                        key={chip.id}
+                        className="roundend__cat-chip"
+                        {...(chip.id === row.winnerPileId ? { "data-win": "" } : {})}
+                      >
+                        {chip.text}
+                      </span>
+                    ))}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       </div>
 

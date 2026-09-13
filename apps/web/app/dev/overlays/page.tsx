@@ -34,14 +34,44 @@ const players2: PublicPlayer[] = [
   { id: "p1", displayName: "Vesna", seatIndex: 1, isHost: false, connectionStatus: "connected" },
 ];
 
+/**
+ * Razrada ruke. Count mape su ranije bile PRAZNE, pa je prikaz brojeva po pilu
+ * na ovom preview-u crtao nule i izgledao kao da radi; uz to se `pointsByPile`
+ * nije slagao sa kategorijama (team-0 je imao tri kategorije, a pisalo je 3
+ * umjesto 4). Brojevi prate spil: 52 karte, 13 trefova.
+ */
 const handScore4: HandScore = {
   handNumber: 3,
-  pointsByPile: { "team-0": 3, "team-1": 1 },
+  pointsByPile: { "team-0": 3, "team-1": 2 },
   breakdown: {
-    mostCards: { winnerPileId: "team-0", cardCountByPile: {}, points: 2 },
-    mostClubs: { winnerPileId: "team-1", clubCountByPile: {}, points: 1 },
-    twoOfClubs: { winnerPileId: "team-0", points: 1 },
+    mostCards: { winnerPileId: "team-0", cardCountByPile: { "team-0": 32, "team-1": 20 }, points: 2 },
+    mostClubs: { winnerPileId: "team-1", clubCountByPile: { "team-0": 6, "team-1": 7 }, points: 1 },
     tenOfDiamonds: { winnerPileId: "team-0", points: 1 },
+    twoOfClubs: { winnerPileId: "team-1", points: 1 },
+  },
+};
+
+/** Nerijeseno na kartama: 2 poena ne idu nikome — razrada crta "niko" i `—`. */
+const handScoreTie: HandScore = {
+  handNumber: 4,
+  pointsByPile: { "team-0": 1, "team-1": 2 },
+  breakdown: {
+    mostCards: { cardCountByPile: { "team-0": 26, "team-1": 26 }, points: 2 },
+    mostClubs: { winnerPileId: "team-1", clubCountByPile: { "team-0": 6, "team-1": 7 }, points: 1 },
+    tenOfDiamonds: { winnerPileId: "team-0", points: 1 },
+    twoOfClubs: { winnerPileId: "team-1", points: 1 },
+  },
+};
+
+/** 2P: pilovi su IGRACI, pa u koloni pobjednika stoji nadimak, ne "Tim A". */
+const handScore2: HandScore = {
+  handNumber: 3,
+  pointsByPile: { me: 3, p1: 2 },
+  breakdown: {
+    mostCards: { winnerPileId: "me", cardCountByPile: { me: 32, p1: 20 }, points: 2 },
+    mostClubs: { winnerPileId: "p1", clubCountByPile: { me: 6, p1: 7 }, points: 1 },
+    tenOfDiamonds: { winnerPileId: "me", points: 1 },
+    twoOfClubs: { winnerPileId: "p1", points: 1 },
   },
 };
 
@@ -97,6 +127,8 @@ export default function DevOverlaysPage() {
   const [endHost, setEndHost] = useState(true);
   const [endPending, setEndPending] = useState(false);
   const [longNames, setLongNames] = useState(false);
+  /** Koju razradu crtati: 4P timovi, 2P po igracu, ili nerijeseno na kartama. */
+  const [endCase, setEndCase] = useState<"4p" | "2p" | "tie">("4p");
   const [toastOn, setToastOn] = useState(true);
   const [menuScoreOpen, setMenuScoreOpen] = useState(false);
   const [menuLeave, setMenuLeave] = useState(true);
@@ -194,16 +226,27 @@ export default function DevOverlaysPage() {
           <Toggle on={!longNames} onClick={() => setLongNames(false)}>kratka</Toggle>
           <Toggle on={longNames} onClick={() => setLongNames(true)}>duga (skrol)</Toggle>
         </Row>
+        <Row label="razrada">
+          <Toggle on={endCase === "4p"} onClick={() => setEndCase("4p")}>4P timovi</Toggle>
+          <Toggle on={endCase === "2p"} onClick={() => setEndCase("2p")}>2P igraci</Toggle>
+          <Toggle on={endCase === "tie"} onClick={() => setEndCase("tie")}>nerijeseno</Toggle>
+        </Row>
         {/* 360×800 okvir — ista visina na kojoj se panel mora sam skrolovati. */}
         <div className="mx-auto w-[360px] h-[800px] max-w-full rounded-token-lg bg-felt relative overflow-hidden ring-1 ring-white/10">
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-4">
             <RoundEndOverlay
               phase={endMatch ? "match_finished" : "hand_finished"}
-              players={longNames ? players4Long : players4}
-              handScore={handScore4}
-              matchScore={{ "team-0": 21, "team-1": 13 }}
+              players={
+                endCase === "2p" ? players2 : longNames ? players4Long : players4
+              }
+              handScore={
+                endCase === "2p" ? handScore2 : endCase === "tie" ? handScoreTie : handScore4
+              }
+              matchScore={
+                endCase === "2p" ? { me: 21, p1: 13 } : { "team-0": 21, "team-1": 13 }
+              }
               targetScore={21}
-              winnerPileId="team-0"
+              winnerPileId={endCase === "2p" ? "me" : "team-0"}
               isHost={endHost}
               pending={endPending}
               onNextHand={() => setSent("sljedeća ruka")}

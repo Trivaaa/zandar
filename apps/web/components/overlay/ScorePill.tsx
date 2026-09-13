@@ -1,6 +1,7 @@
 "use client";
 
 import type { HandScore, PublicPlayer } from "@zandar/shared-types";
+import { breakdownRows } from "@/lib/handBreakdown";
 import { pilesOf } from "@/lib/piles";
 import { sr } from "@/lib/sr";
 
@@ -65,40 +66,9 @@ export function ScorePill({
             <p className="font-sans text-base text-muted">{sr.score.noHands}</p>
           ) : (
             handScores.map((h) => {
-              const b = h.breakdown;
-              const rows: { key: string; label: string; winner?: string | undefined; pts: number }[] =
-                [];
-              if (b.mostCards)
-                rows.push({
-                  key: "mostCards",
-                  label: sr.score.mostCards,
-                  winner: b.mostCards.winnerPileId,
-                  pts: b.mostCards.points,
-                });
-              if (b.mostClubs)
-                rows.push({
-                  key: "mostClubs",
-                  label: sr.score.mostClubs,
-                  winner: b.mostClubs.winnerPileId,
-                  pts: b.mostClubs.points,
-                });
-              if (b.twoOfClubs)
-                rows.push({
-                  key: "twoOfClubs",
-                  label: sr.score.twoOfClubs,
-                  winner: b.twoOfClubs.winnerPileId,
-                  pts: b.twoOfClubs.points,
-                });
-              if (b.tenOfDiamonds)
-                rows.push({
-                  key: "tenOfDiamonds",
-                  label: sr.score.tenOfDiamonds,
-                  winner: b.tenOfDiamonds.winnerPileId,
-                  pts: b.tenOfDiamonds.points,
-                });
-
+              const rows = breakdownRows(h);
               const labelOf = (id?: string) =>
-                piles.find((p) => p.id === id)?.label ?? "—";
+                piles.find((p) => p.id === id)?.label ?? sr.score.nobody;
 
               return (
                 <div key={h.handNumber} className="scorepill__hand">
@@ -122,9 +92,13 @@ export function ScorePill({
                       <li key={r.key} className="scorepill__cat">
                         <span className="font-sans text-base">{r.label}</span>
                         <span className="font-sans text-base text-muted">
-                          {labelOf(r.winner)}
+                          {labelOf(r.winnerPileId)}
                         </span>
-                        <span className="font-display text-num-sm">{r.pts}</span>
+                        {/* Nerijeseno ne dodjeljuje nista — isto kao na kraju
+                            ruke, da dvije povrsine ne tvrde razlicito. */}
+                        <span className="font-display text-num-sm">
+                          {r.winnerPileId !== undefined ? r.points : "—"}
+                        </span>
                       </li>
                     ))}
                   </ul>

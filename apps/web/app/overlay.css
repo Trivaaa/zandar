@@ -407,7 +407,10 @@
  * ---------------------------------------------------------------- */
 
 .roundend {
-  --roundend-max-h: 76dvh;
+  /* 76 → 80dvh: sa razradom je sadrzaj 3P ruke 587px, a 76dvh na 360x760 daje
+     577.6 — panel je skrolovao zbog 9px. Scrim ima p-4, pa 80dvh + 32px i dalje
+     ostavlja okvir oko panela i ne prelazi u pun ekran. */
+  --roundend-max-h: 80dvh;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -538,6 +541,111 @@
   margin-left: auto;
   white-space: nowrap;
   color: color-mix(in oklab, var(--accent) 82%, var(--text));
+}
+
+/* Druga kolona reda: ukupan rezultat. Fiksna sirina drzi `17 / 21` i `7 / 21`
+   u istoj koloni, pa se brojevi citaju odozgo nadolje. */
+.roundend__total {
+  flex: 0 0 auto;
+  min-width: 4.2rem;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+/* Zaglavlje kolona. Uvuceno tacno koliko i red ispod, pa `ruka`/`ukupno` stoje
+   iznad svojih brojeva. */
+.roundend__head {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0 0.55rem;
+  color: var(--text-muted);
+}
+
+.roundend__head-hand {
+  margin-left: auto;
+  text-align: right;
+}
+
+.roundend__head-total {
+  flex: 0 0 auto;
+  min-width: 4.2rem;
+  text-align: right;
+}
+
+/* Razrada kategorija. Dvoredni grid: natpis + poeni gore, cipovi dolje preko
+   pune sirine. Na 360px je red overlay-a ~281px, pa natpis (`Mak — najvise
+   trefova`) i ime pila (`BataPenzioner`) u istom redu ne staju.
+
+   VELICINU FONTA OVDJE NE DIRATI — nose je `text-*` utility-ji u JSX-u, kao i
+   na `.roundend__row`. `text-*` u Tailwind v4 nosi i `line-height` iz kasnijeg
+   sloja, pa bi se dvije deklaracije tiho gazile (v3.5, `.banner__clock`). */
+.roundend__cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.roundend__cat {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  column-gap: 0.75rem;
+  row-gap: 0.1rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  color: var(--text);
+}
+
+.roundend__cat-label {
+  min-width: 0;
+}
+
+/* Poeni uvijek u ISTOJ (zadnjoj) koloni, bez obzira da li cipovi stoje uz
+   natpis ili u redu ispod — inace se brojevi ne citaju odozgo nadolje. */
+.roundend__cat .roundend__value {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+/* Cipovi idu preko SVIH kolona i smiju se prelomiti — u 3P ih je tri, a duga
+   imena (`Aleksandar Mahmutovic 14`) ne staju u jedan red na 360px. */
+.roundend__cat-chips {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.5rem;
+  min-width: 0;
+  color: var(--text-muted);
+}
+
+/* Tacka kao razdjelnik izmedu cipova, nikad ispred prvog. */
+.roundend__cat-chip + .roundend__cat-chip::before {
+  content: "·";
+  margin-right: 0.5rem;
+  color: var(--text-muted);
+}
+
+/* Pobjednik se vidi bez citanja brojeva. Boja NIJE jedini nosilac — poeni u
+   istom redu vec kazu je li kategorija dodijeljena, a po pravilu je pobjednik
+   pil sa najvecim brojem. */
+.roundend__cat-chip[data-win] {
+  font-weight: 700;
+  color: color-mix(in oklab, var(--accent) 82%, var(--text));
+}
+
+/* Velika i mala nemaju brojeve po pilu — samo ime pobjednika, koje staje uz
+   natpis. Tako red ne trosi drugu liniju (izmjereno: ~43px na cijelom bloku). */
+.roundend__cat--inline .roundend__cat-chips {
+  grid-column: 2;
+  grid-row: 1;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
 }
 
 .roundend__actions {

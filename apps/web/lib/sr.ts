@@ -78,10 +78,17 @@ export const sr = {
     collapse: "Sakrij razradu",
     hand: (n: number) => `${n}. dijeljenje`,
     noHands: "Nema odigranih dijeljenja",
+    /* Narodski izraz vodi, karta je u zagradi: stari igrac vidi svoj termin, a
+       novi zna na koju kartu se odnosi. Isti natpisi idu i u razradu na kraju
+       ruke i u `ScorePill` — jedan izvor, da dvije povrsine ne tvrde razlicito.
+       Objasnjenje termina stoji u `RulesModal`. */
     mostCards: "Najviše karata",
-    mostClubs: "Najviše trefova",
-    twoOfClubs: "2 tref",
-    tenOfDiamonds: "10 karo",
+    mostClubs: "Mak — najviše trefova",
+    tenOfDiamonds: "Velika (10 karo)",
+    twoOfClubs: "Mala (2 tref)",
+    /* Nerijeseno: kategorija ne ide nikome. Malo slovo — cita se kao dio reda
+       ("Najvise karata … niko"), ne kao ime igraca. */
+    nobody: "niko",
   },
   reactions: {
     title: "Reakcije",
@@ -161,8 +168,13 @@ export const sr = {
   },
   end: {
     handTitle: (n: number) => `Ruka #${n} gotova`,
-    handPoints: "Poeni iz ove ruke:",
-    matchTotal: "Ukupni rezultat:",
+    /* Jedan blok, dvije kolone: sta je ruka donijela i gdje si ukupno. Ranije
+       dva odvojena spiska — igrac je sam spajao red iz jednog sa redom iz
+       drugog, a razrada ispod nije imala gdje da stane. */
+    result: "Rezultat:",
+    colHand: "ruka",
+    colTotal: "ukupno",
+    handBreakdown: "Kako su podijeljeni:",
     matchWinner: (name: string) => `${name} pobjeđuje!`,
     nextHand: "Sljedeća ruka →",
     waitingHand: "Čeka se da host pokrene sljedeću ruku…",

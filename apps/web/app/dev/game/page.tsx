@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import type { GamePhase, PrivateGameStateView } from "@zandar/shared-types";
+import type { GamePhase, HandScore, PrivateGameStateView } from "@zandar/shared-types";
 import { GameScreen } from "@/components/GameScreen";
 
 /**
@@ -11,6 +11,7 @@ import { GameScreen } from "@/components/GameScreen";
  * Stanje se moze zadati i iz URL-a:
  *   /dev/game?cards=9&players=4&phase=playing&chooser=1&name=Aleksandra
  *   /dev/game?move=capture&turn=left   → pa `window.__devMove()` pusti potez
+ *   /dev/game?phase=hand_finished&tie=1 → razrada ruke, nerijeseno na kartama
  *
  * To NIJE ukras: headless Chrome (`--screenshot`) ne moze da klikne dugmad, pa
  * bi bez URL-a svaki snimak bio isto pocetno stanje — a raspored se lomi bas u
@@ -73,7 +74,72 @@ type Opts = {
   move: MoveKind | null;
   /** Da li je `move` vec pusten (`window.__devMove()`). */
   moved: boolean;
+  /** `tie=1`: nerijeseno na "najvise karata" — kategorija ne ide nikome. */
+  tie: boolean;
 };
+
+/**
+ * Razrada ruke sa PRAVIM brojevima po pilu.
+ *
+ * Fixture je ranije imao prazne count mape (`cardCountByPile: {}`), pa bi novi
+ * prikaz na njemu crtao nule i izgledao kao da radi — mjerenje na takvom
+ * fixture-u ne dokazuje nista. Ista klasa greske kao `caption: w=68 h=67`
+ * procitan kao prolaz (v3.9.1).
+ *
+ * Pobjednici i `pointsByPile` se IZVODE iz brojeva, istim pravilom koje
+ * `calculateHandScore` koristi (jedan maksimum = pobjednik, izjednacenje =
+ * niko). Zato tvrdnja "zbir kategorija == zbir poena" stvarno testira prikaz,
+ * a ne fixture koji joj je podesen.
+ *
+ * Zbirovi prate spil: 52 karte, 13 trefova.
+ */
+function mockHandScore(playerCount: 2 | 3 | 4, tie: boolean): HandScore {
+  const ids =
+    playerCount === 4
+      ? ["team-0", "team-1"]
+      : Array.from({ length: playerCount }, (_, i) => (i === 0 ? "me" : `p${i}`));
+
+  const cardSplit = tie
+    ? { 2: [26, 26], 3: [19, 19, 14] }[ids.length]!
+    : { 2: [32, 20], 3: [20, 18, 14] }[ids.length]!;
+  const clubSplit = { 2: [6, 7], 3: [4, 6, 3] }[ids.length]!;
+
+  const cardCountByPile: Record<string, number> = {};
+  const clubCountByPile: Record<string, number> = {};
+  ids.forEach((id, i) => {
+    cardCountByPile[id] = cardSplit[i]!;
+    clubCountByPile[id] = clubSplit[i]!;
+  });
+
+  const single = (by: Record<string, number>) => {
+    const entries = Object.entries(by);
+    const max = Math.max(...entries.map(([, n]) => n));
+    const top = entries.filter(([, n]) => n === max);
+    return top.length === 1 ? top[0]![0] : undefined;
+  };
+
+  const mostCards = single(cardCountByPile);
+  const mostClubs = single(clubCountByPile);
+  const tenOfDiamonds = ids[0]!;
+  const twoOfClubs = ids[ids.length - 1]!;
+
+  const pointsByPile: Record<string, number> = Object.fromEntries(ids.map((id) => [id, 0]));
+  if (mostCards !== undefined) pointsByPile[mostCards]! += 2;
+  if (mostClubs !== undefined) pointsByPile[mostClubs]! += 1;
+  pointsByPile[tenOfDiamonds]! += 1;
+  pointsByPile[twoOfClubs]! += 1;
+
+  return {
+    handNumber: 3,
+    pointsByPile,
+    breakdown: {
+      mostCards: { winnerPileId: mostCards, cardCountByPile, points: 2 },
+      mostClubs: { winnerPileId: mostClubs, clubCountByPile, points: 1 },
+      tenOfDiamonds: { winnerPileId: tenOfDiamonds, points: 1 },
+      twoOfClubs: { winnerPileId: twoOfClubs, points: 1 },
+    },
+  };
+}
 
 /** Ko je na potezu za dati `turn` — isto pravilo i za mock i za `move=`. */
 function turnSeatId(turn: Opts["turn"], players: { id: string }[]): string {
@@ -114,6 +180,7 @@ function mockState({
   oppHand,
   move,
   moved,
+  tie,
 }: Opts): PrivateGameStateView & {
   turnDeadline?: number;
 } {
@@ -150,18 +217,7 @@ function mockState({
     targetScore: 21,
     stateVersion: live ? 2 : 1,
     handNumber: 3,
-    handScores: [
-      {
-        handNumber: 3,
-        pointsByPile: { "team-0": 3, "team-1": 2 },
-        breakdown: {
-          mostCards: { winnerPileId: "team-0", cardCountByPile: {}, points: 2 },
-          mostClubs: { winnerPileId: "team-1", clubCountByPile: {}, points: 1 },
-          twoOfClubs: { winnerPileId: "team-0", points: 1 },
-          tenOfDiamonds: { winnerPileId: "team-1", points: 1 },
-        },
-      },
-    ],
+    handScores: [mockHandScore(playerCount, tie)],
     myPlayerId: "me",
     myHand: [card("clubs", "7"), card("spades", "J"), card("hearts", "A"), card("diamonds", "9")],
     // Prije `__devMove()` nema poteza — kao svjeza soba. Inace bi beat na
@@ -213,6 +269,8 @@ type UrlOpts = {
    * kojem snima fazu beat-a — land i hold traju 260 i 280ms.
    */
   move: MoveKind | null;
+  /** `tie=1`: nerijeseno na "najvise karata" — razrada tad crta "niko" i `—`. */
+  tie: boolean;
 };
 
 function parseParams(search: string): UrlOpts {
@@ -237,6 +295,7 @@ function parseParams(search: string): UrlOpts {
     move: (MOVES as readonly string[]).includes(q.get("move") ?? "")
       ? (q.get("move") as MoveKind)
       : null,
+    tie: q.get("tie") === "1",
   };
 }
 
@@ -421,6 +480,7 @@ export default function DevGamePage() {
           oppHand: url.oppHand,
           move: url.move,
           moved,
+          tie: url.tie,
         })}
         {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
         onPlayCard={noop}
