@@ -1,6 +1,8 @@
 // Serbo-Croatian (ijekavica), sentence case, plain verbs.
 // Single source for every visible string. No component hardcodes copy.
 
+import { CONSENT_TEXTS, CURRENT_CONSENT_TEXT_ID } from "@zandar/shared-types";
+
 export const sr = {
   // Zaglavlje stola. "Runda" je ono sto igrac broji za stolom; u kodu je to
   // `handNumber` (dijeljenje). Ne mijenjati jedno bez drugog.
@@ -200,6 +202,92 @@ export const sr = {
     abandonedTitle: "Partija je prekinuta",
     abandonedBody: "Partija je završena jer je igrač napustio igru. Možeš izaći i započeti novu.",
     leave: "Izađi",
+  },
+  /* Korak sa imenom prije ulaska za sto (`/ime`). Home više ne nosi polje za
+     ime — traži se tek kad je igrač izabrao šta hoće. Validacija ista kao do
+     sad (`lib/playerName.ts`). */
+  name: {
+    label: "Ime za stolom",
+    placeholder: "Kako da te zovemo?",
+    submit: "Nastavi",
+    change: "Promijeni",
+  },
+  /* Sekcija budućih igara na home-u. Kartica je ulaz u prijavu, ne u igru —
+     otud „U planu?" i zvono, a ne play ikona ili katanac. */
+  upcoming: {
+    title: "Šta ćemo sljedeće igrati?",
+    body: "Još nisu dostupne. Želiš obavještenje?",
+    tag: "U planu?",
+    cardLabel: (game: string) => `Obavještenje za ${game}`,
+  },
+  /* Po igri. Ključ je slug iz `@zandar/shared-types` — nova igra = novi blok.
+     `display` je naslov velikim slovima; `name` ide u rečenice i čitač ekrana
+     (`POKER` bi čitač spelovao slovo po slovo). */
+  games: {
+    poker: {
+      name: "Poker",
+      display: "POKER",
+      status: "Poker još nije dostupan.",
+      body: "Razmišljamo o pokeru za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
+    },
+    remi: {
+      name: "Remi",
+      display: "REMI",
+      status: "Remi još nije dostupan.",
+      body: "Razmišljamo o remiju za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
+    },
+    bela: {
+      name: "Bela",
+      display: "BELA",
+      status: "Bela još nije dostupna.",
+      body: "Razmišljamo o beli za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
+    },
+    raub: {
+      name: "Raub",
+      display: "RAUB",
+      status: "Raub još nije dostupan.",
+      body: "Razmišljamo o raubu za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
+    },
+  },
+  teaser: {
+    title: "Za stolom se ne žuri.",
+    tag: "U planu?",
+    back: "Nazad",
+  },
+  /* Prijava za obavještenje. Strelice (→ ←) NISU u stringovima: crtaju se kao
+     dekoracija sa `aria-hidden`, inače čitač ekrana izgovori „strelica desno". */
+  signup: {
+    emailLabel: "E-adresa",
+    emailPlaceholder: "ime@primjer.com",
+    /* Tekst saglasnosti živi u shared-types uz svoj id — server upisuje id, pa
+       ovaj string ne smije da se mijenja ovdje nego tamo, pod novim id-jem. */
+    consent: CONSENT_TEXTS[CURRENT_CONSENT_TEXT_ID],
+    privacyLink: "Politika privatnosti",
+    submit: "Prijavi se",
+    submitNote: "Prijavama biramo koju igru pravimo sljedeću.",
+    invalidEmail: "Provjeri e-adresu i pokušaj ponovo.",
+    missingConsent: "Označi saglasnost ako želiš obavještenje o ovoj igri.",
+    sending: "Šaljemo prijavu…",
+    error: "Prijava nije poslata. Pokušaj ponovo.",
+    successTitle: "Prijava je stigla!",
+    successBody: "Javićemo ti ako otvorimo prve stolove za ovu igru.",
+    backToGame: "Nazad na Žandar",
+  },
+  settings: {
+    title: "Postavke",
+    close: "Zatvori",
+    name: "Ime za stolom",
+    noName: "Još nije upisano",
+    rules: "Kako se igra?",
+    deleteData: "Brisanje podataka",
+  },
+  /* Samo web. U APK-u se sekcija ne renderuje. Imena prodavnica su obična
+     oznaka mjesta dok zvanični artwork ne stigne uz živ URL (`lib/stores.ts`). */
+  stores: {
+    title: "Kartaonica na telefonu",
+    unavailable: "Još nije dostupno",
+    "app-store": "App Store",
+    "google-play": "Google Play",
   },
   /* Pravne stranice. Samo interaktivne labele i tekst poruke — proza zivi u
      samim stranicama (kao /privatnost i /uslovi), jer nosi <strong>, <ul> i

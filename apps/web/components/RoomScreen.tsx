@@ -14,6 +14,7 @@ import {
   type PendingJoinRequest,
 } from "@/lib/api";
 import { getSession, saveSession, type RoomSession } from "@/lib/session";
+import { readPlayerName } from "@/lib/playerName";
 import { getSocket } from "@/lib/socket";
 import { assertNoBotLeak } from "@/lib/antiLeak";
 import { inviteLink, matchingPath } from "@/lib/routes";
@@ -367,7 +368,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     // Napusti ovaj sto i nađi novi (Quick Play sa novim igračima).
     const myName =
       gameState?.players.find((p) => p.id === session?.playerId)?.displayName ??
-      localStorage.getItem("zandar_name") ??
+      readPlayerName() ??
       "Igrač";
     try {
       const res = await quickPlay({ displayName: myName });

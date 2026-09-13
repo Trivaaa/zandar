@@ -8,10 +8,9 @@ import type { RoomPlayer } from "@/lib/api";
 import { saveSession } from "@/lib/session";
 import { MatchingTable } from "@/components/funnel/MatchingTable";
 import { sr } from "@/lib/sr";
+import { clearPlayerName, readPlayerName, savePlayerName } from "@/lib/playerName";
 
 // ---- constants ----
-
-const NAME_KEY = "zandar_name";
 
 /** Minimum total duration of the matching experience (theatre). */
 const MIN_MS = 3_000;
@@ -78,7 +77,7 @@ export default function BrzaPage() {
     if (hasStarted.current) return;
     hasStarted.current = true;
 
-    localStorage.setItem(NAME_KEY, name);
+    savePlayerName(name);
     setSavedName(name);
     setStage("searching");
     setStatusText(sr.matching.preparing);
@@ -134,7 +133,7 @@ export default function BrzaPage() {
 
   // ---- mount: load saved name; auto-start if found ----
   useEffect(() => {
-    const stored = localStorage.getItem(NAME_KEY);
+    const stored = readPlayerName();
     if (stored) {
       setSavedName(stored);
       setNameInput(stored);
@@ -205,7 +204,7 @@ export default function BrzaPage() {
                   type="button"
                   onClick={() => {
                     setSavedName(null);
-                    localStorage.removeItem(NAME_KEY);
+                    clearPlayerName();
                   }}
                   className="underline text-zinc-400 active:text-white"
                 >

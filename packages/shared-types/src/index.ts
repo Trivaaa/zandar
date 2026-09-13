@@ -415,3 +415,56 @@ export type LastMove = {
   capturedCards: Card[];
   isAutoPlay: boolean;
 };
+// ====================================================
+// IGRE „U PLANU?" + PRIJAVE ZA OBAVJEŠTENJE
+// ====================================================
+
+/**
+ * Buduće igre koje imaju teaser stranicu i prijavu. Runtime vrijednost, ne samo
+ * tip: server je koristi za validaciju `POST /api/signups`, web za rute
+ * (`generateStaticParams`) — pa ne mogu da se raziđu.
+ */
+export const UPCOMING_GAME_SLUGS = ["poker", "remi", "bela", "raub"] as const;
+
+export type UpcomingGameSlug = (typeof UPCOMING_GAME_SLUGS)[number];
+
+export function isUpcomingGameSlug(value: unknown): value is UpcomingGameSlug {
+  return (
+    typeof value === "string" &&
+    (UPCOMING_GAME_SLUGS as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * Tekstovi saglasnosti, po id-ju. Prijava upisuje ID, pa se uvijek zna na koji
+ * je TAČAN tekst igrač pristao.
+ *
+ * ⚠ Izmjena teksta = NOVI id. Stari unos ostaje u mapi zauvijek — prijave
+ * upisane pod njim moraju i dalje da pokazuju na tekst koji je igrač vidio.
+ * Server odbija nepoznat id, pa ustajao klijent ne može da tvrdi saglasnost na
+ * tekst koji ne postoji.
+ */
+export const CONSENT_TEXTS = {
+  "signup-consent-2026-09":
+    "Pristajem da mi pošaljete obavještenje o ranom pristupu u ovu igru.",
+} as const;
+
+export type ConsentTextId = keyof typeof CONSENT_TEXTS;
+
+/** Tekst koji forma trenutno prikazuje. */
+export const CURRENT_CONSENT_TEXT_ID: ConsentTextId = "signup-consent-2026-09";
+
+export function isConsentTextId(value: unknown): value is ConsentTextId {
+  return typeof value === "string" && Object.hasOwn(CONSENT_TEXTS, value);
+}
+
+export type SignupRequest = {
+  game: UpcomingGameSlug;
+  email: string;
+  consentTextId: ConsentTextId;
+  /** Za atribuciju u analitici (PostHog distinctId). Nikad e-adresa. */
+  guestId?: string;
+};
+
+/** `created: false` = ista adresa već prijavljena za istu igru (idempotentno). */
+export type SignupResponse = { created: boolean };

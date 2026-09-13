@@ -9,8 +9,7 @@ import { saveSession } from "@/lib/session";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { sr } from "@/lib/sr";
-
-const NAME_KEY = "zandar_name";
+import { clearPlayerName, readPlayerName, savePlayerName } from "@/lib/playerName";
 
 export default function Home() {
   const router = useRouter();
@@ -20,7 +19,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(NAME_KEY);
+    const stored = readPlayerName();
     if (stored) setSavedName(stored);
   }, []);
 
@@ -28,7 +27,7 @@ export default function Home() {
     setError(null);
     setLoading(true);
     try {
-      localStorage.setItem(NAME_KEY, displayName);
+      savePlayerName(displayName);
       const res = await quickPlay({ displayName });
       saveSession({
         roomId: res.roomId,
@@ -51,7 +50,7 @@ export default function Home() {
       onForgetName={() => {
         setSavedName(null);
         setNameInput("");
-        localStorage.removeItem(NAME_KEY);
+        clearPlayerName();
       }}
       onCreateRoom={() => router.push("/create")}
       loading={loading}
