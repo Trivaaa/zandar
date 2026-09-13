@@ -7,7 +7,13 @@
 
 /** Tipovi feedback događaja. */
 export type GameEvent =
-  | { type: "deal" }
+  /**
+   * Dijeljenje. Nosi i ŠTA je podijeljeno, jer animacija inače pogađa: sto se
+   * puni SAMO na početku ruke (`advanceTurnOrPhase` re-deal dijeli isključivo
+   * igračima), a broj karata po igraču je `rulesConfig.cardsPerDeal` — osim
+   * zadnjeg dijeljenja u ruci, kad špil ne stigne da podijeli pune 4.
+   */
+  | { type: "deal"; perSeat: number; toTable: number }
   | { type: "capture"; byMe: boolean; jackSweep: boolean; playerId: string }
   | { type: "trail"; byMe: boolean }
   | { type: "yourTurn" }
@@ -91,7 +97,24 @@ export function deriveGameEvents(
 
   // Dijeljenje: ukupan broj karata u rukama poraste (početak ruke / re-deal).
   if (sum(next.handCounts) > sum(prev.handCounts)) {
-    events.push({ type: "deal" });
+    events.push({
+      type: "deal",
+      // Najveći porast po igraču, ne prosjek: zadnje dijeljenje u ruci umije da
+      // podijeli nejednako (špil se isprazni usred kruga), a animacija treba
+      // gornju granicu — koliko karata je najviše otišlo jednom igraču.
+      perSeat: Math.max(
+        ...next.players.map(
+          (p) => (next.handCounts[p.id] ?? 0) - (prev.handCounts[p.id] ?? 0),
+        ),
+        0,
+      ),
+      // Sto dobija karte SAMO na početku ruke; re-deal usred ruke ga ne dira.
+      // Ne računa se iz porasta stola: zadnji potez runde umije da bude trail,
+      // pa bi sto tad "dobio" jednu kartu koju je zapravo spustio igrač.
+      // Početak ruke se poznaje po tome što prethodni snapshot nije bio u igri
+      // (hand_finished → playing; sljedeću ruku pokreće host).
+      toTable: prev.phase === "playing" ? 0 : next.table.length,
+    });
   }
 
   // Kupljenje vs trailanje.
