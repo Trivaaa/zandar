@@ -87,12 +87,17 @@ export function RulesModal({ isOpen, onClose }: Props) {
             <SectionTitle>🏆 Bodovi (ukupno 5 po ruci)</SectionTitle>
             <ul className="space-y-1 list-disc list-inside">
               <li><strong>Najviše karata:</strong> 2 poena</li>
-              <li><strong>Najviše trefova:</strong> 1 poen</li>
-              <li><strong>2 tref:</strong> 1 poen</li>
-              <li><strong>10 karo:</strong> 1 poen</li>
+              <li><strong>Mak</strong> (najviše trefova)<strong>:</strong> 1 poen</li>
+              <li><strong>Velika</strong> (10 karo)<strong>:</strong> 1 poen</li>
+              <li><strong>Mala</strong> (2 tref)<strong>:</strong> 1 poen</li>
             </ul>
             <p className="text-muted italic mt-2">
               Neriješeno = niko ne dobija taj bod
+            </p>
+            <p className="text-muted mt-2">
+              <strong>Mak</strong>, <strong>velika</strong> i <strong>mala</strong> su
+              narodski izrazi: mak je tref, velika je 10 karo, a mala je 2 tref.
+              Tako pišu i u rezultatu na kraju ruke.
             </p>
           </section>
 
