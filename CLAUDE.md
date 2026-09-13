@@ -24,7 +24,7 @@ packages/shared-types TS types shared by web + server
 
 | | Grana | Server (Railway) | Web (Vercel) | APK |
 |---|---|---|---|---|
-| **Staging** | `main` | `zandar-staging.up.railway.app` | `zandar-staging.vercel.app` | `com.kartaonica.zandar.staging` — „Žandar (staging)" |
+| **Staging** | `main` | `zandar-production.up.railway.app` | `zandar-web.vercel.app` | `com.kartaonica.zandar.staging` — „Žandar (staging)" |
 | **Produkcija** | `production` | `zandar-test.up.railway.app` | `kartaonica.com` | `com.kartaonica.zandar` |
 
 - **`git push origin main` NE ide korisnicima** — diže staging (web + server). Produkcija je svjestan čin:
@@ -36,6 +36,7 @@ packages/shared-types TS types shared by web + server
 - **Server build/run:** Nixpacks · build `pnpm install --frozen-lockfile` · start `pnpm --filter=@zandar/server start` (= `tsx src/index.ts`). Region `iad`.
 - **Koje je okruženje:** `GET /health` vraća `env` (`APP_ENV` varijabla). Dva servisa su inače neraspoznatljiva `curl`-om. Isto i u analitici — `track()` šalje `appEnv`, pa se §43 kohorte filtriraju na `appEnv = production`; Sentry dobija `environment` iz `NEXT_PUBLIC_APP_ENV`.
 - **Env po servisu:** server `CORS_ORIGIN` (uvijek uz `https://localhost` — Capacitor WebView origin, **isti za staging APK** jer zavisi od `androidScheme`, ne od `applicationId`), `DATA_DIR`, `APP_ENV`. Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WEB_URL`, `NEXT_PUBLIC_APP_ENV`, PostHog ključevi. **Nisu u repou**, stoje u dashboardima; lokalno API pada na `http://localhost:3001`.
+- **⚠ Staging Railway domen sadrži „production" u imenu** (`zandar-production.up.railway.app`) — to je Railway-ov auto-generisani naziv za servis kreiran u ovoj sesiji, NE produkcijski servis. Pravi produkcijski servis je `zandar-test.up.railway.app` (zatečeno ime iz ranije). Provjera je uvijek `/health` → `env`, ne ime domena.
 - **⚠ Staging i produkcija NIKAD ne dijele volume.** Zaseban `DATA_DIR` po servisu — dijeljen bi miješao staging i produkcijske sobe na hidrataciji.
 - **⚠ `BUILD_TARGET` se NE postavlja na Vercelu** — uključio bi `output: "export"` granu iz `next.config.ts` i srušio dinamičku `/room/[roomId]` rutu.
 - **Provjera deploya:** Railway dashboard → servis → Deployments (svaki red = jedan push). Hash pored imena servisa je Railway **deployment ID**, NE git SHA (git SHA je pod "Deployed via GitHub").
@@ -60,7 +61,7 @@ packages/shared-types TS types shared by web + server
 | QuickMatchScreen `/brza` — name input → oval matching table | main | merged; matching faza koristi `MatchingTable` |
 | RulesModal — full pravila Žandara | main | opened via "? Pravila" in GameView |
 | PostHog analytics, Sentry, OG metadata, CORS multi-origin | main | |
-| **Staging okruženje** — `main`→staging, `production`→produkcija; dva APK-a side-by-side | feat/staging-env | `build-apk.mjs` lanac, `staging` buildType, `/health` + analitika nose `appEnv`, oznaka na home-u. Vidi Deployment |
+| **Staging okruženje — ŽIVO** — `main`→staging, `production`→produkcija; dva APK-a side-by-side | main | Railway staging servis (`zandar-production.up.railway.app`, vlastiti volume) + Vercel staging projekt (`zandar-web.vercel.app`, sva 4 `NEXT_PUBLIC_*` + PostHog env) deployovani i verifikovani 2026-09-13: home učitava STAGING oznaku, Quick Play prolazi kroz CORS, `production` grana potvrđeno netaknuta (ostala na `491a6fa` dok je `main` otišao naprijed). `build-apk.mjs` lanac, `staging` buildType, `/health` + analitika nose `appEnv`. Vidi Deployment |
 
 #### Design System v3.2 frontend build (docs/DESIGN_SYSTEM.md §11)
 
@@ -156,6 +157,18 @@ lanac `next build` → `cap sync` → `gradlew`, koji uz to briše
 `CAP_LIVE_RELOAD_URL` iz okruženja. Staging se instalira PORED produkcijskog
 (`com.kartaonica.zandar.staging`, „Žandar (staging)"), pa se isti ekran može
 uporediti. Detalji: `docs/MOBILE_PLAN_STATUS.md` §Dva APK-a.
+
+**⚠ Windows EBUSY na `out/`** — antivirus/indexer zna zadržati handle na tom
+direktoriju i nakon što je proces koji ga je koristio davno ugašen (viđeno sa
+node procesom starim 4 dana, `taskkill` je vraćao Access Denied čak i preko
+Task Managera — trebalo je "End task" pa ponovni pokušaj). `next build`
+(mobile) je zato padao na `EBUSY: resource busy or locked, rmdir 'out'`.
+Riješeno TRAJNO, ne samo za tu sesiju: `build-apk.mjs` generiše jedinstveno
+ime foldera po pozivu (`MOBILE_DIST_DIR=out-<target>-<timestamp>`), koje
+`next.config.ts` (`distDir`) i `capacitor.config.ts` (`webDir`) oboje čitaju —
+build nikad više ne pokušava obrisati folder koji je neko drugi zaključao.
+Stari `out-*` foldere skuplja best-effort nakon `cap sync`. `pnpm build:mobile`
+samostalno (bez APK lanca) i dalje piše u `out/` kao ranije.
 
 **Nije zamjena za pravi APK prije izdanja** — `output: "export"` i
 `pageExtensions` grane se u dev-u ne izvršavaju. `CAP_LIVE_RELOAD_URL` je jedini
