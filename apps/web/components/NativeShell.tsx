@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isNative } from "@/lib/platform";
+import { runBackHandler } from "@/lib/backHandlers";
 
 /**
  * Hardversko "nazad" na Androidu. WebView ne zna za Next-ov history, pa bez
@@ -25,6 +26,9 @@ export function NativeShell() {
       const handle = await App.addListener("backButton", () => {
         // Putanju čitamo iz `location`, ne iz `usePathname`, da se listener ne
         // registruje ispočetka na svaku navigaciju.
+        // Otvoren sheet/modal (postavke, pravila) se zatvara prvi — inače bi
+        // „nazad" na home-u ugasio aplikaciju ispod otvorenog sloja.
+        if (runBackHandler()) return;
         const path = window.location.pathname;
         // Home je korijen — tu "nazad" znači izlaz, a ne prazan ekran.
         if (path === "/" || path === "") void App.exitApp();

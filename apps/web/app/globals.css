@@ -9,6 +9,8 @@
 @import "./funnel.css" layer(components);
 /* Lobi sloj — kreiranje sobe, čekaonica, zahtjev za ulazak. */
 @import "./lobby.css" layer(components);
+/* Home sloj — pocetni ekran, korak sa imenom, postavke. Isti dogovor. */
+@import "./home.css" layer(components);
 
 /* =====================================================
    DESIGN TOKENS — Kartaonica v3.2

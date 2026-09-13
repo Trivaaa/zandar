@@ -1,74 +1,109 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { matchingPath } from "@/lib/routes";
-import { quickPlay } from "@/lib/api";
-import { saveSession } from "@/lib/session";
+
 import { FeedbackToggles } from "@/components/FeedbackToggles";
+import { RulesModal } from "@/components/RulesModal";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
+import { SettingsSheet } from "@/components/home/SettingsSheet";
+import { useBackHandler } from "@/lib/backHandlers";
+import { isNative } from "@/lib/platform";
+import { usePlayerName } from "@/lib/playerName";
+import { namePath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
-import { clearPlayerName, readPlayerName, savePlayerName } from "@/lib/playerName";
+import { startQuickPlay } from "@/lib/startQuickPlay";
+import { track } from "@/lib/track";
 
 export default function Home() {
   const router = useRouter();
-  const [savedName, setSavedName] = useState<string | null>(null);
-  const [nameInput, setNameInput] = useState("");
+  const playerName = usePlayerName();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  // `loading` gasi dugme tek na sljedećem renderu; brz dupli tap stigne prije.
+  const starting = useRef(false);
+  // Fokus se vraća na ZUPČANIK, ne na `document.activeElement` zapamćen pri
+  // otvaranju: Safari (i programski klik) ne fokusira dugme na tap, pa bi
+  // zapamćen bio `body` i fokus bi se izgubio.
+  const settingsButton = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const stored = readPlayerName();
-    if (stored) setSavedName(stored);
-  }, []);
+  function closeSettings() {
+    setSettingsOpen(false);
+    settingsButton.current?.focus();
+  }
 
-  async function handlePlay(displayName: string) {
+  useBackHandler(settingsOpen, closeSettings);
+  useBackHandler(rulesOpen, () => setRulesOpen(false));
+
+  async function handlePlay() {
+    if (starting.current) return;
+    // Bez sačuvanog imena ime se traži TEK sad, na zasebnoj ruti — tamo Android
+    // „nazad" radi sam od sebe (na `/` gasi aplikaciju).
+    if (!playerName) {
+      router.push(namePath("quickplay"));
+      return;
+    }
+    starting.current = true;
     setError(null);
     setLoading(true);
     try {
-      savePlayerName(displayName);
-      const res = await quickPlay({ displayName });
-      saveSession({
-        roomId: res.roomId,
-        playerId: res.playerId,
-        sessionToken: res.playerSessionToken,
-      });
-      router.push(matchingPath(res.roomId));
+      router.push(await startQuickPlay(playerName));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greška");
       setLoading(false);
+      starting.current = false;
     }
   }
 
   return (
-    <HomeScreen
-      savedName={savedName}
-      nameInput={nameInput}
-      onNameInput={setNameInput}
-      onPlay={() => void handlePlay((savedName ?? nameInput).trim())}
-      onForgetName={() => {
-        setSavedName(null);
-        setNameInput("");
-        clearPlayerName();
-      }}
-      onCreateRoom={() => router.push("/create")}
-      loading={loading}
-      {...(error ? { error } : {})}
-      feedbackSlot={<FeedbackToggles />}
-      legalSlot={
-        <>
-          <Link href="/privatnost" className="font-sans text-base">
-            {sr.home.privacy}
-          </Link>
-          <Link href="/uslovi" className="font-sans text-base">
-            {sr.home.terms}
-          </Link>
-          <Link href="/o-nama" className="font-sans text-base">
-            {sr.home.about}
-          </Link>
-        </>
-      }
-    />
+    <>
+      <HomeScreen
+        onPlay={() => void handlePlay()}
+        onFriends={() => router.push("/create")}
+        onOpenSettings={() => setSettingsOpen(true)}
+        settingsButtonRef={settingsButton}
+        loading={loading}
+        {...(error ? { error } : {})}
+        showStores={!isNative}
+        onUpcomingViewed={() => track("upcoming_games_viewed")}
+        legalSlot={
+          <>
+            <Link href="/privatnost">{sr.home.privacy}</Link>
+            <Link href="/uslovi">{sr.home.terms}</Link>
+            <Link href="/o-nama">{sr.home.about}</Link>
+          </>
+        }
+      />
+
+      {/* Slojevi preko home-a. Omotač pravi stacking context IZNAD PWA banera
+          (`PwaManager`, z-60): na home-u baner stoji dole, tačno gdje je sheet, i
+          prekrivao je „Zatvori". `RulesModal` se ne dira — dijeli ga igra. */}
+      <div className="home-layer">
+        {settingsOpen ? (
+          <div className="sheet-scrim" onClick={closeSettings}>
+            <div className="sheet-scrim__inner" onClick={(e) => e.stopPropagation()}>
+              <SettingsSheet
+                playerName={playerName}
+                onChangeName={() => {
+                  setSettingsOpen(false);
+                  router.push(namePath("home"));
+                }}
+                onRules={() => {
+                  setSettingsOpen(false);
+                  setRulesOpen(true);
+                }}
+                onClose={closeSettings}
+                feedbackSlot={<FeedbackToggles />}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
+      </div>
+    </>
   );
 }

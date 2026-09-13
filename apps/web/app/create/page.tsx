@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import { roomPath } from "@/lib/routes";
 import { createRoom } from "@/lib/api";
 import { saveSession } from "@/lib/session";
+import { savePlayerName, usePlayerName } from "@/lib/playerName";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
 
 export default function CreatePage() {
   const router = useRouter();
-  const [displayName, setDisplayName] = useState("");
+  const savedName = usePlayerName();
+  // `null` = igrač još nije kucao → polje nosi sačuvano ime.
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const displayName = nameDraft ?? savedName ?? "";
   const [playerCount, setPlayerCount] = useState<2 | 3 | 4>(2);
   const [targetScore, setTargetScore] = useState(21);
   const [loading, setLoading] = useState(false);
@@ -20,6 +24,7 @@ export default function CreatePage() {
     setLoading(true);
     try {
       const res = await createRoom({ displayName, playerCount, targetScore });
+      savePlayerName(displayName);
       saveSession({
         roomId: res.roomId,
         playerId: res.playerId,
@@ -35,7 +40,7 @@ export default function CreatePage() {
   return (
     <CreateRoomScreen
       displayName={displayName}
-      onDisplayName={setDisplayName}
+      onDisplayName={setNameDraft}
       playerCount={playerCount}
       onPlayerCount={setPlayerCount}
       targetScore={targetScore}

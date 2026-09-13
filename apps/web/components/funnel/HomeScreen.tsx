@@ -1,106 +1,60 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
-import { isStaging } from "@/lib/platform";
-import { sr } from "@/lib/sr";
+import { HomeHero } from "@/components/home/HomeHero";
+import { StoreRow } from "@/components/home/StoreRow";
+import { UpcomingGames } from "@/components/home/UpcomingGames";
 
 export type HomeScreenProps = {
-  /** Remembered from a previous visit. null → the name field is shown. */
-  savedName: string | null;
-  nameInput: string;
-  onNameInput: (value: string) => void;
   onPlay: () => void;
-  onForgetName: () => void;
-  onCreateRoom: () => void;
+  onFriends: () => void;
+  onOpenSettings: () => void;
+  /** Host vraća fokus na zupčanik kad se postavke zatvore. */
+  settingsButtonRef?: Ref<HTMLButtonElement> | undefined;
   loading: boolean;
   error?: string | undefined;
-  /** Sound/haptics toggles, mounted by the host. */
-  feedbackSlot?: ReactNode;
-  /** Privacy / terms links, mounted by the host — Play requires them. */
+  /** Web da, APK ne — odluku donosi host (`!isNative`), da preview može oboje. */
+  showStores: boolean;
+  /** Prikaz sekcije budućih igara (analitika). Zove se jednom po prikazu. */
+  onUpcomingViewed?: (() => void) | undefined;
+  /** Privatnost / uslovi / o nama — host ih montira, Play ih traži. */
   legalSlot?: ReactNode;
   className?: string | undefined;
 };
 
 /**
- * The first screen. Presentation only: no routing, no storage, no timers.
- * One loud action; everything else is quiet.
+ * Prvi ekran. Prezentacija: bez skladišta i bez rutiranja (osim deklarativnih
+ * linkova ka teaser stranicama). Glavna radnja je jedna i glasna; privatna soba
+ * je vidljiva ali tiša; buduće igre i prodavnice su ispod pregiba.
+ *
+ * Ime više NIJE ovdje — traži se na `/ime` tek kad je igrač izabrao radnju.
  */
 export function HomeScreen({
-  savedName,
-  nameInput,
-  onNameInput,
   onPlay,
-  onForgetName,
-  onCreateRoom,
+  onFriends,
+  onOpenSettings,
+  settingsButtonRef,
   loading,
   error,
-  feedbackSlot,
+  showStores,
+  onUpcomingViewed,
   legalSlot,
   className = "",
 }: HomeScreenProps) {
-  const named = savedName !== null;
-  const ctaDisabled = loading || (!named && nameInput.trim() === "");
-
   return (
-    <div className={`screen home ${className}`}>
-      <header className="home__brand">
-        <span className="home__name font-display text-2xl">{sr.home.brand}</span>
-        <span className="home__domain font-sans text-sm">{sr.home.domain}</span>
-        {isStaging ? <span className="home__env font-sans text-sm">STAGING</span> : null}
-      </header>
-
-      <div className="home__body">
-        {named ? (
-          <p className="home__as">
-            <span className="home__as-text font-sans text-base">
-              {sr.home.playingAs(savedName)}
-            </span>
-            <button type="button" className="home__change font-sans text-sm" onClick={onForgetName}>
-              {sr.home.changeName}
-            </button>
-          </p>
-        ) : (
-          <div className="home__field">
-            <label className="sr-only" htmlFor="home-name">
-              {sr.home.namePlaceholder}
-            </label>
-            <input
-              id="home-name"
-              className="home__input font-sans text-base"
-              type="text"
-              inputMode="text"
-              autoComplete="nickname"
-              placeholder={sr.home.namePlaceholder}
-              value={nameInput}
-              onChange={(e) => onNameInput(e.target.value)}
-            />
-          </div>
-        )}
-
-        <button
-          type="button"
-          className="home__cta font-display text-xl"
-          onClick={onPlay}
-          disabled={ctaDisabled}
-          data-disabled={ctaDisabled}
-        >
-          {loading ? sr.home.playLoading : sr.home.play}
-        </button>
-
-        {/* Reserved line — the CTA never moves when an error appears. */}
-        <p className="home__error font-sans text-base" data-empty={!error} role="status">
-          {error ?? ""}
-        </p>
-
-        <button type="button" className="home__secondary font-sans text-base" onClick={onCreateRoom}>
-          {sr.home.createRoom}
-        </button>
-      </div>
-
-      <div className="home__feedback">{feedbackSlot}</div>
-
-      <div className="home__legal">{legalSlot}</div>
-    </div>
+    <main className={`screen home ${className}`}>
+      <HomeHero
+        onPlay={onPlay}
+        onFriends={onFriends}
+        onOpenSettings={onOpenSettings}
+        settingsButtonRef={settingsButtonRef}
+        loading={loading}
+        error={error}
+      />
+      <UpcomingGames onViewed={onUpcomingViewed} />
+      {showStores ? <StoreRow /> : null}
+      <footer className="home__legal">{legalSlot}</footer>
+    </main>
   );
 }

@@ -1,0 +1,645 @@
+/*
+ * home.css — početni ekran, korak sa imenom (/ime) i postavke.
+ * Isti dogovor kao felt.css / funnel.css:
+ *   - Bez hex-a, bez doslovnih trajanja i cubic-bezier-a. Samo tokeni.
+ *   - Animira se samo transform i opacity.
+ *   - Tipografiju drži OVAJ fajl. Element čiju veličinu slova postavlja pravilo
+ *     ispod NE smije nositi Tailwind `text-*` u JSX-u: utility nosi i
+ *     line-height i iz kasnijeg sloja bi ga pregazio (zamka iz v3.5).
+ *
+ * Lokalne geometrijske ručke (ne tokeni): --home-col, --home-wide,
+ * --hero-card-w.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Shell
+ * ------------------------------------------------------------------ */
+
+.home {
+  /* Kolona radnji ostaje uska i na desktopu — dugme preko 900px nije CTA. */
+  --home-col: 24rem;
+  /* Buduće igre i prodavnice smiju šire, da na desktopu stanu u jedan red. */
+  --home-wide: 56rem;
+  /* Motiv raste sa visinom ekrana i ima plafon: na niskom ekranu se smanjuju
+     karte, a glavno dugme ostaje iznad pregiba. */
+  --hero-card-w: min(5.5rem, 12dvh);
+
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  background-image:
+    radial-gradient(ellipse 120% 60% at 50% 0%, color-mix(in oklab, var(--surface-raised) 40%, transparent), transparent 70%),
+    linear-gradient(to bottom, transparent 40%, color-mix(in oklab, var(--surface) 60%, transparent));
+}
+
+.home :focus-visible,
+.namestep :focus-visible,
+.settings :focus-visible,
+.sheet-scrim :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Brend (dijele home i teaser stranice)
+ * ------------------------------------------------------------------ */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  color: var(--text);
+}
+
+.brand__mark {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.brandmark__back {
+  fill: var(--felt);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.brandmark__front {
+  fill: var(--accent);
+}
+
+.brandmark__pip {
+  fill: var(--accent-contrast);
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brand__name {
+  font: 400 var(--type-xl) / 1.1 var(--font-display-stack);
+  color: var(--text);
+}
+
+.brand__domain {
+  font: 400 var(--type-sm) / 1.3 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * Zaglavlje
+ * ------------------------------------------------------------------ */
+
+.home__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: var(--home-wide);
+}
+
+/* Oznaka staging builda (vidi CLAUDE.md Deployment). */
+.home__env {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--danger-signal);
+  color: var(--surface);
+  font: 700 var(--type-xs) / 1.3 var(--font-sans-stack);
+  letter-spacing: 0.08em;
+}
+
+.home__settings {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid color-mix(in oklab, var(--text-muted) 40%, transparent);
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--surface) 40%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+
+.home__settings:active {
+  transform: scale(0.95);
+}
+
+.home__settings-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Hero: motiv, ime igre, radnje
+ * ------------------------------------------------------------------ */
+
+.home__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: var(--home-col);
+  text-align: center;
+}
+
+.home__fan {
+  position: relative;
+  width: calc(var(--hero-card-w) * 3);
+  height: calc(var(--hero-card-w) * 1.417 + 1.6rem);
+  margin-top: 0.75rem;
+}
+
+/* Karta u motivu je veća od svih veličina u igri; geometriju drži ova ručka. */
+.home__fan .card {
+  --card-w: var(--hero-card-w);
+  --card-h: calc(var(--hero-card-w) * 1.417);
+}
+
+.home__fan .card-face {
+  box-shadow: 0 0.5rem 1.1rem color-mix(in oklab, black 45%, transparent);
+}
+
+.home__fan-slot {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform-origin: 50% 100%;
+}
+
+.home__fan-slot:nth-child(1) {
+  transform: translateX(calc(-50% - var(--hero-card-w) * 0.72)) rotate(-12deg);
+}
+
+.home__fan-slot:nth-child(2) {
+  z-index: 1;
+  transform: translateX(-50%) translateY(-0.6rem);
+}
+
+.home__fan-slot:nth-child(3) {
+  z-index: 2;
+  transform: translateX(calc(-50% + var(--hero-card-w) * 0.72)) rotate(12deg);
+}
+
+.home__title {
+  margin: 0.5rem 0 0;
+  font: 400 clamp(2.75rem, 14vw, 4.25rem) / 1.05 var(--font-display-stack);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-shadow: 0 0.15rem 0.6rem color-mix(in oklab, black 35%, transparent);
+}
+
+.home__tagline {
+  margin: 0.1rem 0 0;
+  font: 400 var(--type-xl) / 1.35 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.home__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.home__cta,
+.home__friends {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0 1rem;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition:
+    transform var(--t-card-play) var(--ease-snap),
+    opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.home__cta {
+  border: 0;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  font: 700 var(--type-xl) / 1.2 var(--font-sans-stack);
+}
+
+/* Mesing prsten fokusa se ne vidi na mesing dugmetu. */
+.home__cta:focus-visible {
+  outline-color: var(--text);
+}
+
+.home__cta:active,
+.home__friends:active {
+  transform: scale(0.98);
+}
+
+.home__cta:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.home__cta-arrow {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.home__friends {
+  border: 1.5px solid color-mix(in oklab, var(--text) 55%, transparent);
+  background-color: color-mix(in oklab, var(--surface) 50%, transparent);
+  color: var(--text);
+  font: 700 var(--type-lg) / 1.2 var(--font-sans-stack);
+}
+
+.home__friends-icon {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.home__note {
+  align-self: center;
+  max-width: 17rem;
+  margin: 0;
+  font: 400 var(--type-base) / 1.4 var(--font-sans-stack);
+  color: var(--text-muted);
+  text-wrap: balance;
+}
+
+/* Rezervisan red: greška ne pomjera ono ispod nje. */
+.home__error {
+  min-height: 1.4em;
+  margin: 0;
+  font: 400 var(--type-base) / 1.4 var(--font-sans-stack);
+  color: var(--danger-signal);
+  transition: opacity var(--t-toast-in) var(--ease-out-soft);
+}
+
+.home__error[data-empty="true"] {
+  opacity: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Buduće igre
+ * ------------------------------------------------------------------ */
+
+.upcoming,
+.stores {
+  width: 100%;
+  max-width: var(--home-wide);
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid color-mix(in oklab, var(--text-muted) 28%, transparent);
+}
+
+.upcoming__title,
+.stores__title {
+  margin: 0;
+  font: 700 var(--type-xl) / 1.25 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.upcoming__body {
+  margin: 0.2rem 0 0.9rem;
+  font: 400 var(--type-base) / 1.4 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.upcoming__grid,
+.stores__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Ispod ~358px dvije kartice ne primaju ime + zvono bez lomljenja. */
+@media (max-width: 22.4rem) {
+  .upcoming__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 48rem) {
+  .upcoming__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.teaser-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 4rem;
+  padding: 0.6rem;
+  border: 1px solid color-mix(in oklab, var(--text-muted) 35%, transparent);
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 45%, transparent);
+  color: var(--text);
+  text-decoration: none;
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+
+.teaser-card:active {
+  transform: scale(0.98);
+}
+
+/* Prigušena poleđina: nije igra koju možeš igrati, pa ne smije da čita kao
+   karta na stolu. `--card-radius` inače postavlja .card, ovdje ga nema. */
+.teaser-card__motif {
+  --card-radius: calc(2rem * 0.075);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: calc(2rem * 1.417);
+  opacity: 0.55;
+  transform: rotate(-8deg);
+}
+
+.teaser-card__motif .card-back {
+  position: absolute;
+  inset: 0;
+}
+
+.teaser-card__suit {
+  position: relative;
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--text);
+}
+
+.teaser-card__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.teaser-card__name {
+  font: 700 var(--type-base) / 1.2 var(--font-sans-stack);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.teaser-card__tag {
+  font: 400 var(--type-sm) / 1.3 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.teaser-card__bell {
+  width: 1.3rem;
+  height: 1.3rem;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * Prodavnice (samo web)
+ * ------------------------------------------------------------------ */
+
+.stores__title {
+  margin-bottom: 0.75rem;
+  font-size: var(--type-lg);
+}
+
+.stores__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stores__tile {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--text) 55%, transparent);
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--surface) 80%, transparent);
+  color: var(--text);
+  font: 600 var(--type-base) / 1.2 var(--font-sans-stack);
+  text-decoration: none;
+}
+
+/* Nije dugme: prigušen rub i mastilo. */
+.stores__tile[data-unavailable="true"] {
+  border-color: color-mix(in oklab, var(--text-muted) 30%, transparent);
+  background-color: color-mix(in oklab, var(--surface) 45%, transparent);
+  color: var(--text-muted);
+}
+
+.stores__note {
+  font: 400 var(--type-sm) / 1.3 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * Pravna traka
+ * ------------------------------------------------------------------ */
+
+.home__legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0 0.2rem;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 1.25rem;
+}
+
+.home__legal a {
+  /* inline-flex jer min-height nema dejstva na inline element. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  padding-inline: 0.3rem;
+  font: 400 var(--type-base) / 1.2 var(--font-sans-stack);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+/* Tačka između linkova. `/ ""` je alternativni tekst — čitač ekrana je ne
+   izgovara kao dio imena linka. Tačka ide IZA linka, ne ispred: kad se traka
+   prelomi (320px), novi red ne smije da počne tačkom. */
+.home__legal a:not(:last-child)::after {
+  content: "·" / "";
+  margin-left: 0.5rem;
+  color: var(--text-muted);
+}
+
+.home__legal a:active {
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ *
+ * Korak sa imenom (/ime)
+ * ------------------------------------------------------------------ */
+
+.namestep {
+  align-items: center;
+  gap: 0;
+}
+
+.namestep__back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding-inline: 0.25rem 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: 400 var(--type-lg) / 1.2 var(--font-sans-stack);
+  cursor: pointer;
+}
+
+.namestep__back-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Forma je blizu vrha: kad se otvori tastatura, polje i dugme ostaju vidljivi. */
+.namestep__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 24rem;
+  margin-top: clamp(1.5rem, 10dvh, 5rem);
+}
+
+.namestep__label {
+  font: 700 var(--type-2xl) / 1.25 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.namestep__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0 1rem;
+  border: 1px solid color-mix(in oklab, var(--text-muted) 50%, transparent);
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--surface) 85%, transparent);
+  color: var(--text);
+  /* 18px: iOS ne zumira polje od 16px naviše. */
+  font: 400 var(--type-lg) / 1.2 var(--font-sans-stack);
+}
+
+.namestep__input::placeholder {
+  color: var(--text-muted);
+}
+
+.namestep__submit {
+  margin-top: 0.25rem;
+}
+
+.namestep__error {
+  min-height: 1.4em;
+  margin: 0;
+  font: 400 var(--type-base) / 1.4 var(--font-sans-stack);
+  color: var(--danger-signal);
+}
+
+.namestep__error[data-empty="true"] {
+  opacity: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Postavke (sheet) — površina je `.gamemenu` iz overlay.css
+ * ------------------------------------------------------------------ */
+
+/* Omotač slojeva preko home-a (postavke, pravila). `position` + `z-index`
+   prave stacking context iznad PWA banera (z-60 u PwaManager-u), pa i
+   `RulesModal` sa svojim z-50 izlazi preko banera — bez diranja modala. */
+.home-layer {
+  position: relative;
+  z-index: 70;
+}
+
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: color-mix(in oklab, black 60%, transparent);
+}
+
+.sheet-scrim__inner {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.settings__title {
+  margin: 0;
+  padding-inline: 0.15rem;
+  font: 700 var(--type-lg) / 1.3 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding: 0.35rem 0.35rem 0.35rem 0.9rem;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+}
+
+.settings__name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.settings__label {
+  font: 400 var(--type-sm) / 1.3 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.settings__value {
+  font: 600 var(--type-base) / 1.3 var(--font-sans-stack);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.settings__change {
+  flex: none;
+  min-width: 3rem;
+  min-height: 3rem;
+  padding-inline: 0.6rem;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: 600 var(--type-base) / 1 var(--font-sans-stack);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.settings__feedback {
+  display: flex;
+  padding: 0.25rem 0.15rem;
+}

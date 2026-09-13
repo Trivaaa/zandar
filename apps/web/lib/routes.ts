@@ -27,3 +27,10 @@ export function inviteLink(roomId: string): string {
     WEB_BASE || (typeof window !== "undefined" ? window.location.origin : "");
   return `${base}/room/${encodeURIComponent(roomId)}`;
 }
+
+/**
+ * Korak sa imenom. `next` kaže šta `Nastavi` radi: `quickplay` sjeda za javni
+ * sto, `home` samo sačuva ime i vrati se (izmjena iz postavki).
+ */
+export type NameNext = "quickplay" | "home";
+export const namePath = (next: NameNext) => `/ime?next=${next}`;

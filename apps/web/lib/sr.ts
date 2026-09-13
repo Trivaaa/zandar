@@ -106,13 +106,15 @@ export const sr = {
     },
   },
   back: "← Nazad",
+  /** Isto, bez strelice u tekstu — strelicu crta ikonica sa aria-hidden. */
+  backLabel: "Nazad",
   create: {
     title: "Nova soba",
-    name: "Tvoje ime",
-    namePlaceholder: "npr. Igor",
+    name: "Ime za stolom",
+    namePlaceholder: "Kako da te zovemo?",
     players: "Broj igrača",
     target: "Ciljni broj poena",
-    submit: "Kreiraj sobu",
+    submit: "Napravi sobu",
     submitting: "Kreiranje...",
   },
   lobby: {
@@ -152,14 +154,17 @@ export const sr = {
     expiredBody: "Host nije odgovorio na vrijeme.",
   },
   home: {
-    brand: "Tablić - Žandar",
+    brand: "Kartaonica",
     domain: "kartaonica.com",
-    playingAs: (name: string) => `Igraš kao ${name}`,
-    changeName: "Promijeni",
-    namePlaceholder: "Tvoje ime",
-    play: "Igra – nađi sto",
+    /* Ime igre kao rijec; velika slova daje CSS (text-transform), jer citac
+       ekrana ume da speluje 'ZANDAR' slovo po slovo. */
+    game: "Žandar",
+    tagline: "Imaš vremena za jednu?",
+    play: "Igraj Žandar",
     playLoading: "Tražim sto...",
-    createRoom: "Kreiraj privatnu sobu →",
+    playNote: "Zaigraj s drugima. Pokaži šta znaš.",
+    friends: "Igraj s prijateljima",
+    friendsNote: "Vaše društvo. Vaš sto.",
     privacy: "Privatnost",
     terms: "Uslovi korišćenja",
     about: "O nama",
@@ -221,30 +226,26 @@ export const sr = {
     cardLabel: (game: string) => `Obavještenje za ${game}`,
   },
   /* Po igri. Ključ je slug iz `@zandar/shared-types` — nova igra = novi blok.
-     `display` je naslov velikim slovima; `name` ide u rečenice i čitač ekrana
-     (`POKER` bi čitač spelovao slovo po slovo). */
+     Velika slova daje CSS (text-transform) — citac ekrana ume da speluje
+     naslov napisan velikim slovima, slovo po slovo. */
   games: {
     poker: {
       name: "Poker",
-      display: "POKER",
       status: "Poker još nije dostupan.",
       body: "Razmišljamo o pokeru za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },
     remi: {
       name: "Remi",
-      display: "REMI",
       status: "Remi još nije dostupan.",
       body: "Razmišljamo o remiju za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },
     bela: {
       name: "Bela",
-      display: "BELA",
       status: "Bela još nije dostupna.",
       body: "Razmišljamo o beli za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },
     raub: {
       name: "Raub",
-      display: "RAUB",
       status: "Raub još nije dostupan.",
       body: "Razmišljamo o raubu za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },
@@ -252,7 +253,6 @@ export const sr = {
   teaser: {
     title: "Za stolom se ne žuri.",
     tag: "U planu?",
-    back: "Nazad",
   },
   /* Prijava za obavještenje. Strelice (→ ←) NISU u stringovima: crtaju se kao
      dekoracija sa `aria-hidden`, inače čitač ekrana izgovori „strelica desno". */
