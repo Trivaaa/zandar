@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, LegalSection } from "@/components/legal/LegalPage";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Uslovi korišćenja — Žandar",
@@ -89,7 +90,7 @@ export default function UsloviPage() {
       <LegalSection title="Izmjene i kontakt">
         <p>
           Uslove možemo izmijeniti; datum izmjene stoji na vrhu ove stranice.
-          Pitanja idu na <strong>kontakt@kartaonica.com</strong>.
+          Pitanja idu na <strong>{CONTACT_EMAIL}</strong>.
         </p>
       </LegalSection>
     </LegalPage>

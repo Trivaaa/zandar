@@ -35,3 +35,24 @@ export function getGuestId(): string {
   }
   return id;
 }
+
+/**
+ * Procitaj guest ID BEZ generisanja novog.
+ *
+ * `getGuestId()` je read-or-create, sto je tacno na putanjama koje salju zahtjev
+ * serveru. Na stranici za brisanje podataka bi to bilo naopako: otvaranje
+ * stranice o privatnosti ne smije da napravi novi identifikator za nekoga ko ga
+ * nema. Zato zaseban citac, i zato `null` umjesto praznog stringa — pozivalac
+ * mora da razlikuje "nema ga" od "ima ga i prazan je".
+ *
+ * `localStorage` ume da BACI (WebView sa ugasenim site data, iOS lockdown), ne
+ * samo da vrati null — otud try/catch.
+ */
+export function peekGuestId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(KEY);
+  } catch {
+    return null;
+  }
+}

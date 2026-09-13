@@ -65,6 +65,9 @@ export default function Home() {
           <Link href="/uslovi" className="font-sans text-base">
             {sr.home.terms}
           </Link>
+          <Link href="/o-nama" className="font-sans text-base">
+            {sr.home.about}
+          </Link>
         </>
       }
     />

@@ -194,12 +194,24 @@
  * najtiši element na ekranu — home ima jednu glasnu akciju. */
 .home__legal {
   display: flex;
+  /* Sigurnosna mreza: `.screen` ima `overflow-x: hidden`, pa bi link koji ne
+     stane bio TIHO odsjecen umjesto da se prelomi. Tri labele staju u jedan red
+     na 360px; cetvrta ne bi, i zato `/delete-account` visi o `/o-nama`. */
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 1rem;
+  align-items: center;
+  /* row-gap 0 — linkovi od 2.75rem vec razdvajaju redove ako dodje do preloma. */
+  gap: 0 1rem;
   padding-bottom: 0.5rem;
 }
 
 .home__legal a {
+  /* `min-height` je bez dejstva na inline element — otud inline-flex. 2.75rem =
+     44px, ista tap-meta koju nose `.home__secondary` i `.home__change`. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.25rem;
   color: var(--text-muted);
   text-decoration: underline;
 }

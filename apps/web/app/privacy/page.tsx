@@ -9,19 +9,19 @@ export const metadata: Metadata = {
   title: "Politika privatnosti — Žandar",
   description:
     "Koje podatke Kartaonica prikuplja, zašto, kome ih prosljeđuje i kako ih obrišeš.",
-  // Apsolutni URL: `app/layout.tsx` nema `metadataBase`, pa bi relativan
-  // canonical pri buildu bio razrijesen prema localhost-u.
+  // Isti kanonski cilj kao `/privatnost` — dva URL-a, jedan sadrzaj.
   alternates: { canonical: "https://kartaonica.com/privatnost" },
 };
 
 /**
- * Politika privatnosti (bosanski URL). Tijelo dijeli sa `/privacy` — vidi
- * `components/legal/PrivacyPolicyBody.tsx`. Ova ruta je kanonska jer je vec
- * deployovana i linkovana iz `/uslovi` i sa pocetne.
+ * Politika privatnosti na engleskoj putanji. OVAJ URL ide u Play Console:
+ * stabilan je, recenzent po imenu vidi sta je, i pravi je 200 sa sadrzajem u
+ * OBA builda (nije redirect — `redirects()` je no-op u `output: "export"`).
  *
- * NACRT — nije pravni savjet.
+ * Sadrzaj je namjerno isti fajl kao `/privatnost`, da se dvije stranice ne
+ * raziđu.
  */
-export default function PrivatnostPage() {
+export default function PrivacyPage() {
   return (
     <LegalPage title="Politika privatnosti" updated={PRIVACY_UPDATED}>
       <PrivacyPolicyBody />

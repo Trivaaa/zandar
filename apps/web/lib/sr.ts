@@ -160,6 +160,7 @@ export const sr = {
     createRoom: "Kreiraj privatnu sobu →",
     privacy: "Privatnost",
     terms: "Uslovi korišćenja",
+    about: "O nama",
   },
   matching: {
     preparing: "Pripremamo sto...",
@@ -199,5 +200,28 @@ export const sr = {
     abandonedTitle: "Partija je prekinuta",
     abandonedBody: "Partija je završena jer je igrač napustio igru. Možeš izaći i započeti novu.",
     leave: "Izađi",
+  },
+  /* Pravne stranice. Samo interaktivne labele i tekst poruke — proza zivi u
+     samim stranicama (kao /privatnost i /uslovi), jer nosi <strong>, <ul> i
+     <Link> koje ova mapa kratkih stringova ne moze da drzi. */
+  legal: {
+    idLabel: "Tvoj ID uređaja:",
+    idLoading: "Čitam sa uređaja...",
+    idMissing:
+      "Na ovom uređaju nema sačuvanog ID-a — ili nikad nisi igrao u ovom pregledaču, ili su podaci već obrisani. Zahtjev možeš poslati i bez njega, samo će nam trebati više vremena da pronađemo podatke.",
+    copy: "Kopiraj ID",
+    copied: "Kopirano",
+    mailto: "Pošalji zahtjev e-mailom",
+    mailSubject: "Zahtjev za brisanje podataka — Kartaonica",
+    /** Tijelo poruke kao linije — spajanje radi komponenta (nema escape-a ovdje). */
+    mailBodyLines: (id: string | null): string[] => [
+      "Poštovani,",
+      "",
+      "tražim brisanje podataka koje Kartaonica čuva o meni.",
+      "",
+      id ? `ID uređaja: ${id}` : "ID uređaja: (nije dostupan na mom uređaju)",
+      "",
+      "Hvala.",
+    ],
   },
 } as const;
