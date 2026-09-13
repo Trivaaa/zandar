@@ -39,6 +39,7 @@ packages/shared-types TS types shared by web + server
 - **⚠ Staging i produkcija NIKAD ne dijele volume.** Zaseban `DATA_DIR` po servisu — dijeljen bi miješao staging i produkcijske sobe na hidrataciji.
 - **⚠ `BUILD_TARGET` se NE postavlja na Vercelu** — uključio bi `output: "export"` granu iz `next.config.ts` i srušio dinamičku `/room/[roomId]` rutu.
 - **Provjera deploya:** Railway dashboard → servis → Deployments (svaki red = jedan push). Hash pored imena servisa je Railway **deployment ID**, NE git SHA (git SHA je pod "Deployed via GitHub").
+- **⚠ `railway.json` ističe 1.12.2026.** Railway je Config-as-Code proglasio zastarjelim: postojeći fajlovi rade do tog datuma, a servisi koji ga nikad nisu koristili **ne mogu ga uključiti** (od 28.8.2026). Posljedica koja se već osjetila: **staging servis je konfigurisan RUČNO** u dashboardu (builder Nixpacks, start command, healthcheck `/health`, watch paths) jer `railway.json` na njega ne važi — dakle taj fajl više nije jedini izvor istine, i izmjena u njemu ne stiže na staging. Prije 1.12.2026 prenijeti i produkcijske postavke u dashboard ili na Railway *Infrastructure as Code*, inače tiho padaju na podrazumijevane.
 - **⚠ Deploy = restart = hydrate.** Svaki deploy restartuje server, koji na startu hidrira perzistirane sobe (file-snapshot na Railway volumenu). Zato promjene oblika perzistiranih podataka MORAJU biti back-compat (vidi Code & workflow conventions).
 
 ---
