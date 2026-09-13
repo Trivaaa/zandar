@@ -21,6 +21,7 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import { readdir, rm } from "node:fs/promises";
 
 import { parseTarget, mobileEnv, logTarget } from "./build-mobile.mjs";
 
@@ -35,8 +36,24 @@ const GRADLE = {
 const require = createRequire(import.meta.url);
 const nextBin = require.resolve("next/dist/bin/next");
 const capBin = require.resolve("@capacitor/cli/bin/capacitor");
-const androidDir = join(import.meta.dirname, "..", "android");
+const webDir = join(import.meta.dirname, "..");
+const androidDir = join(webDir, "android");
 const sdk = join(process.env.LOCALAPPDATA ?? "", "Android", "Sdk");
+
+/** Best-effort brisanje starih `out-*` foldera — ignoriši ono što je i dalje zaključano. */
+async function sweepOldDistDirs(keep) {
+  let entries;
+  try {
+    entries = await readdir(webDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === keep) continue;
+    if (entry.name !== "out" && !entry.name.startsWith("out-")) continue;
+    await rm(join(webDir, entry.name), { recursive: true, force: true }).catch(() => {});
+  }
+}
 
 /** Pokrene komandu i odbije obećanje na ne-nula izlaz. */
 function run(cmd, args, opts = {}) {
@@ -50,6 +67,13 @@ function run(cmd, args, opts = {}) {
 }
 
 const target = parseTarget(process.argv.slice(2));
+
+// Jedinstven izlazni folder po pozivu (vidi next.config.ts) — zaobilazi
+// Windows EBUSY kad antivirus/indexer drži handle na starom `out/` i pošto
+// je proces koji ga je koristio davno ugašen. `mobileEnv()` širi cijeli
+// `process.env`, pa MORA biti postavljeno PRIJE tog poziva.
+process.env.MOBILE_DIST_DIR = `out-${target}-${Date.now()}`;
+
 const env = mobileEnv(target);
 const { task, apk } = GRADLE[target];
 
@@ -60,11 +84,15 @@ const cleanEnv = { ...process.env };
 delete cleanEnv.CAP_LIVE_RELOAD_URL;
 
 try {
-  // 1. Web u `out/`, sa adresama ovog okruženja zapečenim u bundle.
+  // 1. Web u jedinstven folder, sa adresama ovog okruženja zapečenim u bundle.
   await run(process.execPath, [nextBin, "build"], { env });
 
-  // 2. `out/` + config u native projekat, bez `server.url`.
+  // 2. Izlaz + config u native projekat, bez `server.url`.
   await run(process.execPath, [capBin, "sync", "android"], { env: cleanEnv });
+
+  // Sadržaj je već u android/app/src/main/assets/ — folder više ne treba.
+  // Best-effort: pokupi i ranije zaostale foldere koje prošli lock nije dao obrisati.
+  await sweepOldDistDirs(process.env.MOBILE_DIST_DIR);
 
   // 3. APK. `shell: true` NIJE kozmetika: Node od 20.12 odbija da spawn-uje
   //    `.bat` bez njega (CVE-2024-27980) — padne na golo `spawn EINVAL`.

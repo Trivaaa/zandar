@@ -33,6 +33,14 @@ const nextConfig: NextConfig = {
   ...(isMobile
     ? {
         output: "export" as const,
+        // Zaobilazi Windows EBUSY na `rmdir out/`: antivirus/indexer zna
+        // zadržati handle na direktoriju i nakon što je proces koji ga je
+        // koristio davno ugašen. `build-apk.mjs` po pozivu postavlja
+        // jedinstveno ime (MOBILE_DIST_DIR), pa Next nikad ne pokušava
+        // obrisati folder koji je neko drugi zaključao — svaki build piše u
+        // svjež, dosad nepostojeći direktorij. Default "out" za `pnpm
+        // build:mobile` bez APK lanca ostaje nepromijenjen.
+        distDir: process.env.MOBILE_DIST_DIR || "out",
         // Capacitor servira sa diska: `/room/` → `out/room/index.html` radi,
         // golo `/room` → `room.html` ne.
         trailingSlash: true,

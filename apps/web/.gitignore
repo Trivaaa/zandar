@@ -16,6 +16,8 @@
 # next.js
 /.next/
 /out/
+# build-apk.mjs jedinstveni izlazni folder po pozivu (Windows EBUSY zaobilazak)
+/out-*/
 
 # production
 /build
