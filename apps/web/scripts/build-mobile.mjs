@@ -28,8 +28,8 @@ export const TARGETS = {
     NEXT_PUBLIC_APP_ENV: "production",
   },
   staging: {
-    NEXT_PUBLIC_API_URL: "https://zandar-staging.up.railway.app",
-    NEXT_PUBLIC_WEB_URL: "https://zandar-staging.vercel.app",
+    NEXT_PUBLIC_API_URL: "https://zandar-production.up.railway.app",
+    NEXT_PUBLIC_WEB_URL: "https://zandar-web.vercel.app",
     NEXT_PUBLIC_APP_ENV: "staging",
   },
 };
