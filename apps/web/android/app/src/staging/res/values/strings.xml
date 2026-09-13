@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Samo naziv aplikacije, da se dvije ikone na telefonu razlikuju na prvi pogled.
+  `package_name` i `custom_url_scheme` se NE nadjacavaju: `applicationIdSuffix`
+  mijenja applicationId, ali java paket ostaje `com.kartaonica.zandar`.
+-->
+<resources>
+    <string name="app_name">Žandar (staging)</string>
+    <string name="title_activity_main">Žandar (staging)</string>
+</resources>

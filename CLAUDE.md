@@ -20,12 +20,25 @@ packages/game-core    Pure TS game engine (no UI, no network)
 packages/shared-types TS types shared by web + server
 ```
 
-## Deployment (Railway, GitHub auto-deploy)
+## Deployment (dva okruženja, GitHub auto-deploy)
 
-- **Hosting: Railway.** Server servis (`apps/server`) je povezan na GitHub repo `Trivaaa/zandar`, grana `main`, s **auto-deploy na push**. Nema CI skripte ni ručne deploy komande — `git push origin main` = build + redeploy.
-- **Server build/run:** Nixpacks · build `pnpm install --frozen-lockfile` · start `pnpm --filter=@zandar/server start` (= `tsx src/index.ts`). Region `iad`. Domen servisa: `zandar-test.up.railway.app`.
-- **Provjera deploya:** Railway dashboard → server servis → Deployments (svaki red = jedan push). Hash pored imena servisa je Railway **deployment ID**, NE git SHA (git SHA je pod "Deployed via GitHub").
-- **Web (`apps/web`):** **LIVE na Vercelu** — domen `kartaonica.com` (Next.js). `NEXT_PUBLIC_API_URL` se postavlja u Vercel env — **nije u repou** (lokalno pada na `http://localhost:3001`). Server ostaje na Railwayu (`zandar-test.up.railway.app`). Push na `main` = auto-deploy oba (Vercel web + Railway server).
+| | Grana | Server (Railway) | Web (Vercel) | APK |
+|---|---|---|---|---|
+| **Staging** | `main` | `zandar-staging.up.railway.app` | `zandar-staging.vercel.app` | `com.kartaonica.zandar.staging` — „Žandar (staging)" |
+| **Produkcija** | `production` | `zandar-test.up.railway.app` | `kartaonica.com` | `com.kartaonica.zandar` |
+
+- **`git push origin main` NE ide korisnicima** — diže staging (web + server). Produkcija je svjestan čin:
+  ```
+  git checkout production && git merge --ff-only main && git push origin production
+  ```
+  `--ff-only` namjerno: produkcija smije biti samo tačka na `main`-u, nikad zaseban tok. Ako odbije, `main` je prepisan i to treba vidjeti prije objave, ne poslije.
+- **Repo `Trivaaa/zandar`, auto-deploy na push.** Nema CI skripte ni ručne deploy komande. `railway.json` nosi `watchPatterns`, pa web-only push NE restartuje server (restart = hidracija, vidi ⚠ ispod).
+- **Server build/run:** Nixpacks · build `pnpm install --frozen-lockfile` · start `pnpm --filter=@zandar/server start` (= `tsx src/index.ts`). Region `iad`.
+- **Koje je okruženje:** `GET /health` vraća `env` (`APP_ENV` varijabla). Dva servisa su inače neraspoznatljiva `curl`-om. Isto i u analitici — `track()` šalje `appEnv`, pa se §43 kohorte filtriraju na `appEnv = production`; Sentry dobija `environment` iz `NEXT_PUBLIC_APP_ENV`.
+- **Env po servisu:** server `CORS_ORIGIN` (uvijek uz `https://localhost` — Capacitor WebView origin, **isti za staging APK** jer zavisi od `androidScheme`, ne od `applicationId`), `DATA_DIR`, `APP_ENV`. Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WEB_URL`, `NEXT_PUBLIC_APP_ENV`, PostHog ključevi. **Nisu u repou**, stoje u dashboardima; lokalno API pada na `http://localhost:3001`.
+- **⚠ Staging i produkcija NIKAD ne dijele volume.** Zaseban `DATA_DIR` po servisu — dijeljen bi miješao staging i produkcijske sobe na hidrataciji.
+- **⚠ `BUILD_TARGET` se NE postavlja na Vercelu** — uključio bi `output: "export"` granu iz `next.config.ts` i srušio dinamičku `/room/[roomId]` rutu.
+- **Provjera deploya:** Railway dashboard → servis → Deployments (svaki red = jedan push). Hash pored imena servisa je Railway **deployment ID**, NE git SHA (git SHA je pod "Deployed via GitHub").
 - **⚠ Deploy = restart = hydrate.** Svaki deploy restartuje server, koji na startu hidrira perzistirane sobe (file-snapshot na Railway volumenu). Zato promjene oblika perzistiranih podataka MORAJU biti back-compat (vidi Code & workflow conventions).
 
 ---
@@ -46,6 +59,7 @@ packages/shared-types TS types shared by web + server
 | QuickMatchScreen `/brza` — name input → oval matching table | main | merged; matching faza koristi `MatchingTable` |
 | RulesModal — full pravila Žandara | main | opened via "? Pravila" in GameView |
 | PostHog analytics, Sentry, OG metadata, CORS multi-origin | main | |
+| **Staging okruženje** — `main`→staging, `production`→produkcija; dva APK-a side-by-side | feat/staging-env | `build-apk.mjs` lanac, `staging` buildType, `/health` + analitika nose `appEnv`, oznaka na home-u. Vidi Deployment |
 
 #### Design System v3.2 frontend build (docs/DESIGN_SYSTEM.md §11)
 
@@ -135,6 +149,12 @@ dev:android` — APK čita `next dev` sa LAN adrese, pa izmjena ide kroz HMR bez
 posudi ga:** `PORT=<njegov port> pnpm dev:android` — Next 16 dozvoljava samo
 jedan po projektu, a bez toga instalacija prođe i ostaviš APK bez sadržaja.
 Detalji i zamke: `docs/MOBILE_PLAN_STATUS.md` §4.
+
+**Pravi APK** ide kroz `pnpm --filter web apk:staging` (ili `apk:prod`) — jedan
+lanac `next build` → `cap sync` → `gradlew`, koji uz to briše
+`CAP_LIVE_RELOAD_URL` iz okruženja. Staging se instalira PORED produkcijskog
+(`com.kartaonica.zandar.staging`, „Žandar (staging)"), pa se isti ekran može
+uporediti. Detalji: `docs/MOBILE_PLAN_STATUS.md` §Dva APK-a.
 
 **Nije zamjena za pravi APK prije izdanja** — `output: "export"` i
 `pageExtensions` grane se u dev-u ne izvršavaju. `CAP_LIVE_RELOAD_URL` je jedini

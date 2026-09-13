@@ -21,6 +21,16 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+        // Staging se instalira PORED produkcijske aplikacije (drugi applicationId),
+        // pa se isti ekran moze uporediti prije nego promjena ode korisnicima.
+        // `debug` i `release` se namjerno NE diraju: `dev-android.mjs` pokrece
+        // `com.kartaonica.zandar/.MainActivity` zakucano, pa dev petlja ostaje ista.
+        staging {
+            initWith debug                 // debuggable + debug potpis -> instalira se bez release kljuca
+            applicationIdSuffix ".staging"
+            versionNameSuffix "-staging"
+            matchingFallbacks = ['debug']  // capacitor-android moduli nemaju `staging` buildType
+        }
     }
 }
 

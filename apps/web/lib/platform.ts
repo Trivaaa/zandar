@@ -9,6 +9,13 @@
 export const isNative = process.env.NEXT_PUBLIC_PLATFORM === "native";
 
 /**
+ * Staging build. Postoji da se dva skoro identicna okruzenja ne pomijesaju —
+ * vidi CLAUDE.md Deployment. Kao i `isNative`, build-time konstanta: bundler je
+ * izbaci iz produkcijskog builda zajedno sa oznakom koju cuva.
+ */
+export const isStaging = process.env.NEXT_PUBLIC_APP_ENV === "staging";
+
+/**
  * Baza API-ja. U native buildu NEMA fallback-a: `http://localhost:3001` unutar
  * APK-a pokazuje na sam telefon, pa bi aplikacija tiho otkazivala umjesto da
  * build padne. Android uz to blokira cleartext — produkcija mora biti HTTPS.

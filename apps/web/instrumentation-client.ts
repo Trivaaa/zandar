@@ -9,6 +9,11 @@ import { getGuestId } from "@/lib/guestId";
 Sentry.init({
   dsn: "https://7d96f7464b04a409c8e48593145bbbe3@o4511503641739264.ingest.de.sentry.io/4511503655239760",
 
+  // Sentry filtrira po environment-u nativno, pa staging greske ne ulaze u
+  // produkcijski sum. Build-time konstanta (`NEXT_PUBLIC_APP_ENV`), postavljena
+  // po Vercel projektu i u `build-mobile.mjs` — vidi CLAUDE.md Deployment.
+  environment: process.env.NEXT_PUBLIC_APP_ENV ?? "development",
+
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,
   // Enable logs to be sent to Sentry

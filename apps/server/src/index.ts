@@ -77,6 +77,9 @@ const configuredOrigins = (
  */
 const isProduction =
   process.env.NODE_ENV === "production" || Boolean(process.env.CORS_ORIGIN);
+
+/** Koje okruzenje ovaj proces vrti — cita ga `/health` i analitika (§43). */
+export const APP_ENV = process.env.APP_ENV ?? "development";
 const LAN_ORIGIN =
   /^https?:\/\/(?:localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(?::\d+)?$/;
 
@@ -93,7 +96,16 @@ await fastify.register(cors, {
 
 // ---- HEALTH ----
 fastify.get("/", async () => ({ message: "Žandar server radi! 🃏" }));
-fastify.get("/health", async () => ({ status: "ok", timestamp: Date.now() }));
+/**
+ * `env` je tu da se dva servisa nikad ne pomijesaju: staging i produkcija vrte
+ * ISTI kod na istom obliku odgovora, pa bez ove rijeci `curl` ne razlikuje
+ * koji je koji. Postavlja se preko `APP_ENV` (Railway), vidi CLAUDE.md Deployment.
+ */
+fastify.get("/health", async () => ({
+  status: "ok",
+  env: APP_ENV,
+  timestamp: Date.now(),
+}));
 
 // ---- ROOMS ----
 

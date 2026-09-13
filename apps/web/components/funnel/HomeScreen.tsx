@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { isStaging } from "@/lib/platform";
 import { sr } from "@/lib/sr";
 
 export type HomeScreenProps = {
@@ -46,6 +47,7 @@ export function HomeScreen({
       <header className="home__brand">
         <span className="home__name font-display text-2xl">{sr.home.brand}</span>
         <span className="home__domain font-sans text-sm">{sr.home.domain}</span>
+        {isStaging ? <span className="home__env font-sans text-sm">STAGING</span> : null}
       </header>
 
       <div className="home__body">

@@ -61,6 +61,21 @@
   color: var(--text-muted);
 }
 
+/**
+ * Oznaka staging builda. NAMJERNO samo na home ekranu, ne na feltu: raspored
+ * felta je pikselski izmjeren (`--stage-*` budzet visine), pa bi nov element
+ * tamo trazio ponovno mjerenje radi kozmetike. Na uredjaju razlikuje ime
+ * ikone, u browseru URL.
+ */
+.home__env {
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--danger-signal);
+  color: var(--surface);
+  letter-spacing: 0.08em;
+}
+
 .home__body {
   width: 100%;
   max-width: min(20rem, 100%);

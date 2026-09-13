@@ -43,4 +43,17 @@ pnpm --filter web build
 
 ## Deployment
 
-Server → Railway. Web → Vercel (`kartaonica.com`). Auto-deploy na push u `main`.
+Dva okruženja, oba auto-deploy na push:
+
+| | Grana | Server (Railway) | Web (Vercel) |
+|---|---|---|---|
+| Staging | `main` | `zandar-staging.up.railway.app` | `zandar-staging.vercel.app` |
+| Produkcija | `production` | `zandar-test.up.railway.app` | `kartaonica.com` |
+
+`git push origin main` diže **staging**. Objava na produkciju:
+
+```
+git checkout production && git merge --ff-only main && git push origin production
+```
+
+APK: `pnpm --filter web apk:staging` / `apk:prod`. Detalji u [`CLAUDE.md`](CLAUDE.md#deployment-dva-okruženja-github-auto-deploy).

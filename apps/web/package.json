@@ -9,6 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "build:mobile": "node scripts/build-mobile.mjs",
+    "apk:staging": "node scripts/build-apk.mjs --env staging",
+    "apk:prod": "node scripts/build-apk.mjs --env prod",
     "cap:sync": "pnpm build:mobile && cap sync android",
     "dev:android": "node scripts/dev-android.mjs",
     "mirror": "node scripts/mirror.mjs"

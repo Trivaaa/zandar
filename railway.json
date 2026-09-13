@@ -1,5 +1,15 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "watchPatterns": [
+      "apps/server/**",
+      "packages/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "railway.json"
+    ]
+  },
   "deploy": {
     "startCommand": "pnpm --filter @zandar/server start",
     "healthcheckPath": "/health",

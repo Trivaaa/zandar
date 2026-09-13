@@ -122,10 +122,37 @@ GRADLE_OPTS   -Djavax.net.ssl.trustStore=C:/Users/User/.gradle/cacerts-avast -Dj
   wildcard-a, i dijele je Fastify CORS i Socket.IO handshake, pa bez ovoga
   **i REST i socket padaju**. (`apps/server/src/index.ts:57`)
 - Mobilni build treba: `NEXT_PUBLIC_API_URL` (HTTPS — Android blokira cleartext),
-  `NEXT_PUBLIC_WEB_URL=https://kartaonica.com` (bez toga je invite link
-  `https://localhost/...` = mrtav), i PostHog ključeve.
+  `NEXT_PUBLIC_WEB_URL` (bez toga je invite link `https://localhost/...` = mrtav),
+  `NEXT_PUBLIC_APP_ENV`, i PostHog ključeve. Sve to nosi mapa `TARGETS` u
+  `scripts/build-mobile.mjs` — ne postavlja se ručno.
 - Vercel ostaje netaknut — nema `BUILD_TARGET`, pa zadržava server build,
   `redirects()` i path rute.
+
+### Dva APK-a (staging / produkcija)
+
+```
+pnpm --filter web apk:staging   → com.kartaonica.zandar.staging, „Žandar (staging)"
+pnpm --filter web apk:prod      → com.kartaonica.zandar
+```
+
+`scripts/build-apk.mjs` veže tri koraka koji MORAJU ići zajedno i tim redom:
+`next build` (adrese okruženja se peku u bundle) → `cap sync` → `gradlew`.
+
+- **Staging se instalira PORED produkcijskog** (`applicationIdSuffix ".staging"`
+  na novom `staging` buildType-u), pa se isti ekran može uporediti prije objave.
+  `debug` i `release` se ne diraju, pa `pnpm dev:android` radi kao i prije.
+- **`CAP_LIVE_RELOAD_URL` skripta briše iz okruženja** prije `cap sync`-a. Ako
+  ostane (a ostaje poslije `pnpm dev:android` u istoj ljusci), `server.url`
+  završi u APK-u: radi dok dev server živi, pa se digne na crno. `env -u` ne
+  postoji u PowerShell-u — otud skripta.
+- **Adresu servera ne nosi gradle nego web asseti**
+  (`android/app/src/main/assets/`), koji su ZAJEDNIČKI za sve buildType-ove.
+  `gradlew assembleStaging` bez prethodnog `build:mobile`+`cap sync` daje APK sa
+  tačnim imenom i applicationId-em, ali sa **starim sadržajem** — to ne izgleda
+  kao greška, pa se provjerava raspakivanjem (dolje).
+- **Provjera gotovog APK-a:** `aapt2 dump badging app-staging.apk` (ime,
+  applicationId, versionName) + `unzip -l` da `assets/public` nosi očekivanu
+  adresu i da `assets/capacitor.config.json` **nema `server.url`**.
 
 ### Ikone
 
