@@ -175,7 +175,10 @@ async function main() {
   const icoSizes = [16, 32, 48];
   const icoFrames = [];
   for (const size of icoSizes) {
-    icoFrames.push({ size, buf: await squarePng(size) });
+    // Next/Turbopack svoj ICO dekoder traži RGBA frejmove; sharp bez
+    // ensureAlpha() ostavlja RGB (nema kanala) jer izvor nema providnost.
+    const buf = await sharp(SRC).resize(size, size).ensureAlpha().png().toBuffer();
+    icoFrames.push({ size, buf });
   }
   writeFileSync(join(WEB_ROOT, "app/favicon.ico"), buildIco(icoFrames));
   console.log("Web: app/favicon.ico (16/32/48)");
