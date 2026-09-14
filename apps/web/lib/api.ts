@@ -5,9 +5,18 @@ import {
   type SignupResponse,
   type UpcomingGameSlug,
 } from "@zandar/shared-types";
-import { isNative, resolveApiBase } from "@/lib/platform";
+import { analyticsPlatform, isNative, resolveApiBase } from "@/lib/platform";
+import { track } from "@/lib/track";
 
 const API_BASE = resolveApiBase();
+
+/**
+ * Ko igra i odakle — server ga pamti na igraču pa start i kraj meča
+ * pripisuje i čovjeku koji do tad nije otvorio socket (docs/analytics.md).
+ */
+function analyticsIdentity(): { guestId: string; platform: typeof analyticsPlatform } {
+  return { guestId: getGuestId(), platform: analyticsPlatform };
+}
 
 export type RoomPlayer = {
   id: string;
@@ -57,10 +66,11 @@ export async function createRoom(input: {
   playerCount: 2 | 3 | 4;
   targetScore: number;
 }): Promise<CreateRoomResponse> {
+  track("play_requested", { mode: "private_room" });
   const res = await fetch(`${API_BASE}/api/rooms`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, ...analyticsIdentity() }),
   });
   if (!res.ok) {
     const err = await res.json();
@@ -84,10 +94,15 @@ export async function submitJoinRequest(
   /** Uređaj za push "ulazak je odobren" (PRD §51); null na webu i bez dozvole. */
   pushId: string | null = null,
 ): Promise<JoinRequestResponse> {
+  track("play_requested", { mode: "private_room" });
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/join-request`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ displayName, ...(pushId ? { pushId } : {}) }),
+    body: JSON.stringify({
+      displayName,
+      ...(pushId ? { pushId } : {}),
+      ...analyticsIdentity(),
+    }),
   });
   if (!res.ok) {
     const err = await res.json();
@@ -262,6 +277,7 @@ export type QuickPlayResponse = {
 export async function quickPlay(input: {
   displayName: string;
 }): Promise<QuickPlayResponse> {
+  track("play_requested", { mode: "quick_play" });
   const res = await fetch(`${API_BASE}/api/quickplay`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -269,7 +285,7 @@ export async function quickPlay(input: {
       ...input,
       playerCount: 4,
       targetScore: 21,
-      guestId: getGuestId(),
+      ...analyticsIdentity(),
     }),
   });
   if (!res.ok) {

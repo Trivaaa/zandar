@@ -1,5 +1,6 @@
 import { randomBytes, createHash } from "node:crypto";
 import type {
+  AnalyticsPlatform,
   GameState,
   Player,
   RulesConfig,
@@ -22,6 +23,9 @@ export type JoinRequest = {
   sessionToken?: string;   // plaintext, vraća se gostu jednom
   /** Uređaj gosta za push (hash `pushId`-a) — prelazi u `LobbyRoom.pushIds` na approve. */
   pushIdHash?: string;
+  /** Analitika — prelazi na igrača pri approve-u (docs/analytics.md). */
+  guestId?: string;
+  platform?: AnalyticsPlatform;
 };
 
 export type LobbyRoom = {

@@ -16,7 +16,10 @@ import {
   normalizeEmail,
   type BotMoveTiming,
   type BotSkillTier,
+  type MatchEndReason,
+  type MatchMode,
   type Player,
+  type ServerAnalyticsEvent,
 } from "@zandar/shared-types";
 import {
   createPlayerId,
@@ -46,6 +49,15 @@ import {
   resolveVoteTimeout,
 } from "./pause";
 import { posthog, track } from "./lib/posthog";
+import {
+  matchEndedEvents,
+  matchStartedEvents,
+  parseGuestId,
+  parsePlatform,
+  tableComposition,
+  trackedHumans,
+  type Capture,
+} from "./analytics";
 import { SlidingWindowLimiter } from "./rateLimit";
 import {
   listSignups,
@@ -179,12 +191,15 @@ type CreateRoomBody = {
   displayName: string;
   playerCount: 2 | 3 | 4;
   targetScore?: number;
+  guestId?: unknown; // analitika (PostHog distinctId)
+  platform?: unknown;
 };
 
 fastify.post<{ Body: CreateRoomBody }>(
   "/api/rooms",
   async (request, reply) => {
     const { displayName, playerCount, targetScore = 21 } = request.body;
+    const identity = analyticsIdentity(request.body);
 
     if (!displayName || displayName.trim().length === 0) {
       return reply.code(400).send({ error: "displayName je obavezan" });
@@ -209,6 +224,7 @@ fastify.post<{ Body: CreateRoomBody }>(
       connectionStatus: "connected",
       isHost: true,
       consecutiveAutoPlays: 0,
+      ...identity,
     };
     if (playerCount === 4) {
       hostPlayer.teamId = 0;
@@ -268,7 +284,12 @@ fastify.get<{ Params: { roomId: string } }>(
 
 // ---- JOIN REQUESTS ----
 
-type JoinRequestBody = { displayName: string; pushId?: unknown };
+type JoinRequestBody = {
+  displayName: string;
+  pushId?: unknown;
+  guestId?: unknown; // analitika (PostHog distinctId)
+  platform?: unknown;
+};
 
 fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
   "/api/rooms/:roomId/join-request",
@@ -307,6 +328,7 @@ fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
       status: "pending",
       createdAt: now,
       expiresAt: now + JOIN_REQUEST_TTL_MS,
+      ...analyticsIdentity(request.body),
     };
 
     // Uređaj gosta, za "ulazak je odobren" (PRD §51). Nepoznat pushId se tiho ignoriše.
@@ -471,6 +493,8 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
       connectionStatus: "connected",
       isHost: false,
       consecutiveAutoPlays: 0,
+      ...(req.guestId ? { guestId: req.guestId } : {}),
+      ...(req.platform ? { platform: req.platform } : {}),
     };
     if (room.rulesConfig.playerCount === 4) {
       newPlayer.teamId = seatIndex % 2;
@@ -656,13 +680,15 @@ type QuickPlayBody = {
   displayName: string;
   playerCount: 2 | 3 | 4;
   targetScore?: number;
-  guestId?: string; // za §43 atribuciju (PostHog distinctId)
+  guestId?: unknown; // analitika (PostHog distinctId)
+  platform?: unknown;
 };
 
 fastify.post<{ Body: QuickPlayBody }>(
   "/api/quickplay",
   async (request, reply) => {
-    const { displayName, playerCount, targetScore = 21, guestId } = request.body;
+    const { displayName, playerCount, targetScore = 21 } = request.body;
+    const identity = analyticsIdentity(request.body);
 
     if (!displayName || displayName.trim().length === 0) {
       return reply.code(400).send({ error: "displayName je obavezan" });
@@ -670,9 +696,6 @@ fastify.post<{ Body: QuickPlayBody }>(
     if (![2, 3, 4].includes(playerCount)) {
       return reply.code(400).send({ error: "playerCount mora biti 2, 3 ili 4" });
     }
-
-    const matchStartedAt = Date.now();
-    track(guestId, "quickplay_requested", { playerCount, targetScore });
 
     const playerId = createPlayerId();
     const sessionToken = createSessionToken();
@@ -698,6 +721,7 @@ fastify.post<{ Body: QuickPlayBody }>(
         connectionStatus: "connected",
         isHost: false,
         consecutiveAutoPlays: 0,
+        ...identity,
       };
       existingRoom.players.push(newPlayer);
       existingRoom.sessionTokens.set(playerId, hashToken(sessionToken));
@@ -708,15 +732,10 @@ fastify.post<{ Body: QuickPlayBody }>(
       if (existingRoom.players.length >= existingRoom.rulesConfig.playerCount) {
         // Soba puna — pokreni odmah
         startBotGame(existingRoom);
+        emitMatchStarted(existingRoom);
         await broadcastGameState(existingRoom.id);
         fastify.log.info(`▶ Room ${existingRoom.id} full, game started`);
       }
-
-      track(guestId, "quickplay_matched", {
-        matchType: "joined_existing",
-        waitMs: Date.now() - matchStartedAt,
-        ...tableComposition(existingRoom),
-      });
 
       return { roomId: existingRoom.id, playerId, playerSessionToken: sessionToken };
     }
@@ -734,6 +753,7 @@ fastify.post<{ Body: QuickPlayBody }>(
       connectionStatus: "connected",
       isHost: true,
       consecutiveAutoPlays: 0,
+      ...identity,
     };
 
     const room: LobbyRoom = {
@@ -749,17 +769,10 @@ fastify.post<{ Body: QuickPlayBody }>(
       isPublic: true,
     };
 
-    const botsToFill = rulesConfig.playerCount - room.players.length;
     fillSeatsWithBots(room, 2);
     startBotGame(room);
     storeRoom(room);
-
-    track(guestId, "bot_seat_filled", { count: botsToFill, tier: 2 });
-    track(guestId, "quickplay_matched", {
-      matchType: "new_room",
-      waitMs: Date.now() - matchStartedAt,
-      ...tableComposition(room),
-    });
+    emitMatchStarted(room);
 
     fastify.log.info(`🎲 Quick Play room ${roomId} created and started (${playerCount}P)`);
     return { roomId, playerId, playerSessionToken: sessionToken };
@@ -821,19 +834,9 @@ fastify.post<{ Params: { roomId: string }; Body: StartBody }>(
       buildGameStartedPush({ roomId }),
       `game_started:${gameState.matchId}`,
     );
+    emitMatchStarted(room);
 
     await broadcastGameState(roomId);
-    const sockets = await io.in(roomId).fetchSockets();
-    const hostSocket = sockets.find((s) => s.data.playerId === room.hostPlayerId);
-    const guestId = hostSocket?.data.guestId ?? null;
-    track(guestId, "game_started", {
-      roomId,
-      matchId: room.gameState.matchId,
-      playerCount: room.gameState.players.length,
-      targetScore: room.gameState.targetScore,
-      isPublic: room.isPublic ?? false,
-      ...tableComposition(room.gameState),
-    });
     fastify.log.info(`→ Game started in room ${roomId}`);
 
     return { success: true };
@@ -943,7 +946,7 @@ fastify.post<{ Body: SignupBody | null }>("/api/signups", async (request, reply)
   if (created) {
     track(guestId, "signup_succeeded", {
       game: body.game,
-      platform: body.platform === "native" ? "native" : "web",
+      platform: parsePlatform(body.platform) ?? "web",
     });
     fastify.log.info(`✉ Nova prijava za ${body.game}`);
   }
@@ -1441,78 +1444,86 @@ async function handleTurnTimeout(roomId: string): Promise<void> {
   }
 }
 
-// ---- §43 ANALITIKA ----
-// Guard da se hand/match završetak emituje JEDNOM (po matchId/handNumber).
-// In-memory; resetuje se na restart (deploy) — dovoljno (eventi su idempotentni
-// po ključu unutar jednog procesa).
+// ---- ANALITIKA (docs/analytics.md) ----
+// Odluke (ko, šta, sa kojim parametrima) žive u `analytics.ts`; ovdje su samo
+// guard-ovi i slanje. Guard je in-memory: restart ga briše, ali hidrirana soba
+// ne ponavlja prelaz faze koji okida događaj, pa duplikat traži rijedak slučaj.
 const analyticsEmitted = new Set<string>();
+/** Kad je meč počeo — za `duration_ms`. Restart ga briše; tad trajanje izostaje. */
+const matchStartTimes = new Map<string, number>();
 
-/** Sastav stola: ljudi vs botovi + udio botova (za bot_seat_share i human-only kohortu). */
-function tableComposition(gs: { players: { isBot?: boolean }[] }): {
-  humansAtTable: number;
-  botsAtTable: number;
-  botSeatShare: number;
-} {
-  const total = gs.players.length;
-  const botsAtTable = gs.players.filter((p) => p.isBot).length;
-  return {
-    humansAtTable: total - botsAtTable,
-    botsAtTable,
-    botSeatShare: total > 0 ? botsAtTable / total : 0,
-  };
+/** guestId + platforma iz tijela zahtjeva, samo ako su ispravni. */
+function analyticsIdentity(body: {
+  guestId?: unknown;
+  platform?: unknown;
+}): Pick<Player, "guestId" | "platform"> {
+  const guestId = parseGuestId(body.guestId);
+  const platform = parsePlatform(body.platform);
+  return { ...(guestId ? { guestId } : {}), ...(platform ? { platform } : {}) };
 }
 
-/** Da li je pile (igrač u 2P/3P, tim u 4P) datog igrača pobjednik meča. */
-function isMatchWinner(
-  gs: {
-    players: { id: string; teamId?: number }[];
-    matchScore: Record<string, number>;
-  },
-  viewerPlayerId: string,
-): boolean {
-  const me = gs.players.find((p) => p.id === viewerPlayerId);
-  const myPile = me?.teamId != null ? `team-${me.teamId}` : viewerPlayerId;
-  const entries = Object.entries(gs.matchScore);
-  if (entries.length === 0) return false;
-  const top = entries.reduce((a, b) => (b[1] > a[1] ? b : a));
-  return top[0] === myPile;
+function roomMode(room: LobbyRoom): MatchMode {
+  return room.isPublic ? "quick_play" : "private_room";
+}
+
+function sendCaptures<E extends ServerAnalyticsEvent>(captures: readonly Capture<E>[]): void {
+  for (const c of captures) track(c.distinctId, c.event, c.properties);
 }
 
 /**
- * Emituj hand_finished / match_finished po svakom POVEZANOM ČOVJEKU (preskoči
- * botove), guard po matchId. Ovdje (ne u playCard handleru) da se uhvate i
- * partije koje je BOT završio (inače curi ~pola win-rate uzorka).
+ * `match_started` po čovjeku. Zove se na SVAKOM mjestu gdje meč krene — Quick
+ * Play, host `/start`, revanš — jer nijedno od njih ne prolazi kroz drugo.
  */
-function emitEndAnalytics(
-  room: LobbyRoom,
-  sockets: readonly { data: { playerId?: unknown; guestId?: unknown } }[],
-): void {
+function emitMatchStarted(room: LobbyRoom): void {
   const gs = room.gameState;
   if (!gs) return;
-  if (gs.phase !== "hand_finished" && gs.phase !== "match_finished") return;
+  const key = `start:${gs.matchId}`;
+  if (analyticsEmitted.has(key)) return;
+  analyticsEmitted.add(key);
+  matchStartTimes.set(gs.matchId, Date.now());
+  sendCaptures(matchStartedEvents(gs, roomMode(room)));
+}
 
-  const isMatch = gs.phase === "match_finished";
-  const key = isMatch
-    ? `match:${gs.matchId}`
-    : `hand:${gs.matchId}:${gs.handNumber}`;
+/** `match_ended` — jednom po meču: kraj i prekid dijele ključ, pa se ne mogu oba desiti. */
+function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
+  const gs = room.gameState;
+  if (!gs) return;
+  const key = `end:${gs.matchId}`;
+  if (analyticsEmitted.has(key)) return;
+  analyticsEmitted.add(key);
+  const startedAt = matchStartTimes.get(gs.matchId);
+  matchStartTimes.delete(gs.matchId);
+  sendCaptures(
+    matchEndedEvents(gs, { mode: roomMode(room), reason, startedAt, now: Date.now() }),
+  );
+}
+
+/**
+ * Kraj ruke / kraj meča. Ovdje (ne u playCard handleru) da se uhvate i partije
+ * koje je BOT završio. Ljudi iz `players`, ne iz socketa — vidi `analytics.ts`.
+ */
+function emitEndAnalytics(room: LobbyRoom): void {
+  const gs = room.gameState;
+  if (!gs) return;
+  if (gs.phase === "match_finished") {
+    emitMatchEnded(room, "completed");
+    return;
+  }
+  if (gs.phase !== "hand_finished") return;
+
+  const key = `hand:${gs.matchId}:${gs.handNumber}`;
   if (analyticsEmitted.has(key)) return;
   analyticsEmitted.add(key);
 
-  const comp = tableComposition(gs);
-  for (const s of sockets) {
-    const pid = s.data.playerId;
-    const guestId = s.data.guestId;
-    if (typeof pid !== "string" || typeof guestId !== "string") continue;
-    const player = gs.players.find((p) => p.id === pid);
-    if (!player || player.isBot) continue;
-    track(guestId, isMatch ? "match_finished" : "hand_finished", {
+  const comp = tableComposition(gs.players);
+  for (const p of trackedHumans(gs.players)) {
+    track(p.guestId, "hand_finished", {
       roomId: room.id,
       matchId: gs.matchId,
       handNumber: gs.handNumber,
       playerCount: gs.players.length,
       isPublic: room.isPublic ?? false,
       ...comp,
-      ...(isMatch ? { won: isMatchWinner(gs, pid) } : {}),
     });
   }
 }
@@ -1661,6 +1672,7 @@ async function enterAbandoned(roomId: string): Promise<void> {
   delete gs.abandonVotes;
   // Sweeper time dobija kraći TTL za završene sobe umjesto 12h idle.
   room.status = "finished";
+  emitMatchEnded(room, "abandoned");
 
   await broadcastGameState(roomId);
   fastify.log.info(`⚠ Match abandoned in room ${roomId}`);
@@ -1704,7 +1716,7 @@ async function broadcastGameState(roomId: string): Promise<void> {
 
   // §43: hand/match završetak (jednom po matchId, po svakom čovjeku, sa sastavom
   // stola + `won`). Ovdje da uhvati i partije koje bot završi.
-  emitEndAnalytics(room, socketsInRoom);
+  emitEndAnalytics(room);
 
   // Perzistuj svjež state (debounce) — preživi restart servera.
   persistRoom(room);
@@ -1743,6 +1755,15 @@ io.on("connection", (socket) => {
       if (device && room.pushIds?.[playerId] !== device) {
         room.pushIds = { ...room.pushIds, [playerId]: device };
         persistRoom(room);
+      }
+
+      // Hidrirane sobe i stari klijenti nemaju guestId na igraču — dopuni iz
+      // handshake-a, da kraj meča ne ostane bez vlasnika.
+      const handshakeGuestId = parseGuestId(socket.handshake.auth.guestId);
+      if (handshakeGuestId) {
+        for (const p of [...room.players, ...(room.gameState?.players ?? [])]) {
+          if (p.id === playerId && !p.isBot && !p.guestId) p.guestId = handshakeGuestId;
+        }
       }
 
       fastify.log.info(
@@ -1955,6 +1976,7 @@ io.on("connection", (socket) => {
 
       room.gameState = newState;
       room.status = "playing";
+      emitMatchStarted(room);
 
       await broadcastGameState(roomId);
       ack?.({ ok: true });

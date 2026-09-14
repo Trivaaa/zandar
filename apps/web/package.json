@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test lib/track.test.ts",
     "build:mobile": "node scripts/build-mobile.mjs",
     "apk:staging": "node scripts/build-apk.mjs --env staging",
     "apk:prod": "node scripts/build-apk.mjs --env prod",
@@ -40,6 +41,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
+    "tsx": "^4.22.1",
     "typescript": "^5"
   }
 }

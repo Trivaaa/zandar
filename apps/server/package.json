@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
     "start": "tsx src/index.ts",
-    "test": "tsx --test src/signups.test.ts src/rateLimit.test.ts src/push/messages.test.ts src/push/devices.test.ts src/push/fcm.test.ts"
+    "test": "tsx --test src/signups.test.ts src/rateLimit.test.ts src/analytics.test.ts src/posthog.test.ts src/push/messages.test.ts src/push/devices.test.ts src/push/fcm.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.0.1",
