@@ -38,6 +38,8 @@ import { networkInterfaces } from "node:os";
 import { connect } from "node:net";
 import { join } from "node:path";
 
+import { pushFlag } from "./build-mobile.mjs";
+
 /**
  * Port se BIRA, ne pretpostavlja. Ako na 3000 vec nesto slusa — a tipicno je to
  * tvoj obicni `pnpm dev` — onda bi `waitForPort` dobio odgovor od TUDJEG
@@ -152,6 +154,8 @@ if (borrowed) {
     env: {
       ...process.env,
       NEXT_PUBLIC_PLATFORM: "native",
+      // `installDebug` pakuje debug build tip — push samo ako on nosi Firebase.
+      NEXT_PUBLIC_PUSH: pushFlag("debug"),
       NEXT_DEV_ORIGIN: host,
     },
   });

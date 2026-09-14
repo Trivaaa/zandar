@@ -16,6 +16,8 @@ import {
 import { getSession, saveSession, type RoomSession } from "@/lib/session";
 import { readPlayerName } from "@/lib/playerName";
 import { getSocket } from "@/lib/socket";
+import { getPushId, PUSH_REGISTERED_EVENT } from "@/lib/push";
+import { PushPrompt } from "@/components/push/PushPrompt";
 import { assertNoBotLeak } from "@/lib/antiLeak";
 import { inviteLink, matchingPath } from "@/lib/routes";
 import { JoinFlow } from "@/components/JoinFlow";
@@ -128,6 +130,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           roomId,
           playerId: session.playerId,
           sessionToken: session.sessionToken,
+          // Veže uređaj za sjedište (PRD §51); JSON izostavi undefined.
+          pushId: getPushId() ?? undefined,
         },
         (res: { ok: boolean; error?: string }) => {
           if (!res.ok) {
@@ -244,6 +248,9 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("online", resume);
     window.addEventListener("pageshow", resume);
+    // Dozvola za obavještenja data POSLIJE pretplate (tipično u lobiju) —
+    // ponovi subscribe da server veže uređaj za ovo sjedište.
+    window.addEventListener(PUSH_REGISTERED_EVENT, subscribe);
 
     return () => {
       s.off("connect", handleConnect);
@@ -256,6 +263,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", resume);
       window.removeEventListener("pageshow", resume);
+      window.removeEventListener(PUSH_REGISTERED_EVENT, subscribe);
       if (resumeTimer) clearTimeout(resumeTimer);
     };
   }, [roomId, session, subscribeSocket]);
@@ -513,6 +521,11 @@ export function RoomScreen({ roomId }: { roomId: string }) {
         starting={starting}
         onStart={() => void handleStartGame()}
         onBack={() => router.push("/")}
+        noticeSlot={
+          room.isPublic ? undefined : (
+            <PushPrompt context={isHost ? "host" : "waiting"} />
+          )
+        }
       />
     </div>
   );

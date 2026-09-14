@@ -96,7 +96,7 @@ export default function Home() {
                   setRulesOpen(true);
                 }}
                 onClose={closeSettings}
-                feedbackSlot={<FeedbackToggles />}
+                feedbackSlot={<FeedbackToggles showPush />}
               />
             </div>
           </div>

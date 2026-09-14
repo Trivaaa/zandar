@@ -81,17 +81,77 @@ export async function getRoom(roomId: string): Promise<RoomInfo> {
 export async function submitJoinRequest(
   roomId: string,
   displayName: string,
+  /** Uređaj za push "ulazak je odobren" (PRD §51); null na webu i bez dozvole. */
+  pushId: string | null = null,
 ): Promise<JoinRequestResponse> {
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/join-request`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ displayName }),
+    body: JSON.stringify({ displayName, ...(pushId ? { pushId } : {}) }),
   });
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.error || "Greška");
   }
   return res.json();
+}
+
+/**
+ * Veži uređaj za zahtjev koji je VEĆ poslat — gost najčešće da dozvolu tek
+ * dok čeka odobrenje. `requestId` zna samo gost koji je zahtjev poslao.
+ */
+export async function attachJoinRequestPush(
+  roomId: string,
+  requestId: string,
+  pushId: string,
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE}/api/rooms/${roomId}/join-request/${requestId}/push`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pushId }),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
+  }
+}
+
+/** Registracija uređaja za push. Odgovor nosi `pushId` koji klijent MORA sačuvati. */
+export async function registerPushDevice(input: {
+  token: string;
+  pushId?: string | undefined;
+  tz?: string | undefined;
+  guestId?: string | undefined;
+  table: boolean;
+}): Promise<{ pushId: string }> {
+  const res = await fetch(`${API_BASE}/api/push/devices`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
+  }
+  return res.json();
+}
+
+export async function setPushDevicePrefs(
+  pushId: string,
+  prefs: { table: boolean },
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/push/devices/prefs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pushId, ...prefs }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Greška");
+  }
 }
 
 export async function getJoinRequestStatus(

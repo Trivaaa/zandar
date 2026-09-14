@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { sr } from "@/lib/sr";
 
 /**
@@ -36,6 +37,8 @@ export type LobbyScreenProps = {
   starting: boolean;
   onStart: () => void;
   onBack: () => void;
+  /** Ponuda obavještenja (`PushPrompt`) — roditelj je puni, ekran ostaje bez stanja. */
+  noticeSlot?: ReactNode | undefined;
   className?: string | undefined;
 };
 
@@ -64,6 +67,7 @@ export function LobbyScreen({
   starting,
   onStart,
   onBack,
+  noticeSlot,
   className = "",
 }: LobbyScreenProps) {
   const seatsFilled = players.length;
@@ -102,6 +106,9 @@ export function LobbyScreen({
             </button>
           </div>
         </div>
+
+        {/* Odmah ispod linka: host ga upravo dijeli i sprema se da izađe. */}
+        {noticeSlot}
 
         {isHost && joinRequests.length > 0 ? (
           <div className="lobby__requests">

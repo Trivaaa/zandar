@@ -81,7 +81,16 @@ function safeId(id: string): string {
   return id.replace(/[^a-zA-Z0-9_-]/g, "");
 }
 
-const DATA_DIR =
+export const DATA_DIR =
   process.env.DATA_DIR || resolve(process.cwd(), ".data", "rooms");
 
 export const persistence: PersistenceAdapter = new FileAdapter(DATA_DIR);
+
+/**
+ * Isti atomski snimak za druge zapise (push uređaji). Poddirektorijum ispod
+ * `DATA_DIR` ostaje na istom volumenu, a `loadAll` soba ga preskače jer čita
+ * samo `*.json` fajlove na vrhu.
+ */
+export function createFileAdapter(dir: string): PersistenceAdapter {
+  return new FileAdapter(dir);
+}

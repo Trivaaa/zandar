@@ -312,4 +312,28 @@ export const sr = {
       "Hvala.",
     ],
   },
+  /* Obavještenja (PRD §51). Tekst SAMIH notifikacija živi na serveru
+     (`apps/server/src/push/messages.ts`), jer se šalje dok aplikacija ne radi. */
+  push: {
+    host: {
+      title: "Javi mi kad neko pokuca",
+      body: "Ako izađeš iz aplikacije dok čekaš, javićemo ti čim neko zatraži mjesto za tvojim stolom.",
+    },
+    guest: {
+      title: "Javi mi kad me primi",
+      body: "Možeš izaći iz aplikacije — javićemo ti kad host odobri ulazak.",
+    },
+    waiting: {
+      title: "Javi mi kad partija počne",
+      body: "Možeš izaći iz aplikacije — javićemo ti kad host podijeli karte.",
+    },
+    enable: "Uključi obavještenja",
+    notNow: "Ne sada",
+    channelName: "Sto i pozivi",
+    channelDescription: "Neko kuca na tvoj sto, ulazak je odobren, partija počinje.",
+    toggleOn: "Isključi obavještenja o stolu",
+    toggleOff: "Uključi obavještenja o stolu",
+    stateOn: "Obavještenja o stolu uključena",
+    stateOff: "Obavještenja o stolu isključena",
+  },
 } as const;

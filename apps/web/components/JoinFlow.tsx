@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  attachJoinRequestPush,
   submitJoinRequest,
   getJoinRequestStatus,
   type RoomInfo,
 } from "@/lib/api";
+import { getPushId, PUSH_REGISTERED_EVENT } from "@/lib/push";
+import { PushPrompt } from "@/components/push/PushPrompt";
 import {
   saveSession,
   saveJoinPending,
@@ -110,11 +113,27 @@ export function JoinFlow({
     };
   }, [state, roomId]);
 
+  // Dozvola za obavještenja stigla DOK zahtjev čeka — veži uređaj za zahtjev,
+  // da "ulazak je odobren" ima kome da ode (PRD §51). Događaj stiže i na svaki
+  // start aplikacije; ponovljeno vezivanje je bezopasno.
+  useEffect(() => {
+    if (!state || state.kind !== "pending") return;
+    const requestId = state.requestId;
+    function attach() {
+      const pushId = getPushId();
+      if (pushId) {
+        void attachJoinRequestPush(roomId, requestId, pushId).catch(() => {});
+      }
+    }
+    window.addEventListener(PUSH_REGISTERED_EVENT, attach);
+    return () => window.removeEventListener(PUSH_REGISTERED_EVENT, attach);
+  }, [state, roomId]);
+
   async function handleSubmit() {
     if (!displayName.trim()) return;
     setState({ kind: "submitting" });
     try {
-      const res = await submitJoinRequest(roomId, displayName.trim());
+      const res = await submitJoinRequest(roomId, displayName.trim(), getPushId());
       saveJoinPending({
         roomId,
         requestId: res.requestId,
@@ -162,6 +181,7 @@ export function JoinFlow({
       onSubmit={() => void handleSubmit()}
       {...(state.kind === "pending" ? { remainingMs: remaining } : {})}
       {...(state.kind === "error" ? { message: state.message } : {})}
+      noticeSlot={state.kind === "pending" ? <PushPrompt context="guest" /> : undefined}
       onBack={state.kind === "rejected" || state.kind === "expired" ? retry : () => router.push("/")}
     />
   );

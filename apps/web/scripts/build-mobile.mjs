@@ -12,7 +12,9 @@
  * namjerno, prije builda, a ne tek na telefonu.
  */
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
+import { join } from "node:path";
 
 /**
  * Adrese po okruženju. Ovo je JEDINA razlika između staging i produkcijskog
@@ -34,6 +36,28 @@ export const TARGETS = {
   },
 };
 
+/**
+ * Koji gradle build tip pakuje APK za cilj — a time i čiji `google-services.json`
+ * nosi (vidi `android/app/build.gradle`). Prod APK je zasad debug build.
+ */
+const PUSH_BUILD_TYPE = { prod: "debug", staging: "staging" };
+
+/**
+ * `NEXT_PUBLIC_PUSH` za build tip: "1" SAMO kad APK stvarno nosi Firebase
+ * konfiguraciju. Bez nje `PushNotifications.register()` ruši aplikaciju u
+ * native kodu ("Default FirebaseApp is not initialized"), što JS ne može
+ * uhvatiti — pa se push ne smije ni pokušati. Namjerno bez nadjačavanja iz
+ * shell-a: "1" bez fajla je APK koji pada.
+ */
+export function pushFlag(buildType) {
+  const app = join(import.meta.dirname, "..", "android", "app");
+  const candidates = [
+    join(app, "google-services.json"),
+    join(app, "src", buildType, "google-services.json"),
+  ];
+  return candidates.some((file) => existsSync(file)) ? "1" : "0";
+}
+
 /** `--env staging` | `--env=staging`; bez argumenta ostaje produkcija (zatečeno ponašanje). */
 export function parseTarget(argv) {
   const flag = argv.indexOf("--env");
@@ -52,7 +76,12 @@ export function parseTarget(argv) {
  * protiv druge adrese), ali HTTPS provjera važi i tada.
  */
 export function mobileEnv(target) {
-  const env = { ...process.env, BUILD_TARGET: "mobile", NEXT_PUBLIC_PLATFORM: "native" };
+  const env = {
+    ...process.env,
+    BUILD_TARGET: "mobile",
+    NEXT_PUBLIC_PLATFORM: "native",
+    NEXT_PUBLIC_PUSH: pushFlag(PUSH_BUILD_TYPE[target]),
+  };
   for (const [key, fallback] of Object.entries(TARGETS[target])) {
     env[key] = process.env[key] || fallback;
   }
@@ -73,6 +102,10 @@ export function mobileEnv(target) {
 export function logTarget(target, env) {
   console.log(`▲ mobile build · ${target.toUpperCase()}`);
   for (const key of Object.keys(TARGETS[target])) console.log(`  ${key}=${env[key]}`);
+  console.log(
+    `  NEXT_PUBLIC_PUSH=${env.NEXT_PUBLIC_PUSH}` +
+      (env.NEXT_PUBLIC_PUSH === "1" ? "" : ` (nema google-services.json za ${PUSH_BUILD_TYPE[target]})`),
+  );
 }
 
 // Kao skripta: odradi build. Kao import (`build-apk.mjs`): samo izvezi gornje.

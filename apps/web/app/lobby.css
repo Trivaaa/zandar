@@ -717,3 +717,65 @@
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Push offer (PushPrompt) — lobby and the join-request pending phase.
+ * Typography comes from JSX utilities; this block owns colour and box only.
+ * ------------------------------------------------------------------ */
+
+.pushprompt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 80%, transparent);
+}
+
+.pushprompt__title {
+  color: var(--text);
+}
+
+.pushprompt__body {
+  color: var(--text-muted);
+}
+
+.pushprompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.pushprompt__enable {
+  flex: 1 1 auto;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  transition: opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.pushprompt__enable[data-disabled="true"] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pushprompt__dismiss {
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.pushprompt__dismiss:hover,
+.pushprompt__dismiss:focus-visible {
+  opacity: 0.75;
+}

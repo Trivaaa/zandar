@@ -3,6 +3,7 @@ import { Archivo_Black, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { PwaManager } from "@/components/PwaManager";
 import { NativeShell } from "@/components/NativeShell";
+import { NativePush } from "@/components/NativePush";
 
 // latin-ext je OBAVEZAN — č ć ž š đ žive tamo. Bez njega dijakritika
 // pada na sistemski font i tekst se vidljivo miješa usred riječi.
@@ -65,6 +66,7 @@ export default function RootLayout({
         {children}
         <PwaManager />
         <NativeShell />
+        <NativePush />
       </body>
     </html>
   );
