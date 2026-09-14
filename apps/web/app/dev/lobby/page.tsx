@@ -82,7 +82,21 @@ export default function DevLobbyPage() {
   const [canStart, setCanStart] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const [phase, setPhase] = useState<JoinRequestPhase>("pending");
+  const [phase, setPhase] = useState<JoinRequestPhase>("form");
+  const [joinHost, setJoinHost] = useState(true);
+  const [joinLong, setJoinLong] = useState(false);
+  const [joinCount, setJoinCount] = useState<2 | 4>(4);
+  const joinPlayers = [
+    {
+      id: "h",
+      displayName: joinLong ? "Svjetlana Vukašinović" : "Igor",
+      seatIndex: 0,
+      isHost: joinHost,
+    },
+    ...(joinCount === 4
+      ? [{ id: "g", displayName: "Milica", seatIndex: 1, isHost: false }]
+      : []),
+  ];
 
   const players = ROSTER.slice(0, Math.min(seats, ROSTER.length));
 
@@ -159,12 +173,14 @@ export default function DevLobbyPage() {
               {p}
             </Toggle>
           ))}
+          <Toggle on={joinHost} onClick={() => setJoinHost((v) => !v)}>host u rosteru</Toggle>
+          <Toggle on={joinLong} onClick={() => setJoinLong((v) => !v)}>dugo ime</Toggle>
+          <Toggle on={joinCount === 2} onClick={() => setJoinCount((v) => (v === 2 ? 4 : 2))}>2P</Toggle>
         </div>
         <Frame>
           <JoinRequestScreen
-            roomId="a1b2c3"
-            playersJoined={2}
-            playerCount={4}
+            players={joinPlayers}
+            playerCount={joinCount}
             targetScore={21}
             phase={phase}
             displayName={name}

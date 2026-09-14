@@ -431,11 +431,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   }
 
   if (!session) {
-    return (
-      <main className="min-h-screen bg-green-900 text-white p-8 flex items-center justify-center">
-        <JoinFlow roomId={roomId} room={room} />
-      </main>
-    );
+    // Ekran nosi svoj `.screen` (felt, safe-area) — omotač bi mu dodao padding.
+    return <JoinFlow roomId={roomId} room={room} />;
   }
 
   if (gameState) {

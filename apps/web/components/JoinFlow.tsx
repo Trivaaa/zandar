@@ -16,6 +16,7 @@ import {
   getJoinPending,
   clearJoinPending,
 } from "@/lib/session";
+import { savePlayerName, usePlayerName } from "@/lib/playerName";
 import {
   JoinRequestScreen,
   type JoinRequestPhase,
@@ -39,7 +40,10 @@ export function JoinFlow({
 }) {
   const router = useRouter();
   const [state, setState] = useState<State | null>(null);
-  const [displayName, setDisplayName] = useState("");
+  // `null` = gost još nije kucao → polje nosi sačuvano ime (obrazac iz `/ime`).
+  const savedName = usePlayerName();
+  const [draft, setDraft] = useState<string | null>(null);
+  const displayName = draft ?? savedName ?? "";
   const [remaining, setRemaining] = useState<number>(0);
 
   // Load pending state from localStorage on mount
@@ -51,7 +55,7 @@ export function JoinFlow({
         requestId: pending.requestId,
         expiresAt: pending.expiresAt,
       });
-      setDisplayName(pending.displayName);
+      setDraft(pending.displayName);
     } else {
       if (pending) clearJoinPending(roomId);
       setState({ kind: "form" });
@@ -134,6 +138,7 @@ export function JoinFlow({
     setState({ kind: "submitting" });
     try {
       const res = await submitJoinRequest(roomId, displayName.trim(), getPushId());
+      savePlayerName(displayName);
       saveJoinPending({
         roomId,
         requestId: res.requestId,
@@ -158,7 +163,8 @@ export function JoinFlow({
     setState({ kind: "form" });
   }
 
-  if (!state) return null;
+  // Isti prazan felt kao ekran, da učitavanje ne bljesne bijelo.
+  if (!state) return <main className="screen joinreq" />;
 
   // Naša stanja se poklapaju sa fazama ekrana jedan-na-jedan, osim greške:
   // ona ostaje UZ formu (retryable), pa ide kao `form` + `message`.
@@ -171,13 +177,12 @@ export function JoinFlow({
 
   return (
     <JoinRequestScreen
-      roomId={roomId}
-      playersJoined={room.players.length}
+      players={room.players}
       playerCount={room.playerCount}
       targetScore={room.targetScore}
       phase={phase}
       displayName={displayName}
-      onDisplayName={setDisplayName}
+      onDisplayName={setDraft}
       onSubmit={() => void handleSubmit()}
       {...(state.kind === "pending" ? { remainingMs: remaining } : {})}
       {...(state.kind === "error" ? { message: state.message } : {})}
