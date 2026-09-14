@@ -16,6 +16,18 @@ import { sr } from "@/lib/sr";
 import { startQuickPlay } from "@/lib/startQuickPlay";
 import { track } from "@/lib/track";
 
+// Privatnost / uslovi / o nama. Na webu žive u footeru home-a (Play traži
+// javni URL); na Androidu suptilno u Postavkama, kao zadnja sekcija — footer
+// bi na malom ekranu bio treći red sitnog teksta ispod dvije glavne radnje,
+// a na telefonu do njega niko i ne dolazi bez skrolanja.
+const legalSlot = (
+  <>
+    <Link href="/privatnost">{sr.home.privacy}</Link>
+    <Link href="/uslovi">{sr.home.terms}</Link>
+    <Link href="/o-nama">{sr.home.about}</Link>
+  </>
+);
+
 export default function Home() {
   const router = useRouter();
   const playerName = usePlayerName();
@@ -69,13 +81,7 @@ export default function Home() {
         {...(error ? { error } : {})}
         showStores={!isNative}
         onUpcomingViewed={() => track("upcoming_games_viewed")}
-        legalSlot={
-          <>
-            <Link href="/privatnost">{sr.home.privacy}</Link>
-            <Link href="/uslovi">{sr.home.terms}</Link>
-            <Link href="/o-nama">{sr.home.about}</Link>
-          </>
-        }
+        {...(isNative ? {} : { legalSlot })}
       />
 
       {/* Slojevi preko home-a. Omotač pravi stacking context IZNAD PWA banera
@@ -97,6 +103,7 @@ export default function Home() {
                 }}
                 onClose={closeSettings}
                 feedbackSlot={<FeedbackToggles />}
+                {...(isNative ? { legalSlot } : {})}
               />
             </div>
           </div>

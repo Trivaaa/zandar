@@ -12,6 +12,9 @@ export type SettingsSheetProps = {
   onClose: () => void;
   /** Preklopke zvuka i vibracije — iste koje igra koristi. */
   feedbackSlot?: ReactNode;
+  /** Privatnost / uslovi / o nama — samo na Androidu (home footer ih nosi na
+   * webu). Zadnja, suptilna sekcija — isti stil kao footer na home-u. */
+  legalSlot?: ReactNode;
   className?: string | undefined;
 };
 
@@ -28,6 +31,7 @@ export function SettingsSheet({
   onRules,
   onClose,
   feedbackSlot,
+  legalSlot,
   className = "",
 }: SettingsSheetProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -71,6 +75,8 @@ export function SettingsSheet({
         <Link href="/delete-account" className="gamemenu__item font-sans text-base">
           {sr.settings.deleteData}
         </Link>
+
+        {legalSlot ? <div className="home__legal settings__legal">{legalSlot}</div> : null}
       </div>
 
       <button

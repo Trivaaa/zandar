@@ -18,7 +18,8 @@ export type HomeScreenProps = {
   showStores: boolean;
   /** Prikaz sekcije budućih igara (analitika). Zove se jednom po prikazu. */
   onUpcomingViewed?: (() => void) | undefined;
-  /** Privatnost / uslovi / o nama — host ih montira, Play ih traži. */
+  /** Privatnost / uslovi / o nama. Izostavljeno na Androidu — tamo su u
+   * Postavkama (host bira). */
   legalSlot?: ReactNode;
   className?: string | undefined;
 };
@@ -54,7 +55,7 @@ export function HomeScreen({
       />
       <UpcomingGames onViewed={onUpcomingViewed} />
       {showStores ? <StoreRow /> : null}
-      <footer className="home__legal">{legalSlot}</footer>
+      {legalSlot ? <footer className="home__legal">{legalSlot}</footer> : null}
     </main>
   );
 }
