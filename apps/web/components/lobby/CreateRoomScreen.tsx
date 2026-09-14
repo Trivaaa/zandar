@@ -34,6 +34,7 @@ export function CreateRoomScreen({
   className = "",
 }: CreateRoomScreenProps) {
   const counts: (2 | 3 | 4)[] = [2, 3, 4];
+  const targets: number[] = [11, 21];
   const ctaDisabled = loading || displayName.trim() === "";
 
   return (
@@ -79,21 +80,22 @@ export function CreateRoomScreen({
         </div>
 
         <div className="create__field">
-          <label className="create__label font-sans text-sm" htmlFor="create-target">
-            {sr.create.target}
-          </label>
-          <input
-            id="create-target"
-            className="create__input font-sans text-base"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            value={targetScore}
-            onChange={(e) => {
-              const value = parseInt(e.target.value, 10);
-              onTargetScore(Number.isNaN(value) ? targetScore : Math.max(1, value));
-            }}
-          />
+          <span className="create__label font-sans text-sm">{sr.create.target}</span>
+          <div className="create__segmented" role="radiogroup" aria-label={sr.create.target}>
+            {targets.map((n) => (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={targetScore === n}
+                className="create__option font-display text-base"
+                data-selected={targetScore === n}
+                onClick={() => onTargetScore(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
 
         <button

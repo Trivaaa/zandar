@@ -143,7 +143,7 @@ export const sr = {
   join: {
     title: "Pridruži se sobi",
     name: "Tvoje ime",
-    namePlaceholder: "npr. Igor",
+    namePlaceholder: "npr. Marko",
     submit: "Pošalji zahtjev",
     submitting: "Šaljem zahtjev...",
     sending: "Šaljem zahtjev...",
