@@ -37,6 +37,7 @@ packages/shared-types TS types shared by web + server
 - **Koje je okruženje:** `GET /health` vraća `env` (`APP_ENV` varijabla). Dva servisa su inače neraspoznatljiva `curl`-om. Isto i u analitici — `track()` šalje `appEnv`, pa se §43 kohorte filtriraju na `appEnv = production`; Sentry dobija `environment` iz `NEXT_PUBLIC_APP_ENV`.
 - **Env po servisu:** server `CORS_ORIGIN` (uvijek uz `https://localhost` — Capacitor WebView origin, **isti za staging APK** jer zavisi od `androidScheme`, ne od `applicationId`), `DATA_DIR`, `APP_ENV`. Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WEB_URL`, `NEXT_PUBLIC_APP_ENV`, PostHog ključevi. **Nisu u repou**, stoje u dashboardima; lokalno API pada na `http://localhost:3001`.
 - **⚠ Staging Railway domen sadrži „production" u imenu** (`zandar-production.up.railway.app`) — to je Railway-ov auto-generisani naziv za servis kreiran u ovoj sesiji, NE produkcijski servis. Pravi produkcijski servis je `zandar-test.up.railway.app` (zatečeno ime iz ranije). Provjera je uvijek `/health` → `env`, ne ime domena.
+- **Prijave za buduće igre:** fajlovi u `DATA_DIR/_signups` (podfolder soba — hidracija čita samo `.json` na vrhu, sweeper briše samo sobe; `SIGNUPS_DIR` nadjačava). Izvoz: `curl -H "Authorization: Bearer $ADMIN_TOKEN" https://…/api/signups/export` — **bez `ADMIN_TOKEN` na servisu ruta je 404**. Token NIKAD u `?token=` (Fastify loguje URL). **⚠ Volumen nema backup:** povremeni export je jedina kopija adresa van servera.
 - **⚠ Staging i produkcija NIKAD ne dijele volume.** Zaseban `DATA_DIR` po servisu — dijeljen bi miješao staging i produkcijske sobe na hidrataciji.
 - **⚠ `BUILD_TARGET` se NE postavlja na Vercelu** — uključio bi `output: "export"` granu iz `next.config.ts` i srušio dinamičku `/room/[roomId]` rutu.
 - **Provjera deploya:** Railway dashboard → servis → Deployments (svaki red = jedan push). Hash pored imena servisa je Railway **deployment ID**, NE git SHA (git SHA je pod "Deployed via GitHub").
@@ -45,7 +46,7 @@ packages/shared-types TS types shared by web + server
 
 ---
 
-## Current state — last updated 2026-09-13
+## Current state — last updated 2026-09-14
 
 ### ✅ Done
 
@@ -62,6 +63,7 @@ packages/shared-types TS types shared by web + server
 | RulesModal — full pravila Žandara | main | opened via "? Pravila" in GameView |
 | PostHog analytics, Sentry, OG metadata, CORS multi-origin | main | |
 | **Staging okruženje — ŽIVO** — `main`→staging, `production`→produkcija; dva APK-a side-by-side | main | Railway staging servis (`zandar-production.up.railway.app`, vlastiti volume) + Vercel staging projekt (`zandar-web.vercel.app`, sva 4 `NEXT_PUBLIC_*` + PostHog env) deployovani i verifikovani 2026-09-13: home učitava STAGING oznaku, Quick Play prolazi kroz CORS, `production` grana potvrđeno netaknuta (ostala na `491a6fa` dok je `main` otišao naprijed). `build-apk.mjs` lanac, `staging` buildType, `/health` + analitika nose `appEnv`. Vidi Deployment |
+| **Home v4 + buduće igre (S1–S5)** | feat/home-v4-foundation | Novi `/`: brend Kartaonica, motiv J/Q/K (`.card-fan`), „Igraj Žandar" + „Igraj s prijateljima", teaser kartice Poker/Remi/Bela/Raub, sekcija prodavnica SAMO na webu (obje neaktivne dok `lib/stores.ts` nema URL), zupčanik → `SettingsSheet`. Ime više nije na home-u: traži se na **`/ime`** tek poslije izbora radnje (zasebna ruta jer `NativeShell` na `/` gasi aplikaciju). `lib/playerName.ts` je jedini vlasnik `zandar_name`; `lib/backHandlers.ts` zatvara otvoren sloj na Android nazad. **`/igre/[slug]`** (4 SSG stranice, `generateStaticParams` — bez njega APK export puca) + `SignupForm`. Server: **`POST /api/signups`** (upis `link()`-om = idempotentno i otporno na trku, rate limit 30/h IP · 10/h guestId, `trustProxy: 1`) i **`GET /api/signups/export`** (Bearer `ADMIN_TOKEN`, inače 404). Spisak igara, tekst saglasnosti (po id-ju) i `normalizeEmail` žive u `shared-types`. Serverski testovi: `pnpm --filter @zandar/server test` (`tsx --test`, 17). Verifikovano CDP mjerenjem (7 veličina), E2E protiv lokalnog servera, curl matricom, restartom i mobilnim buildom. **Forma se ne objavljuje prije S6** — vidi Partial |
 
 #### Design System v3.2 frontend build (docs/DESIGN_SYSTEM.md §11)
 
@@ -99,6 +101,7 @@ packages/shared-types TS types shared by web + server
 
 | Item | Status |
 |---|---|
+| **Prijave za buduće igre — objava (S6)** | Kod gotov, ali `PrivacyPolicyBody` i dalje kaže „Ne tražimo e-mail adresu" → izmjena politike MORA u isti deploy kao forma. Otvoreno: rok čuvanja prijava (ne izmišljati), `ADMIN_TOKEN` po servisu, pravni pregled teksta saglasnosti. Nije provjereno na uređaju: Android nazad sa `/ime` i iz postavki, APK tok prijave. S7 (brisanje `/brza` + legacy `MatchingTable`/`SeatPuck`) nije rađen |
 | **Live verifikacija in-game ekrana** | **v3.9 beat poteza je na uređaju potvrđen da RADI (uhvaćen usred collect faze na S10e); ostaje samo ocjena tempa okom — da li 260/280ms + let djeluje ljudski ili još mehanički.** Ranije: v3.5 čišćenje felta (zaglavlje/obod/rezultat/imena/traka) — headless verifikovano na 16 slučajeva, ali pomjeranje budžeta visine i dvoredna bočna imena se ocjenjuju tek na telefonu. Ranije: typecheck/lint/dev-preview ✅; **na uređaju (kartaonica.com) u toku.** Retest iznio i riješio: deal animacija na startu + timer poslije dijeljenja, veće/ljepše karte+špil (`CardBack` zlatna rešetka, §10 smjer), animacije −10%, turn-indikator (**horizontalni pill iznad avatara** — vraćen sa kratkotrajnog conic-ring eksperimenta, puls pojačan), **uklonjeni redundantni count-badge** sa sjedišta, **Quick Play → pravo u Sto** (nema lobby flash-a), **`NOT_SUBSCRIBED` self-heal** (reconnect/deploy race), **fix: felt.css kaskada** — `@import "./felt.css"` je bio *unlayered*, pa je `.seat{position:relative}`/`.deck{position:relative}` nadjačavao Tailwind `absolute` iz `GameScreen`-a (unlayered > `@layer utilities`) → sjedišta i špil su padali u normalan tok i slagali se vertikalno; sad `layer(components)` + bočna sjedišta kompaktan vertikalni čip (5.5rem) + status/score na sjedištu samo kad nose informaciju. **Telefon prošao 2026-09-06** — felt sloj (karte, ruka, sto, pilula, sjedišta) verifikovan na uređaju; sitnice se popravljaju kako iskrsnu. Preostaje: §50 vizuelni efekti (collect/reveal/fly putanje) fino podešavanje na uređaju |
 | DDA (dynamic difficulty) | Config types exist (`DDAConfig`); adjustment logic not implemented |
 | Onboarding win-curve by session number | Config tables in PRD; not wired to session tracking |
