@@ -38,19 +38,38 @@ export function notifyDevices(
   msg: PushMessage | null,
   dedupeKey: string,
 ): void {
-  if (!msg || !fcm.enabled) return;
+  if (!msg) {
+    console.log(`[push] ${dedupeKey}: preskočeno — poruka je null (rok istekao prije slanja)`);
+    return;
+  }
+  if (!fcm.enabled) {
+    console.log(`[push] ${dedupeKey}: preskočeno — FCM isključen (nema FCM_SERVICE_ACCOUNT_JSON)`);
+    return;
+  }
   const now = Date.now();
   for (const idHash of idHashes) {
     const device = deviceStore.get(idHash);
-    if (!device || !device.prefs.table) continue;
-    if (!firstDelivery(`${dedupeKey}:${idHash}`, now)) continue;
+    if (!device) {
+      console.log(`[push] ${dedupeKey}: uređaj ${idHash.slice(0, 8)}… nije nađen u registru`);
+      continue;
+    }
+    if (!device.prefs.table) {
+      console.log(`[push] ${dedupeKey}: uređaj ${idHash.slice(0, 8)}… ima isključenu preklopku`);
+      continue;
+    }
+    if (!firstDelivery(`${dedupeKey}:${idHash}`, now)) {
+      console.log(`[push] ${dedupeKey}: uređaj ${idHash.slice(0, 8)}… već dobio ovaj događaj (dedupe)`);
+      continue;
+    }
 
+    console.log(`[push] ${dedupeKey}: šaljem uređaju ${idHash.slice(0, 8)}… (${msg.type})`);
     void fcm
       .send(device.token, msg)
       .then((result) => {
+        console.log(`[push] ${dedupeKey}: ishod = ${result}`);
         if (result === "unregistered") deviceStore.removeByHash(idHash);
         if (result === "sent") track(device.guestId, "push_sent", { type: msg.type });
       })
-      .catch((err) => console.error(`[push] ${msg.type} nije poslat:`, err));
+      .catch((err) => console.error(`[push] ${dedupeKey}: nije poslat —`, err));
   }
 }
