@@ -10,7 +10,14 @@ import {
   generateTableIdentities,
   selectBotMove,
 } from "@zandar/game-core";
-import type { BotMoveTiming, BotSkillTier, Player } from "@zandar/shared-types";
+import {
+  isConsentTextId,
+  isUpcomingGameSlug,
+  normalizeEmail,
+  type BotMoveTiming,
+  type BotSkillTier,
+  type Player,
+} from "@zandar/shared-types";
 import {
   createPlayerId,
   createRequestId,
@@ -39,6 +46,8 @@ import {
   resolveVoteTimeout,
 } from "./pause";
 import { posthog, track } from "./lib/posthog";
+import { SlidingWindowLimiter } from "./rateLimit";
+import { listSignups, saveSignup, signupsToCsv, tokenMatches } from "./signups";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 const REACTION_COOLDOWN_MS = 2000;
@@ -53,7 +62,14 @@ const VALID_REACTIONS = [
   "respect",
 ] as const;
 
-const fastify = Fastify({ logger: true });
+/**
+ * `trustProxy: 1` — iza Railwayevog proxyja `request.ip` bi inače bio IP
+ * proxyja, pa bi SVI igrači dijelili jedan rate-limit. Broj hopova (1), a ne
+ * `true`: sa `true` Fastify uzima KRAJNJE LIJEVI `X-Forwarded-For`, koji
+ * klijent sam upisuje — limit bi se zaobilazio izmišljenom adresom. Sa 1 se
+ * uzima adresa koju je dopisao Railway. Lokalno (bez proxyja) je `ip` socket.
+ */
+const fastify = Fastify({ logger: true, trustProxy: 1 });
 
 /**
  * Dozvoljeni origini. Produkcija ide ISKLJUCIVO kroz `CORS_ORIGIN` (zarezom
@@ -742,6 +758,90 @@ fastify.post<{ Params: { roomId: string }; Body: BotFillBody }>(
     return { success: true, botFill: enabled, players: room.players.length };
   },
 );
+
+// ---- PRIJAVE ZA OBAVJEŠTENJE (buduće igre) ----
+
+/**
+ * Prvi neautentifikovan upis na serveru, pa jedini sa rate-limitom. Limiti su
+ * široki namjerno: mobilni operateri drže mnogo korisnika iza jedne IP adrese
+ * (CGNAT), pa bi uzak limit po IP-u blokirao stvarne ljude.
+ */
+const SIGNUP_WINDOW_MS = 60 * 60 * 1000;
+const signupIpLimiter = new SlidingWindowLimiter(30, SIGNUP_WINDOW_MS);
+const signupGuestLimiter = new SlidingWindowLimiter(10, SIGNUP_WINDOW_MS);
+setInterval(() => {
+  signupIpLimiter.sweep();
+  signupGuestLimiter.sweep();
+}, 10 * 60 * 1000).unref();
+
+type SignupBody = {
+  game?: unknown;
+  email?: unknown;
+  consentTextId?: unknown;
+  guestId?: unknown;
+  platform?: unknown;
+};
+
+fastify.post<{ Body: SignupBody | null }>("/api/signups", async (request, reply) => {
+  const body = request.body ?? {};
+  const guestId =
+    typeof body.guestId === "string" && body.guestId.length <= 64 ? body.guestId : undefined;
+
+  if (!signupIpLimiter.tryHit(request.ip) || (guestId && !signupGuestLimiter.tryHit(guestId))) {
+    return reply.code(429).send({ error: "Previše pokušaja. Pokušaj ponovo kasnije." });
+  }
+  if (!isUpcomingGameSlug(body.game)) {
+    return reply.code(400).send({ error: "Nepoznata igra" });
+  }
+  const email = normalizeEmail(body.email);
+  if (!email) {
+    return reply.code(400).send({ error: "Neispravna e-adresa" });
+  }
+  // Nepoznat id = ustajao klijent ili lažna saglasnost; bez teksta nema pristanka.
+  if (!isConsentTextId(body.consentTextId)) {
+    return reply.code(400).send({ error: "Nedostaje saglasnost" });
+  }
+
+  const now = Date.now();
+  const { created } = await saveSignup({
+    game: body.game,
+    email,
+    consentTextId: body.consentTextId,
+    consentedAt: now,
+    createdAt: now,
+  });
+
+  // ⚠ E-adresa NIKAD u log ni u analitiku. Ponovljena prijava ne šalje događaj.
+  if (created) {
+    track(guestId, "signup_succeeded", {
+      game: body.game,
+      platform: body.platform === "native" ? "native" : "web",
+    });
+    fastify.log.info(`✉ Nova prijava za ${body.game}`);
+  }
+  return { created };
+});
+
+/**
+ * Izvoz prijava za ručnu analizu: `curl -H "Authorization: Bearer $ADMIN_TOKEN"`.
+ *
+ * Token u ZAGLAVLJU, ne u `?token=`: Fastify loguje URL svakog zahtjeva, pa bi
+ * query token završio u Railway logovima. Bez `ADMIN_TOKEN`-a, ili sa pogrešnim
+ * tokenom, odgovor je ISTI 404 kao za nepostojeću rutu — endpoint se ne odaje.
+ */
+fastify.get("/api/signups/export", async (request, reply) => {
+  const expected = process.env.ADMIN_TOKEN;
+  const header = request.headers.authorization ?? "";
+  const given = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
+  if (!expected || !given || !tokenMatches(given, expected)) {
+    return reply.callNotFound();
+  }
+  return reply
+    .header("content-type", "text/csv; charset=utf-8")
+    .header("content-disposition", 'attachment; filename="prijave.csv"')
+    .header("cache-control", "no-store")
+    .send(signupsToCsv(await listSignups()));
+});
 
 // ---- SOCKET.IO ----
 

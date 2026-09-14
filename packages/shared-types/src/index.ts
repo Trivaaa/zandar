@@ -464,7 +464,36 @@ export type SignupRequest = {
   consentTextId: ConsentTextId;
   /** Za atribuciju u analitici (PostHog distinctId). Nikad e-adresa. */
   guestId?: string;
+  /** Web ili APK — parametar analitike, isti kao na klijentskim događajima. */
+  platform?: "web" | "native";
 };
+
+/** Najduža adresa koju SMTP dozvoljava (RFC 5321). */
+export const MAX_EMAIL_LENGTH = 254;
+
+/**
+ * E-adresa za prijavu: `trim` + mala slova, ili `null` ako očigledno nije adresa.
+ *
+ * Namjerno LABAVO — jedno @, nešto ispred, domen sa tačkom, bez razmaka. Stroži
+ * obrazac odbija ispravne adrese (`ime+tag@…`, novi TLD-ovi), a jedina prava
+ * provjera je poruka koja stigne. Bez skidanja tačaka i `+tag` dijela: to je
+ * Gmail-specifično i tiho bi spojilo dvije različite adrese u jednu prijavu.
+ *
+ * Dijele ga forma (poruka prije slanja) i server (odluka), pa ne mogu da tvrde
+ * različito o istoj adresi.
+ */
+export function normalizeEmail(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const email = raw.trim().toLowerCase();
+  if (email.length < 3 || email.length > MAX_EMAIL_LENGTH) return null;
+  if (email.split("").some((ch) => ch.trim() === "")) return null;
+  const at = email.indexOf("@");
+  if (at < 1 || at !== email.lastIndexOf("@")) return null;
+  if (at > 64) return null;
+  const labels = email.slice(at + 1).split(".");
+  if (labels.length < 2 || labels.some((label) => label.length === 0)) return null;
+  return email;
+}
 
 /** `created: false` = ista adresa već prijavljena za istu igru (idempotentno). */
 export type SignupResponse = { created: boolean };
