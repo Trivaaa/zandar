@@ -56,9 +56,20 @@ function writeKey(key: string, value: string): void {
   }
 }
 
-async function plugin() {
-  const { PushNotifications } = await import("@capacitor/push-notifications");
-  return PushNotifications;
+/**
+ * `import("@capacitor/push-notifications")` je jedina bezbjedna referenca na
+ * plugin. NIKAD ne vraćaj `PushNotifications` (destrukturiran plugin objekat)
+ * iz `async` funkcije, čak ni kao "return" vrijednost koja se dalje awaituje —
+ * razrješavanje Promise-a provjerava `.then` na vraćenoj vrijednosti, a
+ * Capacitor-ov Android bridge proxy tretira svaki nepoznat pristup svojstvu
+ * (uključujući "then") kao poziv native metode i puca sa
+ * `"X.then() is not implemented on android"`. Modul (plain object) je
+ * bezbjedan da se awaituje; sam plugin objekat nikad ne smije proći kroz još
+ * jedan await/return sloj — zato svaki pozivalac ovdje odmah destrukturira i
+ * pozove metodu u istom izrazu.
+ */
+function pushModule() {
+  return import("@capacitor/push-notifications");
 }
 
 function toPermission(receive: string): PushPermission {
@@ -101,7 +112,8 @@ export function getPushId(): string | null {
 export async function pushPermission(): Promise<PushPermission> {
   if (!pushEnabled) return "unsupported";
   try {
-    const { receive } = await (await plugin()).checkPermissions();
+    const { PushNotifications } = await pushModule();
+    const { receive } = await PushNotifications.checkPermissions();
     return toPermission(receive);
   } catch {
     return "unsupported";
@@ -124,9 +136,9 @@ export function registerForPush(): Promise<string | null> {
 }
 
 async function doRegister(): Promise<string | null> {
-  let PushNotifications: Awaited<ReturnType<typeof plugin>>;
+  let PushNotifications: Awaited<ReturnType<typeof pushModule>>["PushNotifications"];
   try {
-    PushNotifications = await plugin();
+    ({ PushNotifications } = await pushModule());
   } catch {
     return null;
   }
@@ -183,7 +195,8 @@ export async function requestPushPermission(): Promise<PushPermission> {
   if (!pushEnabled) return "unsupported";
   let result: PushPermission;
   try {
-    const { receive } = await (await plugin()).requestPermissions();
+    const { PushNotifications } = await pushModule();
+    const { receive } = await PushNotifications.requestPermissions();
     result = toPermission(receive);
   } catch {
     return "unsupported";
