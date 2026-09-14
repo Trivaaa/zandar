@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { sr } from "@/lib/sr";
 
 export type JoinRequestPhase =
@@ -25,6 +25,8 @@ export type JoinRequestScreenProps = {
   totalMs?: number | undefined;
   message?: string | undefined;
   onBack: () => void;
+  /** Ponuda obavještenja u fazi čekanja — roditelj je puni, ekran ostaje bez stanja. */
+  noticeSlot?: ReactNode | undefined;
   className?: string | undefined;
 };
 
@@ -45,6 +47,7 @@ export function JoinRequestScreen({
   totalMs = 120000,
   message,
   onBack,
+  noticeSlot,
   className = "",
 }: JoinRequestScreenProps) {
   const fill = Math.max(0, Math.min(1, (remainingMs ?? totalMs) / totalMs));
@@ -129,6 +132,7 @@ export function JoinRequestScreen({
             >
               <span className="joinreq__fill joinreq__fill--countdown" />
             </div>
+            {noticeSlot}
           </>
         ) : null}
 

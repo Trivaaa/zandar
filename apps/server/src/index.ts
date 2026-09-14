@@ -39,6 +39,15 @@ import {
   resolveVoteTimeout,
 } from "./pause";
 import { posthog, track } from "./lib/posthog";
+import { deviceStore, startDeviceSweeper } from "./push/devices";
+import { fcm } from "./push/fcm";
+import {
+  buildGameStartedPush,
+  buildJoinApprovedPush,
+  buildJoinRequestPush,
+  gameStartRecipients,
+} from "./push/messages";
+import { notifyDevices } from "./push/notify";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 const REACTION_COOLDOWN_MS = 2000;
@@ -106,6 +115,40 @@ fastify.get("/health", async () => ({
   env: APP_ENV,
   timestamp: Date.now(),
 }));
+
+// ---- PUSH UREĐAJI (PRD §51) ----
+
+type PushDeviceBody = {
+  token?: unknown;
+  pushId?: unknown;
+  tz?: unknown;
+  guestId?: unknown;
+  table?: unknown;
+};
+
+/**
+ * Registracija uređaja. Zove je aplikacija na svakom startu (token rotira) i
+ * odmah poslije date dozvole. Odgovor nosi `pushId` — tajnu uređaja koju
+ * klijent čuva i šalje umjesto tokena.
+ */
+fastify.post<{ Body: PushDeviceBody }>("/api/push/devices", async (request, reply) => {
+  const result = deviceStore.register(request.body ?? {});
+  if (!result.ok) {
+    return reply.code(400).send({ error: result.error });
+  }
+  return { pushId: result.pushId };
+});
+
+fastify.post<{ Body: { pushId?: unknown; table?: unknown } }>(
+  "/api/push/devices/prefs",
+  async (request, reply) => {
+    const body = request.body ?? {};
+    if (!deviceStore.setPrefs(body.pushId, { table: body.table })) {
+      return reply.code(404).send({ error: "Uređaj nije registrovan" });
+    }
+    return { success: true };
+  },
+);
 
 // ---- ROOMS ----
 
@@ -202,7 +245,7 @@ fastify.get<{ Params: { roomId: string } }>(
 
 // ---- JOIN REQUESTS ----
 
-type JoinRequestBody = { displayName: string };
+type JoinRequestBody = { displayName: string; pushId?: unknown };
 
 fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
   "/api/rooms/:roomId/join-request",
@@ -243,6 +286,10 @@ fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
       expiresAt: now + JOIN_REQUEST_TTL_MS,
     };
 
+    // Uređaj gosta, za "ulazak je odobren" (PRD §51). Nepoznat pushId se tiho ignoriše.
+    const guestDevice = deviceStore.resolve(request.body.pushId);
+    if (guestDevice) joinReq.pushIdHash = guestDevice;
+
     room.joinRequests.set(requestId, joinReq);
 
     io.to(roomId).emit("room:joinRequested", {
@@ -250,6 +297,22 @@ fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
       displayName: joinReq.displayName,
       expiresAt: joinReq.expiresAt,
     });
+
+    // Host je često van aplikacije — podijelio je link pa otišao u Viber — a
+    // zahtjev živi samo JOIN_REQUEST_TTL_MS. Socket event tada niko ne vidi.
+    const hostDevice = room.pushIds?.[room.hostPlayerId];
+    if (hostDevice && hostDevice !== guestDevice) {
+      notifyDevices(
+        [hostDevice],
+        buildJoinRequestPush({
+          roomId,
+          guestName: joinReq.displayName,
+          expiresAt: joinReq.expiresAt,
+          now,
+        }),
+        `join_request:${requestId}`,
+      );
+    }
 
     fastify.log.info(
       `→ Join request ${requestId} (${joinReq.displayName}) za sobu ${roomId}`,
@@ -289,6 +352,45 @@ fastify.get<{
       };
     }
     return { status: req.status };
+  },
+);
+
+/**
+ * Veži uređaj za zahtjev koji već čeka (PRD §51) — gost najčešće da dozvolu
+ * tek dok čeka odobrenje, poslije slanja. `requestId` zna samo gost koji je
+ * zahtjev poslao, a vezuje se samo POZNAT uređaj.
+ */
+fastify.post<{
+  Params: { roomId: string; requestId: string };
+  Body: { pushId?: unknown };
+}>(
+  "/api/rooms/:roomId/join-request/:requestId/push",
+  async (request, reply) => {
+    const { roomId, requestId } = request.params;
+
+    const room = getRoom(roomId);
+    if (!room) {
+      return reply.code(404).send({ error: "Soba ne postoji" });
+    }
+
+    expireOldRequests(room);
+    const req = room.joinRequests.get(requestId);
+    if (!req) {
+      return reply.code(404).send({ error: "Zahtjev ne postoji" });
+    }
+    if (req.status !== "pending") {
+      return reply
+        .code(409)
+        .send({ error: `Zahtjev nije pending: ${req.status}` });
+    }
+
+    const device = deviceStore.resolve(request.body?.pushId);
+    if (!device) {
+      return reply.code(404).send({ error: "Uređaj nije registrovan" });
+    }
+    req.pushIdHash = device;
+
+    return { success: true };
   },
 );
 
@@ -361,6 +463,16 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
     req.playerId = playerId;
     req.sessionToken = sessionToken;
 
+    // Uređaj iz zahtjeva prelazi na sjedište — odatle ga čita "partija počinje".
+    if (req.pushIdHash) {
+      room.pushIds = { ...room.pushIds, [playerId]: req.pushIdHash };
+      notifyDevices(
+        [req.pushIdHash],
+        buildJoinApprovedPush({ roomId }),
+        `join_approved:${requestId}`,
+      );
+    }
+
     persistRoom(room); // novi igrač u lobby-ju → preživi restart
 
     io.to(roomId).emit("room:update");
@@ -423,6 +535,8 @@ fastify.post<{ Params: { roomId: string }; Body: KickBody }>(
     // Remove from room and renumber seats
     room.players = room.players.filter((p) => p.id !== playerId);
     room.sessionTokens.delete(playerId);
+    // Izbačen igrač ne smije dobiti "partija počinje" za sto na kom više ne sjedi.
+    if (room.pushIds) delete room.pushIds[playerId];
     room.players.forEach((p, idx) => {
       p.seatIndex = idx;
       if (room.rulesConfig.playerCount === 4) {
@@ -678,6 +792,13 @@ fastify.post<{ Params: { roomId: string }; Body: StartBody }>(
     room.gameState = gameState;
     room.status = "playing";
 
+    // Igrači u lobiju su možda van aplikacije, a turn timer kreće odmah (PRD §51).
+    notifyDevices(
+      gameStartRecipients(room),
+      buildGameStartedPush({ roomId }),
+      `game_started:${gameState.matchId}`,
+    );
+
     await broadcastGameState(roomId);
     const sockets = await io.in(roomId).fetchSockets();
     const hostSocket = sockets.find((s) => s.data.playerId === room.hostPlayerId);
@@ -757,6 +878,8 @@ type SubscribePayload = {
   roomId: string;
   playerId: string;
   sessionToken: string;
+  /** Push uređaj koji gleda ovo sjedište (PRD §51); dolazi sa mreže, pa `unknown`. */
+  pushId?: unknown;
 };
 
 type PlayCardPayload = {
@@ -1474,6 +1597,15 @@ io.on("connection", (socket) => {
       socket.data.playerId = playerId;
       socket.data.guestId = socket.handshake.auth.guestId ?? null;
 
+      // Push (PRD §51): uređaj koji gleda ovo sjedište. Dozvola se često daje
+      // TEK u lobiju, pa klijent ponovi subscribe čim dobije pushId. Upis samo
+      // na promjenu — persistRoom osvježava lastActivityAt, a reconnect nije aktivnost.
+      const device = deviceStore.resolve(payload.pushId);
+      if (device && room.pushIds?.[playerId] !== device) {
+        room.pushIds = { ...room.pushIds, [playerId]: device };
+        persistRoom(room);
+      }
+
       fastify.log.info(
         `→ Player ${playerId} subscribed to room ${roomId}`,
       );
@@ -1860,6 +1992,21 @@ if (sweptOnBoot > 0) {
 }
 startRoomSweeper((removed) => {
   fastify.log.info(`🧹 Sweep: uklonjeno ${removed} napuštenih soba`);
+});
+
+// Push uređaji (PRD §51). Hidriraju se i bez FCM ključa: preklopke i tokeni ne
+// smiju nestati samo zato što je varijabla privremeno skinuta.
+try {
+  const deviceCount = await deviceStore.hydrate();
+  const sweptDevices = deviceStore.sweep();
+  fastify.log.info(
+    `🔔 Push: ${fcm.enabled ? `FCM ${fcm.projectId}` : "isključen (nema FCM_SERVICE_ACCOUNT_JSON)"} · ${deviceCount - sweptDevices} uređaja`,
+  );
+} catch (err) {
+  fastify.log.error(`Push hydrate failed (nastavljam bez uređaja): ${err}`);
+}
+startDeviceSweeper((removed) => {
+  fastify.log.info(`🧹 Push: uklonjeno ${removed} zaboravljenih uređaja`);
 });
 
 try {

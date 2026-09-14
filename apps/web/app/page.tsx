@@ -56,7 +56,7 @@ export default function Home() {
       onCreateRoom={() => router.push("/create")}
       loading={loading}
       {...(error ? { error } : {})}
-      feedbackSlot={<FeedbackToggles />}
+      feedbackSlot={<FeedbackToggles showPush />}
       legalSlot={
         <>
           <Link href="/privatnost" className="font-sans text-base">

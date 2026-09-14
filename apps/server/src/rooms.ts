@@ -20,6 +20,8 @@ export type JoinRequest = {
   expiresAt: number;
   playerId?: string;       // popunjeno nakon approve
   sessionToken?: string;   // plaintext, vraća se gostu jednom
+  /** Uređaj gosta za push (hash `pushId`-a) — prelazi u `LobbyRoom.pushIds` na approve. */
+  pushIdHash?: string;
 };
 
 export type LobbyRoom = {
@@ -41,6 +43,12 @@ export type LobbyRoom = {
    * dok se ne pridruže ljudi (ljudi imaju prioritet — zauzimaju mjesto bota).
    */
   botFill?: boolean;
+  /**
+   * Push (PRD §51): playerId → hash `pushId`-a uređaja koji sjedi na tom mjestu.
+   * Opciono, jer snimci soba od prije push-a ga nemaju. Živi na SOBI, ne na
+   * `Player`-u, pa ne može procuriti kroz javno stanje igre.
+   */
+  pushIds?: Record<string, string>;
 };
 
 const rooms = new Map<string, LobbyRoom>();

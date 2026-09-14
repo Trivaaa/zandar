@@ -58,6 +58,12 @@ Odluke iz Sekcije 48 zatvorene:
 | Single-player IZBAČEN | §37.5 uklonjen — Quick Play sa lakim botovima već služi kao vježba |
 | Remember name | Povratni korisnik preskače unos imena ("Nađi sto" = jedan tap) |
 
+## Changelog (v3.2 → v3.3)
+
+| Promjena | Opis |
+|----------|------|
+| Push obavještenja (Android) | v1: sto i pozivi — neko kuca, ulazak odobren, partija počinje. Dozvola u trenutku namjere, preklopka na glavnom ekranu. v2 (podsjetnici na neaktivnost) specificiran, nije implementiran. Vidi §51 |
+
 ---
 
 ## 36. AI igrači — pregled i filozofija 🆕
@@ -743,6 +749,68 @@ Pravila:
 
 ---
 
-**KRAJ DOKUMENTA v3.2**
+## 51. Obavještenja (push) 🆕
+
+Android aplikacija (Capacitor) dobija push obavještenja. Web/PWA push i iOS su van ovog opsega.
+
+### 51.1 Principi
+
+1. **Push samo kad igrač nešto dobija ili ga neko čeka.** Test za svaku novu vrstu: „da li bi mi bilo krivo da je nisam dobio".
+2. **Dozvola se traži u trenutku namjere, nikad na prvom pokretanju.** Android 13+ traži runtime dozvolu, a poslije „Ne dozvoli" aplikacija je praktično ne može ponovo tražiti — zato sistemski dijalog pokreće TEK naše dugme, uz rečenicu koja kaže šta se dobija.
+3. **Istina u tekstu.** Bez izmišljene društvene potvrde („Marko te čeka"), bez pominjanja botova ili broja ljudi za stolom (HARD RULE 5, §44). Tekst je rodno neutralan i ne deklinira nadimke.
+4. **Rok događaja je rok notifikacije** (FCM `ttl`): zakašnjelo „neko kuca" poslije isteka zahtjeva je gore od nikakvog.
+5. **Tap vodi tačno na radnju** (soba), ne na početni ekran.
+6. **Svaka vrsta ima svoj Android kanal**, pa se podsjetnici mogu ugasiti bez gašenja obavještenja o stolu.
+7. **U prvom planu se ništa ne crta u traci** — ekran već pokazuje isto.
+
+### 51.2 Katalog v1 — sto i pozivi (kanal `sto`, visok prioritet)
+
+| Događaj | Kome | Naslov / tekst | TTL | Tap |
+|---|---|---|---|---|
+| `join_request` — neko traži mjesto za privatnim stolom | host | **Neko kuca na tvoj sto** / „{nadimak} želi da sjedne. Odgovori u naredne 2 minute." | ostatak roka zahtjeva (≤ 2 min); ispod 10 s se ne šalje | lobi |
+| `join_approved` — host odobrio zahtjev | gost | **Ulazak je odobren** / „Tvoje mjesto za stolom je spremno. Uđi da ne propustiš početak." | 10 min | lobi |
+| `game_started` — host pokrenuo partiju | ljudi za stolom osim hosta | **Partija počinje** / „Karte su podijeljene — vrati se za sto, uskoro si na potezu." | 2 min | sto |
+
+- Više kucanja na isti sto se spaja (isti `tag`); `join_approved` i `game_started` dijele tag sobe, pa početak zamjenjuje zastarjelo „odobreno".
+- **Bez push-a** za odbijen/istekao zahtjev (negativna vijest nije razlog da se igrač zove) i za Quick Play (počinje odmah).
+- Isti događaj istom uređaju ide jednom.
+
+### 51.3 Dozvola i kontrola
+
+- Ponuda (soft prompt) u lobiju privatnog stola — host „Javi mi kad neko pokuca", igrač koji čeka „Javi mi kad partija počne" — i gostu dok zahtjev čeka („Javi mi kad me primi").
+- „Ne sada" sakriva ponudu 7 dana; odbijena ili već data dozvola → ponuda se ne crta.
+- Preklopka „obavještenja o stolu" (🔔) na glavnom ekranu, uz zvuk i vibraciju (§50.4); čuva se i na serveru, jer server odlučuje da li šalje.
+
+### 51.4 Arhitektura (sažetak)
+
+- **Identitet uređaja je `pushId`** — slučajna tajna koju izdaje server; `guestId` nije tajna (analitika, `/delete-account`) pa ne smije biti ključ. Server čuva samo hash.
+- Veza sa sjedištem živi na sobi (`pushIds`), ne na igraču, pa ne može procuriti kroz javno stanje. Polja su opciona (back-compat za hidraciju).
+- Slanje preko FCM HTTP v1 bez SDK-a; bez servisnog ključa push je no-op. Token koji FCM proglasi `UNREGISTERED` se briše; uređaj koji se ne javi 60 dana takođe.
+- **Staging i produkcija imaju odvojene Firebase projekte** (isto pravilo kao volume).
+- Mobilni build uključuje push samo kad APK nosi Firebase konfiguraciju — inače bi registracija srušila aplikaciju.
+
+### 51.5 v2 — podsjetnici na neaktivnost (nije implementirano)
+
+- Zaseban kanal `podsjetnici` i zasebna preklopka.
+- Signal: posljednje otvaranje aplikacije (već se bilježi u v1).
+- Ritam je **CONFIG** (kao §40.3): D1 → D3 → D7, pa stop; najviše 1 dnevno i 3 po periodu neaktivnosti; lokalni prozor 18–21h, nikad 22–09 (vremenska zona uređaja); igrač koji nikad nije završio partiju dobija samo D1.
+- Tekst istinit i rotira; „Revanš?" samo ako je igrač stvarno izgubio zadnji meč.
+- **Holdout 10%** bez podsjetnika za pošten D7 efekat; zaštitna metrika je stopa gašenja (preklopka ili deinstalacija).
+
+### 51.6 Analitika (§43)
+
+`push_prompt_shown` / `push_prompt_accepted` / `push_prompt_dismissed` (+ `context`), `push_permission_result`, `push_sent` (server, + `type`), `push_opened` (+ `type`). Otključava: stopa prihvatanja dozvole po kontekstu i open rate po vrsti.
+
+### 51.7 Definition of Done (v1)
+
+- Host van aplikacije dobija „neko kuca" za par sekundi; tap otvara lobi sa zahtjevom.
+- Gost koji je dao dozvolu dok čeka dobija „ulazak je odobren"; igrač u lobiju dobija „partija počinje", host ne.
+- Aplikacija u prvom planu → ništa u traci; zakašnjela poruka poslije roka → ne stiže.
+- Isključena preklopka → ništa ne stiže; deinstalacija → zapis uređaja se briše.
+- Nijedno push polje ne izlazi u javno stanje sobe ni igre; server bez ključa radi kao prije.
+
+---
+
+**KRAJ DOKUMENTA v3.3**
 
 > Living document. Promjene preko PR-ova sa updated changelog tabelom na vrhu.

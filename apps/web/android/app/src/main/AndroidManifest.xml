@@ -34,6 +34,14 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Push (PRD §51): ikonica u traci kad poruka ne navede svoju. Bijela
+             silueta, jer Android crta masku (res/drawable/ic_stat_notify.xml).
+             POST_NOTIFICATIONS dozvolu donosi @capacitor/push-notifications
+             kroz spajanje manifesta. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
     </application>
 
     <!-- Permissions -->

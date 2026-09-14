@@ -28,7 +28,7 @@ export const metadata: Metadata = {
  */
 export default function DeleteAccountPage() {
   return (
-    <LegalPage title="Brisanje podataka" updated="13. septembar 2026.">
+    <LegalPage title="Brisanje podataka" updated="14. septembar 2026.">
       <p>
         Ova stranica se odnosi na <strong>{BRAND}</strong> i igru Žandar
         (kartaonica.com i Android aplikacija), koje izdaje {PUBLISHER} (
@@ -75,6 +75,10 @@ export default function DeleteAccountPage() {
             <strong>Izvještaje o greškama</strong> koji se mogu povezati sa tim
             ID-om.
           </li>
+          <li>
+            <strong>Zapis uređaja za obavještenja</strong> (token i
+            podešavanja), ako si obavještenja uključio u Android aplikaciji.
+          </li>
         </ul>
         <p>
           Brisanje radimo <strong>ručno</strong> — ne postoji dugme koje ga
@@ -91,6 +95,11 @@ export default function DeleteAccountPage() {
           aktivnosti <strong>12 sati</strong> poslije posljednjeg poteza. Tu su i
           nadimci sa stola, pa poslije tog roka taj zapis kod nas više ne
           postoji.
+        </p>
+        <p>
+          Zapis za obavještenja nestaje kad deinstaliraš aplikaciju (čim Google
+          to javi), a najkasnije <strong>60 dana</strong> poslije posljednjeg
+          otvaranja aplikacije.
         </p>
       </LegalSection>
 

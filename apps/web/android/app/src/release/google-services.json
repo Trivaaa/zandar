@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "652209876577",
+    "project_id": "kartaonica---production",
+    "storage_bucket": "kartaonica---production.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:652209876577:android:7a275967e8ac46aa6dc420",
+        "android_client_info": {
+          "package_name": "com.kartaonica.zandar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUD2y7FtZCHjhzywlcLJdW-Fouk1Om6OU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

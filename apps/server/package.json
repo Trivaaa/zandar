@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/push/messages.test.ts src/push/devices.test.ts src/push/fcm.test.ts",
     "start": "tsx src/index.ts"
   },
   "dependencies": {

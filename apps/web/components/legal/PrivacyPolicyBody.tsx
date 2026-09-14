@@ -20,7 +20,7 @@ import {
  * NACRT — nije pravni savjet. Sadrzaj opisuje ono sto je procitano IZ KODA
  * (vidi reference u komentarima ispod); ako se kod promijeni, mijenja se i ovo.
  */
-export const PRIVACY_UPDATED = "13. septembar 2026.";
+export const PRIVACY_UPDATED = "14. septembar 2026.";
 
 export function PrivacyPolicyBody() {
   return (
@@ -68,6 +68,15 @@ export function PrivacyPolicyBody() {
             igrača nema.
           </li>
           <li>
+            <strong>Podaci za obavještenja</strong> — samo u Android aplikaciji
+            i samo ako ih uključiš. Čuvamo registracioni token koji telefonu
+            dodijeli Google (Firebase Cloud Messaging), vremensku zonu uređaja,
+            vrijeme posljednjeg otvaranja aplikacije, da li su obavještenja o
+            stolu uključena i ID uređaja, da bismo zapis mogli obrisati na
+            zahtjev. Token ne otkriva ko si — služi samo da poruka stigne na
+            taj telefon.
+          </li>
+          <li>
             <strong>Tehnički podaci</strong> koje šalje svaki uređaj: IP adresa,
             tip uređaja i pregledača, verzija aplikacije. IP adresa se pojavljuje
             u zapisnicima našeg servera i kod servisa navedenih ispod.
@@ -99,7 +108,7 @@ export function PrivacyPolicyBody() {
 
       <LegalSection title="Kome se podaci prosljeđuju">
         <p>
-          Koristimo tri vanjska servisa. Svaki od njih obrađuje podatke na
+          Koristimo četiri vanjska servisa. Svaki od njih obrađuje podatke na
           svojim serverima:
         </p>
         <ul className="space-y-1 list-disc list-inside">
@@ -121,6 +130,13 @@ export function PrivacyPolicyBody() {
             greškama i mjerenje performansi za web verziju. Izvještaj sadrži IP
             adresu, podatke o uređaju i pregledaču, adrese stranica i zahtjeva, a
             na serverskoj strani i zaglavlja zahtjeva.
+          </li>
+          <li>
+            <strong>Google Firebase Cloud Messaging</strong> (Sjedinjene
+            Američke Države) — isporuka obavještenja na Android telefon, samo
+            ako si ih uključio. Google dobija token uređaja i tekst
+            obavještenja, na primjer nadimak igrača koji traži mjesto za tvojim
+            stolom.
           </li>
         </ul>
         <p>
@@ -148,6 +164,11 @@ export function PrivacyPolicyBody() {
             <strong>Zapisnici servera</strong> (uključujući IP adrese) čuvaju se
             onoliko koliko ih Railway drži u svom sistemu zapisnika.
           </li>
+          <li>
+            <strong>Podaci za obavještenja</strong> brišu se automatski kad
+            Google javi da aplikacija više nije instalirana, a najkasnije{" "}
+            <strong>60 dana</strong> poslije posljednjeg otvaranja aplikacije.
+          </li>
         </ul>
       </LegalSection>
 
@@ -158,7 +179,9 @@ export function PrivacyPolicyBody() {
           (<code>zandar_name</code>), pristup sobama u kojima igraš
           (<code>zandar:session:*</code>, <code>zandar:join:*</code>) i
           podešavanja zvuka i vibracije (<code>zandar:sound</code>,
-          <code> zandar:haptics</code>).
+          <code> zandar:haptics</code>), a u Android aplikaciji i oznaku
+          uređaja za obavještenja sa njihovim podešavanjima
+          (<code>zandar:pushId</code>, <code>zandar:push:*</code>).
         </p>
         <p>
           Pored toga, <strong>PostHog upisuje svoj kolačić i svoj zapis</strong>{" "}
@@ -175,8 +198,10 @@ export function PrivacyPolicyBody() {
       <LegalSection title="Razlike između web i Android verzije">
         <ul className="space-y-1 list-disc list-inside">
           <li>
-            <strong>Android aplikacija</strong> traži samo dvije dozvole:
-            pristup internetu i vibraciju. Nema pristup lokaciji, kameri,
+            <strong>Android aplikacija</strong> traži samo tri dozvole: pristup
+            internetu, vibraciju i obavještenja. Za obavještenja te Android 13 i
+            noviji pita izričito — i to tek kad u aplikaciji dodirneš
+            &bdquo;Uključi obavještenja&ldquo;. Nema pristup lokaciji, kameri,
             mikrofonu, kontaktima, fotografijama ni datotekama, i ne koristi
             reklamni identifikator.
           </li>

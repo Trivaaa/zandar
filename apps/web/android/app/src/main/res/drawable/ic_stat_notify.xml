@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ikonica u statusnoj traci (push, PRD §51). Android je crta kao MASKU: uzima
+  samo alpha, a boju daje sistem (i `color` iz FCM poruke). Zato mora biti
+  bijela silueta na providnom — launcher ikonica bi ispala sivi kvadrat.
+  Karta sa pikom izrezanim iz lica (evenOdd), da oblik ostane čitljiv na 24dp.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M7,2H17A2,2 0 0,1 19,4V20A2,2 0 0,1 17,22H7A2,2 0 0,1 5,20V4A2,2 0 0,1 7,2Z M12,6.5C12,6.5 7.5,10.2 7.5,12.6C7.5,14.1 8.7,15.2 10.1,15.2C10.8,15.2 11.4,14.9 11.8,14.4L11.2,17.5H12.8L12.2,14.4C12.6,14.9 13.2,15.2 13.9,15.2C15.3,15.2 16.5,14.1 16.5,12.6C16.5,10.2 12,6.5 12,6.5Z" />
+</vector>

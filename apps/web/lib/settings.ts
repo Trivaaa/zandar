@@ -10,18 +10,24 @@
 
 import { useSyncExternalStore } from "react";
 
-export type SettingKey = "sound" | "haptics";
+/**
+ * `pushTable` — obavještenja o stolu (PRD §51). Lokalna vrijednost je ogledalo
+ * serverske preklopke: šalje se uz svaku registraciju uređaja, pa se server
+ * sam uskladi i kad je promjena pala dok je mreža bila dolje.
+ */
+export type SettingKey = "sound" | "haptics" | "pushTable";
 
 const STORAGE_KEYS: Record<SettingKey, string> = {
   sound: "zandar:sound",
   haptics: "zandar:haptics",
+  pushTable: "zandar:push:table",
 };
 
 const listeners = new Set<() => void>();
 
 // In-memory cache da `getSound()/getHaptics()` (koje engine-i čitaju u trenutku
 // događaja) budu sinhroni i jeftini.
-let cache: Record<SettingKey, boolean> = { sound: true, haptics: true };
+let cache: Record<SettingKey, boolean> = { sound: true, haptics: true, pushTable: true };
 
 function readFromStorage(key: SettingKey): boolean {
   if (typeof window === "undefined") return true; // SSR → default ON
@@ -29,7 +35,11 @@ function readFromStorage(key: SettingKey): boolean {
 }
 
 function refresh(): void {
-  cache = { sound: readFromStorage("sound"), haptics: readFromStorage("haptics") };
+  cache = {
+    sound: readFromStorage("sound"),
+    haptics: readFromStorage("haptics"),
+    pushTable: readFromStorage("pushTable"),
+  };
 }
 
 function emit(): void {
@@ -40,7 +50,7 @@ if (typeof window !== "undefined") {
   refresh();
   // Cross-tab: druga kartica promijenila postavku.
   window.addEventListener("storage", (e) => {
-    if (e.key === STORAGE_KEYS.sound || e.key === STORAGE_KEYS.haptics) {
+    if (Object.values(STORAGE_KEYS).includes(e.key ?? "")) {
       refresh();
       emit();
     }
@@ -53,6 +63,9 @@ export function getSound(): boolean {
 }
 export function getHaptics(): boolean {
   return cache.haptics;
+}
+export function getPushTable(): boolean {
+  return cache.pushTable;
 }
 
 export function setSetting(key: SettingKey, value: boolean): void {

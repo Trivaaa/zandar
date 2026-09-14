@@ -54,11 +54,24 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
+// Firebase (push obavještenja, PRD §51). Fajl ide PO BUILD TIPU, jer staging i
+// produkcija imaju ODVOJENE Firebase projekte — isto pravilo kao volume:
+//   src/debug/, src/release/  → produkcijski projekt (prod APK je zasad debug build)
+//   src/staging/              → staging projekt
+// Plugin se primjenjuje čim postoji bilo koji od njih; build tip bez svog fajla
+// se i dalje gradi (WARN), a `scripts/build-mobile.mjs` mu ne uključuje push u
+// web sloju — `register()` bez Firebase konfiguracije ruši aplikaciju.
+def googleServicesFiles = [
+    'google-services.json',
+    'src/debug/google-services.json',
+    'src/release/google-services.json',
+    'src/staging/google-services.json',
+]
+if (googleServicesFiles.any { file(it).exists() }) {
+    apply plugin: 'com.google.gms.google-services'
+    googleServices {
+        missingGoogleServicesStrategy = com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy.WARN
     }
-} catch(Exception e) {
+} else {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
