@@ -24,7 +24,7 @@ packages/shared-types TS types shared by web + server
 
 | | Grana | Server (Railway) | Web (Vercel) | APK |
 |---|---|---|---|---|
-| **Staging** | `main` | `zandar-production.up.railway.app` | `zandar-web.vercel.app` | `com.kartaonica.zandar.staging` — „Žandar (staging)" |
+| **Staging** | `main` | `zandar-production.up.railway.app` | `zandar-web.vercel.app` | `com.kartaonica.zandar.staging` — „Kartaonica (staging)" |
 | **Produkcija** | `production` | `zandar-test.up.railway.app` | `kartaonica.com` | `com.kartaonica.zandar` |
 
 - **`git push origin main` NE ide korisnicima** — diže staging (web + server). Produkcija je svjestan čin:
@@ -161,7 +161,7 @@ Detalji i zamke: `docs/MOBILE_PLAN_STATUS.md` §4.
 **Pravi APK** ide kroz `pnpm --filter web apk:staging` (ili `apk:prod`) — jedan
 lanac `next build` → `cap sync` → `gradlew`, koji uz to briše
 `CAP_LIVE_RELOAD_URL` iz okruženja. Staging se instalira PORED produkcijskog
-(`com.kartaonica.zandar.staging`, „Žandar (staging)"), pa se isti ekran može
+(`com.kartaonica.zandar.staging`, „Kartaonica (staging)"), pa se isti ekran može
 uporediti. Detalji: `docs/MOBILE_PLAN_STATUS.md` §Dva APK-a.
 
 **⚠ Windows EBUSY na `out/`** — antivirus/indexer zna zadržati handle na tom

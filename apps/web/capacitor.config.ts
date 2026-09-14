@@ -24,7 +24,7 @@ const liveReloadUrl = process.env.CAP_LIVE_RELOAD_URL;
  */
 const config: CapacitorConfig = {
   appId: "com.kartaonica.zandar",
-  appName: "Žandar",
+  appName: "Kartaonica",
   // `build-apk.mjs` builda u jedinstven folder (vidi next.config.ts) da
   // zaobiđe Windows EBUSY na starom zaključanom `out/`; ista varijabla mora
   // ovdje da `cap sync` pokupi pravi izvor.

@@ -13,8 +13,8 @@ export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Tablić - Žandar",
-    short_name: "Žandar",
+    name: "Kartaonica",
+    short_name: "Kartaonica",
     description:
       "Klasična kartaška — sad i online. Nađi sto ili pozovi prijatelje.",
     start_url: "/",
