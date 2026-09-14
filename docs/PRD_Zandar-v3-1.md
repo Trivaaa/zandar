@@ -62,7 +62,7 @@ Odluke iz Sekcije 48 zatvorene:
 
 | Promjena | Opis |
 |----------|------|
-| Push obavještenja (Android) | v1: sto i pozivi — neko kuca, ulazak odobren, partija počinje. Dozvola u trenutku namjere, preklopka na glavnom ekranu. v2 (podsjetnici na neaktivnost) specificiran, nije implementiran. Vidi §51 |
+| Push obavještenja (Android) | v1: sto i pozivi — neko kuca, ulazak odobren, partija počinje. Dozvola u trenutku namjere, preklopka na glavnom ekranu. **Verifikovano na uređaju na stagingu i produkciji.** v2 (podsjetnici na neaktivnost) specificiran, nije implementiran. Vidi §51 |
 
 ---
 
@@ -808,6 +808,8 @@ Android aplikacija (Capacitor) dobija push obavještenja. Web/PWA push i iOS su 
 - Aplikacija u prvom planu → ništa u traci; zakašnjela poruka poslije roka → ne stiže.
 - Isključena preklopka → ništa ne stiže; deinstalacija → zapis uređaja se briše.
 - Nijedno push polje ne izlazi u javno stanje sobe ni igre; server bez ključa radi kao prije.
+
+**Verifikovano na uređaju (Galaxy S10e) 14.9.2026 — sva tri kriterijuma iznad potvrđena, i na stagingu i na produkciji.** Dvije popravke otkrivene tim testiranjem, obje spadaju pod §51.4: Capacitor-ov plugin proxy ne smije proći kroz `async return`/`await` kao vrijednost (native bridge puca na pristup `.then`, što je gasilo cijelu registraciju) i rok čekanja FCM tokena mora biti dovoljno dug za hladan start Play Services-a (15s → 30s, uz automatski novi pokušaj kad se aplikacija vrati u prvi plan bez tokena). Detalji u CLAUDE.md → Deployment.
 
 ---
 
