@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import {
   capturePush,
+  getPushId,
   pushEnabled,
   pushPermission,
   registerForPush,
@@ -81,6 +82,30 @@ export function NativePush() {
       remove?.();
     };
   }, [router]);
+
+  // Samopopravka: prvi pokušaj registracije ume da otkaže na hladnom startu
+  // Play Services-a (izmjereno na uređaju — poslije restarta telefona zna
+  // trajati duže od tadašnjeg roka). Umjesto da čeka sljedeće pokretanje
+  // aplikacije, svaki povratak u prvi plan bez `pushId`-a (dozvola već
+  // odobrena) tiho pokuša ponovo — `registerForPush()` je idempotentan
+  // (`inFlight` dedup), pa dupli pokušaj nije opasan.
+  useEffect(() => {
+    if (!pushEnabled) return;
+
+    function retryIfMissing() {
+      if (document.visibilityState !== "visible" || getPushId() !== null) return;
+      void pushPermission().then((permission) => {
+        if (permission === "granted") void registerForPush();
+      });
+    }
+
+    document.addEventListener("visibilitychange", retryIfMissing);
+    window.addEventListener("focus", retryIfMissing);
+    return () => {
+      document.removeEventListener("visibilitychange", retryIfMissing);
+      window.removeEventListener("focus", retryIfMissing);
+    };
+  }, []);
 
   return null;
 }

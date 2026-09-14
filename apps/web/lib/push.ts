@@ -34,8 +34,14 @@ const PUSH_ID_KEY = "zandar:pushId";
 const SNOOZE_KEY = "zandar:push:snoozeUntil";
 /** "Ne sada" sakriva ponudu nedjelju dana — ne pitamo pri svakom ulasku u lobi. */
 const PROMPT_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
-/** Koliko čekamo token od Firebase-a; poslije toga sljedeći start pokušava ponovo. */
-const REGISTRATION_TIMEOUT_MS = 15_000;
+/**
+ * Koliko čekamo token od Firebase-a. Izmjereno na uređaju: hladan start Play
+ * Services-a (poslije restarta telefona/aplikacije) zna trajati preko 15s —
+ * prekratak rok je davao lažan neuspjeh dok je token bio na putu. Sljedeći
+ * pokušaj (novi start, ili `retryRegistrationOnResume` niže) svejedno pokriva
+ * pravi timeout.
+ */
+const REGISTRATION_TIMEOUT_MS = 30_000;
 
 export type PushPermission = "granted" | "denied" | "prompt" | "unsupported";
 
