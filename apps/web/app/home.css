@@ -645,3 +645,13 @@
   display: flex;
   padding: 0.25rem 0.15rem;
 }
+
+/* Zadnja, suptilna sekcija u Postavkama (samo Android — vidi SettingsSheet).
+   Isti izgled kao .home__legal na home footeru, samo sa razdjelnikom iznad:
+   ovdje nije dno ekrana nego zadnja stavka u listi, pa treba vizuelno
+   odvajanje od dugmadi iznad. `margin-top: auto` iz .home__legal je ovdje
+   no-op (sheet nije pun-ekranski flex), i to je u redu. */
+.settings__legal {
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in oklab, var(--text-muted) 25%, transparent);
+}
