@@ -52,9 +52,9 @@ export function HomeHero({
 
       <section className="home__hero" aria-labelledby="home-title">
         {/* Dekoracija: PlayingCard nosi aria-label igraće karte, ovdje to nije. */}
-        <div className="home__fan" aria-hidden="true">
+        <div className="card-fan" aria-hidden="true">
           {HOME_HERO_CARDS.map((face) => (
-            <div key={`${face.rank}${face.suit}`} className="home__fan-slot">
+            <div key={`${face.rank}${face.suit}`} className="card-fan-slot">
               <PlayingCard card={{ id: `home-${face.rank}-${face.suit}`, ...face }} size="md" />
             </div>
           ))}

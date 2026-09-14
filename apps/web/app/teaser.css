@@ -1,0 +1,247 @@
+/*
+ * teaser.css — stranica buduće igre (/igre/<slug>) i forma prijave.
+ * Isti dogovor kao home.css: samo tokeni, animira se samo transform/opacity,
+ * tipografiju drži ovaj fajl (bez `text-*` u JSX-u na tim elementima).
+ * Dijeli sa home.css: .brand, .card-fan, .namestep__back, .namestep__input,
+ * .home__cta i .home__legal — jedan jezik za funnel ekrane.
+ */
+
+.teaser {
+  /* Na telefonu lepeza stoji UZ ime igre, pa je manja nego na home-u. */
+  --hero-card-w: min(3.75rem, 9dvh);
+
+  align-items: center;
+  gap: 0;
+  background-image:
+    radial-gradient(ellipse 120% 60% at 50% 0%, color-mix(in oklab, var(--surface-raised) 40%, transparent), transparent 70%),
+    linear-gradient(to bottom, transparent 40%, color-mix(in oklab, var(--surface) 60%, transparent));
+}
+
+.teaser :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.teaser .home__cta:focus-visible {
+  outline-color: var(--text);
+}
+
+.teaser__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 64rem;
+}
+
+.teaser__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 26rem;
+  margin-top: 1.25rem;
+}
+
+.teaser__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.teaser__heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.teaser__tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--text-muted) 55%, transparent);
+  border-radius: var(--radius-md);
+  font: 400 var(--type-base) / 1.2 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.teaser__name {
+  margin: 0.5rem 0 0;
+  font: 400 clamp(2.25rem, 11vw, 4rem) / 1 var(--font-display-stack);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.teaser__status {
+  margin: 0.35rem 0 0;
+  font: 400 var(--type-lg) / 1.35 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+/* Lepeza uz ime: uža kutija od home-ove, jer bočne karte ionako vire. */
+.teaser__fan {
+  flex: none;
+  width: calc(var(--hero-card-w) * 2.6);
+  margin-top: 0;
+}
+
+/* Poleđine su prigušene: igra nema našu reprezentaciju, pa ne smije da
+   izgleda kao podijeljena ruka. */
+.teaser__fan[data-backs="true"] {
+  opacity: 0.7;
+}
+
+.teaser__title {
+  margin: 1.5rem 0 0;
+  font: 400 var(--type-3xl) / 1.15 var(--font-display-stack);
+  color: var(--text);
+}
+
+.teaser__text {
+  margin: 0.6rem 0 0;
+  font: 400 var(--type-lg) / 1.45 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * Forma prijave
+ * ------------------------------------------------------------------ */
+
+.signup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid color-mix(in oklab, var(--text-muted) 28%, transparent);
+}
+
+.signup__label {
+  font: 700 var(--type-lg) / 1.25 var(--font-sans-stack);
+  color: var(--text);
+}
+
+/* Kvadrat 48px je tap-meta; vidljivo polje je 28px u njegovoj sredini. */
+.signup__consent {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.signup__checkbox {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0.625rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.signup__consent-text {
+  padding-top: 0.7rem;
+  font: 400 var(--type-base) / 1.45 var(--font-sans-stack);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.signup__privacy {
+  grid-column: 2;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  font: 400 var(--type-base) / 1.2 var(--font-sans-stack);
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.signup__submit {
+  margin-top: 0.25rem;
+}
+
+/* Rezervisan red: poruka ne pomjera napomenu. */
+.signup__problem {
+  min-height: 1.45em;
+  margin: 0;
+  font: 400 var(--type-base) / 1.45 var(--font-sans-stack);
+  color: var(--danger-signal);
+}
+
+.signup__problem[data-empty="true"] {
+  opacity: 0;
+}
+
+.signup__note {
+  margin: 0;
+  text-align: center;
+  font: 400 var(--type-base) / 1.4 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.signup--done {
+  gap: 0.6rem;
+}
+
+/* Fokus je programski (čitač ekrana čita ishod), ne navigacija tastaturom. */
+.signup--done:focus {
+  outline: none;
+}
+
+.signup__done-title {
+  margin: 0;
+  font: 400 var(--type-2xl) / 1.2 var(--font-display-stack);
+  color: var(--text);
+}
+
+.signup__done-text {
+  margin: 0 0 0.5rem;
+  font: 400 var(--type-lg) / 1.45 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.teaser__legal {
+  max-width: 64rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Desktop: opis i forma u dvije kolone, lepeza ispod imena
+ * ------------------------------------------------------------------ */
+
+@media (min-width: 56rem) {
+  .teaser {
+    --hero-card-w: 5.5rem;
+  }
+
+  .teaser__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
+    align-items: start;
+    gap: 3rem;
+    max-width: 64rem;
+    margin-top: 2.5rem;
+  }
+
+  .teaser__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .teaser__fan {
+    width: calc(var(--hero-card-w) * 3);
+    margin: 0.5rem 0 0 1rem;
+  }
+
+  .signup {
+    padding: 1.75rem;
+    border: 1px solid color-mix(in oklab, var(--text-muted) 35%, transparent);
+    border-radius: var(--radius-lg);
+    background-color: color-mix(in oklab, var(--surface) 35%, transparent);
+  }
+}

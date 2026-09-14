@@ -11,6 +11,8 @@
 @import "./lobby.css" layer(components);
 /* Home sloj — pocetni ekran, korak sa imenom, postavke. Isti dogovor. */
 @import "./home.css" layer(components);
+/* Teaser sloj — stranice buducih igara i forma prijave. */
+@import "./teaser.css" layer(components);
 
 /* =====================================================
    DESIGN TOKENS — Kartaonica v3.2

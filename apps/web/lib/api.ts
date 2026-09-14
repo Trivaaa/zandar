@@ -1,5 +1,11 @@
 import { getGuestId } from "@/lib/guestId";
-import { resolveApiBase } from "@/lib/platform";
+import {
+  CURRENT_CONSENT_TEXT_ID,
+  type SignupRequest,
+  type SignupResponse,
+  type UpcomingGameSlug,
+} from "@zandar/shared-types";
+import { isNative, resolveApiBase } from "@/lib/platform";
 
 const API_BASE = resolveApiBase();
 
@@ -228,4 +234,32 @@ export async function kickPlayer(
     const err = await res.json();
     throw new Error(err.error || "Greška");
   }
+}
+
+/**
+ * Prijava za obavještenje o budućoj igri. Tekst saglasnosti se šalje kao ID
+ * (`CURRENT_CONSENT_TEXT_ID`) — server upisuje baš taj ID, pa se zna na koji
+ * je tekst igrač pristao. Poruku servera forma ne prikazuje: igrač dobija
+ * jednu rečenicu i ponovni pokušaj, bez obzira na uzrok.
+ */
+export async function submitSignup(input: {
+  game: UpcomingGameSlug;
+  email: string;
+}): Promise<SignupResponse> {
+  const body: SignupRequest = {
+    ...input,
+    consentTextId: CURRENT_CONSENT_TEXT_ID,
+    guestId: getGuestId(),
+    platform: isNative ? "native" : "web",
+  };
+  const res = await fetch(`${API_BASE}/api/signups`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Greška");
+  }
+  return res.json();
 }

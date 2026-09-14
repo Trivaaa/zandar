@@ -147,40 +147,42 @@
   text-align: center;
 }
 
-.home__fan {
+.card-fan {
   position: relative;
   width: calc(var(--hero-card-w) * 3);
   height: calc(var(--hero-card-w) * 1.417 + 1.6rem);
   margin-top: 0.75rem;
 }
 
-/* Karta u motivu je veća od svih veličina u igri; geometriju drži ova ručka. */
-.home__fan .card {
+/* Lepeza od tri karte — dijele je home (J Q K) i teaser stranice (asovi ili
+   poleđine). Veličinu bira ekran preko `--hero-card-w`; ovdje je samo geometrija.
+   Karta u motivu je veća od svih veličina u igri. */
+.card-fan .card {
   --card-w: var(--hero-card-w);
   --card-h: calc(var(--hero-card-w) * 1.417);
 }
 
-.home__fan .card-face {
+.card-fan .card-face {
   box-shadow: 0 0.5rem 1.1rem color-mix(in oklab, black 45%, transparent);
 }
 
-.home__fan-slot {
+.card-fan-slot {
   position: absolute;
   top: 1rem;
   left: 50%;
   transform-origin: 50% 100%;
 }
 
-.home__fan-slot:nth-child(1) {
+.card-fan-slot:nth-child(1) {
   transform: translateX(calc(-50% - var(--hero-card-w) * 0.72)) rotate(-12deg);
 }
 
-.home__fan-slot:nth-child(2) {
+.card-fan-slot:nth-child(2) {
   z-index: 1;
   transform: translateX(-50%) translateY(-0.6rem);
 }
 
-.home__fan-slot:nth-child(3) {
+.card-fan-slot:nth-child(3) {
   z-index: 2;
   transform: translateX(calc(-50% + var(--hero-card-w) * 0.72)) rotate(12deg);
 }

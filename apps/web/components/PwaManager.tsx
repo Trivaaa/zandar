@@ -32,6 +32,10 @@ function PwaBanner() {
   const pathname = usePathname();
   // U sobi je dno zauzeto rukom + reaction FAB-om → prikaži banner na vrhu.
   const inRoom = pathname?.startsWith("/room") ?? false;
+  // Na formama (prijava za buducu igru, ime prije stola) glavno dugme stoji pri
+  // dnu ekrana — tacno gdje je banner. Ponuda za instalaciju koja zaklanja jedinu
+  // radnju stranice je gora od nikakve; pojavice se na sljedecem ekranu.
+  const onForm = /^[/](igre|ime)([/]|$)/.test(pathname ?? "");
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
@@ -101,7 +105,7 @@ function PwaBanner() {
     setUpdateReady(null);
   }
 
-  if (!installEvt && !updateReady) return null;
+  if (onForm || (!installEvt && !updateReady)) return null;
 
   return (
     <div
