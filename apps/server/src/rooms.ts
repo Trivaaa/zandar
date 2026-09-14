@@ -1,5 +1,6 @@
 import { randomBytes, createHash } from "node:crypto";
 import type {
+  AnalyticsPlatform,
   GameState,
   Player,
   RulesConfig,
@@ -20,6 +21,9 @@ export type JoinRequest = {
   expiresAt: number;
   playerId?: string;       // popunjeno nakon approve
   sessionToken?: string;   // plaintext, vraća se gostu jednom
+  /** Analitika — prelazi na igrača pri approve-u (docs/analytics.md). */
+  guestId?: string;
+  platform?: AnalyticsPlatform;
 };
 
 export type LobbyRoom = {

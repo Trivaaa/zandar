@@ -4,7 +4,13 @@
 
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
-import { getGuestId } from "@/lib/guestId";
+import { getGuestId, peekGuestId } from "@/lib/guestId";
+import {
+  applyTesterFlag,
+  CLIENT_BASE_PROPS,
+  isAnalyticsEnabled,
+  recordFirstOpen,
+} from "@/lib/track";
 
 Sentry.init({
   dsn: "https://7d96f7464b04a409c8e48593145bbbe3@o4511503641739264.ingest.de.sentry.io/4511503655239760",
@@ -24,14 +30,25 @@ Sentry.init({
   sendDefaultPii: true,
 });
 
-posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-  api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-  defaults: '2026-01-30',
-  bootstrap: {
-    distinctID: getGuestId(),
-    isIdentifiedID: false,
-  },
-});
-posthog.register({ gameType: 'zandar' });
+// PostHog SAMO u produkcijskom buildu (docs/analytics.md). Neinicijalizovan
+// posthog-js nema autocapture, `$pageview`, `ph_*` storage ni mrežu — staging i
+// lokalni dev ostaju potpuno tihi.
+if (isAnalyticsEnabled()) {
+  // PRIJE `getGuestId()` — on ID pravi ako ga nema, a `first_open` mora znati
+  // da li je igrač postojao od ranije (vidi `recordFirstOpen`).
+  const hadGuestId = peekGuestId() !== null;
+
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    defaults: '2026-01-30',
+    bootstrap: {
+      distinctID: getGuestId(),
+      isIdentifiedID: false,
+    },
+  });
+  posthog.register(CLIENT_BASE_PROPS);
+  recordFirstOpen(hadGuestId);
+  applyTesterFlag();
+}
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

@@ -75,6 +75,14 @@ export type Player = {
   consecutiveAutoPlays: number;
   isBot?: boolean;
   botProfile?: BotProfile;
+  /**
+   * Analitika (docs/analytics.md): PostHog distinctId čovjeka. SAMO server-side,
+   * kao i `isBot` — `PublicPlayer` je whitelist pa ne stiže do klijenta.
+   * Opciono: botovi ga nemaju, a stari perzistirani snapshot-i ni ljudi.
+   */
+  guestId?: string;
+  /** Odakle čovjek igra — parametar analitike. SAMO server-side. */
+  platform?: AnalyticsPlatform;
 };
 
 // ====================================================
@@ -497,3 +505,73 @@ export function normalizeEmail(raw: unknown): string | null {
 
 /** `created: false` = ista adresa već prijavljena za istu igru (idempotentno). */
 export type SignupResponse = { created: boolean };
+
+// ====================================================
+// ANALITIKA (docs/analytics.md)
+// ====================================================
+
+/** Platforma u analitici. `android` = Capacitor APK; iOS stiže kao nova vrijednost. */
+export type AnalyticsPlatform = "web" | "android";
+
+export type MatchMode = "quick_play" | "private_room";
+
+/**
+ * Kako se meč završio. Samo dvije vrijednosti jer server više ne zna: izlaz iz
+ * partije je klijentski `router.push`, pa napuštanje i pad veze izgledaju isto
+ * (grace → pauza/prekid). Razdvajanje traži `game:leave` događaj — kasnije.
+ */
+export type MatchEndReason = "completed" | "abandoned";
+
+type NoProps = Record<string, never>;
+
+/**
+ * JEDINA lista događaja. Oba `track()` omotača su tipizirana preko nje, pa
+ * događaj ili parametar koji nije ovdje ne kompajlira. Bez nadimaka, e-adresa
+ * i bilo čega što je igrač ukucao.
+ */
+export type AnalyticsEvents = {
+  // — klijent —
+  first_open: NoProps;
+  play_requested: { mode: MatchMode };
+  teaser_opened: { game: string };
+  upcoming_games_viewed: NoProps;
+  // — server —
+  match_started: {
+    mode: MatchMode;
+    match_id: string;
+    player_count: number;
+    human_count: number;
+    bot_count: number;
+    target_score: number;
+    is_rematch: boolean;
+    platform?: AnalyticsPlatform;
+  };
+  match_ended: {
+    mode: MatchMode;
+    match_id: string;
+    end_reason: MatchEndReason;
+    hands_played: number;
+    duration_ms?: number;
+    is_winner?: boolean;
+    platform?: AnalyticsPlatform;
+  };
+  hand_finished: {
+    roomId: string;
+    matchId: string;
+    handNumber: number;
+    playerCount: number;
+    isPublic: boolean;
+    humansAtTable: number;
+    botsAtTable: number;
+    botSeatShare: number;
+  };
+  signup_succeeded: { game: UpcomingGameSlug; platform: AnalyticsPlatform };
+};
+
+export type ClientAnalyticsEvent =
+  | "first_open"
+  | "play_requested"
+  | "teaser_opened"
+  | "upcoming_games_viewed";
+
+export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;

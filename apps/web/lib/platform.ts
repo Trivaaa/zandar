@@ -16,6 +16,12 @@ export const isNative = process.env.NEXT_PUBLIC_PLATFORM === "native";
 export const isStaging = process.env.NEXT_PUBLIC_APP_ENV === "staging";
 
 /**
+ * Platforma u analitici (docs/analytics.md). APK je Android; kad stigne iOS
+ * app, ovdje se razdvaja preko Capacitor-ove platforme, ne user-agenta.
+ */
+export const analyticsPlatform: "web" | "android" = isNative ? "android" : "web";
+
+/**
  * Baza API-ja. U native buildu NEMA fallback-a: `http://localhost:3001` unutar
  * APK-a pokazuje na sam telefon, pa bi aplikacija tiho otkazivala umjesto da
  * build padne. Android uz to blokira cleartext — produkcija mora biti HTTPS.

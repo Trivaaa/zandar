@@ -1,5 +1,25 @@
+import { execSync } from "node:child_process";
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
+
+/**
+ * Verzija u analitici (`app_version`): kratak git SHA builda. Vercel ga daje
+ * kroz env; mobilni build ide lokalno, pa ga pita git. Bez gita — "dev".
+ */
+function appVersion(): string {
+  const sha =
+    process.env.VERCEL_GIT_COMMIT_SHA ??
+    (() => {
+      try {
+        return execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+          .toString()
+          .trim();
+      } catch {
+        return "";
+      }
+    })();
+  return sha ? sha.slice(0, 7) : "dev";
+}
 
 /**
  * Dva build oblika iz JEDNE konfiguracije (docs/MOBILE_PLAN_STATUS.md):
@@ -16,6 +36,8 @@ import type { NextConfig } from "next";
 const isMobile = process.env.BUILD_TARGET === "mobile";
 
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_APP_VERSION: appVersion() },
+
   // Testiranje sa telefona na LAN adresi: Next 16 po defaultu blokira
   // cross-origin pristup dev resursima (error overlay, HMR), pa se greska na
   // uredjaju ne moze procitati. Vazi SAMO u dev-u; postavi NEXT_DEV_ORIGIN na
