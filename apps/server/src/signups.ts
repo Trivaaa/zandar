@@ -67,23 +67,71 @@ export async function saveSignup(
   }
 }
 
-export async function listSignups(dir: string = signupsDir()): Promise<SignupRecord[]> {
+/** Svi zapisi sa putanjom fajla; korumpiran fajl se preskače, isto kao kod soba. */
+async function readEntries(dir: string): Promise<Array<{ file: string; record: SignupRecord }>> {
   let files: string[];
   try {
     files = await readdir(dir);
   } catch {
     return [];
   }
-  const out: SignupRecord[] = [];
+  const out: Array<{ file: string; record: SignupRecord }> = [];
   for (const name of files) {
     if (!name.endsWith(".json")) continue;
+    const file = join(dir, name);
     try {
-      out.push(JSON.parse(await readFile(join(dir, name), "utf8")) as SignupRecord);
+      out.push({ file, record: JSON.parse(await readFile(file, "utf8")) as SignupRecord });
     } catch {
-      // korumpiran fajl se preskače, isto kao kod soba
+      // korumpiran fajl
     }
   }
-  return out.sort((a, b) => a.createdAt - b.createdAt);
+  return out;
+}
+
+export async function listSignups(dir: string = signupsDir()): Promise<SignupRecord[]> {
+  return (await readEntries(dir)).map((e) => e.record).sort((a, b) => a.createdAt - b.createdAt);
+}
+
+/**
+ * Najduži rok čuvanja — politika privatnosti obećava brisanje „najkasnije 24
+ * mjeseca od prijave". Obećanje je tačno samo zato što ga ovaj automat drži;
+ * brisanje „kad pošaljemo obavještenje" je ručno (export pa DELETE po adresi).
+ */
+export const SIGNUP_MAX_AGE_MS = 730 * 24 * 60 * 60 * 1000;
+
+/** Obriši prijave starije od roka. Vraća broj obrisanih. */
+export async function sweepExpiredSignups(
+  now: number = Date.now(),
+  dir: string = signupsDir(),
+  maxAgeMs: number = SIGNUP_MAX_AGE_MS,
+): Promise<number> {
+  let removed = 0;
+  for (const { file, record } of await readEntries(dir)) {
+    if (typeof record.createdAt === "number" && now - record.createdAt > maxAgeMs) {
+      await unlink(file).catch(() => undefined);
+      removed++;
+    }
+  }
+  return removed;
+}
+
+/**
+ * Brisanje na zahtjev: SVE prijave jedne adrese, za sve igre. Poredi zapisani
+ * `email`, a ne hash po trenutnom spisku igara — igra skinuta sa spiska ne smije
+ * da ostavi prijavu koju više niko ne može naći.
+ */
+export async function removeSignupsForEmail(
+  email: string,
+  dir: string = signupsDir(),
+): Promise<number> {
+  let removed = 0;
+  for (const { file, record } of await readEntries(dir)) {
+    if (record.email === email) {
+      await unlink(file).catch(() => undefined);
+      removed++;
+    }
+  }
+  return removed;
 }
 
 /**

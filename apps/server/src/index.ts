@@ -47,7 +47,14 @@ import {
 } from "./pause";
 import { posthog, track } from "./lib/posthog";
 import { SlidingWindowLimiter } from "./rateLimit";
-import { listSignups, saveSignup, signupsToCsv, tokenMatches } from "./signups";
+import {
+  listSignups,
+  removeSignupsForEmail,
+  saveSignup,
+  signupsToCsv,
+  sweepExpiredSignups,
+  tokenMatches,
+} from "./signups";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 const REACTION_COOLDOWN_MS = 2000;
@@ -829,11 +836,15 @@ fastify.post<{ Body: SignupBody | null }>("/api/signups", async (request, reply)
  * query token završio u Railway logovima. Bez `ADMIN_TOKEN`-a, ili sa pogrešnim
  * tokenom, odgovor je ISTI 404 kao za nepostojeću rutu — endpoint se ne odaje.
  */
-fastify.get("/api/signups/export", async (request, reply) => {
+function isAdmin(authorization: string | undefined): boolean {
   const expected = process.env.ADMIN_TOKEN;
-  const header = request.headers.authorization ?? "";
+  const header = authorization ?? "";
   const given = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
-  if (!expected || !given || !tokenMatches(given, expected)) {
+  return Boolean(expected && given && tokenMatches(given, expected));
+}
+
+fastify.get("/api/signups/export", async (request, reply) => {
+  if (!isAdmin(request.headers.authorization)) {
     return reply.callNotFound();
   }
   return reply
@@ -842,6 +853,34 @@ fastify.get("/api/signups/export", async (request, reply) => {
     .header("cache-control", "no-store")
     .send(signupsToCsv(await listSignups()));
 });
+
+/**
+ * Brisanje na zahtjev igrača (politika privatnosti → „Tvoja prava i brisanje"):
+ * sve prijave jedne adrese, za sve igre.
+ * `curl -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" -d '{"email":"…"}'`
+ * Isti token i isti 404 kao export.
+ */
+fastify.delete<{ Body: { email?: unknown } | null }>("/api/signups", async (request, reply) => {
+  if (!isAdmin(request.headers.authorization)) {
+    return reply.callNotFound();
+  }
+  const email = normalizeEmail(request.body?.email);
+  if (!email) {
+    return reply.code(400).send({ error: "Neispravna e-adresa" });
+  }
+  return { removed: await removeSignupsForEmail(email) };
+});
+
+/** Politika privatnosti: prijava se briše najkasnije 24 mjeseca od upisa. */
+function sweepSignups(): void {
+  sweepExpiredSignups()
+    .then((n) => {
+      if (n > 0) fastify.log.info(`🧹 Obrisano ${n} isteklih prijava`);
+    })
+    .catch((err) => fastify.log.error(`Istek prijava nije uspio: ${err}`));
+}
+sweepSignups();
+setInterval(sweepSignups, 24 * 60 * 60 * 1000).unref();
 
 // ---- SOCKET.IO ----
 

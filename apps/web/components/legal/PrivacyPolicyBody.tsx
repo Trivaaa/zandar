@@ -20,7 +20,7 @@ import {
  * NACRT — nije pravni savjet. Sadrzaj opisuje ono sto je procitano IZ KODA
  * (vidi reference u komentarima ispod); ako se kod promijeni, mijenja se i ovo.
  */
-export const PRIVACY_UPDATED = "13. septembar 2026.";
+export const PRIVACY_UPDATED = "14. septembar 2026.";
 
 export function PrivacyPolicyBody() {
   return (
@@ -33,9 +33,10 @@ export function PrivacyPolicyBody() {
 
       <LegalSection title="Igra nema naloge">
         <p>
-          Ne postoji registracija ni prijava. Ne tražimo e-mail adresu, broj
-          telefona ni lozinku, i ne naplaćujemo ništa. Dovoljan je nadimak koji
-          sam upišeš.
+          Ne postoji registracija ni prijavljivanje na nalog. Za igru ne tražimo
+          e-mail adresu, broj telefona ni lozinku, i ne naplaćujemo ništa —
+          dovoljan je nadimak koji sam upišeš. E-adresu uzimamo samo ako se sam
+          prijaviš za obavještenje o nekoj budućoj igri (vidi ispod).
         </p>
         <p>
           To ne znači da ne prikupljamo podatke. Prikupljamo ih — spisak je
@@ -68,6 +69,14 @@ export function PrivacyPolicyBody() {
             igrača nema.
           </li>
           <li>
+            <strong>E-adresa za obavještenje o budućoj igri</strong> — samo ako
+            je sam upišeš na stranici igre koja još nije dostupna (npr. Poker) i
+            označiš saglasnost. Uz adresu čuvamo koju igru si izabrao, vrijeme
+            prijave i koji tekst saglasnosti si prihvatio. Adresu ne šaljemo u
+            statistiku korišćenja i ne koristimo je ni za šta osim tog
+            obavještenja.
+          </li>
+          <li>
             <strong>Tehnički podaci</strong> koje šalje svaki uređaj: IP adresa,
             tip uređaja i pregledača, verzija aplikacije. IP adresa se pojavljuje
             u zapisnicima našeg servera i kod servisa navedenih ispod.
@@ -84,6 +93,11 @@ export function PrivacyPolicyBody() {
           <li>
             <strong>Da popravimo greške</strong> — kad aplikacija pukne,
             dobijemo izvještaj sa podacima o tome šta se desilo.
+          </li>
+          <li>
+            <strong>Da ti javimo za igru koju si izabrao</strong> — i da po broju
+            prijava odlučimo koju igru pravimo sljedeću. Ovo radimo samo uz
+            saglasnost koju daješ u formi.
           </li>
           <li>
             <strong>Da razumijemo kako se igra koristi</strong> — koliko partija
@@ -105,7 +119,8 @@ export function PrivacyPolicyBody() {
         <ul className="space-y-1 list-disc list-inside">
           <li>
             <strong>Railway</strong> (Sjedinjene Američke Države) — serveri same
-            igre. Tu se vode partije i tu se privremeno čuvaju sobe.
+            igre. Tu se vode partije, privremeno se čuvaju sobe i čuvaju se
+            prijave za obavještenje o budućim igrama.
           </li>
           <li>
             <strong>PostHog</strong> (Evropska unija) — statistika korišćenja,
@@ -138,6 +153,11 @@ export function PrivacyPolicyBody() {
             aktivnosti <strong>12 sati</strong> poslije posljednjeg poteza.
             Provjera ide svakih deset minuta. Poslije toga zapis o partiji,
             zajedno sa nadimcima, više ne postoji kod nas.
+          </li>
+          <li>
+            <strong>Prijave za obavještenje</strong> brišemo kad pošaljemo
+            obavještenje o toj igri ili odlučimo da je ne pravimo — a najkasnije{" "}
+            <strong>24 mjeseca</strong> od prijave. Ranije na zahtjev, vidi ispod.
           </li>
           <li>
             <strong>Podaci u PostHogu i Sentryju</strong> ostaju onoliko koliko
@@ -208,6 +228,11 @@ export function PrivacyPolicyBody() {
       </LegalSection>
 
       <LegalSection title="Tvoja prava i brisanje">
+        <p>
+          Prijavu za obavještenje možeš povući u bilo kom trenutku: piši na
+          adresu ispod i navedi e-adresu koju si ostavio. Brišemo je za sve
+          igre za koje si se prijavio.
+        </p>
         <p>
           Možeš tražiti uvid u podatke koje vodimo pod tvojim ID-om uređaja,
           njihov ispravak ili brisanje. Kako se to radi i šta tačno brišemo piše

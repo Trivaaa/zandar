@@ -8,7 +8,10 @@ import { normalizeEmail } from "@zandar/shared-types";
 
 import {
   listSignups,
+  removeSignupsForEmail,
   saveSignup,
+  SIGNUP_MAX_AGE_MS,
+  sweepExpiredSignups,
   signupId,
   signupsToCsv,
   tokenMatches,
@@ -108,5 +111,35 @@ describe("tokenMatches", () => {
     assert.equal(tokenMatches("tajna-123", "tajna-123"), true);
     assert.equal(tokenMatches("tajna-124", "tajna-123"), false);
     assert.equal(tokenMatches("t", "tajna-123"), false);
+  });
+});
+
+describe("brisanje prijava", () => {
+  let dir: string;
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "signups-del-"));
+  });
+  after(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  test("istek: briše samo starije od roka", async () => {
+    const now = 1_800_000_000_000;
+    await saveSignup(record({ email: "stara@primjer.com", createdAt: now - SIGNUP_MAX_AGE_MS - 1 }), dir);
+    await saveSignup(record({ email: "granica@primjer.com", createdAt: now - SIGNUP_MAX_AGE_MS }), dir);
+    await saveSignup(record({ email: "nova@primjer.com", createdAt: now - 1000 }), dir);
+    assert.equal(await sweepExpiredSignups(now, dir), 1);
+    assert.deepEqual((await listSignups(dir)).map((r) => r.email).sort(), ["granica@primjer.com", "nova@primjer.com"]);
+  });
+
+  test("na zahtjev: sve igre jedne adrese, tuđe ostaju", async () => {
+    await saveSignup(record({ email: "igrac@primjer.com", game: "poker" }), dir);
+    await saveSignup(record({ email: "igrac@primjer.com", game: "bela" }), dir);
+    await saveSignup(record({ email: "drugi@primjer.com", game: "poker" }), dir);
+    assert.equal(await removeSignupsForEmail("igrac@primjer.com", dir), 2);
+    const left = (await listSignups(dir)).map((r) => r.email);
+    assert.ok(!left.includes("igrac@primjer.com"));
+    assert.ok(left.includes("drugi@primjer.com"));
+    assert.equal(await removeSignupsForEmail("igrac@primjer.com", dir), 0, "ponovljeno brisanje je bezopasno");
   });
 });

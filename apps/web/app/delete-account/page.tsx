@@ -17,7 +17,8 @@ export const metadata: Metadata = {
  *
  * Putanja je `/delete-account` jer je to URL koji ide u Play Console, ali se
  * stranica zove "Brisanje podataka", a ne "Brisanje naloga": aplikacija NEMA
- * naloge (nema registracije, e-maila ni lozinke), pa bi drugi naslov tvrdio
+ * naloge (nema registracije ni lozinke; e-adresa postoji samo kao dobrovoljna
+ * prijava za obavještenje o budućoj igri), pa bi drugi naslov tvrdio
  * nesto sto ne postoji i recenzent bi trazio nepostojeci ekran za prijavu.
  *
  * Postupak je RUCAN i tekst to izricito kaze — nema automatizovanog brisanja u
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
  */
 export default function DeleteAccountPage() {
   return (
-    <LegalPage title="Brisanje podataka" updated="13. septembar 2026.">
+    <LegalPage title="Brisanje podataka" updated="14. septembar 2026.">
       <p>
         Ova stranica se odnosi na <strong>{BRAND}</strong> i igru Žandar
         (kartaonica.com i Android aplikacija), koje izdaje {PUBLISHER} (
@@ -81,6 +82,20 @@ export default function DeleteAccountPage() {
           izvršava samo. Zahtjev obrađujemo{" "}
           <strong>najkasnije u roku od 30 dana</strong> i javljamo ti kad je
           gotovo.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Prijava za obavještenje o budućoj igri">
+        <p>
+          Ako si ostavio e-adresu na stranici neke igre koja još nije dostupna,
+          prijavu povlačiš porukom na <strong>{CONTACT_EMAIL}</strong> — navedi
+          e-adresu koju si ostavio. ID uređaja tu nije potreban. Brišemo sve
+          prijave te adrese, za sve igre, u istom roku od 30 dana.
+        </p>
+        <p>
+          I bez zahtjeva prijavu brišemo kad pošaljemo obavještenje o toj igri
+          ili odlučimo da je ne pravimo — a najkasnije{" "}
+          <strong>24 mjeseca</strong> od prijave.
         </p>
       </LegalSection>
 
