@@ -5,6 +5,6 @@
   mijenja applicationId, ali java paket ostaje `com.kartaonica.zandar`.
 -->
 <resources>
-    <string name="app_name">Žandar (staging)</string>
-    <string name="title_activity_main">Žandar (staging)</string>
+    <string name="app_name">Kartaonica (staging)</string>
+    <string name="title_activity_main">Kartaonica (staging)</string>
 </resources>

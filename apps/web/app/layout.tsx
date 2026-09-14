@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Žandar",
+    title: "Kartaonica",
   },
   icons: {
     icon: "/icon-192.png",

@@ -131,7 +131,7 @@ GRADLE_OPTS   -Djavax.net.ssl.trustStore=C:/Users/User/.gradle/cacerts-avast -Dj
 ### Dva APK-a (staging / produkcija)
 
 ```
-pnpm --filter web apk:staging   → com.kartaonica.zandar.staging, „Žandar (staging)"
+pnpm --filter web apk:staging   → com.kartaonica.zandar.staging, „Kartaonica (staging)"
 pnpm --filter web apk:prod      → com.kartaonica.zandar
 ```
 
