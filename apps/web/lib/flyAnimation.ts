@@ -122,6 +122,7 @@ const COLLECT_STAGGER = 50;
 export function collectCardsToSeat(
   container: HTMLElement | null,
   seatId: string,
+  all = false,
 ): number {
   if (!container || prefersReducedMotion() || typeof document === "undefined") {
     return 0;
@@ -130,7 +131,11 @@ export function collectCardsToSeat(
   if (!seatEl) return 0;
 
   const to = centerOf(seatEl.getBoundingClientRect());
-  const cards = container.querySelectorAll<HTMLElement>("[data-collect-card]");
+  // `all`: kraj ruke — preostali sto ide zadnjem kupcu, pa lete i karte koje
+  // potez nije pokupio (one nemaju `data-collect-card`).
+  const cards = container.querySelectorAll<HTMLElement>(
+    all ? "[data-collect-card], .table__slot" : "[data-collect-card]",
+  );
 
   let flying = 0;
   cards.forEach((el) => {

@@ -155,6 +155,7 @@ export function GameScreen({
     },
     [],
   );
+  const endSfxRef = useRef<"win" | "lose" | null>(null);
   const handleGameEvent = useCallback((event: GameEvent) => {
     switch (event.type) {
       // `capture` i `trail` NISU ovdje. Njihov zvuk, flash i haptika su ranije
@@ -176,7 +177,9 @@ export function GameScreen({
         vibrate(HAPTIC.turn);
         break;
       case "matchEnd":
-        playSfx(event.iWon ? "win" : "lose");
+        // Ne odmah: rezultat se pokaže tek kad zadnji potez završi na stolu,
+        // a fanfara prije njega bi odala ishod dok karte još lete.
+        endSfxRef.current = event.iWon ? "win" : "lose";
         break;
       // handEnd → bez zvuka (matchEnd nosi rezultat)
     }
@@ -243,6 +246,20 @@ export function GameScreen({
   const tableBusy = beat.phase !== "idle";
   const isHandOver = state.phase === "hand_finished";
   const isMatchOver = state.phase === "match_finished";
+  /*
+   * Rezultat čeka zadnji potez. Kraj ruke stiže u ISTOM snapshotu kao potez koji
+   * ju je završio, pa bi overlay inače pokrio sto prije nego što se vidi koja je
+   * karta bačena. `useTableBeat` fazu računa pri renderu, pa nema kadra u kojem
+   * rezultat bljesne prije beat-a. Ulazak u već završenu ruku (reload, reconnect)
+   * nema beat i rezultat se vidi odmah.
+   */
+  const endReveal = (isHandOver || isMatchOver) && beat.phase !== "idle";
+  const showResult = (isHandOver || isMatchOver) && !endReveal;
+  useEffect(() => {
+    if (!showResult || !endSfxRef.current) return;
+    playSfx(endSfxRef.current);
+    endSfxRef.current = null;
+  }, [showResult]);
 
   const selectedCard =
     myTurn && !tableBusy
@@ -458,7 +475,7 @@ export function GameScreen({
       {seats.partner && (
         <PlayerSeat
           player={seats.partner}
-          isActive={state.currentPlayerId === seats.partner.id}
+          isActive={isPlaying && state.currentPlayerId === seats.partner.id}
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={dealHold ? 0 : (state.handCounts[seats.partner.id] ?? 0)}
@@ -483,7 +500,7 @@ export function GameScreen({
       {seats.oppL && (
         <PlayerSeat
           player={seats.oppL}
-          isActive={state.currentPlayerId === seats.oppL.id}
+          isActive={isPlaying && state.currentPlayerId === seats.oppL.id}
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={dealHold ? 0 : (state.handCounts[seats.oppL.id] ?? 0)}
@@ -497,7 +514,7 @@ export function GameScreen({
       {seats.oppR && (
         <PlayerSeat
           player={seats.oppR}
-          isActive={state.currentPlayerId === seats.oppR.id}
+          isActive={isPlaying && state.currentPlayerId === seats.oppR.id}
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
           cardCount={dealHold ? 0 : (state.handCounts[seats.oppR.id] ?? 0)}
@@ -628,7 +645,7 @@ export function GameScreen({
       {/* Špil — stanjuje se kako runde idu; sidro za deal animaciju. Lijevi
           pojas u visini tvog sjedišta: donji lijevi ugao je sad tvoje sjedište,
           a ne prazan felt. */}
-      {isPlaying && (
+      {(isPlaying || endReveal) && (
         <DeckPile
           remaining={state.deckCount + dealtCount}
           size="xs"
@@ -697,7 +714,7 @@ export function GameScreen({
 
       {/* Kraj ruke / kraj meča. Ekran daje scrim i okvir, komponenta sadržaj —
           isto kao kod pauze. */}
-      {(isHandOver || isMatchOver) && lastHandScore && (
+      {showResult && lastHandScore && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <RoundEndOverlay
             phase={isMatchOver ? "match_finished" : "hand_finished"}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { isJackSweep } from "@zandar/game-core";
 import type { Card, PrivateGameStateView } from "@zandar/shared-types";
+import { pileIdOf } from "@/lib/piles";
 import { collectCardsToSeat } from "@/lib/flyAnimation";
 import { prefersReducedMotion } from "@/lib/motion";
 
@@ -28,6 +29,17 @@ import { prefersReducedMotion } from "@/lib/motion";
  * namjerno ne ulazi u mrežu (pluta iznad nje): `tableGrid()` mijenja broj
  * kolona na granicama 2→3 i 9→10, pa bi `n → n+1` usred beat-a smanjio sve
  * karte i vratio ih na kraju.
+ *
+ * ZADNJI POTEZ RUKE ima svoj, duži beat. Server u istom snapshotu vodi potez,
+ * dodjelu preostalog stola zadnjem kupcu i prelazak u `hand_finished` /
+ * `match_finished` — pa je ranije rezultat iskakao prije nego što se vidjelo
+ * koja je karta bačena. Sad:
+ *
+ *   land     karta sleti (kupljenje: iznad stola; trail: u mrežu, uz zatečene)
+ *   hold     `FINAL_HOLD_MS` — duže nego inače, to je potez koji odlučuje ruku
+ *   collect  SVE sa stola odleti onome kome je server i dodijelio
+ *   rest     `FINAL_REST_MS` praznog stola, pa tek onda ekran smije da pokaže
+ *            rezultat (`phase === "idle"`)
  */
 
 /** Mora pratiti `--t-card-play` u globals.css (slijetanje karte). */
@@ -36,6 +48,14 @@ const LAND_MS = 260;
 const HOLD_MS = 280;
 /** Rep beat-a kad leta nema (reduced-motion, trail, sjedište van DOM-a). */
 const TAIL_MS = 240;
+/**
+ * Zadnji potez ruke: koliko karta stoji prije nego što sto ode u pile. Trajanje
+ * PRIKAZA, ne pokreta — važi i pod `prefers-reduced-motion`, inače taj korisnik
+ * zadnju kartu ne bi vidio uopšte (isti razlog kao kod `CAPTION_MS`).
+ */
+const FINAL_HOLD_MS = 650;
+/** Mir praznog stola između zadnjeg leta i rezultata ruke. */
+const FINAL_REST_MS = 500;
 /**
  * Koliko natpis stoji. VLASTITI sat — namjerno NIJE vezan za trajanje beat-a:
  * beat je gotov za ~780ms (trail) do ~1.2s (kupljenje), a to je prekratko da se
@@ -50,7 +70,7 @@ const CAPTION_MS = 1700;
 /** Zadnji dio vijeka: natpis se gasi umjesto da nestane rezom. */
 const CAPTION_FADE_MS = 200;
 
-export type BeatPhase = "idle" | "land" | "hold" | "collect";
+export type BeatPhase = "idle" | "land" | "hold" | "collect" | "rest";
 export type BeatKind = "capture" | "trail";
 
 export type BeatMoment = {
@@ -104,9 +124,48 @@ type Beat = {
   playedCard: Card;
   takenIds: string[];
   heldTable: Card[];
-  /** Da li se sto zaista zadržava (kupljenje uz uključen pokret). */
+  /** Da li se sto zaista zadržava (kupljenje uz uključen pokret, ili kraj ruke). */
   hold: boolean;
+  /** Zadnji potez ruke — vidi zaglavlje fajla. */
+  final: boolean;
+  /**
+   * Kome karte lete. Inače onaj ko je odigrao; kod zadnjeg TRAILA to je zadnji
+   * kupac u ruci (njemu server dodjeljuje preostali sto), a ne onaj ko je bacio.
+   */
+  collectSeatId: string;
 };
+
+/** Šta beat mora znati o snapshotu PRIJE poteza. */
+export type BeatPrev = {
+  table: Card[];
+  capturedCounts: Record<string, number>;
+};
+
+function isHandEnd(phase: PrivateGameStateView["phase"]): boolean {
+  return phase === "hand_finished" || phase === "match_finished";
+}
+
+/**
+ * Sjedište kome je otišao preostali sto na kraju ruke.
+ *
+ * `lastCapturePlayerId` ne stiže u javni view, ali stiže posljedica: jedini pile
+ * koji je porastao. Pile je u 4P tim, a let traži JEDNO sjedište — bira se onaj
+ * ko je odigrao ako je u tom timu, pa ti, pa prvi po redu sjedenja.
+ */
+function recipientSeat(prev: BeatPrev, next: PrivateGameStateView, moverId: string): string {
+  const grown = Object.keys(next.capturedCounts).find(
+    (id) => (next.capturedCounts[id] ?? 0) > (prev.capturedCounts[id] ?? 0),
+  );
+  if (!grown) return moverId;
+  const inPile = [...next.players]
+    .sort((a, b) => a.seatIndex - b.seatIndex)
+    .filter((p) => pileIdOf(p, next.players) === grown);
+  const seat =
+    inPile.find((p) => p.id === moverId) ??
+    inPile.find((p) => p.id === next.myPlayerId) ??
+    inPile[0];
+  return seat?.id ?? moverId;
+}
 
 /**
  * Čista odluka: šta je ovaj potez i šta beat treba da drži. Bez DOM-a i bez
@@ -116,23 +175,38 @@ type Beat = {
  * `matchMedia`, pa bi na serveru i klijentu dao različit sto = hydration
  * mismatch. Beat se pravi tek u efektu, dakle uvijek na klijentu.
  */
-export function decideBeat(prevTable: Card[], next: PrivateGameStateView): Beat | null {
+export function decideBeat(prev: BeatPrev, next: PrivateGameStateView): Beat | null {
   const move = next.lastMove;
-  if (!move || next.phase !== "playing") return null;
+  const final = isHandEnd(next.phase);
+  if (!move || (next.phase !== "playing" && !final)) return null;
 
+  const prevTable = prev.table;
   const kind: BeatKind = move.capturedCards.length > 0 ? "capture" : "trail";
+  // Na kraju ruke `next.table` je UVIJEK prazan (ostatak je već dodijeljen), pa
+  // se "sto ostao prazan" mora čitati iz samog poteza, ne iz snapshota.
+  const leftAfterMove = final
+    ? prevTable.length - move.capturedCards.length
+    : next.table.length;
+  // Zadnji trail: karta nije u `next.table` (sto je već počišćen), pa je beat
+  // sam dodaje zatečenom stolu — sleti u mrežu kao i svaki drugi trail.
+  const heldTable =
+    final && kind === "trail" && !prevTable.some((c) => c.id === move.playedCard.id)
+      ? [...prevTable, move.playedCard]
+      : prevTable;
   return {
     moveId: move.moveId,
     kind,
     seatId: move.playerId,
     byMe: move.playerId === next.myPlayerId,
-    jackSweep:
-      kind === "capture" && isJackSweep(prevTable.length, next.table.length),
+    jackSweep: kind === "capture" && isJackSweep(prevTable.length, leftAfterMove),
     isAutoPlay: move.isAutoPlay,
     playedCard: move.playedCard,
     takenIds: move.capturedCards.map((c) => c.id),
-    heldTable: prevTable,
-    hold: kind === "capture" && !prefersReducedMotion(),
+    heldTable,
+    hold: final || (kind === "capture" && !prefersReducedMotion()),
+    final,
+    collectSeatId:
+      final && kind === "trail" ? recipientSeat(prev, next, move.playerId) : move.playerId,
   };
 }
 
@@ -143,6 +217,8 @@ type Tracked = {
   prevTable: Card[];
   /** Potpis tog stola po sadržaju (vidi sinhronizaciju pri renderu). */
   prevSig: string;
+  /** `capturedCounts` iz istog snapshota — vidi `recipientSeat`. */
+  prevCaptured: Record<string, number>;
   beat: Beat | null;
   phase: BeatPhase;
   /** Natpis; postavlja ga `advance`, gasi ga VLASTITI tajmer, ne kraj beat-a. */
@@ -165,22 +241,23 @@ function advance(t: Tracked, state: PrivateGameStateView): Tracked {
   const version = state.stateVersion;
   const prevTable = state.table;
   const prevSig = sigOf(state.table);
+  const prevCaptured = state.capturedCounts;
 
-  // Kraj ruke, pauza ili prekid usred beat-a: prekini, snap na stvarni sto.
-  // Natpis ide sa njim — nema smisla da nadživi ruku u kojoj je potez odigran.
-  if (state.phase !== "playing") {
+  // Pauza ili prekid usred beat-a: prekini, snap na stvarni sto. Natpis ide sa
+  // njim. Kraj ruke NIJE ovdje — njegov zadnji potez dobija svoj beat.
+  if (state.phase !== "playing" && !isHandEnd(state.phase)) {
     return {
-      version, prevTable, prevSig,
+      version, prevTable, prevSig, prevCaptured,
       beat: null, phase: "idle", caption: null, handled: t.handled,
     };
   }
 
-  const next = decideBeat(t.prevTable, state);
+  const next = decideBeat({ table: t.prevTable, capturedCounts: t.prevCaptured }, state);
   if (!next || next.moveId === t.handled) {
-    return { ...t, version, prevTable, prevSig };
+    return { ...t, version, prevTable, prevSig, prevCaptured };
   }
   return {
-    version, prevTable, prevSig,
+    version, prevTable, prevSig, prevCaptured,
     beat: next,
     phase: "land",
     caption: {
@@ -208,6 +285,7 @@ export function useTableBeat(
     version: state.stateVersion,
     prevTable: state.table,
     prevSig: sigOf(state.table),
+    prevCaptured: state.capturedCounts,
     beat: null,
     phase: "idle",
     caption: null,
@@ -253,7 +331,7 @@ export function useTableBeat(
     const timers: ReturnType<typeof setTimeout>[] = [];
     const reduced = prefersReducedMotion();
     const landMs = reduced ? 0 : LAND_MS;
-    const holdMs = reduced ? 0 : HOLD_MS;
+    const holdMs = beat.final ? FINAL_HOLD_MS : reduced ? 0 : HOLD_MS;
 
     // Tajmer koji je preživio smjenu poteza ne smije da pomjeri novi beat.
     const to = (p: BeatPhase) =>
@@ -269,7 +347,7 @@ export function useTableBeat(
 
     timers.push(setTimeout(() => to("hold"), landMs));
 
-    if (beat.kind === "trail") {
+    if (beat.kind === "trail" && !beat.final) {
       timers.push(setTimeout(end, landMs + holdMs + TAIL_MS));
     } else {
       timers.push(
@@ -277,14 +355,23 @@ export function useTableBeat(
           // Mjeri PA sakrij: duhovi kreću sa pozicija pravih karata, a promjenu
           // faze (koja ih skida sa stola) React primijeni tek poslije.
           const container = document.querySelector<HTMLElement>("[data-table-drop]");
-          const flyMs = collectCardsToSeat(container, beat.seatId);
+          // Kraj ruke odnosi SVE sa stola, ne samo ono što je karta pokupila.
+          const flyMs = collectCardsToSeat(container, beat.collectSeatId, beat.final);
           handlersRef.current.onCollect?.({
             kind: beat.kind,
-            byMe: beat.byMe,
+            // Haptika prati onoga kome karte odlaze, a to kod zadnjeg traila
+            // nije onaj ko je bacio.
+            byMe: beat.collectSeatId === beat.seatId && beat.byMe,
             jackSweep: beat.jackSweep,
           });
           to("collect");
-          timers.push(setTimeout(end, flyMs > 0 ? flyMs : TAIL_MS));
+          const afterMs = flyMs > 0 ? flyMs : TAIL_MS;
+          if (beat.final) {
+            timers.push(setTimeout(() => to("rest"), afterMs));
+            timers.push(setTimeout(end, afterMs + FINAL_REST_MS));
+          } else {
+            timers.push(setTimeout(end, afterMs));
+          }
         }, landMs + holdMs),
       );
     }
@@ -321,12 +408,13 @@ export function useTableBeat(
     };
   }, [captionId]);
 
-  const holding = beat !== null && beat.hold && phase !== "idle" && phase !== "collect";
+  const holding = beat !== null && beat.hold && (phase === "land" || phase === "hold");
 
   return {
     phase,
     cards: holding ? beat.heldTable : state.table,
-    playedCard: holding ? beat.playedCard : null,
+    // Trail (i onaj zadnji) kartu nosi u mreži, ne iznad nje.
+    playedCard: holding && beat.kind === "capture" ? beat.playedCard : null,
     takenIds: holding ? beat.takenIds : [],
     seatId: phase === "idle" ? null : (beat?.seatId ?? null),
     caption: tracked.caption,

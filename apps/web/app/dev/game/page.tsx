@@ -56,8 +56,25 @@ const TABLE_POOL = [
  * pa preview mora da odigra pravi prelaz iz stanja PRIJE poteza u stanje
  * POSLIJE njega — isto kako dolazi sa servera.
  */
-const MOVES = ["capture", "trail", "sweep", "auto", "redeal"] as const;
+const MOVES = [
+  "capture",
+  "trail",
+  "sweep",
+  "auto",
+  "redeal",
+  "endcapture",
+  "endtrail",
+] as const;
 type MoveKind = (typeof MOVES)[number];
+
+/**
+ * `endcapture` / `endtrail`: ZADNJI potez ruke. Server u istom snapshotu vodi
+ * potez, dodjelu preostalog stola i prelazak u `hand_finished` — jedini slijed
+ * na kojem se vidi da li rezultat ceka da se karta pokaze. `endtrail` je tezi:
+ * bacena karta nikad nije u `table` (sto je vec pociscen), a sto ne ide onome
+ * ko je bacio nego zadnjem kupcu.
+ */
+const isEndMove = (m: MoveKind | null) => m === "endcapture" || m === "endtrail";
 
 /**
  * `redeal` je kupljenje ZADNJOM kartom u ruci: server u istom snapshotu vodi i
@@ -215,10 +232,39 @@ function mockState({
   // poteza, pa `window.__devMove()` prebaci na stanje POSLIJE — tek taj prelaz
   // (novi `stateVersion` + novi `moveId`) pusti beat.
   const played = move === "sweep" ? PLAYED_JACK : PLAYED;
+  const end = isEndMove(move);
   const taken =
-    move === "sweep" ? baseTable : move === "trail" ? [] : baseTable.slice(0, 2);
-  const after = move === "trail" ? [...baseTable, played] : baseTable.slice(taken.length);
+    move === "sweep"
+      ? baseTable
+      : move === "trail" || move === "endtrail"
+        ? []
+        : baseTable.slice(0, 2);
   const live = move !== null && moved;
+  // Kraj ruke: sto je vec dodijeljen, pa je poslije poteza prazan.
+  const after = end
+    ? []
+    : move === "trail"
+      ? [...baseTable, played]
+      : baseTable.slice(taken.length);
+
+  // Pile kljucevi kao na serveru: 4P po timu, inace po igracu. Ranije su ovdje
+  // uvijek stajali timovi, pa u 2P/3P nijedan igrac nije imao svoj pile.
+  const pileIds = playerCount === 4 ? ["team-0", "team-1"] : players.map((p) => p.id);
+  const captured: Record<string, number> = Object.fromEntries(
+    pileIds.map((id, i) => [id, fresh ? 0 : i === 0 ? 6 : 4]),
+  );
+  if (end && live) {
+    // `endcapture`: sve ide onome ko je odigrao. `endtrail`: zadnjem kupcu —
+    // namjerno NEKOM DRUGOM, da se vidi da karte ne lete baceru.
+    const moverPile =
+      playerCount === 4
+        ? `team-${players.find((p) => p.id === mover)?.teamId ?? 0}`
+        : mover;
+    const recipient =
+      move === "endcapture" ? moverPile : (pileIds.find((id) => id !== moverPile) ?? moverPile);
+    captured[recipient] = (captured[recipient] ?? 0) + baseTable.length + 1;
+  }
+  const endPre = end && !live;
 
   // `redeal`: prije poteza JEDINO igrac na potezu ima kartu (ostali su vec
   // odigrali svoje), poslije poteza su sve ruke pune — tacno onaj snapshot na
@@ -227,27 +273,37 @@ function mockState({
   const redealPre = move === "redeal" && !live;
   const myHand = HAND.slice(
     0,
-    redealPre ? (mover === "me" ? 1 : 0) : REDEAL_PER_SEAT,
+    end
+      ? (endPre && mover === "me" ? 1 : 0)
+      : redealPre
+        ? (mover === "me" ? 1 : 0)
+        : REDEAL_PER_SEAT,
   );
 
   return {
     roomId: "dev",
     matchId: "dev",
-    phase,
+    phase: end && live ? "hand_finished" : phase,
     players,
     table: live ? after : baseTable,
     currentPlayerId: live ? "me" : mover,
     dealerPlayerId: "p3",
-    deckCount: redealPre ? 28 : 28 - (move === "redeal" ? REDEAL_PER_SEAT * players.length : 0),
+    deckCount: end
+      ? 0
+      : redealPre
+        ? 28
+        : 28 - (move === "redeal" ? REDEAL_PER_SEAT * players.length : 0),
     handCounts: Object.fromEntries(
       players.map((p, i) => [
         p.id,
-        move === "redeal"
-          ? (redealPre ? (p.id === mover ? 1 : 0) : REDEAL_PER_SEAT)
-          : (oppHand ?? 4 - (i % 2)),
+        end
+          ? (endPre && p.id === mover ? 1 : 0)
+          : move === "redeal"
+            ? (redealPre ? (p.id === mover ? 1 : 0) : REDEAL_PER_SEAT)
+            : (oppHand ?? 4 - (i % 2)),
       ]),
     ),
-    capturedCounts: fresh ? { "team-0": 0, "team-1": 0 } : { "team-0": 6, "team-1": 4 },
+    capturedCounts: captured,
     matchScore:
       playerCount === 4
         ? { "team-0": 14, "team-1": 9 }
