@@ -129,6 +129,19 @@ export async function pushPermission(): Promise<PushPermission> {
 let inFlight: Promise<string | null> | null = null;
 
 /**
+ * Da li je server u OVOM pokretanju aplikacije potvrdio uređaj. Sačuvan
+ * `pushId` to ne dokazuje: registracija na startu ume da otkaže (token kasni,
+ * mreža), a server ume i da zaboravi uređaj — tada stari `pushId` stoji u
+ * localStorage-u, a obavještenja ćutke ne stižu do sljedećeg pokretanja.
+ */
+let registeredThisSession = false;
+
+/** Treba li pokušati registraciju ponovo (povratak u prvi plan). */
+export function pushRegistrationPending(): boolean {
+  return pushEnabled && !registeredThisSession;
+}
+
+/**
  * Token → server → `pushId`. Poziva se na svakom startu aplikacije (token
  * rotira, a server tako vidi `lastSeenAt`) i odmah poslije date dozvole.
  * Istovremeni pozivi dijele jedan tok. Ne baca — neuspjeh je `null`.
@@ -186,6 +199,7 @@ async function doRegister(): Promise<string | null> {
       table: getPushTable(),
     });
     writeKey(PUSH_ID_KEY, pushId);
+    registeredThisSession = true;
     window.dispatchEvent(new Event(PUSH_REGISTERED_EVENT));
     return pushId;
   } catch {

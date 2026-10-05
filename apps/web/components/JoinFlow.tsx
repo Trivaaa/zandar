@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   attachJoinRequestPush,
@@ -12,6 +12,7 @@ import { getPushId, PUSH_REGISTERED_EVENT } from "@/lib/push";
 import { PushPrompt } from "@/components/push/PushPrompt";
 import {
   saveSession,
+  type RoomSession,
   saveJoinPending,
   getJoinPending,
   clearJoinPending,
@@ -34,9 +35,12 @@ type State =
 export function JoinFlow({
   roomId,
   room,
+  onApproved,
 }: {
   roomId: string;
   room: RoomInfo;
+  /** Sesija je sačuvana — roditelj je preuzima i crta sobu, BEZ reload-a stranice. */
+  onApproved: (session: RoomSession) => void;
 }) {
   const router = useRouter();
   const [state, setState] = useState<State | null>(null);
@@ -45,11 +49,24 @@ export function JoinFlow({
   const [draft, setDraft] = useState<string | null>(null);
   const displayName = draft ?? savedName ?? "";
   const [remaining, setRemaining] = useState<number>(0);
+  const onApprovedRef = useRef(onApproved);
+  useEffect(() => {
+    onApprovedRef.current = onApproved;
+  }, [onApproved]);
+  const approvedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (approvedTimer.current) clearTimeout(approvedTimer.current);
+  }, []);
 
-  // Load pending state from localStorage on mount
+  // Load pending state from localStorage on mount.
+  //
+  // Lokalno istekao rok NIJE razlog da se zahtjev odbaci: gost se najčešće
+  // vraća baš zato što je odobren dok je bio van aplikacije (push "ulazak je
+  // odobren" / "partija počinje"). Ishod zna samo server, pa zapamćen zahtjev
+  // uvijek ide u `pending` i poll ispod ga razriješi.
   useEffect(() => {
     const pending = getJoinPending(roomId);
-    if (pending && pending.expiresAt > Date.now()) {
+    if (pending) {
       setState({
         kind: "pending",
         requestId: pending.requestId,
@@ -57,26 +74,20 @@ export function JoinFlow({
       });
       setDraft(pending.displayName);
     } else {
-      if (pending) clearJoinPending(roomId);
       setState({ kind: "form" });
     }
   }, [roomId]);
 
-  // Countdown timer for pending state
+  // Countdown timer for pending state. Samo PRIKAZ — sat ne proglašava istek.
+  // U pozadini tajmeri stoje, pa bi na povratku lokalni sat "istekao" prije
+  // nego što poll stigne da pita server, i odobren gost bi ostao pred vratima.
   useEffect(() => {
     if (!state || state.kind !== "pending") return;
-    const tick = () => {
-      const left = Math.max(0, state.expiresAt - Date.now());
-      setRemaining(left);
-      if (left === 0) {
-        setState({ kind: "expired" });
-        clearJoinPending(roomId);
-      }
-    };
+    const tick = () => setRemaining(Math.max(0, state.expiresAt - Date.now()));
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [state, roomId]);
+  }, [state]);
 
   // Poll join request status when pending
   useEffect(() => {
@@ -96,7 +107,11 @@ export function JoinFlow({
           });
           clearJoinPending(roomId);
           setState({ kind: "approved" });
-          setTimeout(() => window.location.reload(), 800);
+          // Ne `location.reload()`: u APK-u WebView za svaku putanju bez
+          // ekstenzije servira korijenski index.html, pa reload sobe završi
+          // na početnom ekranu.
+          const session = { roomId, playerId: status.playerId, sessionToken: status.sessionToken };
+          approvedTimer.current = setTimeout(() => onApprovedRef.current(session), 800);
         } else if (status.status === "rejected") {
           clearJoinPending(roomId);
           setState({ kind: "rejected" });
@@ -111,9 +126,15 @@ export function JoinFlow({
 
     poll();
     const interval = setInterval(poll, 2000);
+    // Povratak u prvi plan pita odmah, ne čeka sljedeći otkucaj intervala.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [state, roomId]);
 

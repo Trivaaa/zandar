@@ -432,7 +432,16 @@ export function RoomScreen({ roomId }: { roomId: string }) {
 
   if (!session) {
     // Ekran nosi svoj `.screen` (felt, safe-area) — omotač bi mu dodao padding.
-    return <JoinFlow roomId={roomId} room={room} />;
+    return (
+      <JoinFlow
+        roomId={roomId}
+        room={room}
+        onApproved={(approved) => {
+          setSession(approved);
+          setRefreshTrigger((n) => n + 1);
+        }}
+      />
+    );
   }
 
   if (gameState) {

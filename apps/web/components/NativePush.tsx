@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 
 import {
   capturePush,
-  getPushId,
   pushEnabled,
   pushPermission,
+  pushRegistrationPending,
   registerForPush,
   TABLE_CHANNEL_ID,
 } from "@/lib/push";
@@ -86,14 +86,16 @@ export function NativePush() {
   // Samopopravka: prvi pokušaj registracije ume da otkaže na hladnom startu
   // Play Services-a (izmjereno na uređaju — poslije restarta telefona zna
   // trajati duže od tadašnjeg roka). Umjesto da čeka sljedeće pokretanje
-  // aplikacije, svaki povratak u prvi plan bez `pushId`-a (dozvola već
-  // odobrena) tiho pokuša ponovo — `registerForPush()` je idempotentan
+  // aplikacije, svaki povratak u prvi plan dok server u OVOM pokretanju nije
+  // potvrdio uređaj (dozvola već odobrena) tiho pokuša ponovo. Sačuvan
+  // `pushId` nije dokaz: ostaje u localStorage-u i kad start-registracija
+  // otkaže, pa bi uslov "nema pushId-a" preskočio baš taj slučaj — `registerForPush()` je idempotentan
   // (`inFlight` dedup), pa dupli pokušaj nije opasan.
   useEffect(() => {
     if (!pushEnabled) return;
 
     function retryIfMissing() {
-      if (document.visibilityState !== "visible" || getPushId() !== null) return;
+      if (document.visibilityState !== "visible" || !pushRegistrationPending()) return;
       void pushPermission().then((permission) => {
         if (permission === "granted") void registerForPush();
       });

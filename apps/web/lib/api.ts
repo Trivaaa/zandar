@@ -176,6 +176,9 @@ export async function getJoinRequestStatus(
   const res = await fetch(
     `${API_BASE}/api/rooms/${roomId}/join-request/${requestId}`,
   );
+  // Server više ne zna za zahtjev (ili sobu) — za gosta je to isto što i istek;
+  // bez ovoga bi poll zauvijek ćutke ponavljao 404.
+  if (res.status === 404) return { status: "expired" };
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.error || "Greška");
