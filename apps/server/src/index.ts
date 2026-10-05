@@ -76,6 +76,7 @@ import {
   gameStartRecipients,
 } from "./push/messages";
 import { notifyDevices } from "./push/notify";
+import { parseQuickPlayConfig } from "./quickplay";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 const REACTION_COOLDOWN_MS = 2000;
@@ -687,15 +688,18 @@ type QuickPlayBody = {
 fastify.post<{ Body: QuickPlayBody }>(
   "/api/quickplay",
   async (request, reply) => {
-    const { displayName, playerCount, targetScore = 21 } = request.body;
+    const { displayName } = request.body;
     const identity = analyticsIdentity(request.body);
 
     if (!displayName || displayName.trim().length === 0) {
       return reply.code(400).send({ error: "displayName je obavezan" });
     }
-    if (![2, 3, 4].includes(playerCount)) {
-      return reply.code(400).send({ error: "playerCount mora biti 2, 3 ili 4" });
+    // Veličinu stola i cilj bira igrač (ekran `/igraj`) — oba su korisnički unos.
+    const parsed = parseQuickPlayConfig(request.body);
+    if (!parsed.ok) {
+      return reply.code(400).send({ error: parsed.error });
     }
+    const { playerCount, targetScore } = parsed.config;
 
     const playerId = createPlayerId();
     const sessionToken = createSessionToken();

@@ -21,6 +21,7 @@ import { PushPrompt } from "@/components/push/PushPrompt";
 import { assertNoBotLeak } from "@/lib/antiLeak";
 import { inviteLink, matchingPath } from "@/lib/routes";
 import { JoinFlow } from "@/components/JoinFlow";
+import { readQuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import { GameScreen } from "@/components/GameScreen";
 import type { ActiveReaction } from "@/lib/reactions";
@@ -379,7 +380,14 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       readPlayerName() ??
       "Igrač";
     try {
-      const res = await quickPlay({ displayName: myName });
+      // Isti sto kakav je upravo odigran (veličina i cilj), ne podrazumijevani:
+      // ko je igrao u dvoje do 11, „novi sto" očekuje opet takav.
+      const prefs = readQuickPlayPrefs();
+      const res = await quickPlay({
+        displayName: myName,
+        playerCount: room?.playerCount ?? prefs.playerCount,
+        targetScore: room?.targetScore ?? prefs.targetScore,
+      });
       saveSession({
         roomId: res.roomId,
         playerId: res.playerId,

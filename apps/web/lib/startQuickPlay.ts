@@ -1,19 +1,21 @@
 import { quickPlay } from "@/lib/api";
 import { normalizePlayerName, savePlayerName } from "@/lib/playerName";
+import { saveQuickPlayPrefs, type QuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { matchingPath } from "@/lib/routes";
 import { saveSession } from "@/lib/session";
 
 /**
- * Jedan put do javnog stola — dijele ga home (kad je ime sačuvano) i `/ime`.
+ * Jedan put do javnog stola, sa ekrana `/igraj`.
  *
- * Isti redoslijed kao ranije na home-u: ime se pamti PRIJE zahtjeva, pa
- * mrežna greška ne briše ono što je igrač upisao. Vraća putanju matching
- * ekrana; navigaciju radi pozivalac (home gura, `/ime` zamjenjuje sebe).
+ * Ime i izbor se pamte PRIJE zahtjeva, pa mrežna greška ne briše ono što je
+ * igrač upisao i izabrao. Vraća putanju matching ekrana; navigaciju radi
+ * pozivalac (`/igraj` zamjenjuje sebe).
  */
-export async function startQuickPlay(name: string): Promise<string> {
+export async function startQuickPlay(name: string, prefs: QuickPlayPrefs): Promise<string> {
   const displayName = normalizePlayerName(name);
   savePlayerName(displayName);
-  const res = await quickPlay({ displayName });
+  saveQuickPlayPrefs(prefs);
+  const res = await quickPlay({ displayName, ...prefs });
   saveSession({
     roomId: res.roomId,
     playerId: res.playerId,

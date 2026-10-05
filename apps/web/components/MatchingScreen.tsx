@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { getRoom, type RoomPlayer } from "@/lib/api";
 import { getSession } from "@/lib/session";
+import { parseQuickPlayPrefs, readQuickPlayPrefsRaw } from "@/lib/quickPlayPrefs";
 import { roomPath } from "@/lib/routes";
 import { MatchingTable } from "@/components/funnel/MatchingTable";
 import { sr } from "@/lib/sr";
+
+const subscribeToNothing = () => () => {};
 
 /**
  * Matching ekran za privatnu sobu (mid-flow). "Sto se postavlja" — ovalni sto
@@ -23,7 +26,10 @@ export function MatchingScreen({ roomId }: { roomId: string }) {
   const [revealed, setRevealed] = useState(0);
   const [stage, setStage] = useState<"loading" | "filling" | "done">("loading");
   const [statusText, setStatusText] = useState<string>(sr.matching.preparing);
-  const playerCount = 4;
+  // Veličina stola dok soba ne stigne: zadnji izbor sa `/igraj`, koji je upravo
+  // sačuvan (`startQuickPlay`). Čim roster stigne, broj mjesta daje on.
+  const prefsRaw = useSyncExternalStore(subscribeToNothing, readQuickPlayPrefsRaw, () => null);
+  const expectedPlaces = parseQuickPlayPrefs(prefsRaw).playerCount;
 
   useEffect(() => {
     const session = getSession(roomId);
@@ -85,7 +91,8 @@ export function MatchingScreen({ roomId }: { roomId: string }) {
 
   return (
     <MatchingTable
-      players={players.slice(0, playerCount)}
+      players={players}
+      expectedPlaces={expectedPlaces}
       myPlayerId={myPlayerId}
       revealed={revealed}
       statusText={statusText}

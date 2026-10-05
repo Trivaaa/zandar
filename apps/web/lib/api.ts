@@ -276,9 +276,11 @@ export type QuickPlayResponse = {
   playerSessionToken: string;
 };
 
-/** Quick Play: fiksno 4 igrača, target 21 (§37.1 v3.2) */
+/** Quick Play: veličinu stola i cilj bira igrač na `/igraj` (`lib/quickPlayPrefs.ts`). */
 export async function quickPlay(input: {
   displayName: string;
+  playerCount: number;
+  targetScore: number;
 }): Promise<QuickPlayResponse> {
   track("play_requested", { mode: "quick_play" });
   const res = await fetch(`${API_BASE}/api/quickplay`, {
@@ -286,8 +288,6 @@ export async function quickPlay(input: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...input,
-      playerCount: 4,
-      targetScore: 21,
       ...analyticsIdentity(),
     }),
   });

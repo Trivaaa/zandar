@@ -22,6 +22,8 @@ export type MatchingTableProps = {
   revealed: number;
   statusText: string;
   done: boolean;
+  /** Broj mjesta dok roster još nije stigao. */
+  expectedPlaces?: number | undefined;
   className?: string | undefined;
 };
 
@@ -36,11 +38,14 @@ export function MatchingTable({
   revealed,
   statusText,
   done,
+  expectedPlaces = 4,
   className = "",
 }: MatchingTableProps) {
   // Sto se crta i dok roster ne stigne — "Pripremamo sto..." je upravo ta
   // faza, a prazan felt bi je poništio. Prazna mjesta su mjesta, ne rupe.
-  const places = players.length > 0 ? players.length : 4;
+  // Koliko ih je zna roditelj (izabrana veličina stola): sto za dvoje ne smije
+  // bljesnuti sa četiri mjesta.
+  const places = players.length > 0 ? players.length : expectedPlaces;
   const shown = Math.max(0, Math.min(revealed, places));
 
   return (

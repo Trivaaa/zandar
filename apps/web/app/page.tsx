@@ -11,9 +11,8 @@ import { SettingsSheet } from "@/components/home/SettingsSheet";
 import { useBackHandler } from "@/lib/backHandlers";
 import { isNative } from "@/lib/platform";
 import { usePlayerName } from "@/lib/playerName";
-import { namePath } from "@/lib/routes";
+import { namePath, quickPlaySetupPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
-import { startQuickPlay } from "@/lib/startQuickPlay";
 import { track } from "@/lib/track";
 
 // Privatnost / uslovi / o nama. Na webu žive u footeru home-a (Play traži
@@ -31,12 +30,8 @@ const legalSlot = (
 export default function Home() {
   const router = useRouter();
   const playerName = usePlayerName();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  // `loading` gasi dugme tek na sljedećem renderu; brz dupli tap stigne prije.
-  const starting = useRef(false);
   // Fokus se vraća na ZUPČANIK, ne na `document.activeElement` zapamćen pri
   // otvaranju: Safari (i programski klik) ne fokusira dugme na tap, pa bi
   // zapamćen bio `body` i fokus bi se izgubio.
@@ -50,35 +45,16 @@ export default function Home() {
   useBackHandler(settingsOpen, closeSettings);
   useBackHandler(rulesOpen, () => setRulesOpen(false));
 
-  async function handlePlay() {
-    if (starting.current) return;
-    // Bez sačuvanog imena ime se traži TEK sad, na zasebnoj ruti — tamo Android
-    // „nazad" radi sam od sebe (na `/` gasi aplikaciju).
-    if (!playerName) {
-      router.push(namePath("quickplay"));
-      return;
-    }
-    starting.current = true;
-    setError(null);
-    setLoading(true);
-    try {
-      router.push(await startQuickPlay(playerName));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Greška");
-      setLoading(false);
-      starting.current = false;
-    }
-  }
-
   return (
     <>
       <HomeScreen
-        onPlay={() => void handlePlay()}
+        /* Ime, veličina stola i cilj se biraju na `/igraj` — zasebna ruta, pa
+           Android „nazad" tamo radi sam od sebe (na `/` gasi aplikaciju). */
+        onPlay={() => router.push(quickPlaySetupPath)}
         onFriends={() => router.push("/create")}
         onOpenSettings={() => setSettingsOpen(true)}
         settingsButtonRef={settingsButton}
-        loading={loading}
-        {...(error ? { error } : {})}
+        loading={false}
         showStores={!isNative}
         onUpcomingViewed={() => track("upcoming_games_viewed")}
         {...(isNative ? {} : { legalSlot })}

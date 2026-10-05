@@ -108,6 +108,14 @@ export const sr = {
   back: "← Nazad",
   /** Isto, bez strelice u tekstu — strelicu crta ikonica sa aria-hidden. */
   backLabel: "Nazad",
+  /* „Igraj Žandar" — isti ekran kao „Nova soba" (`CreateRoomScreen`), drugi tekst. */
+  quickSetup: {
+    title: "Igraj Žandar",
+    players: "Broj igrača",
+    target: "Igra se do",
+    submit: "Nađi sto",
+    submitting: "Tražim sto...",
+  },
   create: {
     title: "Nova soba",
     name: "Ime za stolom",

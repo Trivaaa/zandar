@@ -53,7 +53,7 @@ Odluke iz Sekcije 48 zatvorene:
 | Promjena | Opis |
 |----------|------|
 | Home/entry redizajn | Dominantni CTA "Igra – nađi sto"; sekundarni "Kreiraj svoj sto" (privatno). Vidi §49 |
-| Quick Play pojednostavljen | Korisnik upisuje SAMO ime; fiksno **4 igrača, target 21** (konfiguracija skrivena). Vidi §37.1 |
+| Quick Play pojednostavljen | Korisnik upisuje SAMO ime; fiksno **4 igrača, target 21** (konfiguracija skrivena). Vidi §37.1. **Izmijenjeno 2026-10-05 (odluka vlasnika):** igrač na ekranu `/igraj` bira sto za **2 ili 4** igrača i partiju do **11 ili 21**; podrazumijevano ostaje 4 / 21, zadnji izbor se pamti. |
 | Matching ekran | Fake-matching loading koji popunjava imena/avatare jedan po jedan (design-system dopuna). Vidi §49.2 |
 | Single-player IZBAČEN | §37.5 uklonjen — Quick Play sa lakim botovima već služi kao vježba |
 | Remember name | Povratni korisnik preskače unos imena ("Nađi sto" = jedan tap) |
@@ -103,7 +103,7 @@ Home dobija dominantni CTA **"Igra – nađi sto"** (kompletan home/matching red
 **Flow (pojednostavljen — v3.2):**
 1. Korisnik upisuje **samo svoje ime** (povratni korisnik preskače — ime se pamti na uređaju).
 2. Klikne "Igra – nađi sto".
-3. **Bez izbora konfiguracije:** Quick Play je fiksno **4 igrača, target score 21**.
+3. ~~**Bez izbora konfiguracije:** Quick Play je fiksno **4 igrača, target score 21**.~~ **Izmijenjeno 2026-10-05 (odluka vlasnika):** igrač na ekranu `/igraj` bira sto za **2 ili 4** igrača i partiju do **11 ili 21**; podrazumijevano ostaje 4 / 21, zadnji izbor se pamti. Sto za 3 ostaje samo u privatnoj sobi.
 4. Matching ekran (fake matching, §49.2) → matchmaker stavi korisnika za sto i popuni prazna sjedišta botovima (§38).
 5. Partija kreće.
 
@@ -122,7 +122,7 @@ Home dobija dominantni CTA **"Igra – nađi sto"** (kompletan home/matching red
 ### 37.4 FR dodaci za Quick Play
 
 **FR-018: Quick Play matchmaking 🆕**
-- Korisnik NE bira konfiguraciju — Quick Play je fiksno 4 igrača, target 21.
+- ~~Korisnik NE bira konfiguraciju — Quick Play je fiksno 4 igrača, target 21.~~ **Izmijenjeno 2026-10-05 (odluka vlasnika):** igrač na ekranu `/igraj` bira sto za **2 ili 4** igrača i partiju do **11 ili 21**; podrazumijevano ostaje 4 / 21, zadnji izbor se pamti.
 - Sistem vraća sto za < 2s.
 - Ako nema human stola koji čeka → kreira novi sto i popunjava botovima.
 

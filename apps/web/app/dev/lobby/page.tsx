@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
+import { sr } from "@/lib/sr";
 import {
   LobbyScreen,
   type LobbyPlayer,
@@ -122,6 +123,26 @@ export default function DevLobbyPage() {
             onBack={() => undefined}
             loading={creating}
             {...(createError ? { error: "Soba ne može da se kreira. Pokušaj ponovo." } : {})}
+          />
+        </Frame>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-bold">CreateRoomScreen — brza igra (`/igraj`)</h2>
+        <Frame>
+          <CreateRoomScreen
+            copy={sr.quickSetup}
+            counts={[2, 4]}
+            displayName={name}
+            onDisplayName={setName}
+            playerCount={count}
+            onPlayerCount={setCount}
+            targetScore={target}
+            onTargetScore={setTarget}
+            onCreate={() => undefined}
+            onBack={() => undefined}
+            loading={creating}
+            {...(createError ? { error: "Greška pri traženju stola." } : {})}
           />
         </Frame>
       </section>

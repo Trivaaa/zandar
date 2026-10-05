@@ -1,31 +1,28 @@
 "use client";
 
-import { Suspense, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { NameStep } from "@/components/funnel/NameStep";
 import { isValidPlayerName, savePlayerName, usePlayerName } from "@/lib/playerName";
-import type { NameNext } from "@/lib/routes";
 import { sr } from "@/lib/sr";
-import { startQuickPlay } from "@/lib/startQuickPlay";
 
 /**
- * `/ime?next=quickplay|home` — korak sa imenom.
+ * `/ime` — izmjena imena iz postavki: sačuva i vrati se.
  *
  * Zasebna ruta, a ne sheet na home-u: Android „nazad" (`NativeShell`) na `/`
- * gasi aplikaciju, a ovdje radi `router.back()` bez ijedne dopune. Query oblik
- * radi i u statičkom exportu (APK).
+ * gasi aplikaciju, a ovdje radi `router.back()` bez ijedne dopune.
+ *
+ * Brza igra je ranije ovdje tražila ime (`?next=quickplay`); otkad ima svoj
+ * ekran (`/igraj`) sa poljem za ime, taj put više ne postoji. Stari link sa
+ * `?next=quickplay` se ponaša kao obična izmjena imena.
  */
-function NameFromQuery() {
+export default function NamePage() {
   const router = useRouter();
-  const next: NameNext = useSearchParams().get("next") === "home" ? "home" : "quickplay";
   const saved = usePlayerName();
-  // `null` = igrač još nije kucao → polje nosi sačuvano ime (izmjena iz postavki).
+  // `null` = igrač još nije kucao → polje nosi sačuvano ime.
   const [draft, setDraft] = useState<string | null>(null);
   const value = draft ?? saved ?? "";
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const busy = useRef(false);
 
   function leave() {
     // Direktno otvoren `/ime` nema gdje „nazad" — tad je odredište home.
@@ -33,43 +30,20 @@ function NameFromQuery() {
     else router.replace("/");
   }
 
-  async function submit() {
-    if (busy.current || !isValidPlayerName(value)) return;
-    if (next === "home") {
-      savePlayerName(value);
-      leave();
-      return;
-    }
-    busy.current = true;
-    setError(null);
-    setLoading(true);
-    try {
-      // `replace`: „nazad" sa matching ekrana vodi na home, ne opet na ime.
-      router.replace(await startQuickPlay(value));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Greška");
-      setLoading(false);
-      busy.current = false;
-    }
+  function submit() {
+    if (!isValidPlayerName(value)) return;
+    savePlayerName(value);
+    leave();
   }
 
   return (
     <NameStep
       value={value}
       onChange={setDraft}
-      onSubmit={() => void submit()}
+      onSubmit={submit}
       onBack={leave}
-      loading={loading}
+      loading={false}
       loadingLabel={sr.home.playLoading}
-      {...(error ? { error } : {})}
     />
-  );
-}
-
-export default function NamePage() {
-  return (
-    <Suspense fallback={<main className="screen namestep" />}>
-      <NameFromQuery />
-    </Suspense>
   );
 }

@@ -53,9 +53,12 @@ export function roomIdFromLink(url: string): string | null {
   return id && ROOM_ID.test(id) ? id : null;
 }
 
+/** „Igraj Žandar": ime, veličina stola i cilj, pa javni sto. */
+export const quickPlaySetupPath = "/igraj";
+
 /**
- * Korak sa imenom. `next` kaže šta `Nastavi` radi: `quickplay` sjeda za javni
- * sto, `home` samo sačuva ime i vrati se (izmjena iz postavki).
+ * Korak sa imenom — izmjena iz postavki: sačuva ime i vrati se. Brza igra ime
+ * traži na svom ekranu (`quickPlaySetupPath`), pa `next=quickplay` više ne postoji.
  */
-export type NameNext = "quickplay" | "home";
+export type NameNext = "home";
 export const namePath = (next: NameNext) => `/ime?next=${next}`;
