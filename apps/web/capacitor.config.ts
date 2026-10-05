@@ -48,6 +48,14 @@ const config: CapacitorConfig = {
       style: "DARK",
       backgroundColor: "#18181b",
     },
+    // Trake u Capacitoru 8 vodi core `SystemBars`, ne `StatusBar` — bez ovog
+    // bloka stil ide po temi TELEFONA (svijetla tema = tamne ikone na feltu).
+    // `hidden`: puni ekran u cijeloj aplikaciji. Capacitor trake sakrije samo
+    // jednom, na startu; ponašanje i ponovno sakrivanje drži `MainActivity`.
+    SystemBars: {
+      hidden: true,
+      style: "DARK",
+    },
   },
 };
 
