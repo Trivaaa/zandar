@@ -233,3 +233,7 @@ negitovanim fajlovima (`assets/capacitor.config.json`,
 
 Ista Capacitor grana, uz Mac + Xcode + Apple Developer nalog ($99/god).
 React Native se i dalje ne preporučuje — značio bi rewrite cijelog UI sloja.
+
+**Detaljan plan (2026-09-13): [`docs/iosplanapp.md`](iosplanapp.md)** — izmjene u
+kodu, UX razlike, dealbreakeri (Mac, EU trader status, App Store guidelines 4.2 /
+1.2 / 3.1.1) i redoslijed rada.

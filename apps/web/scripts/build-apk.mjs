@@ -1,8 +1,13 @@
 /**
  * Pun APK lanac za jedno okruženje: `next build` → `cap sync` → `gradlew`.
  *
- *   pnpm apk:staging   → com.kartaonica.zandar.staging, gađa staging server
- *   pnpm apk:prod      → com.kartaonica.zandar,         gađa produkciju
+ *   pnpm apk:staging   → com.kartaonica.zandar.staging, gađa staging server (debug potpis)
+ *   pnpm apk:prod      → com.kartaonica.zandar,         gađa produkciju (debug potpis, za uređaj)
+ *   pnpm aab:prod      → com.kartaonica.zandar,         gađa produkciju (RELEASE potpis, za Play)
+ *
+ * `--release` traži `android/keystore.properties` (vidi build.gradle) i pravi
+ * potpisan `.aab` umjesto debug `.apk` — samo uz `--env prod`, jer staging
+ * namjerno ostaje debug-potpisan da se instalira pored produkcijske app.
  *
  * Postoji da se tri koraka ne rade ručno, jer su dva od njih već koštala:
  *
@@ -25,13 +30,16 @@ import { readdir, rm } from "node:fs/promises";
 
 import { parseTarget, mobileEnv, logTarget } from "./build-mobile.mjs";
 
-/** Koji gradle task i gdje ostavi APK, po cilju. */
+/** Koji gradle task i gdje ostavi artefakt, po cilju. `out` je relativan na
+ *  `app/build/outputs/`, jer se APK i AAB granaju ispod različitih podfoldera. */
 const GRADLE = {
-  staging: { task: "assembleStaging", apk: join("staging", "app-staging.apk") },
+  staging: { task: "assembleStaging", out: join("apk", "staging", "app-staging.apk"), kind: "apk" },
   // Produkcija zasad ide kao debug build — release je NEPOTPISAN dok ne stigne
   // upload keystore (Play staza, zaseban korak).
-  prod: { task: "assembleDebug", apk: join("debug", "app-debug.apk") },
+  prod: { task: "assembleDebug", out: join("apk", "debug", "app-debug.apk"), kind: "apk" },
 };
+
+const RELEASE = { task: "bundleRelease", out: join("bundle", "release", "app-release.aab"), kind: "aab" };
 
 const require = createRequire(import.meta.url);
 const nextBin = require.resolve("next/dist/bin/next");
@@ -67,6 +75,12 @@ function run(cmd, args, opts = {}) {
 }
 
 const target = parseTarget(process.argv.slice(2));
+const wantsRelease = process.argv.includes("--release");
+
+if (wantsRelease && target !== "prod") {
+  console.error("\n✗ --release samo uz --env prod (staging ostaje namjerno debug-potpisan)\n");
+  process.exit(1);
+}
 
 // Jedinstven izlazni folder po pozivu (vidi next.config.ts) — zaobilazi
 // Windows EBUSY kad antivirus/indexer drži handle na starom `out/` i pošto
@@ -75,7 +89,7 @@ const target = parseTarget(process.argv.slice(2));
 process.env.MOBILE_DIST_DIR = `out-${target}-${Date.now()}`;
 
 const env = mobileEnv(target);
-const { task, apk } = GRADLE[target];
+const { task, out, kind } = wantsRelease ? RELEASE : GRADLE[target];
 
 logTarget(target, env);
 
@@ -102,15 +116,11 @@ try {
     env: { ...cleanEnv, ANDROID_HOME: process.env.ANDROID_HOME || sdk },
   });
 
-  const out = join(androidDir, "app", "build", "outputs", "apk", apk);
+  const outPath = join(androidDir, "app", "build", "outputs", out);
   console.log(
-    [
-      "",
-      `✓ ${target.toUpperCase()} APK`,
-      `  ${out}`,
-      `  adb install -r "${out}"`,
-      "",
-    ].join("\n"),
+    kind === "aab"
+      ? ["", `✓ ${target.toUpperCase()} AAB (release-potpisan)`, `  ${outPath}`, `  Upload u Play Console.`, ""].join("\n")
+      : ["", `✓ ${target.toUpperCase()} APK`, `  ${outPath}`, `  adb install -r "${outPath}"`, ""].join("\n"),
   );
 } catch (err) {
   console.error(`\n✗ ${err.message}\n`);

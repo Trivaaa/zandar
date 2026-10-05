@@ -4,7 +4,14 @@
  * Android launcher (adaptivne + legacy + round), PWA (any + maskable +
  * apple-touch) i favicon.ico. Izlaz JESTE commit-ovan; izvor NIJE u repou.
  *
- *   node apps/web/scripts/build-icons.mjs [putanja/do/Icon.png]
+ *   node apps/web/scripts/build-icons.mjs [putanja/do/Icon.png] [putanja/do/Baner.png]
+ *
+ * Uz app ikone, generiše i Play Store *listing* assete u `store-assets/`
+ * (NIJE `public/` — to je Play Console upload, ne nešto što app servira):
+ * hi-res 512×512 + 1024×1024 master ikona (odvojen upload od launcher ikone),
+ * i 1024×500 feature graphic iz `Baner.png` (centriran crop na tačan omjer pa
+ * resize — izvor 1774×887 nema tačan 2.048:1 omjer, pa prost resize razvlači).
+ * Baner.png je best-effort: nedostaje li, izlaz se preskoči uz upozorenje.
  *
  * Staging i produkcija dijele ISTI `android/app/src/main/res` (staging je
  * Gradle buildType, ne product flavor — nema zasebnog res foldera), pa jedan
@@ -32,6 +39,8 @@ const require = createRequire(import.meta.url);
 
 const DEFAULT_SRC = "C:/Users/User/Desktop/Kartaonica/Play Store assets/Icon.png";
 const SRC = resolve(process.argv[2] || DEFAULT_SRC);
+const DEFAULT_BANNER_SRC = join(dirname(SRC), "Baner.png");
+const BANNER_SRC = resolve(process.argv[3] || DEFAULT_BANNER_SRC);
 const WEB_ROOT = dirname(import.meta.dirname);
 
 /** Isti pattern kao build-cards.mjs — sharp je tranzitivna zavisnost koju pnpm ne hoistuje. */
@@ -182,6 +191,34 @@ async function main() {
   }
   writeFileSync(join(WEB_ROOT, "app/favicon.ico"), buildIco(icoFrames));
   console.log("Web: app/favicon.ico (16/32/48)");
+
+  const STORE_ASSETS = join(WEB_ROOT, "store-assets");
+  mkdirSync(STORE_ASSETS, { recursive: true });
+  writeFileSync(join(STORE_ASSETS, "icon-512.png"), await squarePng(512));
+  writeFileSync(join(STORE_ASSETS, "icon-1024.png"), await squarePng(1024));
+  console.log("Store listing: icon-512 / icon-1024");
+
+  try {
+    const { width, height } = await sharp(BANNER_SRC).metadata();
+    const targetRatio = 1024 / 500;
+    let cropW = width;
+    let cropH = Math.round(width / targetRatio);
+    if (cropH > height) {
+      cropH = height;
+      cropW = Math.round(height * targetRatio);
+    }
+    const left = Math.round((width - cropW) / 2);
+    const top = Math.round((height - cropH) / 2);
+    const feature = await sharp(BANNER_SRC)
+      .extract({ left, top, width: cropW, height: cropH })
+      .resize(1024, 500)
+      .png()
+      .toBuffer();
+    writeFileSync(join(STORE_ASSETS, "feature-graphic-1024x500.png"), feature);
+    console.log(`Store listing: feature-graphic-1024x500 (crop ${cropW}×${cropH} centriran iz ${width}×${height})`);
+  } catch (err) {
+    console.warn(`⚠ Feature graphic preskočen — ${BANNER_SRC} nije nađen (${err.message})`);
+  }
 }
 
 main().catch((err) => {

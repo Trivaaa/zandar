@@ -1,5 +1,15 @@
 apply plugin: 'com.android.application'
 
+// Upload keystore za Play release. Fajl NIKAD u repo (vidi .gitignore) — generisan
+// jednom lokalno preko keytool-a, lozinke čuvane van repoa. Odsustvo fajla ne smije
+// tiho srušiti svakodnevni `assembleStaging`/`assembleDebug`; provjera niže baca
+// jasnu grešku SAMO kad se stvarno traži release/bundle task.
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.kartaonica.zandar"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -8,7 +18,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +26,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : null
         }
         // Staging se instalira PORED produkcijske aplikacije (drugi applicationId),
         // pa se isti ekran moze uporediti prije nego promjena ode korisnicima.
@@ -50,6 +71,20 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+}
+
+// `assembleRelease`/`bundleRelease` bez keystore.properties bi tiho ispalo
+// NEPOTPISANO umjesto da padne — AGP ne baca grešku samo zato što je
+// signingConfig null. Ovo pretvara propust u jasnu poruku prije nego artefakt
+// stigne do Play-a.
+gradle.taskGraph.whenReady { graph ->
+    def wantsRelease = graph.allTasks.any { it.name in ["assembleRelease", "bundleRelease"] }
+    if (wantsRelease && !keystorePropertiesFile.exists()) {
+        throw new GradleException(
+            "keystore.properties nedostaje (android/keystore.properties) — release/bundle " +
+            "zahtijeva upload keystore. Vidi CLAUDE.md Deployment."
+        )
+    }
 }
 
 apply from: 'capacitor.build.gradle'
