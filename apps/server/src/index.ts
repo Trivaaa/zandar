@@ -77,6 +77,7 @@ import {
 } from "./push/messages";
 import { notifyDevices } from "./push/notify";
 import { parseQuickPlayConfig } from "./quickplay";
+import { trustFirstHop } from "./trustProxy";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 const REACTION_COOLDOWN_MS = 2000;
@@ -92,13 +93,12 @@ const VALID_REACTIONS = [
 ] as const;
 
 /**
- * `trustProxy: 1` — iza Railwayevog proxyja `request.ip` bi inače bio IP
- * proxyja, pa bi SVI igrači dijelili jedan rate-limit. Broj hopova (1), a ne
- * `true`: sa `true` Fastify uzima KRAJNJE LIJEVI `X-Forwarded-For`, koji
- * klijent sam upisuje — limit bi se zaobilazio izmišljenom adresom. Sa 1 se
- * uzima adresa koju je dopisao Railway. Lokalno (bez proxyja) je `ip` socket.
+ * Iza Railwayevog proxyja `request.ip` bi inače bio IP proxyja, pa bi SVI
+ * igrači dijelili jedan rate-limit. Vjeruje se tačno jednom skoku — vidi
+ * `trustProxy.ts` (i zašto više nije broj `1`). Lokalno, bez proxyja, `ip` je
+ * adresa konekcije.
  */
-const fastify = Fastify({ logger: true, trustProxy: 1 });
+const fastify = Fastify({ logger: true, trustProxy: trustFirstHop });
 
 /**
  * Dozvoljeni origini. Produkcija ide ISKLJUCIVO kroz `CORS_ORIGIN` (zarezom
