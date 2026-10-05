@@ -51,8 +51,9 @@ export function getNextPlayerId(state: GameState): string {
 /**
  * Vraca ID sljedeceg igraca (clockwise) koji JOS IMA karte u ruci.
  *
- * Bitno kad spil ne dijeli ravnomjerno (npr. award_to_dealer izvuce kartu pa
- * zadnja runda bude neravnomjerna) — neki igraci ostanu bez karata prije drugih.
+ * Bitno kad spil ne dijeli ravnomjerno (award_to_cutter, ili partija hidrirana
+ * iz snapshot-a od prije nego sto je award_to_dealer presao na "J na dno spila")
+ * — neki igraci ostanu bez karata prije drugih.
  * Preskacemo prazne ruke da niko ne zaglavi na potezu bez ijedne karte.
  *
  * @param fromPlayerId pocetni igrac

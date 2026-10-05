@@ -98,7 +98,7 @@ describe("advanceTurnOrPhase", () => {
       dealerPlayerId: "p0", // lijevo od dealera = p1
       currentPlayerId: "p3",
       hands: { p0: [], p1: [], p2: [], p3: [] }, // sve prazno → re-deal
-      deck: [c("hearts", "2"), c("hearts", "3")], // samo 2 karte → p0 dobije obje
+      deck: [c("hearts", "2"), c("hearts", "3")], // samo 2 karte → p1 dobije obje
       captured: { "team-0": [], "team-1": [] },
       matchScore: { "team-0": 0, "team-1": 0 },
       rulesConfig: createRulesConfig(4),
@@ -106,10 +106,11 @@ describe("advanceTurnOrPhase", () => {
 
     advanceTurnOrPhase(state);
 
-    // p0 dobije 2 karte; p1-p3 ostanu prazni → current MORA biti p0 (ima karte)
-    expect(state.hands["p0"]).toHaveLength(2);
-    expect(state.hands["p1"]).toHaveLength(0);
-    expect(state.currentPlayerId).toBe("p0");
+    // Dijeli se od lijevo-od-dealera: p1 dobije 2 karte, ostali (i dealer p0)
+    // ostanu prazni → current MORA biti p1 (ima karte)
+    expect(state.hands["p1"]).toHaveLength(2);
+    expect(state.hands["p0"]).toHaveLength(0);
+    expect(state.currentPlayerId).toBe("p1");
     expect((state.hands[state.currentPlayerId] ?? []).length).toBeGreaterThan(0);
   });
 

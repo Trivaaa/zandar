@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import type { Player } from "@zandar/shared-types";
-import { createInitialGameState } from "./deal";
+import { createInitialGameState, dealCardsToPlayers } from "./deal";
+import { createDeck } from "./deck";
 import { createRulesConfig } from "./rules";
+import { shuffle } from "./shuffle";
 
 /** Pomocna funkcija za kreiranje igraca za testove. */
 function makePlayers(count: 2 | 3 | 4): Player[] {
@@ -66,7 +68,7 @@ describe("createInitialGameState", () => {
     expect(state.hands["p1"]).toHaveLength(4);
   });
 
-  it("inicijalizuje captured piles (dealer moze imati J ako padne u pocetnih 4)", () => {
+  it("inicijalizuje prazne captured piles", () => {
     const state = createInitialGameState({
       roomId: "r1",
       matchId: "m1",
@@ -76,21 +78,14 @@ describe("createInitialGameState", () => {
       shuffleSeed: 42,
     });
 
-    // Dealer (p0) moze imati J zbog award_to_dealer pravila
-    // Cutter (p1) mora imati prazan pile
+    expect(state.captured["p0"]).toEqual([]);
     expect(state.captured["p1"]).toEqual([]);
-
-    // p0 (dealer) - sve sto ima moraju biti samo J karte (ne nesto drugo)
-    const p0Captured = state.captured["p0"] ?? [];
-    for (const card of p0Captured) {
-      expect(card.rank).toBe("J");
-    }
 
     expect(state.matchScore["p0"]).toBe(0);
     expect(state.matchScore["p1"]).toBe(0);
   });
 
-  it("inicijalizuje team captured piles za 4P (dealer tim moze imati J)", () => {
+  it("inicijalizuje prazne team captured piles za 4P", () => {
     const state = createInitialGameState({
       roomId: "r1",
       matchId: "m1",
@@ -100,16 +95,8 @@ describe("createInitialGameState", () => {
       shuffleSeed: 42,
     });
 
-    // Oba tima postoje, ali sta god je u njima moraju biti samo J karte
-    expect(state.captured["team-0"]).toBeDefined();
-    expect(state.captured["team-1"]).toBeDefined();
-
-    for (const teamId of ["team-0", "team-1"]) {
-      const captured = state.captured[teamId] ?? [];
-      for (const card of captured) {
-        expect(card.rank).toBe("J");
-      }
-    }
+    expect(state.captured["team-0"]).toEqual([]);
+    expect(state.captured["team-1"]).toEqual([]);
 
     expect(state.matchScore["team-0"]).toBe(0);
     expect(state.matchScore["team-1"]).toBe(0);
@@ -132,23 +119,66 @@ describe("createInitialGameState", () => {
     }
   });
 
-  it("award_to_dealer: svaki J iz pocetnih 4 ide dealeru, nikad cutteru/stolu", () => {
-    for (let seed = 1; seed <= 100; seed++) {
-      const state = createInitialGameState({
-        roomId: "r1",
-        matchId: "m1",
-        players: makePlayers(2),
-        dealerPlayerId: "p0", // dealer
-        rulesConfig: createRulesConfig(2),
-        shuffleSeed: seed,
-      });
+  // Seed-ovi kod kojih J izadje medju pocetne karte stola: prva karta spila je J.
+  function seedsWithJackOnTable(max: number): number[] {
+    const seeds: number[] = [];
+    for (let seed = 1; seed <= max; seed++) {
+      const top = shuffle(createDeck(), seed).slice(0, 4);
+      if (top.some((c) => c.rank === "J")) seeds.push(seed);
+    }
+    return seeds;
+  }
 
-      // Nijedan J na stolu; cutter (p1) nikad ne dobija J pri dijeljenju stola.
-      expect(state.table.filter((c) => c.rank === "J")).toHaveLength(0);
-      expect(state.captured["p1"]).toEqual([]);
-      // Sve u dealerovom pile-u (ako ima) mora biti J.
-      for (const card of state.captured["p0"] ?? []) {
-        expect(card.rank).toBe("J");
+  it("award_to_dealer: J sa pocetnog stola ide na dno spila, ne u pile", () => {
+    const seeds = seedsWithJackOnTable(200);
+    expect(seeds.length).toBeGreaterThan(10);
+
+    for (const seed of seeds) {
+      for (const count of [2, 3, 4] as const) {
+        const state = createInitialGameState({
+          roomId: "r1",
+          matchId: "m1",
+          players: makePlayers(count),
+          dealerPlayerId: "p0",
+          rulesConfig: createRulesConfig(count),
+          shuffleSeed: seed,
+        });
+
+        expect(state.table.filter((c) => c.rank === "J")).toHaveLength(0);
+        for (const pile of Object.values(state.captured)) {
+          expect(pile).toEqual([]);
+        }
+        expect(state.deck[state.deck.length - 1]!.rank).toBe("J");
+        // Spil ostaje djeljiv: 52 - 4 (sto) - 4 po igracu.
+        expect(state.deck).toHaveLength(48 - 4 * count);
+      }
+    }
+  });
+
+  it("award_to_dealer: svako dijeljenje je ravnomjerno, a dealer dobija J sa dna u zadnjem", () => {
+    for (const seed of seedsWithJackOnTable(200)) {
+      for (const count of [2, 3, 4] as const) {
+        const dealerId = `p${seed % count}`;
+        const state = createInitialGameState({
+          roomId: "r1",
+          matchId: "m1",
+          players: makePlayers(count),
+          dealerPlayerId: dealerId,
+          rulesConfig: createRulesConfig(count),
+          shuffleSeed: seed,
+        });
+        const bottomJack = state.deck[state.deck.length - 1]!;
+
+        // Isprazni ruke i dijeli do kraja spila, kao sto radi advanceTurnOrPhase.
+        while (state.deck.length > 0) {
+          for (const p of state.players) state.hands[p.id] = [];
+          dealCardsToPlayers(state);
+          for (const p of state.players) {
+            expect(state.hands[p.id]).toHaveLength(4);
+          }
+        }
+
+        expect(state.hands[dealerId]!.map((c) => c.id)).toContain(bottomJack.id);
       }
     }
   });

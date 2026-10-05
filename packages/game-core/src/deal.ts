@@ -1,16 +1,28 @@
 import type { GameState, Player, RulesConfig } from "@zandar/shared-types";
 import { createDeck } from "./deck";
 import { shuffle } from "./shuffle";
-import { getCapturePileId } from "./helpers";
+import { getCapturePileId, getPlayerLeftOfDealer } from "./helpers";
 
 /**
  * Dijeli karte sa vrha spila igracima.
  * Svaki igrac dobija cardsPerDeal karata (iz rulesConfig).
- * Ako spil ostane prazan, prestaje (rijetko se desi tokom partije).
+ *
+ * Redoslijed: od igraca lijevo od dealera, DEALER ZADNJI. Zato dno spila uvijek
+ * zavrsi kod dealera — na to se oslanja award_to_dealer (J sa pocetnog stola
+ * ceka na dnu i dealer ga dobije u ruku u zadnjem dijeljenju).
+ *
+ * Ako spil ostane prazan, prestaje. Sa award_to_dealer se to vise ne desava
+ * (spil ostaje djeljiv), ali award_to_cutter i partije hidrirane iz starog
+ * snapshot-a (J vec u pile-u, spil 47) i dalje mogu dati neravnomjerno dijeljenje.
  * In-place modifikacija state-a.
  */
 export function dealCardsToPlayers(state: GameState): void {
-  for (const player of state.players) {
+  const n = state.players.length;
+  const firstId = getPlayerLeftOfDealer(state);
+  const firstIdx = state.players.findIndex((p) => p.id === firstId);
+
+  for (let step = 0; step < n; step++) {
+    const player = state.players[(firstIdx + step) % n]!;
     for (let i = 0; i < state.rulesConfig.cardsPerDeal; i++) {
       const card = state.deck.shift();
       if (!card) return; // spil prazan
@@ -32,11 +44,13 @@ function dealInitialTable(state: GameState, cutterPlayerId: string): void {
     if (!card) return;
 
     if (card.rank === "J") {
-      // award_to_dealer: J odlazi u captured pile dealera (onaj ko dijeli), pa se
-      //   izvuce zamjenska karta za sto. (Spil tako moze ostati neravnomjeran.)
+      // award_to_dealer: J ide na DNO spila i izvuce se zamjenska karta za sto.
+      //   Dealer se dijeli zadnji (vidi dealCardsToPlayers), pa mu J stigne u
+      //   RUKU u zadnjem dijeljenju. Spil ostaje djeljiv — svi uvijek dobiju
+      //   isti broj karata. (Ranije je J isao pravo u dealerov pile, pa je spil
+      //   padao na 47 i neko je u zadnjem dijeljenju dobijao kartu manje.)
       if (jackOnInitialTableBehavior === "award_to_dealer") {
-        const dealerPile = getCapturePileId(state, state.dealerPlayerId);
-        state.captured[dealerPile]!.push(card);
+        state.deck.push(card);
         continue;
       }
       // award_to_cutter: J ide cutteru (desno od dealera) + zamjena.
@@ -45,8 +59,9 @@ function dealInitialTable(state: GameState, cutterPlayerId: string): void {
         state.captured[cutterPile]!.push(card);
         continue;
       }
-      // replace_without_award: J ide na DNO spila + izvuce se sljedeca (cuva
-      //   djeljivost; J se nikome ne dodjeljuje, kasnije se podijeli normalno).
+      // replace_without_award: J ide na DNO spila + izvuce se sljedeca. Otkad se
+      //   dealer dijeli zadnji, ovo je u praksi isto sto i award_to_dealer (dno
+      //   zavrsi kod dealera); ostaje zbog starih snapshot-a i tipa.
       if (jackOnInitialTableBehavior === "replace_without_award") {
         state.deck.push(card);
         continue;

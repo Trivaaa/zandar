@@ -80,6 +80,10 @@ export function RulesModal({ isOpen, onClose }: Props) {
               <li>Samo <strong>jedna kombinacija</strong> po potezu</li>
               <li>Ako imaš više opcija, biraš jednu</li>
               <li>Ako ne možeš kupiti, karta ostaje na stolu</li>
+              <li>
+                Ako žandar izađe među prve četiri karte na stolu, ide na dno
+                špila i dobija ga onaj ko dijeli, u zadnjem dijeljenju
+              </li>
             </ul>
           </section>
 

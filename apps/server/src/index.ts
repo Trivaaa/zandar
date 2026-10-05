@@ -1329,8 +1329,8 @@ function removeBotsFromRoom(room: LobbyRoom): void {
 }
 
 function startBotGame(room: LobbyRoom): void {
-  // J na početnom stolu → dealeru (award_to_dealer, iz rulesConfig). Špil smije
-  // ostati neravnomjeran; ranije forsirani allow_on_table je ostavljao J na stolu.
+  // J na početnom stolu → dno špila, dealer ga dobija u zadnjem dijeljenju
+  // (award_to_dealer, iz rulesConfig). Špil ostaje djeljiv.
   const gameState = createInitialGameState({
     roomId: room.id,
     matchId: room.id,
