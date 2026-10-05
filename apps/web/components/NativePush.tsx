@@ -11,10 +11,8 @@ import {
   registerForPush,
   TABLE_CHANNEL_ID,
 } from "@/lib/push";
-import { roomPath } from "@/lib/routes";
+import { ROOM_ID, roomPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
-
-const ROOM_ID = /^[a-z0-9]{1,32}$/i;
 
 /**
  * Push u native shell-u (PRD §51): kanal, osvježen token i tap → soba.

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/track.test.ts",
+    "test": "tsx --test lib/track.test.ts lib/routes.test.ts lib/stores.test.ts lib/installReferrer.test.ts",
     "build:mobile": "node scripts/build-mobile.mjs",
     "apk:staging": "node scripts/build-apk.mjs --env staging",
     "apk:prod": "node scripts/build-apk.mjs --env prod",

@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isNative } from "@/lib/platform";
+import { StoreOffer, useStoreOffer } from "@/components/StoreBanner";
 
 /**
  * PwaManager (DS §9 D1) — registruje service worker (samo statika),
  * nudi install prompt (beforeinstallprompt) i update prompt (novi SW).
+ * Na Androidu, čim aplikacija postoji na Play-u, umjesto „Dodaj na ekran" nudi
+ * nju (`StoreBanner`) — dvije ponude instalacije bi se takmičile.
  * Mount-uje se jednom u root layout-u. Bez UI dok nema šta da ponudi.
  */
 
@@ -36,6 +39,7 @@ function PwaBanner() {
   // dnu ekrana — tacno gdje je banner. Ponuda za instalaciju koja zaklanja jedinu
   // radnju stranice je gora od nikakve; pojavice se na sljedecem ekranu.
   const onForm = /^[/](igre|ime)([/]|$)/.test(pathname ?? "");
+  const store = useStoreOffer(pathname);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
@@ -105,7 +109,9 @@ function PwaBanner() {
     setUpdateReady(null);
   }
 
-  if (onForm || (!installEvt && !updateReady)) return null;
+  // Nova verzija ima prednost: ponuda aplikacije može da sačeka osvježavanje.
+  const storeUrl = updateReady ? null : store.url;
+  if (onForm || (!installEvt && !updateReady && !storeUrl)) return null;
 
   return (
     <div
@@ -129,6 +135,8 @@ function PwaBanner() {
             Osvježi
           </button>
         </>
+      ) : storeUrl ? (
+        <StoreOffer url={storeUrl} onDismiss={store.dismiss} />
       ) : (
         <>
           <span className="text-sm text-white">Instaliraj Žandar</span>

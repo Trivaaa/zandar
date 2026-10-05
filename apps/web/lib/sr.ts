@@ -293,6 +293,11 @@ export const sr = {
     unavailable: "Još nije dostupno",
     "app-store": "App Store",
     "google-play": "Google Play",
+    /* Traka na webu (Android): ponuda aplikacije. Tekst zvanične oznake je na
+       samoj slici; `badgeAlt` je njen opis za čitač ekrana. */
+    bannerText: "Igraj u aplikaciji",
+    badgeAlt: "Nabavite na usluzi Google Play",
+    later: "Ne sada",
   },
   /* Pravne stranice. Samo interaktivne labele i tekst poruke — proza zivi u
      samim stranicama (kao /privatnost i /uslovi), jer nosi <strong>, <ul> i

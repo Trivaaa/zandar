@@ -20,6 +20,9 @@ android {
         versionCode 2
         versionName "1.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // Domen čije pozivnice (/room/<id>) otvaraju aplikaciju — App Links
+        // intent-filter u AndroidManifest-u. Staging ga nadjačava niže.
+        manifestPlaceholders = [deepLinkHost: "kartaonica.com"]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -51,6 +54,8 @@ android {
             applicationIdSuffix ".staging"
             versionNameSuffix "-staging"
             matchingFallbacks = ['debug']  // capacitor-android moduli nemaju `staging` buildType
+            // Isti host kao NEXT_PUBLIC_WEB_URL za staging u build-mobile.mjs.
+            manifestPlaceholders = [deepLinkHost: "zandar-web.vercel.app"]
         }
     }
 }
@@ -67,6 +72,8 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    // Play Install Referrer — poziv u sobu preživi instalaciju (InstallReferrerPlugin).
+    implementation "com.android.installreferrer:installreferrer:2.2"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

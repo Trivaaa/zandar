@@ -10,6 +10,9 @@
 /** Javni web origin (kartaonica.com). Prazan lokalno → fallback na origin. */
 const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || "";
 
+/** Oblik id-ja sobe. Sve što stiže izvana (link, push, referrer) prolazi kroz ovo. */
+export const ROOM_ID = /^[a-z0-9]{1,32}$/i;
+
 export function roomPath(roomId: string): string {
   return `/room?id=${encodeURIComponent(roomId)}`;
 }
@@ -26,6 +29,28 @@ export function inviteLink(roomId: string): string {
   const base =
     WEB_BASE || (typeof window !== "undefined" ? window.location.origin : "");
   return `${base}/room/${encodeURIComponent(roomId)}`;
+}
+
+/**
+ * Id sobe iz linka koji je stigao IZVANA (App Link koji je otvorio aplikaciju,
+ * adresna traka na webu). Prima oba oblika: invite `/room/:id` (i stari
+ * `/zandar/room/:id`) i in-app `/room?id=`. Host se ne provjerava ovdje — koje
+ * domene aplikacija uopšte prima određuje intent-filter u AndroidManifest-u.
+ */
+export function roomIdFromLink(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  const match = /^\/(?:zandar\/)?room\/([^/]+)\/?$/.exec(parsed.pathname);
+  const id = match
+    ? match[1]
+    : /^\/room\/?$/.test(parsed.pathname)
+      ? parsed.searchParams.get("id")
+      : null;
+  return id && ROOM_ID.test(id) ? id : null;
 }
 
 /**

@@ -23,6 +23,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Pozivnice (App Links): https://<host>/room/<id> otvara aplikaciju
+                 umjesto browsera. autoVerify traži da host servira
+                 /.well-known/assetlinks.json sa otiskom ključa kojim je OVAJ paket
+                 potpisan (apps/web/public/.well-known/) — bez toga Android link
+                 i dalje šalje u browser. Host ide po build tipu (build.gradle),
+                 da staging i produkcijski APK ne polažu pravo na isti domen.
+                 Samo putanje soba: /privatnost, /uslovi i ostalo ostaju web.
+                 Link u JS-u prima NativeShell. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="${deepLinkHost}" />
+                <data android:pathPrefix="/room/" />
+                <data android:pathPrefix="/zandar/room/" />
+            </intent-filter>
+
         </activity>
 
         <provider
