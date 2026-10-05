@@ -19,7 +19,7 @@ export type StoreId = "app-store" | "google-play";
 
 export const STORE_LINKS: Readonly<Record<StoreId, string | null>> = {
   "app-store": null,
-  "google-play": null,
+  "google-play": "https://play.google.com/store/apps/details?id=com.kartaonica.zandar",
 };
 
 /** Redoslijed na ekranu (kao na referenci). */

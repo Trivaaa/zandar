@@ -1,16 +1,21 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.kartaonica.zandar",
       "sha256_cert_fingerprints": [
-        "EA:71:38:E3:3B:FF:4A:FC:A3:F9:35:80:38:E4:C9:E5:42:08:CF:08:49:FD:D5:0D:5D:C9:F8:50:4E:69:13:0F"
+        "EA:71:38:E3:3B:FF:4A:FC:A3:F9:35:80:38:E4:C9:E5:42:08:CF:08:49:FD:D5:0D:5D:C9:F8:50:4E:69:13:0F",
+        "80:12:63:74:44:BB:DF:14:A2:0B:41:A6:D2:B5:8C:97:C0:A5:52:D7:84:98:35:37:AF:76:B6:36:D9:7B:1D:6A"
       ]
     }
   },
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.kartaonica.zandar.staging",
