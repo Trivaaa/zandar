@@ -12,6 +12,8 @@ import { GameScreen } from "@/components/GameScreen";
  *   /dev/game?cards=9&players=4&phase=playing&chooser=1&name=Aleksandra
  *   /dev/game?move=capture&turn=left   → pa `window.__devMove()` pusti potez
  *   /dev/game?move=redeal              → zadnja karta runde: potez + dijeljenje
+ *   /dev/game?move=last|lasttrail      → zadnji potez RUKE: ostatak stola ide
+ *                                        onome ko je zadnji kupio, pa rezultat
  *   /dev/game?phase=hand_finished&tie=1 → razrada ruke, nerijeseno na kartama
  *
  * To NIJE ukras: headless Chrome (`--screenshot`) ne moze da klikne dugmad, pa
@@ -56,7 +58,7 @@ const TABLE_POOL = [
  * pa preview mora da odigra pravi prelaz iz stanja PRIJE poteza u stanje
  * POSLIJE njega — isto kako dolazi sa servera.
  */
-const MOVES = ["capture", "trail", "sweep", "auto", "redeal"] as const;
+const MOVES = ["capture", "trail", "sweep", "auto", "redeal", "last", "lasttrail"] as const;
 type MoveKind = (typeof MOVES)[number];
 
 /**
@@ -215,9 +217,21 @@ function mockState({
   // poteza, pa `window.__devMove()` prebaci na stanje POSLIJE — tek taj prelaz
   // (novi `stateVersion` + novi `moveId`) pusti beat.
   const played = move === "sweep" ? PLAYED_JACK : PLAYED;
+  // `last` / `lasttrail`: zadnji potez ruke. Server u ISTOM snapshotu prazni sto
+  // (ostatak ide zadnjem kupcu) i izlazi iz "playing" — `last` kupi pa nosi i
+  // ostatak, `lasttrail` spusti kartu a ostatak ide drugom igracu (`p1`).
+  const handEnds = move === "last" || move === "lasttrail";
   const taken =
-    move === "sweep" ? baseTable : move === "trail" ? [] : baseTable.slice(0, 2);
-  const after = move === "trail" ? [...baseTable, played] : baseTable.slice(taken.length);
+    move === "sweep"
+      ? baseTable
+      : move === "trail" || move === "lasttrail"
+        ? []
+        : baseTable.slice(0, 2);
+  const after = handEnds
+    ? []
+    : move === "trail"
+      ? [...baseTable, played]
+      : baseTable.slice(taken.length);
   const live = move !== null && moved;
 
   // `redeal`: prije poteza JEDINO igrac na potezu ima kartu (ostali su vec
@@ -227,22 +241,29 @@ function mockState({
   const redealPre = move === "redeal" && !live;
   const myHand = HAND.slice(
     0,
-    redealPre ? (mover === "me" ? 1 : 0) : REDEAL_PER_SEAT,
+    handEnds
+      ? (!live && mover === "me" ? 1 : 0)
+      : redealPre ? (mover === "me" ? 1 : 0) : REDEAL_PER_SEAT,
   );
 
   return {
     roomId: "dev",
     matchId: "dev",
-    phase,
+    phase: handEnds && live ? "hand_finished" : phase,
     players,
+    ...(move === "lasttrail" ? { lastCapturePlayerId: "p1" } : {}),
     table: live ? after : baseTable,
     currentPlayerId: live ? "me" : mover,
     dealerPlayerId: "p3",
-    deckCount: redealPre ? 28 : 28 - (move === "redeal" ? REDEAL_PER_SEAT * players.length : 0),
+    deckCount: handEnds
+      ? 0
+      : redealPre ? 28 : 28 - (move === "redeal" ? REDEAL_PER_SEAT * players.length : 0),
     handCounts: Object.fromEntries(
       players.map((p, i) => [
         p.id,
-        move === "redeal"
+        handEnds
+          ? (!live && p.id === mover ? 1 : 0)
+          : move === "redeal"
           ? (redealPre ? (p.id === mover ? 1 : 0) : REDEAL_PER_SEAT)
           : (oppHand ?? 4 - (i % 2)),
       ]),

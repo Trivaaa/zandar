@@ -59,6 +59,10 @@ export function buildPrivateGameStateView(
     myPlayerId: viewerPlayerId,
     myHand: state.hands[viewerPlayerId] ?? [],
     lastMove,
+    // Kome na kraju ruke ide ostatak sa stola — javno, kupljenje su svi vidjeli.
+    ...(state.lastCapturePlayerId !== undefined
+      ? { lastCapturePlayerId: state.lastCapturePlayerId }
+      : {}),
     // Prekid partije: rok i glasovi su javni — modal prikazuje odbrojavanje i
     // tally svima za stolom. Postoje samo u fazama pauze/glasanja.
     ...(state.pauseEndsAt !== undefined ? { pauseEndsAt: state.pauseEndsAt } : {}),

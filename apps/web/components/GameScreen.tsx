@@ -155,6 +155,11 @@ export function GameScreen({
     },
     [],
   );
+  // Zvuk kraja meca ceka rezultat: zadnji potez se prvo odigra do kraja (ostatak
+  // stola odleti onome ko je zadnji kupio), pa fanfara ne smije preko tog leta.
+  // Ref, ne state: dogadjaj stize iz layout efekta istog commit-a, pa ga efekt
+  // ispod vec vidi; state bi trazio jos jedan render samo da bi se ugasio.
+  const matchEndSfxRef = useRef<"win" | "lose" | null>(null);
   const handleGameEvent = useCallback((event: GameEvent) => {
     switch (event.type) {
       // `capture` i `trail` NISU ovdje. Njihov zvuk, flash i haptika su ranije
@@ -176,7 +181,7 @@ export function GameScreen({
         vibrate(HAPTIC.turn);
         break;
       case "matchEnd":
-        playSfx(event.iWon ? "win" : "lose");
+        matchEndSfxRef.current = event.iWon ? "win" : "lose";
         break;
       // handEnd → bez zvuka (matchEnd nosi rezultat)
     }
@@ -192,6 +197,13 @@ export function GameScreen({
       if (m.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
     },
   });
+
+  useEffect(() => {
+    const sfx = matchEndSfxRef.current;
+    if (!sfx || beat.finishing) return;
+    matchEndSfxRef.current = null;
+    playSfx(sfx);
+  }, [state.phase, beat.finishing]);
 
   /*
    * Sat dijeljenja. Čeka da se potez odigra do kraja (`beat.phase === "idle"`)
@@ -405,9 +417,11 @@ export function GameScreen({
         text={
           c.jackSweep
             ? sr.reveal.sweep
-            : c.kind === "capture"
-              ? sr.reveal.captures
-              : sr.reveal.trails
+            : c.kind === "rest"
+              ? sr.reveal.takesRest
+              : c.kind === "capture"
+                ? sr.reveal.captures
+                : sr.reveal.trails
         }
         tone={c.jackSweep ? "sweep" : "normal"}
         note={c.isAutoPlay ? sr.reveal.autoPlay : undefined}
@@ -696,8 +710,10 @@ export function GameScreen({
       )}
 
       {/* Kraj ruke / kraj meča. Ekran daje scrim i okvir, komponenta sadržaj —
-          isto kao kod pauze. */}
-      {(isHandOver || isMatchOver) && lastHandScore && (
+          isto kao kod pauze. Čeka da se zadnji potez odigra do kraja
+          (`beat.finishing`): ostatak stola tek tada odleti onome ko je zadnji
+          kupio, a rezultat preko toga bi sakrio baš to pravilo. */}
+      {(isHandOver || isMatchOver) && lastHandScore && !beat.finishing && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <RoundEndOverlay
             phase={isMatchOver ? "match_finished" : "hand_finished"}

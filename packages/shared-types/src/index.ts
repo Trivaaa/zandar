@@ -400,6 +400,12 @@ export type PrivateGameStateView = {
   /** Zadnji odigrani potez — vidi `LastMove`. null na početku ruke. */
   lastMove?: LastMove | null;
   /**
+   * Ko je zadnji kupio u ovoj ruci — njemu na kraju ruke idu preostale karte sa
+   * stola. Javno (svako za stolom je to kupljenje vidio); klijentu treba da
+   * animacija kraja ruke pokaže KOME ostatak odlazi. Nema ga dok niko nije kupio.
+   */
+  lastCapturePlayerId?: string;
+  /**
    * Rok trenutne faze prekida (epoch ms) — klijent iz njega crta odbrojavanje
    * pauze/glasanja. Postoji samo u `paused_for_reconnect` i `abandon_vote`.
    */

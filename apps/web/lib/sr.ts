@@ -69,6 +69,8 @@ export const sr = {
        bocno sjediste ili partnera to je preko pola karte. */
     captures: "kupi",
     trails: "spušta",
+    /* Kraj ruke: ostatak stola ide onome ko je zadnji kupio. */
+    takesRest: "nosi ostatak",
     autoPlay: "automatski",
   },
   score: {
