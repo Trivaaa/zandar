@@ -638,7 +638,7 @@
   background-color: color-mix(in oklab, var(--surface) 82%, transparent);
   line-height: 1.2;
   text-align: center;
-  /* sidro i klip za `.seat__track` */
+  /* klip drzi ime unutar radijusa cipa */
   position: relative;
   overflow: hidden;
 }
@@ -661,32 +661,66 @@
   gap: 0.55rem;
 }
 
-/* Odbrojavanje TUDJEG poteza: linija po donjoj ivici cipa. Ne trosi visinu, pa
-   je sjediste jednako visoko i kad je igrac na potezu i kad nije — a to je i bio
-   problem pilule: iznad sebe je trazila 38px koje drzi zaglavlje, pa je na
-   uredaju zlatna traka sjedala preko "Runda N". Jezik je isti koji traka nad
-   tvojom rukom vec koristi (`banner__track`). Animira se `transform`. */
-.seat__track {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 0.15rem;
-  overflow: hidden;
-  background-color: color-mix(in oklab, var(--turn-active) 20%, transparent);
+/* Odbrojavanje TUDJEG poteza: prsten oko avatara koji se prazni kao sat.
+
+   Istorija, da se ne vrti u krug: pilula iznad avatara je trazila 38px koje
+   drzi zaglavlje (sjedala je preko "Runda N"); linija od 0.15rem po dnu cipa
+   nije trosila visinu, ali je igrac nije ni vidio — prijavljeno iz zive igre
+   kao "protivniku se ne vidi vrijeme". Prsten je na mjestu u koje se vec gleda
+   (zlatni obruc aktivnog sjedista) i ne trosi ni piksel rasporeda.
+
+   Dok odbrojavanje traje, inset prsten avatara se prigusi u STAZU, a ovaj sloj
+   preko nje crta preostali udio. Ugao se mijenja na otkucaj sata koji drzi
+   roditelj (`useCountdown`, 250ms = 3 stepena), BEZ tranzicije: tranzicija bi
+   trazila registrovan `@property` i repaint gradijenta svaki frejm, a ovdje se
+   animiraju samo transform i opacity. Cetiri mala koraka u sekundi se citaju
+   kao ravnomjerno praznjenje. */
+.seat[data-countdown] {
+  --seat-ring: color-mix(in oklab, var(--turn-active) 22%, transparent);
+  /* Deblji nego prsten u miru (3px): ovo je sat, mora se procitati iz daljine.
+     Inset je, pa ne trosi raspored. */
+  --seat-ring-w: 4px;
 }
 
-.seat__fill {
+.seat__ring {
   position: absolute;
   inset: 0;
-  transform: scaleX(var(--seat-fill, 1));
-  transform-origin: left center;
-  background-color: var(--turn-active);
-  transition: transform var(--t-card-play) var(--ease-out-soft);
+  border-radius: 999px;
+  pointer-events: none;
+  background: conic-gradient(
+    var(--seat-ring-live, var(--turn-active)) calc(var(--seat-fill, 1) * 360deg),
+    transparent 0
+  );
+  /* Od punog kruga ostaje samo obruc debljine prstena. */
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--seat-ring-w, 3px) - 0.5px),
+    #000 calc(100% - var(--seat-ring-w, 3px))
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--seat-ring-w, 3px) - 0.5px),
+    #000 calc(100% - var(--seat-ring-w, 3px))
+  );
 }
 
-.seat[data-urgent] .seat__fill {
-  background-color: var(--danger-signal);
+/* Zadnjih 10s broj zamjenjuje slovo. `tabular-nums` da se avatar ne trza dok
+   broj pada 10 -> 9. Velicinu nasljedjuje od avatara (prati `--seat-avatar`). */
+.seat__count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Zadnjih 5s: hitnost ide BOJOM (prsten, broj, halo), ne velicinom — isto
+   pravilo koje traka nad tvojom rukom koristi za svoj sat. `--danger-signal`,
+   ne `--danger`: ovaj drugi ima 2.0:1 prema feltu. */
+.seat[data-urgent] {
+  --seat-ring-live: var(--danger-signal);
+  --seat-halo: color-mix(in oklab, var(--danger-signal) 85%, transparent);
+  --seat-glow: color-mix(in oklab, var(--danger-signal) 55%, transparent);
+}
+
+.seat[data-urgent] .seat__avatar {
+  color: var(--danger-signal);
 }
 
 /* Rezultat u mentnoj, kao na referenci — razlikuje se od zlatnih zetona i od

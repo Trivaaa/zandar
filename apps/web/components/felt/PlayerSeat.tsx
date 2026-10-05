@@ -32,6 +32,9 @@ const statusLabel = {
   abandoned: sr.connection.abandoned,
 } as const;
 
+/** Ispod ovoga broj sekundi zamjenjuje slovo u avataru. */
+const COUNT_FROM_SECONDS = 10;
+
 function initial(name: string) {
   return name.trim().slice(0, 1).toLocaleUpperCase("sr-Latn");
 }
@@ -57,6 +60,12 @@ export function PlayerSeat({
   const countdown = isActive && !isThinking && secondsRemaining > 0;
   const fill = countdown ? Math.max(0, Math.min(1, secondsRemaining / totalSeconds)) : 1;
   const urgent = countdown && secondsRemaining <= 5;
+  // Zadnjih 10s broj stoji U avataru. Ranije ne: protivnik koji odigra za par
+  // sekundi (a tako igra vecina poteza) ne treba da pali cifre na stolu.
+  // `useCountdown` vraca razlomljene sekunde (otkucaj 250ms) — cifra se
+  // zaokruzuje NAVISE, pa "1" stoji dok vrijeme zaista ne istekne.
+  const wholeSeconds = Math.ceil(secondsRemaining);
+  const counting = countdown && wholeSeconds <= COUNT_FROM_SECONDS;
 
   return (
     <div
@@ -69,6 +78,7 @@ export function PlayerSeat({
       data-seat-id={player.id}
       {...(isActive ? { "data-current-turn": true } : {})}
       {...(urgent ? { "data-urgent": true } : {})}
+      {...(countdown ? { "data-countdown": true } : {})}
       data-status={player.connectionStatus}
     >
       {reaction ? (
@@ -88,7 +98,21 @@ export function PlayerSeat({
             koji `.seat__avatar` racuna iz `--seat-avatar`, pa slovo ne bi
             pratilo velicinu avatara. */}
         <div className="seat__avatar font-display" aria-hidden="true">
-          {initial(player.displayName)}
+          {/* Odbrojavanje tudjeg poteza: zlatni prsten koji se prazni kao sat.
+              Zamijenio je liniju od 2.4px po dnu cipa — radila je, ali je igrac
+              nije vidio (prijavljeno iz zive igre). Prsten ne trosi ni piksel
+              rasporeda: crta se preko prstena koji aktivno sjediste vec nosi. */}
+          {countdown ? (
+            <span
+              className="seat__ring"
+              style={{ "--seat-fill": fill } as React.CSSProperties}
+            />
+          ) : null}
+          {counting ? (
+            <span className="seat__count">{wholeSeconds}</span>
+          ) : (
+            initial(player.displayName)
+          )}
         </div>
 
         <div className="seat__meta">
@@ -113,19 +137,6 @@ export function PlayerSeat({
             </span>
           ) : null}
 
-          {/* Odbrojavanje tudjeg poteza je LINIJA po donjoj ivici cipa, ne
-              pilula iznad avatara. Pilula je trazila 38px iznad sjedista, a tamo
-              je zaglavlje: na uredaju je zlatna traka sjedala preko "Runda N".
-              Linija ne trosi visinu, a jezik je isti koji traka nad tvojom rukom
-              vec koristi (`banner__track`). */}
-          {countdown ? (
-            <span className="seat__track" aria-hidden="true">
-              <span
-                className="seat__fill"
-                style={{ "--seat-fill": fill } as React.CSSProperties}
-              />
-            </span>
-          ) : null}
         </div>
       </div>
 
