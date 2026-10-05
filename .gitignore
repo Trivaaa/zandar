@@ -23,3 +23,8 @@ coverage/
 *.jks
 *.keystore
 keystore.properties
+
+# Lokalni worktree-i Claude sesija.
+.claude/worktrees/
+# Play Console upload (ikone, feature graphic) — generise ih scripts/build-icons.mjs.
+apps/web/store-assets/
