@@ -4,6 +4,7 @@
 > Spec / source of truth: `docs/PRD_Zandar-v3-1.md` (currently v3.2). Status snapshot below.
 > Arhiva: prethodne verzije spec-a i design system-a su u `docs/archive/` (PRD v2, PRD v3.1, DESIGN_SYSTEM v3.1, skica matchinga).
 > Istorija izmjena (šta, zašto, mjerenja, zamke): `docs/CHANGELOG.md` — nije učitana automatski, pretraži je prije rada u nekoj oblasti.
+> Spec za nalog, profil i prijatelje: `docs/Specs/player-profile-v1.md` (izvor istine za implementaciju).
 > Read the relevant PRD section before implementing; flag any deviation.
 
 ---
