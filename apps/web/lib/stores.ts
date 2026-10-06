@@ -44,6 +44,36 @@ export function playStoreUrl(roomId?: string | null): string | null {
   return listing ? withInviteReferrer(listing, roomId) : null;
 }
 
+/** Id paketa iz Play listinga; staging APK je isti paket sa sufiksom. */
+export function appPackage(staging: boolean): string | null {
+  const listing = STORE_LINKS["google-play"];
+  const id = listing ? new URL(listing).searchParams.get("id") : null;
+  return id ? (staging ? `${id}.staging` : id) : null;
+}
+
+/**
+ * Android `intent:` link koji pozivnicu otvara U APLIKACIJI, a kad aplikacije
+ * nema vodi na `fallbackUrl` (Play listing sa sobom u referreru).
+ *
+ * Zašto treba pored App Linka: ugrađeni browseri (Messenger, Instagram, Viber…)
+ * link učitaju u vlastitom WebView-u i NE šalju intent, pa Android verifikaciju
+ * domena niko ni ne pita — igrač koji ima aplikaciju ostane na webu. Dodir na
+ * `intent:` link je jedini put odatle u aplikaciju. `host` mora biti onaj iz
+ * intent-filtera (`deepLinkHost`), `package` sprečava da ga preuzme neko drugi.
+ */
+export function appIntentUrl(
+  host: string,
+  roomId: string,
+  pkg: string,
+  fallbackUrl: string,
+): string {
+  return (
+    `intent://${host}/room/${encodeURIComponent(roomId)}` +
+    `#Intent;scheme=https;package=${pkg};` +
+    `S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`
+  );
+}
+
 const STORE_SNOOZE_KEY = "zandar:store:snoozeUntil";
 /** „Ne sada" sakriva ponudu nedjelju dana — isto pravilo kao push ponuda. */
 const STORE_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;

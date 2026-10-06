@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { isNative } from "@/lib/platform";
+import { isNative, isStaging } from "@/lib/platform";
 import { roomIdFromLink } from "@/lib/routes";
 import { sr } from "@/lib/sr";
-import { isStoreOfferSnoozed, playStoreUrl, snoozeStoreOffer } from "@/lib/stores";
+import {
+  appIntentUrl,
+  appPackage,
+  isStoreOfferSnoozed,
+  playStoreUrl,
+  snoozeStoreOffer,
+} from "@/lib/stores";
 
 /**
  * Ponuda aplikacije na webu (Android): „Nabavite na usluzi Google Play".
@@ -14,8 +20,10 @@ import { isStoreOfferSnoozed, playStoreUrl, snoozeStoreOffer } from "@/lib/store
  * instalira sa pozivnice bi sletio na početnu i izgubio poziv. Ova nosi sobu
  * kroz Play `referrer` (`lib/installReferrer.ts` je čita pri prvom pokretanju).
  *
- * Ko ima aplikaciju ovu traku ne vidi na pozivnici: App Link otvori aplikaciju
- * prije nego što se web učita.
+ * Ko ima aplikaciju ovu traku ne vidi na pozivnici kad link otvori iz pravog
+ * browsera ili SMS-a: App Link otvori aplikaciju prije nego što se web učita.
+ * Iz ugrađenih browsera (Messenger, Instagram…) App Link se NE okida, pa je na
+ * pozivnici dodir na oznaku `intent:` link — aplikacija ako je ima, Play ako ne.
  */
 
 const noSubscribe = () => () => {};
@@ -46,14 +54,28 @@ export function useStoreOffer(pathname: string | null): {
   }
   // `android` je tačno samo na klijentu, pa je `window` ovdje siguran.
   void pathname;
-  return { url: playStoreUrl(roomIdFromLink(window.location.href)), dismiss };
+  const roomId = roomIdFromLink(window.location.href);
+  const listing = playStoreUrl(roomId);
+  const pkg = appPackage(isStaging);
+  // Na pozivnici dodir prvo proba aplikaciju (ugrađeni browseri ne okidaju App
+  // Link), a Play je rezerva. Van sobe intent-filter nema šta da primi.
+  const url =
+    listing && roomId && pkg
+      ? appIntentUrl(window.location.host, roomId, pkg, listing)
+      : listing;
+  return { url, dismiss };
 }
 
 export function StoreOffer({ url, onDismiss }: { url: string; onDismiss: () => void }) {
   return (
     <>
       <span className="text-sm text-white">{sr.stores.bannerText}</span>
-      <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+      {/* `intent:` ide u istom prozoru: novi tab ga u WebView-u ne razriješi. */}
+      <a
+        href={url}
+        {...(url.startsWith("intent:") ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+        className="shrink-0"
+      >
         {/* Zvanična oznaka, netaknuta (smjernice brenda): bez sjenke, bez
             izmjene boja; slika nosi vlastiti prazan prostor oko znaka. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
