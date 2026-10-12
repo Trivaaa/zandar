@@ -6,6 +6,7 @@ import {
   type TableTheme,
   type UpcomingGameSlug,
 } from "@zandar/shared-types";
+import { authHeaders } from "@/lib/auth";
 import { analyticsPlatform, isNative, resolveApiBase } from "@/lib/platform";
 import { track } from "@/lib/track";
 
@@ -73,7 +74,7 @@ export async function createRoom(input: {
   track("play_requested", { mode: "private_room" });
   const res = await fetch(`${API_BASE}/api/rooms`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({ ...input, ...analyticsIdentity() }),
   });
   if (!res.ok) {
@@ -101,7 +102,7 @@ export async function submitJoinRequest(
   track("play_requested", { mode: "private_room" });
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/join-request`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({
       displayName,
       ...(pushId ? { pushId } : {}),
@@ -290,7 +291,7 @@ export async function quickPlay(input: {
   track("play_requested", { mode: "quick_play" });
   const res = await fetch(`${API_BASE}/api/quickplay`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({
       ...input,
       ...analyticsIdentity(),

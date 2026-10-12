@@ -4,6 +4,7 @@ import "./globals.css";
 import { PwaManager } from "@/components/PwaManager";
 import { NativeShell } from "@/components/NativeShell";
 import { NativePush } from "@/components/NativePush";
+import { AuthBoot } from "@/components/AuthBoot";
 
 // latin-ext je OBAVEZAN — č ć ž š đ žive tamo. Bez njega dijakritika
 // pada na sistemski font i tekst se vidljivo miješa usred riječi.
@@ -67,6 +68,7 @@ export default function RootLayout({
         <PwaManager />
         <NativeShell />
         <NativePush />
+        <AuthBoot />
       </body>
     </html>
   );

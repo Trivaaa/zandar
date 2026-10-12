@@ -16,6 +16,7 @@ import {
 import { getSession, saveSession, type RoomSession } from "@/lib/session";
 import { readPlayerName } from "@/lib/playerName";
 import { getSocket } from "@/lib/socket";
+import { getIdToken } from "@/lib/auth";
 import { getPushId, PUSH_REGISTERED_EVENT } from "@/lib/push";
 import { PushPrompt } from "@/components/push/PushPrompt";
 import { assertNoBotLeak } from "@/lib/antiLeak";
@@ -118,7 +119,10 @@ export function RoomScreen({ roomId }: { roomId: string }) {
 
   // Subscribe na sobu, promise-based (resolve-uje ok/ne-ok). Re-subscribe je
   // bezbjedan i idempotentan na serveru (samo postavi socket.data + join).
-  const subscribeSocket = useCallback((): Promise<boolean> => {
+  const subscribeSocket = useCallback(async (): Promise<boolean> => {
+    // Token PRIJE emita: server njime veže nalog za sjedište. `null` (nema
+    // mreže, Firebase nedostupan) ne zadržava ulazak u sobu.
+    const idToken = session ? await getIdToken() : null;
     return new Promise((resolve) => {
       if (!session) {
         resolve(false);
@@ -133,6 +137,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           sessionToken: session.sessionToken,
           // Veže uređaj za sjedište (PRD §51); JSON izostavi undefined.
           pushId: getPushId() ?? undefined,
+          idToken: idToken ?? undefined,
         },
         (res: { ok: boolean; error?: string }) => {
           if (!res.ok) {
