@@ -79,6 +79,7 @@ import {
 import { notifyDevices } from "./push/notify";
 import { parseQuickPlayConfig } from "./quickplay";
 import { trustFirstHop } from "./trustProxy";
+import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 const REACTION_COOLDOWN_MS = 2000;
@@ -153,6 +154,54 @@ fastify.get("/health", async () => ({
   timestamp: Date.now(),
 }));
 
+// ---- NALOG (docs/Specs/player-profile-v1.md) ----
+
+/**
+ * Ko šalje zahtjev, po Firebase ID tokenu iz `Authorization: Bearer`.
+ *
+ * Na rutama igre token je OPCION: verzije sa Play-a (1.0.0, 1.1.0) ga ne šalju,
+ * a istekao ili pokvaren token ne smije nikoga da izbaci sa stola — tada je
+ * zahtjev isto što i zahtjev bez tokena, i partija ide dalje kao do sad.
+ */
+async function optionalUid(request: {
+  headers: { authorization?: string | undefined };
+}): Promise<Pick<Player, "uid">> {
+  const token = bearerToken(request.headers.authorization);
+  if (!token) return {};
+  const result = await idTokens.verify(token);
+  return result.ok ? { uid: result.user.uid } : {};
+}
+
+const AUTH_FAILURE_STATUS: Record<VerifyFailure, number> = {
+  disabled: 503,
+  unavailable: 503,
+  invalid: 401,
+  expired: 401,
+  wrong_project: 401,
+};
+
+/**
+ * Zaštićene rute: bez ispravnog tokena nema odgovora. `code` je za klijenta —
+ * na `expired` osvježi token i ponovi, na ostalo ne ponavlja.
+ */
+async function requireUser(
+  request: { headers: { authorization?: string | undefined } },
+  reply: { code: (status: number) => { send: (body: unknown) => unknown } },
+): Promise<AuthUser | null> {
+  const result = await idTokens.verify(bearerToken(request.headers.authorization));
+  if (result.ok) return result.user;
+  reply
+    .code(AUTH_FAILURE_STATUS[result.reason])
+    .send({ error: "Prijava nije važeća", code: result.reason });
+  return null;
+}
+
+fastify.get("/api/me", async (request, reply) => {
+  const user = await requireUser(request, reply);
+  if (!user) return reply;
+  return { uid: user.uid, anonymous: user.anonymous };
+});
+
 // ---- PUSH UREĐAJI (PRD §51) ----
 
 type PushDeviceBody = {
@@ -202,7 +251,7 @@ fastify.post<{ Body: CreateRoomBody }>(
   "/api/rooms",
   async (request, reply) => {
     const { displayName, playerCount, targetScore = 21 } = request.body;
-    const identity = analyticsIdentity(request.body);
+    const identity = { ...analyticsIdentity(request.body), ...(await optionalUid(request)) };
 
     if (!displayName || displayName.trim().length === 0) {
       return reply.code(400).send({ error: "displayName je obavezan" });
@@ -335,6 +384,7 @@ fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
       createdAt: now,
       expiresAt: now + JOIN_REQUEST_TTL_MS,
       ...analyticsIdentity(request.body),
+      ...(await optionalUid(request)),
     };
 
     // Uređaj gosta, za "ulazak je odobren" (PRD §51). Nepoznat pushId se tiho ignoriše.
@@ -501,6 +551,7 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
       consecutiveAutoPlays: 0,
       ...(req.guestId ? { guestId: req.guestId } : {}),
       ...(req.platform ? { platform: req.platform } : {}),
+      ...(req.uid ? { uid: req.uid } : {}),
     };
     if (room.rulesConfig.playerCount === 4) {
       newPlayer.teamId = seatIndex % 2;
@@ -695,7 +746,7 @@ fastify.post<{ Body: QuickPlayBody }>(
   "/api/quickplay",
   async (request, reply) => {
     const { displayName } = request.body;
-    const identity = analyticsIdentity(request.body);
+    const identity = { ...analyticsIdentity(request.body), ...(await optionalUid(request)) };
 
     if (!displayName || displayName.trim().length === 0) {
       return reply.code(400).send({ error: "displayName je obavezan" });
@@ -1034,6 +1085,8 @@ type SubscribePayload = {
   sessionToken: string;
   /** Push uređaj koji gleda ovo sjedište (PRD §51); dolazi sa mreže, pa `unknown`. */
   pushId?: unknown;
+  /** Firebase ID token (nalog); stari klijenti ga ne šalju. */
+  idToken?: unknown;
 };
 
 type PlayCardPayload = {
@@ -1778,6 +1831,19 @@ io.on("connection", (socket) => {
         }
       }
 
+      // Isto za nalog: igrač koji je sjeo prije nego što je klijent slao token
+      // (stara verzija, hidrirana soba) dobija uid sa prvog subscribe-a koji ga
+      // nosi. Token je iz `payload`-a, ne iz handshake-a — handshake se šalje
+      // jednom po konekciji, a ID token ističe za sat.
+      if (typeof payload.idToken === "string") {
+        const verified = await idTokens.verify(payload.idToken);
+        if (verified.ok) {
+          for (const p of [...room.players, ...(room.gameState?.players ?? [])]) {
+            if (p.id === playerId && !p.isBot && !p.uid) p.uid = verified.user.uid;
+          }
+        }
+      }
+
       fastify.log.info(
         `→ Player ${playerId} subscribed to room ${roomId}`,
       );
@@ -2178,6 +2244,9 @@ try {
 } catch (err) {
   fastify.log.error(`Push hydrate failed (nastavljam bez uređaja): ${err}`);
 }
+fastify.log.info(
+  `🔐 Nalog: ${idTokens.enabled ? `Firebase ${idTokens.projectId}` : "isključen (nema FIREBASE_PROJECT_ID ni servisnog ključa)"}`,
+);
 startDeviceSweeper((removed) => {
   fastify.log.info(`🧹 Push: uklonjeno ${removed} zaboravljenih uređaja`);
 });

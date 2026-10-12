@@ -27,6 +27,8 @@ export type JoinRequest = {
   /** Analitika — prelazi na igrača pri approve-u (docs/analytics.md). */
   guestId?: string;
   platform?: AnalyticsPlatform;
+  /** Firebase UID gosta iz provjerenog tokena — prelazi na igrača pri approve-u. */
+  uid?: string;
 };
 
 export type LobbyRoom = {

@@ -83,6 +83,12 @@ export type Player = {
   guestId?: string;
   /** Odakle čovjek igra — parametar analitike. SAMO server-side. */
   platform?: AnalyticsPlatform;
+  /**
+   * Firebase UID čovjeka (gost = anonimni nalog), iz PROVJERENOG ID tokena.
+   * SAMO server-side, kao i `guestId`. Opciono: botovi ga nemaju, a ni ljudi sa
+   * starih klijenata koji ne šalju token, ni stari perzistirani snapshot-i.
+   */
+  uid?: string;
 };
 
 // ====================================================
