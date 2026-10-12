@@ -4,6 +4,7 @@ import {
   generateTableIdentities,
   normalizeName,
   failsProfanityFilter,
+  failsNicknameFilter,
   _generateWithMeta,
 } from "./identity";
 
@@ -286,6 +287,36 @@ describe("distribucija kategorija — DoD", () => {
     for (let i = 0; i < N; i++) {
       const identity = generateBotIdentity(new Set(), new Set(), rng);
       expect(failsProfanityFilter(identity.displayName)).toBe(false);
+    }
+  });
+});
+
+// ====================================================
+// NADIMAK KOJI UNOSI ČOVJEK
+// ====================================================
+
+describe("failsNicknameFilter", () => {
+  it("propušta obične nadimke, i one sa ciframa", () => {
+    for (const ok of ["Marko", "Ana_92", "zandar.kralj", "Đole1984", "Igrac4821", "x7x"]) {
+      expect(failsNicknameFilter(ok)).toBe(false);
+    }
+  });
+
+  it("hvata zabranjenu riječ napisanu obično i sa dijakriticima", () => {
+    expect(failsNicknameFilter("Kreten")).toBe(true);
+    expect(failsNicknameFilter("četnik_ns")).toBe(true);
+    expect(failsNicknameFilter("ustaša")).toBe(true);
+  });
+
+  it("hvata zamjenu slova ciframa", () => {
+    for (const leet of ["1d10t", "kur4c", "kr3t3n", "d3b1l", "p1zda", "u5ta5a", "c3tn1k", "8alija"]) {
+      expect(failsNicknameFilter(leet)).toBe(true);
+    }
+  });
+
+  it("hvata riječ razbijenu ciframa, tačkama i donjim crtama", () => {
+    for (const split of ["ku1rac", "k.u.r.a.c", "i_d_i_o_t", "kre7ten9"]) {
+      expect(failsNicknameFilter(split)).toBe(true);
     }
   });
 });

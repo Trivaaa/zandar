@@ -13,7 +13,12 @@ export { calculateHandScore } from "./scoring";
 export { autoPlay, findAutoPlayMove } from "./autoplay";
 export { selectBotMove, DEFAULT_BOT_CONFIGS } from "./bot";
 export type { BotConfig, BotWeights } from "./bot";
-export { generateBotIdentity, generateTableIdentities, normalizeName } from "./identity";
+export {
+  failsNicknameFilter,
+  generateBotIdentity,
+  generateTableIdentities,
+  normalizeName,
+} from "./identity";
 export type { GeneratedWithMeta } from "./identity";
 export { deriveGameEvents, isJackSweep } from "./gameEvents";
 export type { GameEvent, EventSnapshot } from "./gameEvents";

@@ -607,3 +607,59 @@ export const DEFAULT_TABLE_THEME: TableTheme = TABLE_THEMES[0];
 export function parseTableTheme(value: unknown): TableTheme {
   return TABLE_THEMES.find((t) => t === value) ?? DEFAULT_TABLE_THEME;
 }
+
+// ====================================================
+// NADIMAK (docs/Specs/SPEC_IDENTITET.md §3, §6.4)
+// ====================================================
+
+export const NICKNAME_MIN_LENGTH = 3;
+export const NICKNAME_MAX_LENGTH = 16;
+/** Nadimak se mijenja najviše jednom u ovom razmaku. */
+export const NICKNAME_CHANGE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Dozvoljeni znakovi: latinična slova sa č, ć, ž, š i đ, cifre, donja crta i
+ * tačka. Namjerno NE `\p{L}`: ćirilično „а" i latinično „a" izgledaju isto, pa
+ * bi dva naloga mogla nositi nadimak koji igrač ne razlikuje — a jedinstvenost
+ * postoji baš da se to ne desi.
+ */
+const NICKNAME_PATTERN = /^[A-Za-zČĆŽŠĐčćžšđ0-9_.]+$/;
+
+export type NicknameProblem = "too_short" | "too_long" | "invalid_chars";
+
+export type NicknameCheck =
+  | {
+      ok: true;
+      /** Kako se nadimak prikazuje. */
+      nickname: string;
+      /** Ključ jedinstvenosti — mala slova, pa „Marko" i „MARKO" su isti nadimak. */
+      key: string;
+    }
+  | { ok: false; problem: NicknameProblem };
+
+/**
+ * Oblik nadimka: `trim`, dužina, skup znakova. Dijele ga forma (poruka prije
+ * slanja) i server (odluka), pa ne mogu da tvrde različito o istom nadimku.
+ *
+ * NE provjerava zabranjene riječi ni zauzetost — to zna samo server.
+ */
+export function checkNickname(raw: unknown): NicknameCheck {
+  if (typeof raw !== "string") return { ok: false, problem: "invalid_chars" };
+  // NFC: „č" ukucano kao c + kombinovana kvačica postaje jedan znak, pa ga
+  // obrazac prepoznaje i dužina se broji kako je igrač vidi.
+  const nickname = raw.trim().normalize("NFC");
+  if (nickname.length < NICKNAME_MIN_LENGTH) return { ok: false, problem: "too_short" };
+  if (nickname.length > NICKNAME_MAX_LENGTH) return { ok: false, problem: "too_long" };
+  if (!NICKNAME_PATTERN.test(nickname)) return { ok: false, problem: "invalid_chars" };
+  return { ok: true, nickname, key: nickname.toLowerCase() };
+}
+
+/** Od kada nadimak smije opet da se promijeni; `null` = odmah. */
+export function nicknameChangeAllowedAt(
+  lastChangedAt: number | null | undefined,
+  now: number,
+): number | null {
+  if (typeof lastChangedAt !== "number") return null;
+  const allowedAt = lastChangedAt + NICKNAME_CHANGE_INTERVAL_MS;
+  return allowedAt > now ? allowedAt : null;
+}

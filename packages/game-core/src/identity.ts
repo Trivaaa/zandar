@@ -227,6 +227,27 @@ export function failsProfanityFilter(name: string): boolean {
   return false;
 }
 
+/** Cifre kojima se najčešće zamjenjuju slova („1d10t", „kur4c"). */
+const LEET: Record<string, string> = {
+  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "8": "b",
+};
+
+/**
+ * Provjera nadimka koji je ukucao ČOVJEK (docs/Specs/player-profile-v1.md).
+ * Stroža od `failsProfanityFilter`, koji provjerava imena iz naših spiskova:
+ * igrač zabranjenu riječ maskira ciframa, pa se nadimak provjerava u tri oblika
+ * — kakav jeste, sa ciframa pročitanim kao slova, i sa izbačenim ciframa
+ * („ku1rac"). Tačke i donje crte skida već `normalizeName`.
+ */
+export function failsNicknameFilter(nickname: string): boolean {
+  const normalized = normalizeName(nickname);
+  return (
+    failsProfanityFilter(normalized) ||
+    failsProfanityFilter(normalized.replace(/[0134578]/g, (d) => LEET[d]!)) ||
+    failsProfanityFilter(normalized.replace(/\d/g, ""))
+  );
+}
+
 // ====================================================
 // FALLBACK GUEST IDENTITY
 // ====================================================
