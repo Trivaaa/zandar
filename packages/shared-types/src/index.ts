@@ -589,7 +589,7 @@ export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalytic
  * PRVA je podrazumijevana. Nova podloga = red ovdje + slika i izmjeren obod u
  * `apps/web/app/felt.css` + naziv u `sr.ts`.
  */
-export const TABLE_THEMES = ["classic", "wood"] as const;
+export const TABLE_THEMES = ["classic", "wood", "cloth"] as const;
 export type TableTheme = (typeof TABLE_THEMES)[number];
 export const DEFAULT_TABLE_THEME: TableTheme = TABLE_THEMES[0];
 

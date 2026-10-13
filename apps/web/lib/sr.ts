@@ -112,7 +112,7 @@ export const sr = {
      `TABLE_THEMES` bez naziva ovdje ne prolazi typecheck. */
   tableTheme: {
     label: "Izgled stola",
-    names: { classic: "Klasik", wood: "Drvo" } satisfies Record<TableTheme, string>,
+    names: { classic: "Klasik", wood: "Drvo", cloth: "Kafana" } satisfies Record<TableTheme, string>,
   },
   /* „Igraj Žandar" — isti ekran kao „Nova soba" (`CreateRoomScreen`), drugi tekst. */
   quickSetup: {

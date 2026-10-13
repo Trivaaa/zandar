@@ -600,3 +600,12 @@ Slika je iz ChatGPT-a (1024×1536) i obod joj je bio previsoko (14,9 % umjesto t
 Mjerenje (CDP, 360×640, 360×760, 390×844, 412×915, 320×568, 800×900, 2P i 3P): obod drvene podloge pada na cilj uz odstupanje ≤0,1 px gore i dole, slika svuda pokriva pozornicu. **Bočno ne sjeda svuda:** obod prolazi kroz bočne avatare na 360×760 i 390×844, na 412×915 je 6 px van ekrana, a na 360×640, 320×568 i desktopu (600 px pozornica) pada 10–33 px UNUTAR linije avatara, pa bočni igrači stoje tik uz sto spolja. Pretpostavka pri zadavanju odnosa (0,78) je bila da je centar bočnog avatara na pola pojasa; izmjereno je na 30 px od ivice. Za sljedeću podlogu ciljati odnos oboda ~0,85, a desktop riješiti sužavanjem pozornice prema visini.
 
 Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličica je tamo niža (5:2 umjesto 16:9). Usput: `next dev` (Next 16) sam upisuje `apps/web/AGENTS.md` i `apps/web/CLAUDE.md` — obrisani, ne komitovati. **Nije provjereno na uređaju.**)
+
+
+## 88. treća podloga „Kafana" i sličice sa cijelim stolom (2026-10-13)
+
+**Karirani stolnjak kao treća podloga** (`cloth`, naziv „Kafana"; slika iz ChatGPT-a, 1024×1536, produžena ogledanjem 80 px gore). Razlikuje se od prve dvije u dvije stvari koje određuju kako sjeda: NEMA nacrtan obod i nije čisto odozgo — sto je trapez, a stolnjak pada preko prednje ivice. „Obod" je zato silueta stolnjaka po središnjoj koloni (gore y=298; dole y=880, sredina pada, da avatar pokrije prevoj) — izabrano, ne izmjereno ridge-detekcijom kao kod drveta. Sto je širi nego viši (oko 690×582, odnos 1,19), a slika se skalira po visini, pa na telefonu bočne ivice izlaze van ekrana i stolnjak ide od ivice do ivice; stolice i pod sa strane vide se tek na desktopu (600 px pozornica). Gornja i donja ivica padaju na avatare kao i kod ostalih.
+
+Čitljivost: karte se na kockama čitaju, ali „Sto je prazan" (prigušen tekst) na stolnjaku se jedva vidi — nije dirano, čeka ocjenu na uređaju.
+
+**Sličice u biraču** su sad kvadrat sa CIJELIM stolom (240 px, isječak oko stola), umjesto srednjeg pojasa 16:9 na kojem se oblik stola nije vidio — zahtjev vlasnika. Na niskom ekranu (≤700 px) sličica je `contain` u okviru 3:2: smanjuje se umjesto da se siječe, a izabranu tu obilježava pozadina dugmeta, ne okvir sličice. Tri podloge u redu od 20rem daju sličicu od ~85 px. **Nije provjereno na uređaju.**)

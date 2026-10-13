@@ -1705,6 +1705,24 @@
   --bg-aspect: 1.7246; /* 1766 / 1024 */
 }
 
+/* Kafana (karirani stolnjak): 1024x1616, izvor 1024x1536 produzen ogledanjem
+   80px gore. Slika NEMA nacrtan obod i nije cisto odozgo: sto je trapez, a
+   stolnjak pada preko prednje ivice. "Obod" je zato silueta stolnjaka po
+   sredisnjoj koloni: gornja ivica y=298, a dole y=880 — sredina pada (ploca se
+   zavrsava oko 860, pad oko 915), da tvoj avatar pokrije prevoj.
+
+   Sto je SIRI nego visi (oko 690x582, odnos 1.19), a slika se skalira po
+   visini — pa na telefonu bocne ivice stola izlaze van ekrana i stolnjak ide
+   od ivice do ivice. Stolice i pod sa strane se vide tek na desktopu. */
+.felt-stage[data-table="cloth"] {
+  background-image: url("/tables/cloth.webp");
+  background-color: #28160e; /* tamni pod oko stola */
+  --bg-rim-top: 0.1844; /* 298 / 1616 */
+  --bg-rim-bottom: 0.4554; /* 1 - 880 / 1616 */
+  --bg-rim-h-inv: 2.7766; /* 1616 / 582 */
+  --bg-aspect: 1.5781; /* 1616 / 1024 */
+}
+
 /* 3P: nema partnera gore, pa sto krece odmah ispod zaglavlja — ni sjedista ni
    lepeze koja bi se podizala, pa se ne placa ni jedno ni drugo. */
 .felt-stage[data-partner="false"] {

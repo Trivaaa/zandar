@@ -19,7 +19,7 @@ import { GameScreen } from "@/components/GameScreen";
  *   /dev/game?move=capture&turn=left   → pa `window.__devMove()` pusti potez
  *   /dev/game?move=redeal              → zadnja karta runde: potez + dijeljenje
  *   /dev/game?phase=hand_finished&tie=1 → razrada ruke, nerijeseno na kartama
- *   /dev/game?table=wood               → podloga stola (`TABLE_THEMES`)
+ *   /dev/game?table=wood|cloth         → podloga stola (`TABLE_THEMES`)
  *
  * To NIJE ukras: headless Chrome (`--screenshot`) ne moze da klikne dugmad, pa
  * bi bez URL-a svaki snimak bio isto pocetno stanje — a raspored se lomi bas u
