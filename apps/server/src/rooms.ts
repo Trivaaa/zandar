@@ -4,6 +4,7 @@ import type {
   GameState,
   Player,
   RulesConfig,
+  TableTheme,
 } from "@zandar/shared-types";
 import { persistence } from "./persistence";
 
@@ -53,6 +54,11 @@ export type LobbyRoom = {
    * `Player`-u, pa ne može procuriti kroz javno stanje igre.
    */
   pushIds?: Record<string, string>;
+  /**
+   * Podloga stola — bira je onaj ko pravi sto, vide je svi. Opciono, jer snimci
+   * soba od prije izbora je nemaju; čita se kroz `parseTableTheme`.
+   */
+  tableTheme?: TableTheme;
 };
 
 const rooms = new Map<string, LobbyRoom>();

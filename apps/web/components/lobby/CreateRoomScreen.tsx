@@ -1,5 +1,7 @@
 "use client";
 
+import { TABLE_THEMES, type TableTheme } from "@zandar/shared-types";
+
 import { sr } from "@/lib/sr";
 
 export type CreateRoomScreenProps = {
@@ -13,6 +15,9 @@ export type CreateRoomScreenProps = {
   onBack: () => void;
   loading: boolean;
   error?: string | undefined;
+  /** Podloga stola. Bez `onTableTheme` red se ne crta. */
+  tableTheme?: TableTheme | undefined;
+  onTableTheme?: ((theme: TableTheme) => void) | undefined;
   /** Ponuđene veličine stola. Brza igra nudi samo 2 i 4. */
   counts?: readonly (2 | 3 | 4)[] | undefined;
   /** Naslov i natpisi. Isti ekran služi i brzoj igri (`sr.quickSetup`). */
@@ -42,6 +47,8 @@ export function CreateRoomScreen({
   onPlayerCount,
   targetScore,
   onTargetScore,
+  tableTheme,
+  onTableTheme,
   onCreate,
   onBack,
   loading,
@@ -113,6 +120,29 @@ export function CreateRoomScreen({
             ))}
           </div>
         </div>
+
+        {onTableTheme && (
+          <div className="create__field">
+            <span className="create__label font-sans text-sm">{sr.tableTheme.label}</span>
+            <div className="create__themes" role="radiogroup" aria-label={sr.tableTheme.label}>
+              {TABLE_THEMES.map((theme) => (
+                <button
+                  key={theme}
+                  type="button"
+                  role="radio"
+                  aria-checked={tableTheme === theme}
+                  className="create__theme font-sans text-sm"
+                  data-selected={tableTheme === theme}
+                  onClick={() => onTableTheme(theme)}
+                >
+                  {/* Ukras: naziv ispod već imenuje izbor. */}
+                  <span className="create__theme-thumb" data-table={theme} aria-hidden="true" />
+                  {sr.tableTheme.names[theme]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <button
           type="button"

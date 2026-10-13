@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import type { GamePhase, HandScore, PrivateGameStateView } from "@zandar/shared-types";
+import {
+  parseTableTheme,
+  type GamePhase,
+  type HandScore,
+  type PrivateGameStateView,
+  type TableTheme,
+} from "@zandar/shared-types";
 import { GameScreen } from "@/components/GameScreen";
 
 /**
@@ -13,6 +19,7 @@ import { GameScreen } from "@/components/GameScreen";
  *   /dev/game?move=capture&turn=left   → pa `window.__devMove()` pusti potez
  *   /dev/game?move=redeal              → zadnja karta runde: potez + dijeljenje
  *   /dev/game?phase=hand_finished&tie=1 → razrada ruke, nerijeseno na kartama
+ *   /dev/game?table=wood               → podloga stola (`TABLE_THEMES`)
  *
  * To NIJE ukras: headless Chrome (`--screenshot`) ne moze da klikne dugmad, pa
  * bi bez URL-a svaki snimak bio isto pocetno stanje — a raspored se lomi bas u
@@ -367,6 +374,8 @@ type UrlOpts = {
   tie: boolean;
   /** `fresh=1`: pocetak ruke → sintetizovano dijeljenje na montiranju. */
   fresh: boolean;
+  /** `table=wood`: podloga stola. Nepoznata ili izostavljena → podrazumijevana. */
+  table: TableTheme;
 };
 
 function parseParams(search: string): UrlOpts {
@@ -393,6 +402,7 @@ function parseParams(search: string): UrlOpts {
       : null,
     tie: q.get("tie") === "1",
     fresh: q.get("fresh") === "1",
+    table: parseTableTheme(q.get("table")),
   };
 }
 
@@ -585,6 +595,7 @@ export default function DevGamePage() {
           fresh: url.fresh,
         })}
         {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
+        tableTheme={url.table}
         onPlayCard={noop}
         onNextHand={noop}
         onRematch={noop}

@@ -1,8 +1,11 @@
+import type { TableTheme } from "@zandar/shared-types";
+
 import { quickPlay } from "@/lib/api";
 import { normalizePlayerName, savePlayerName } from "@/lib/playerName";
 import { saveQuickPlayPrefs, type QuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { matchingPath } from "@/lib/routes";
 import { saveSession } from "@/lib/session";
+import { saveTableTheme } from "@/lib/tableTheme";
 
 /**
  * Jedan put do javnog stola, sa ekrana `/igraj`.
@@ -11,11 +14,16 @@ import { saveSession } from "@/lib/session";
  * igrač upisao i izabrao. Vraća putanju matching ekrana; navigaciju radi
  * pozivalac (`/igraj` zamjenjuje sebe).
  */
-export async function startQuickPlay(name: string, prefs: QuickPlayPrefs): Promise<string> {
+export async function startQuickPlay(
+  name: string,
+  prefs: QuickPlayPrefs,
+  tableTheme: TableTheme,
+): Promise<string> {
   const displayName = normalizePlayerName(name);
   savePlayerName(displayName);
   saveQuickPlayPrefs(prefs);
-  const res = await quickPlay({ displayName, ...prefs });
+  saveTableTheme(tableTheme);
+  const res = await quickPlay({ displayName, ...prefs, tableTheme });
   saveSession({
     roomId: res.roomId,
     playerId: res.playerId,

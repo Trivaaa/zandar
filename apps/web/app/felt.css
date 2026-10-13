@@ -1555,8 +1555,11 @@
      lukovi izadju van ekrana (~22px na 390x844, ~44px na 412x915) — svjesno,
      jer alternativa je vodoravno sabijanje slike.
 
-     Boja ispod (`bg-felt` iz JSX-a) ostaje kao pod: ako slika ne stigne, ekran
-     je i dalje zeleno sukno a ne bijelo. */
+     Boja ispod ostaje kao pod: ako slika ne stigne, ekran je i dalje sukno a ne
+     bijelo. Stoji OVDJE, a ne kao `bg-felt` u JSX-u: utility bi pobijedio ovaj
+     sloj, pa podloga sa drugacijim podom (`data-table` ispod) ne bi mogla da ga
+     promijeni. */
+  background-color: var(--felt);
   background-image: url("/felt-bg.webp");
   background-size: auto var(--bg-h);
   background-position: left 50% bottom
@@ -1574,6 +1577,8 @@
   --bg-rim-top: 0.1398; /* 248 / 1774 */
   --bg-rim-bottom: 0.3906; /* 1 - 1081 / 1774 */
   --bg-rim-h-inv: 2.1296; /* 1 / (0.6094 - 0.1398) */
+  /* Visina slike kroz sirinu (1774 / 887). Treba donjoj granici `--bg-h`. */
+  --bg-aspect: 2;
 
   /* Gdje obod TREBA da padne: kroz sredinu avatara, isto pravilo gore i dole.
      0.2rem je `padding-top` sjedista, linija na kojoj avatar pocinje. */
@@ -1599,7 +1604,7 @@
      ako se to promijeni, mora i ovo s njim. */
   --bg-h: max(
     calc((100dvh - var(--rim-top) - var(--rim-bottom)) * var(--bg-rim-h-inv)),
-    calc(2 * min(100dvw, 600px))
+    calc(var(--bg-aspect) * min(100dvw, 600px))
   );
 
   --seat-avatar: 3.25rem;
@@ -1670,6 +1675,34 @@
   --table-mid: calc(
     var(--table-top) + (100% - var(--table-top) - var(--table-bottom)) / 2
   );
+}
+
+/* ------------------------------------------------------------------ *
+ * Podloge stola. Bira ih onaj ko pravi sto (`TABLE_THEMES` u shared-types);
+ * `GameScreen` izbor stavlja kao `data-table`. Bez atributa, ili sa
+ * `classic`, vazi sve iznad.
+ *
+ * Podloga mijenja SAMO sliku i brojeve koji opisuju sliku. Raspored
+ * (`--rim-top`, `--rim-bottom`, sjedista) je isti za sve — zato obod svake
+ * podloge pada kroz iste avatare.
+ *
+ * Nova podloga: obod mora biti IZMJEREN na konacnom fajlu (ridge-detekcija po
+ * sredisnjoj koloni), ne procijenjen i ne prepisan iz zadatih dimenzija.
+ * ------------------------------------------------------------------ */
+
+/* Drvo: 1024x1766. Izvor (1024x1536) je produzen ogledanjem 130px gore i 100px
+   dole, jer mu je obod bio previsoko: bez toga slika iznad oboda ne pokriva
+   zaglavlje na ekranima sa izrezom kamere, a ispod ne pokriva ruku na 320x568.
+   Obod: y=359 i y=1064 (visina 705), x=239 i x=784 (odnos 0.773). */
+.felt-stage[data-table="wood"] {
+  background-image: url("/tables/wood.webp");
+  /* Prosjek tamnog drveta oko stola (27, 24, 16), da se ucitavanje slike ne
+     vidi kao zeleni bljesak. */
+  background-color: #1b1810;
+  --bg-rim-top: 0.2033; /* 359 / 1766 */
+  --bg-rim-bottom: 0.3975; /* 1 - 1064 / 1766 */
+  --bg-rim-h-inv: 2.505; /* 1766 / 705 */
+  --bg-aspect: 1.7246; /* 1766 / 1024 */
 }
 
 /* 3P: nema partnera gore, pa sto krece odmah ispod zaglavlja — ni sjedista ni

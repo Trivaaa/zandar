@@ -577,3 +577,27 @@ export type ClientAnalyticsEvent =
   | "upcoming_games_viewed";
 
 export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;
+
+// ====================================================
+// IZGLED STOLA
+// ====================================================
+
+/**
+ * Podloge stola. Bira ih onaj ko pravi sto (`/igraj`, `/create`), a vide ih svi
+ * za tim stolom. Čista kozmetika — pravila i stanje igre ih ne poznaju.
+ *
+ * PRVA je podrazumijevana. Nova podloga = red ovdje + slika i izmjeren obod u
+ * `apps/web/app/felt.css` + naziv u `sr.ts`.
+ */
+export const TABLE_THEMES = ["classic", "wood"] as const;
+export type TableTheme = (typeof TABLE_THEMES)[number];
+export const DEFAULT_TABLE_THEME: TableTheme = TABLE_THEMES[0];
+
+/**
+ * Bilo šta → podloga. Sve što nije prepoznato pada na podrazumijevanu: stari
+ * klijenti polje ne šalju, stari snapshoti soba ga nemaju, a localStorage može
+ * nositi podlogu koju više ne nudimo. Nijedno od toga nije greška.
+ */
+export function parseTableTheme(value: unknown): TableTheme {
+  return TABLE_THEMES.find((t) => t === value) ?? DEFAULT_TABLE_THEME;
+}

@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
 
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
 import { usePlayerName } from "@/lib/playerName";
@@ -15,12 +16,13 @@ import {
 } from "@/lib/quickPlayPrefs";
 import { sr } from "@/lib/sr";
 import { startQuickPlay } from "@/lib/startQuickPlay";
+import { readTableThemeRaw } from "@/lib/tableTheme";
 
 const subscribeToNothing = () => () => {};
 
 /**
- * `/igraj` — „Igraj Žandar": ime, sto za 2 ili 4, partija do 11 ili 21, pa javni
- * sto. Zaseban ekran, a ne prekidači na početnoj: početna ostaje jedna glasna
+ * `/igraj` — „Igraj Žandar": ime, sto za 2 ili 4, partija do 11 ili 21, izgled
+ * stola, pa javni sto. Zaseban ekran, a ne prekidači na početnoj: početna ostaje jedna glasna
  * radnja, a Android „nazad" ovdje radi sam (`NativeShell` gasi aplikaciju samo
  * na `/`).
  *
@@ -32,13 +34,16 @@ export default function QuickPlaySetupPage() {
   const savedName = usePlayerName();
   const savedRaw = useSyncExternalStore(subscribeToNothing, readQuickPlayPrefsRaw, () => null);
   const saved = useMemo(() => parseQuickPlayPrefs(savedRaw), [savedRaw]);
+  const savedTheme = useSyncExternalStore(subscribeToNothing, readTableThemeRaw, () => null);
 
   const [nameDraft, setNameDraft] = useState<string | null>(null);
   const [countDraft, setCountDraft] = useState<QuickPlayCount | null>(null);
   const [targetDraft, setTargetDraft] = useState<QuickPlayTarget | null>(null);
+  const [themeDraft, setThemeDraft] = useState<TableTheme | null>(null);
   const displayName = nameDraft ?? savedName ?? "";
   const playerCount = countDraft ?? saved.playerCount;
   const targetScore = targetDraft ?? saved.targetScore;
+  const tableTheme = themeDraft ?? parseTableTheme(savedTheme);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +57,7 @@ export default function QuickPlaySetupPage() {
     setLoading(true);
     try {
       // `replace`: „nazad" sa matching ekrana vodi na početnu, ne opet ovdje.
-      router.replace(await startQuickPlay(displayName, { playerCount, targetScore }));
+      router.replace(await startQuickPlay(displayName, { playerCount, targetScore }, tableTheme));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greška");
       setLoading(false);
@@ -70,6 +75,8 @@ export default function QuickPlaySetupPage() {
       onPlayerCount={(n) => setCountDraft(QUICK_PLAY_COUNTS.find((c) => c === n) ?? null)}
       targetScore={targetScore}
       onTargetScore={(n) => setTargetDraft(QUICK_PLAY_TARGETS.find((t) => t === n) ?? null)}
+      tableTheme={tableTheme}
+      onTableTheme={setThemeDraft}
       onCreate={() => void handleStart()}
       onBack={() => router.push("/")}
       loading={loading}

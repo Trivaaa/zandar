@@ -10,6 +10,8 @@
  * izostavljaju `targetScore` — oba oblika moraju prolaziti.
  */
 
+import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
+
 export const QUICK_PLAY_PLAYER_COUNTS = [2, 3, 4] as const;
 export const QUICK_PLAY_TARGET_SCORES = [11, 21] as const;
 export const DEFAULT_QUICK_PLAY_TARGET = 21;
@@ -17,6 +19,8 @@ export const DEFAULT_QUICK_PLAY_TARGET = 21;
 export type QuickPlayConfig = {
   playerCount: (typeof QUICK_PLAY_PLAYER_COUNTS)[number];
   targetScore: (typeof QUICK_PLAY_TARGET_SCORES)[number];
+  /** Kozmetika, pa nikad razlog za 400: nepoznato ili izostavljeno → podrazumijevana. */
+  tableTheme: TableTheme;
 };
 
 export type QuickPlayConfigResult =
@@ -26,6 +30,7 @@ export type QuickPlayConfigResult =
 export function parseQuickPlayConfig(body: {
   playerCount?: unknown;
   targetScore?: unknown;
+  tableTheme?: unknown;
 }): QuickPlayConfigResult {
   const playerCount = QUICK_PLAY_PLAYER_COUNTS.find((n) => n === body.playerCount);
   if (playerCount === undefined) {
@@ -36,5 +41,8 @@ export function parseQuickPlayConfig(body: {
   if (targetScore === undefined) {
     return { ok: false, error: "targetScore mora biti 11 ili 21" };
   }
-  return { ok: true, config: { playerCount, targetScore } };
+  return {
+    ok: true,
+    config: { playerCount, targetScore, tableTheme: parseTableTheme(body.tableTheme) },
+  };
 }

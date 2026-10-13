@@ -1,7 +1,7 @@
 // Serbo-Croatian (ijekavica), sentence case, plain verbs.
 // Single source for every visible string. No component hardcodes copy.
 
-import { CONSENT_TEXTS, CURRENT_CONSENT_TEXT_ID } from "@zandar/shared-types";
+import { CONSENT_TEXTS, CURRENT_CONSENT_TEXT_ID, type TableTheme } from "@zandar/shared-types";
 
 export const sr = {
   // Zaglavlje stola. "Runda" je ono sto igrac broji za stolom; u kodu je to
@@ -108,6 +108,12 @@ export const sr = {
   back: "← Nazad",
   /** Isto, bez strelice u tekstu — strelicu crta ikonica sa aria-hidden. */
   backLabel: "Nazad",
+  /* Podloga stola — bira se pred igru. `satisfies`: nova podloga u
+     `TABLE_THEMES` bez naziva ovdje ne prolazi typecheck. */
+  tableTheme: {
+    label: "Izgled stola",
+    names: { classic: "Klasik", wood: "Drvo" } satisfies Record<TableTheme, string>,
+  },
   /* „Igraj Žandar" — isti ekran kao „Nova soba" (`CreateRoomScreen`), drugi tekst. */
   quickSetup: {
     title: "Igraj Žandar",

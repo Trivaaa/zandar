@@ -14,6 +14,7 @@ import {
   isConsentTextId,
   isUpcomingGameSlug,
   normalizeEmail,
+  parseTableTheme,
   type BotMoveTiming,
   type BotSkillTier,
   type MatchEndReason,
@@ -192,6 +193,7 @@ type CreateRoomBody = {
   displayName: string;
   playerCount: 2 | 3 | 4;
   targetScore?: number;
+  tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
   platform?: unknown;
 };
@@ -241,6 +243,7 @@ fastify.post<{ Body: CreateRoomBody }>(
       sessionTokens: new Map([[playerId, hashToken(sessionToken)]]),
       joinRequests: new Map(),
       createdAt: Date.now(),
+      tableTheme: parseTableTheme(request.body.tableTheme),
     };
 
     storeRoom(room);
@@ -279,6 +282,8 @@ fastify.get<{ Params: { roomId: string } }>(
       slotsAvailable: room.rulesConfig.playerCount - room.players.length,
       // Room-level zastavica (NE per-player isBot) — host UI prikazuje toggle.
       botFill: room.botFill ?? false,
+      // Sobe od prije izbora podloge polje nemaju → podrazumijevana.
+      tableTheme: parseTableTheme(room.tableTheme),
     };
   },
 );
@@ -681,6 +686,7 @@ type QuickPlayBody = {
   displayName: string;
   playerCount: 2 | 3 | 4;
   targetScore?: number;
+  tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
   platform?: unknown;
 };
@@ -699,12 +705,13 @@ fastify.post<{ Body: QuickPlayBody }>(
     if (!parsed.ok) {
       return reply.code(400).send({ error: parsed.error });
     }
-    const { playerCount, targetScore } = parsed.config;
+    const { playerCount, targetScore, tableTheme } = parsed.config;
 
     const playerId = createPlayerId();
     const sessionToken = createSessionToken();
 
-    // Pokušaj matchmaking: nađi javnu sobu koja čeka igrače
+    // Pokušaj matchmaking: nađi javnu sobu koja čeka igrače. Podloga NIJE uslov:
+    // ko se pridruži, vidi sto onoga ko ga je pokrenuo.
     const existingRoom = getAllRooms().find(
       (r) =>
         r.isPublic &&
@@ -771,6 +778,7 @@ fastify.post<{ Body: QuickPlayBody }>(
       joinRequests: new Map(),
       createdAt: Date.now(),
       isPublic: true,
+      tableTheme,
     };
 
     fillSeatsWithBots(room, 2);

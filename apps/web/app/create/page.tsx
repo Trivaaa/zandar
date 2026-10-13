@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
 import { roomPath } from "@/lib/routes";
 import { createRoom } from "@/lib/api";
 import { saveSession } from "@/lib/session";
 import { savePlayerName, usePlayerName } from "@/lib/playerName";
+import { readTableThemeRaw, saveTableTheme } from "@/lib/tableTheme";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
+
+const subscribeToNothing = () => () => {};
 
 export default function CreatePage() {
   const router = useRouter();
@@ -16,6 +20,10 @@ export default function CreatePage() {
   const displayName = nameDraft ?? savedName ?? "";
   const [playerCount, setPlayerCount] = useState<2 | 3 | 4>(2);
   const [targetScore, setTargetScore] = useState(21);
+  // Zadnja izabrana podloga, zajednička sa `/igraj`; `null` = nije dirano.
+  const savedTheme = useSyncExternalStore(subscribeToNothing, readTableThemeRaw, () => null);
+  const [themeDraft, setThemeDraft] = useState<TableTheme | null>(null);
+  const tableTheme = themeDraft ?? parseTableTheme(savedTheme);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +31,9 @@ export default function CreatePage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await createRoom({ displayName, playerCount, targetScore });
+      // Pamti se PRIJE zahtjeva, kao na `/igraj`: mrežna greška ne briše izbor.
+      saveTableTheme(tableTheme);
+      const res = await createRoom({ displayName, playerCount, targetScore, tableTheme });
       savePlayerName(displayName);
       saveSession({
         roomId: res.roomId,
@@ -45,6 +55,8 @@ export default function CreatePage() {
       onPlayerCount={setPlayerCount}
       targetScore={targetScore}
       onTargetScore={setTargetScore}
+      tableTheme={tableTheme}
+      onTableTheme={setThemeDraft}
       onCreate={() => void handleCreate()}
       onBack={() => router.push("/")}
       loading={loading}

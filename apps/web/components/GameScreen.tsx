@@ -8,6 +8,7 @@ import type {
   CaptureOption,
   PrivateGameStateView,
   ReactionType,
+  TableTheme,
 } from "@zandar/shared-types";
 import { PlayerSeat } from "@/components/felt/PlayerSeat";
 import { TableSurface, type LandFrom } from "@/components/felt/TableSurface";
@@ -81,6 +82,8 @@ type GameScreenProps = {
   /** Glas u glasanju o prekidu partije. */
   onAbandonVote?: (vote: AbandonVote) => Promise<void>;
   activeReactions: ActiveReaction[];
+  /** Podloga stola (bira je onaj ko pravi sto). Bez nje: podrazumijevana iz CSS-a. */
+  tableTheme?: TableTheme | undefined;
   /** Podnaslov u zaglavlju: javni sto vs prijateljska partija. */
   /**
    * Početno izabrana karta u ruci. Postoji zbog `/dev/game`: traka izbora se
@@ -102,6 +105,7 @@ export function GameScreen({
   onWaitMore,
   onAbandonVote,
   activeReactions,
+  tableTheme,
   initialSelectedCardId,
 }: GameScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -451,13 +455,16 @@ export function GameScreen({
          umjesto da nosi svoj px — zato se trake ne mogu razići kad se doda još
          jedan sloj. `data-*` biraju varijantu: 3P nema partnera, 2P nema bočnih.
 
-         Pozadina (sukno + nacrtani obod stola) je slika i živi u `felt.css`.
+         Pozadina (sukno + nacrtani obod stola) je slika i živi u `felt.css`,
+         zajedno sa bojom poda — zato ovdje nema `bg-*` klase. `data-table`
+         bira podlogu.
          Ranije su ovdje stajala dva inline `radial-gradient`-a — inline stil
          pobjeđuje svaki `@layer`, pa bi slika iz CSS-a bila nevidljiva dok god
          su tu. */
-      className="felt-stage relative h-full w-full max-w-[600px] overflow-hidden bg-felt md:shadow-2xl md:ring-1 md:ring-black/40"
+      className="felt-stage relative h-full w-full max-w-[600px] overflow-hidden md:shadow-2xl md:ring-1 md:ring-black/40"
       data-partner={seats.partner ? "true" : "false"}
       data-sides={seats.oppL || seats.oppR ? "true" : "false"}
+      data-table={tableTheme}
     >
       <FeltHeader
         roundLabel={sr.header.round(state.handNumber)}

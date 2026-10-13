@@ -129,6 +129,81 @@
   outline-offset: 1px;
 }
 
+/* Podloga stola: slicica + naziv. Isti okvir kao `.create__segmented`, ali
+   izabrana se obiljezava okvirom oko slicice — pozadina dugmeta iza slike bi se
+   jedva vidjela. */
+.create__themes {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
+}
+
+.create__theme {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.3rem 0.35rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    transform var(--t-card-play) var(--ease-snap),
+    opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.create__theme[data-selected="true"] {
+  background-color: var(--surface-raised);
+  color: var(--text);
+}
+
+.create__theme:active {
+  transform: scale(0.98);
+}
+
+.create__theme:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Srednji pojas stola (sukno, obod, ono oko njega), isjecen iz prave podloge. */
+.create__theme-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm, 0.375rem);
+  background-color: var(--felt);
+  background-size: cover;
+  background-position: center;
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+}
+
+.create__theme[data-selected="true"] .create__theme-thumb {
+  outline-color: var(--accent);
+}
+
+/* Nizak ekran (360x640): red sa slicicama je inace gurao "Nazad" ispod ivice.
+   Placa se visinom slicice, ne razmacima forme. */
+@media (max-height: 700px) {
+  .create__theme-thumb {
+    aspect-ratio: 5 / 2;
+  }
+}
+
+.create__theme-thumb[data-table="classic"] {
+  background-image: url("/tables/classic-thumb.webp");
+}
+
+.create__theme-thumb[data-table="wood"] {
+  background-image: url("/tables/wood-thumb.webp");
+}
+
 /* Reserved error line */
 .create__error {
   min-height: 1.35rem;

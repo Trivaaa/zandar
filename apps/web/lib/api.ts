@@ -3,6 +3,7 @@ import {
   CURRENT_CONSENT_TEXT_ID,
   type SignupRequest,
   type SignupResponse,
+  type TableTheme,
   type UpcomingGameSlug,
 } from "@zandar/shared-types";
 import { analyticsPlatform, isNative, resolveApiBase } from "@/lib/platform";
@@ -37,6 +38,8 @@ export type RoomInfo = {
   slotsAvailable: number;
   /** Host bot-fill (C3): prazna mjesta popunjena botovima. */
   botFill: boolean;
+  /** Podloga stola. Opciono: server od prije izbora podloge je ne šalje. */
+  tableTheme?: TableTheme;
 };
 
 export type CreateRoomResponse = {
@@ -65,6 +68,7 @@ export async function createRoom(input: {
   displayName: string;
   playerCount: 2 | 3 | 4;
   targetScore: number;
+  tableTheme?: TableTheme;
 }): Promise<CreateRoomResponse> {
   track("play_requested", { mode: "private_room" });
   const res = await fetch(`${API_BASE}/api/rooms`, {
@@ -281,6 +285,7 @@ export async function quickPlay(input: {
   displayName: string;
   playerCount: number;
   targetScore: number;
+  tableTheme?: TableTheme;
 }): Promise<QuickPlayResponse> {
   track("play_requested", { mode: "quick_play" });
   const res = await fetch(`${API_BASE}/api/quickplay`, {
