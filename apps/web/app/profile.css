@@ -687,3 +687,18 @@
   border-color: var(--accent);
   background-color: color-mix(in oklab, var(--accent) 14%, transparent);
 }
+
+/* Red o politici privatnosti uz pravljenje naloga (A3, A4). */
+.acct__privacy {
+  margin: 0;
+  padding-inline: 0.15rem;
+  text-align: center;
+  font: 400 var(--type-sm) / 1.45 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.acct__privacy-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

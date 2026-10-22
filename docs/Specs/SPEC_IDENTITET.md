@@ -76,7 +76,7 @@
 1. **A1 Igraj** → dodir na tab Profil.
 2. **A2 Profil gosta**: slovo u krugu, nadimak, „Gost · 12 završenih partija"; „Uz nalog:" + 4 stavke; dugmad **Registruj se**, **Prijavi se**, link **Nazad na igru** (vodi na tab Igraj).
 3. **A3 List „Registruj se"**: „Partije odigrane kao gost prelaze na nalog." · **Nastavi s Googleom** · **Nastavi s e-mailom** · Odustani.
-4. **A4 Registracija e-mailom** (Korak 1 od 3): naslov „Registruj se e-mailom"; E-mail, Lozinka (dugme za prikaz lozinke, „Najmanje 8 znakova."), **Napravi nalog**, „Već imaš nalog? Prijavi se". **Nalog nastaje ovdje** (povezivanje e-maila s anonimnim nalogom) i šalje se e-mail za potvrdu.
+4. **A4 Registracija e-mailom** (Korak 1 od 3): naslov „Registruj se e-mailom"; E-mail, Lozinka (dugme za prikaz lozinke, „Najmanje 8 znakova."), **Napravi nalog**, ispod njega „Pravljenjem naloga prihvataš politiku privatnosti." (link na `/privatnost`; isti red i na listu A3), „Već imaš nalog? Prijavi se". **Nalog nastaje ovdje** (povezivanje e-maila s anonimnim nalogom) i šalje se e-mail za potvrdu.
 5. **A5 Nadimak** (Korak 2 od 3): naslov „Izaberi nadimak", podnaslov „Pod ovim imenom te vide za stolom."; polje unaprijed popunjeno nadimkom gosta; checkbox „Prihvatam uslove korišćenja" (link na `/uslovi`); **Dalje** aktivno tek kad je nadimak slobodan i checkbox označen.
 6. **A6 Avatar** (Korak 3 od 3): naslov „Izaberi avatar", podnaslov „Vidi se za stolom, pored nadimka."; veliki prikaz izabranog (120 px) + nadimak, mreža 5×2, jedan je unaprijed izabran nasumično; **Gotovo**.
 7. **A7** Moj profil + list „Provjeri e-mail" (samo za e-mail registraciju; Google e-mail je već potvrđen, pa tok ide pravo na A8): „Poslali smo ti link na **adresa**. Dodirni ga da potvrdiš e-mail." · „Nema ga? Pogledaj i u neželjenoj pošti." · **U redu** · Pošalji ponovo.
@@ -85,7 +85,7 @@
 Grananja:
 - Google umjesto e-maila → sistemski izbor Google naloga → A5. Ako taj Google nalog već ima profil → upozorenje (tok b, B4).
 - E-mail koji već ima nalog → upozorenje R6 (vidi §6.3).
-- Igrač izađe prije nadimka → nalog postoji bez nadimka (**nedovršen**, Q10); sljedeći ulazak u Profil vraća na A5. Nedovršen nalog nema javni profil i nije u pretrazi; poslije 30 dana se briše.
+- Igrač izađe prije nadimka → nalog postoji bez nadimka (**nedovršen**, Q10); sljedeći ulazak u Profil vraća na A5. Nedovršen nalog igra normalno i skuplja partije, ali nema javni profil i nije u pretrazi. Ne briše se.
 
 **Kriterijumi prihvatanja**
 - [ ] Gost sa 12 završenih partija poslije registracije vidi 12 na profilu.
@@ -262,7 +262,7 @@ List: „Odjaviti se?" · „Na ovom uređaju igraćeš kao gost dok se ponovo n
 | Pozivi | Poziv vezan za sobu i pozvanog; pozvani ulazi bez odobrenja hosta; poziv prestaje da važi kad partija počne, soba se zatvori ili popuni, a najkasnije poslije 30 minuta (Q1). |
 | Skladište | Firestore, samo sa servera (Q6). Rezultati se upisuju idempotentno po (partija, `uid`): ponovljena dostava ili reconnect ne broje partiju dvaput. |
 | Blokade i prijave | Blokada (ko, koga, vrijeme) provjerava se pri svakom zahtjevu, pozivu i pretrazi. Prijava se upisuje i šalje e-mail vlasniku (§6.9). |
-| Nedovršeni nalozi | Nalog bez nadimka stariji od 30 dana server briše, zajedno s Firebase nalogom (Q10). |
+| Nedovršeni nalozi | Ostaju (Q10); bez javnog lica dok ne izaberu nadimak. Napušten gost (T6) se briše: `POST /api/me/abandon`. |
 
 ---
 
@@ -335,7 +335,7 @@ Svaki korak: provjera na S10e prije sljedećeg.
 | Q7 | Treba li potvrđen e-mail za zahtjeve i pozive? | **Ne.** Nepotvrđen e-mail ne ograničava ništa; ostaje samo traka na profilu (P3). Svjesno odstupanje od `player-profile-v1.md` AC-17. |
 | Q8 | Ćirilica u nadimku i u imenu gosta | Nadimak je **samo latinica**. Ime gosta na ćirilici u K7 stiže **preslovljeno** (Марко → Marko; љ → lj, њ → nj, џ → dž), uz poruku iz §6.4. Ručno ukucan ćirilični znak u polju daje K5 („Znak Ж nije dozvoljen."). |
 | Q9 | Limiti zahtjeva za prijateljstvo | **Bez limita koje igrač vidi**, osim dedupe-a od 1 minute (§8). Odbijeni zahtjev se može odmah ponovo poslati; zaštitu daje Blokiraj (§6.9). Server ipak ima **tihi tehnički limit** od 100 zahtjeva i 100 poziva dnevno po nalogu (zaštita od skripte; preko njega 429 i opšta greška, bez posebnog ekrana). |
-| Q10 | Saglasnost s uslovima je na A5, a nalog nastaje na A4 | Checkbox **ostaje na A5**. Nalog bez nadimka je **nedovršen**: nema javni profil, nije u pretrazi, ne može slati ni primati zahtjeve i pozive; Profil ga vraća na A5. Nedovršen nalog stariji od 30 dana server briše (Firebase nalog i e-mail). |
+| Q10 | Saglasnost s uslovima je na A5, a nalog nastaje na A4 | Checkbox **ostaje na A5**. Nalog bez nadimka je **nedovršen**: nema javni profil, nije u pretrazi, ne može slati ni primati zahtjeve i pozive; Profil ga vraća na A5. Nedovršen nalog se **ne briše** (izmjena 2026-10-22): igra i skuplja partije kao svaki drugi, pa bi brisanje uzelo igraču ono što koristi. Osnov za čuvanje e-maila od trenutka kad nalog nastane daje red uz A3 i A4: „Pravljenjem naloga prihvataš politiku privatnosti." Ako se ikad uvede čišćenje, važi za SVE naloge (npr. 24 mj. neaktivnosti), ne samo za nedovršene. |
 
 ## 12. Tehnički i pravni preduslovi
 
@@ -350,7 +350,7 @@ Nisu ekrani, ali bez njih tokovi iz ovog dokumenta ne rade ili ne smiju na produ
 | T5 | **Generator imena botova izbjegava nadimke ljudi za istim stolom.** | PRD §39: bez duplog imena za stolom; bot „Zvonko" pored igrača s nadimkom „Zvonko". |
 | T6 | **Napušteni gostujući nalog** poslije prijave na postojeći (B4/R6) server briše, sa rezultatima. | Gostujući `uid` inače ostaje siroče sa podacima. Ulazi u politiku privatnosti. |
 | T7 | **`/delete-account`** opisuje brisanje **naloga** (ne samo podataka gosta i prijava za igre) i stiže na produkciju **istog dana** kad i registracija. | Google Play traži web URL za brisanje naloga čim nalog postoji. |
-| T8 | **Politika privatnosti i Data safety forma:** e-mail, Firebase Auth, Google prijava, prijave igrača, rokovi brisanja (nedovršen nalog 30 dana, napušten gost, rezervisan nadimak 30 dana). | Prije objave na `production`. |
+| T8 | **Politika privatnosti i Data safety forma:** e-mail, Firebase Auth, Google prijava, prijave igrača, rokovi brisanja (napušten gost odmah, rezervisan nadimak 30 dana). | Prije objave na `production`. |
 | T9 | **Firebase e-mail šabloni** (potvrda e-maila, nova lozinka) na ijekavici, rodno neutralno, u **oba** projekta (staging, produkcija). Reset lozinke otvara Firebase stranicu, ne aplikaciju. | Podrazumijevani su na engleskom. |
 | T10 | **Mjerenje** (PostHog, šalje samo produkcija; tipovi u `AnalyticsEvents`, vidi `docs/analytics.md`): `registration_completed` (`method`, `from_guest`), `login_completed`, `friend_request_sent` (`source`: pretraga \| sto \| soba), `friend_request_accepted`, `room_invite_sent`, `room_invite_resolved` (`outcome`: prihvaćen \| istekao \| nevažeći), `player_blocked`, `player_reported`. Bez e-maila i nadimka u svojstvima. | Bez njih se ne vidi da li sloj prijatelja radi. |
 | T11 | **Izdanje:** svaka klijentska izmjena ide u novi AAB (`versionCode` 3+, čist worktree `zandar-apk`), deploy weba ne mijenja aplikaciju. Server mora ostati kompatibilan sa starim APK-om bez naloga (1.0.0, 1.1.0). | Planirati koraci po izdanjima, ne po deployu. |

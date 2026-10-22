@@ -1,5 +1,6 @@
 "use client";
 
+import { PrivacyNote } from "@/components/account/PrivacyNote";
 import { Sheet } from "@/components/sheet/Sheet";
 import { GoogleMarkIcon } from "@/components/icons";
 import { sr } from "@/lib/sr";
@@ -40,6 +41,7 @@ export function MethodSheet({
       <button type="button" className="home__friends sheet__btn" onClick={onEmail}>
         {sr.account.withEmail}
       </button>
+      {kind === "register" ? <PrivacyNote /> : null}
     </Sheet>
   );
 }

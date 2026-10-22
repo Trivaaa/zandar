@@ -414,6 +414,10 @@ export const sr = {
     showPassword: "Prikaži lozinku",
     hidePassword: "Sakrij lozinku",
     createAccount: "Napravi nalog",
+    /* Nalog (i e-mail) nastaje prije A5 — osnov za čuvanje je od tog trenutka jasan. */
+    privacyBefore: "Pravljenjem naloga prihvataš ",
+    privacyLink: "politiku privatnosti",
+    privacyAfter: ".",
     haveAccount: "Već imaš nalog?",
     noAccount: "Nemaš nalog?",
     invalidEmail: "Ovo ne liči na e-mail adresu.",

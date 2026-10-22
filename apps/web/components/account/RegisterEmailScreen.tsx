@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AccountShell } from "@/components/account/AccountShell";
 import { DataLossSheet } from "@/components/account/AccountSheets";
 import { Field } from "@/components/account/Field";
+import { PrivacyNote } from "@/components/account/PrivacyNote";
 import { registerWithEmail } from "@/lib/account";
 import { accountErrorCode, looksLikeEmail, PASSWORD_MIN_LENGTH } from "@/lib/accountErrors";
 import { useMe } from "@/lib/profile";
@@ -86,6 +87,7 @@ export function RegisterEmailScreen() {
         <button type="submit" className="home__cta acct__submit" disabled={busy} aria-busy={busy}>
           {sr.account.createAccount}
         </button>
+        <PrivacyNote />
         <p className="acct__error" data-empty={!error} role="status">
           {error ?? ""}
         </p>

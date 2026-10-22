@@ -2,20 +2,13 @@ import type { AccessTokenSource } from "./serviceAuth";
 
 /**
  * Firebase Auth admin preko Identity Toolkit REST-a (bez `firebase-admin`):
- * brisanje korisnika i listanje po stranicama. Treba servisni ključ sa
- * pravom „Firebase Authentication Admin" (Firebase Admin SDK nalog ga ima).
+ * brisanje korisnika (napušten gost T6, brisanje naloga u koraku 7). Treba
+ * servisni ključ sa pravom „Firebase Authentication Admin" (Firebase Admin
+ * SDK nalog ga ima).
  */
 
 export const IDENTITY_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const REQUEST_TIMEOUT_MS = 10_000;
-
-export type AuthUserRecord = {
-  uid: string;
-  /** Firebase `createdAt`, ms. */
-  createdAt: number;
-  /** Bez provajdera = anonimni gost. */
-  providers: string[];
-};
 
 export function createIdentityAdmin(
   projectId: string,
@@ -47,32 +40,6 @@ export function createIdentityAdmin(
       const body = await res.text();
       if (body.includes("USER_NOT_FOUND")) return;
       throw new Error(`Identity Toolkit delete ${res.status}: ${body.slice(0, 300)}`);
-    },
-
-    /** Jedna stranica korisnika; `nextPageToken` je `null` na zadnjoj. */
-    async listUsers(
-      pageToken: string | null,
-      maxResults = 500,
-    ): Promise<{ users: AuthUserRecord[]; nextPageToken: string | null }> {
-      const q = new URLSearchParams({ maxResults: String(maxResults) });
-      if (pageToken) q.set("nextPageToken", pageToken);
-      const res = await call(`/accounts:batchGet?${q}`, { method: "GET" });
-      if (!res.ok) throw new Error(`Identity Toolkit list ${res.status}: ${(await res.text()).slice(0, 300)}`);
-      const json = (await res.json()) as {
-        users?: { localId?: unknown; createdAt?: unknown; providerUserInfo?: { providerId?: unknown }[] }[];
-        nextPageToken?: unknown;
-      };
-      const users = (json.users ?? [])
-        .filter((u) => typeof u.localId === "string")
-        .map((u) => ({
-          uid: u.localId as string,
-          createdAt: Number(u.createdAt ?? 0),
-          providers: (u.providerUserInfo ?? [])
-            .map((p) => p.providerId)
-            .filter((p): p is string => typeof p === "string"),
-        }));
-      const next = typeof json.nextPageToken === "string" && json.nextPageToken ? json.nextPageToken : null;
-      return { users, nextPageToken: next };
     },
   };
 }
