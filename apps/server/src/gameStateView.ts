@@ -3,6 +3,8 @@ import type {
   PrivateGameStateView,
 } from "@zandar/shared-types";
 
+import { toPublicPlayer } from "./publicPlayer";
+
 /**
  * Pravi private view stanja igre za određenog igrača.
  * Skriva ruke ostalih igrača i špil — vraća samo brojeve.
@@ -37,14 +39,7 @@ export function buildPrivateGameStateView(
     roomId: state.roomId,
     matchId: state.matchId,
     phase: state.phase,
-    players: state.players.map((p) => ({
-      id: p.id,
-      displayName: p.displayName,
-      seatIndex: p.seatIndex,
-      isHost: p.isHost,
-      teamId: p.teamId,
-      connectionStatus: p.connectionStatus,
-    })),
+    players: state.players.map(toPublicPlayer),
     table: state.table,
     currentPlayerId: state.currentPlayerId,
     dealerPlayerId: state.dealerPlayerId,

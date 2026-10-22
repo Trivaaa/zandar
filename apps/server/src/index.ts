@@ -8,6 +8,7 @@ import {
   createRulesConfig,
   DEFAULT_BOT_CONFIGS,
   generateTableIdentities,
+  normalizeName,
   selectBotMove,
 } from "@zandar/game-core";
 import {
@@ -83,6 +84,8 @@ import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth
 import { identityAdmin } from "./profile/cleanup";
 import { recordCompletedMatch } from "./profile/results";
 import { registerProfileRoutes } from "./profile/routes";
+import { accountIdentityFor, applyAccountIdentity } from "./profile/accountIdentity";
+import { toPublicPlayer } from "./publicPlayer";
 import { profileStore } from "./profile/store";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
@@ -307,6 +310,8 @@ fastify.post<{ Body: CreateRoomBody }>(
     if (playerCount === 4) {
       hostPlayer.teamId = 0;
     }
+    // Nalog sjeda pod nadimkom, sa avatarom (SPEC_IDENTITET §6.8).
+    applyAccountIdentity(hostPlayer, await accountIdentityFor(profileStore, identity.uid));
 
     const room: LobbyRoom = {
       id: roomId,
@@ -345,13 +350,11 @@ fastify.get<{ Params: { roomId: string } }>(
       status: room.status,
       isPublic: room.isPublic ?? false,
       createdAt: room.createdAt,
-      players: room.players.map((p) => ({
-        id: p.id,
-        displayName: p.displayName,
-        seatIndex: p.seatIndex,
-        isHost: p.isHost,
-        teamId: p.teamId,
-      })),
+      // Lobi ne prikazuje vezu (connectionStatus), ostalo je isti whitelist.
+      players: room.players.map((p) => {
+        const { connectionStatus: _connection, ...rest } = toPublicPlayer(p);
+        return rest;
+      }),
       playerCount: room.rulesConfig.playerCount,
       targetScore: room.rulesConfig.targetScore,
       slotsAvailable: room.rulesConfig.playerCount - room.players.length,
@@ -582,6 +585,7 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
     if (room.rulesConfig.playerCount === 4) {
       newPlayer.teamId = seatIndex % 2;
     }
+    applyAccountIdentity(newPlayer, await accountIdentityFor(profileStore, req.uid));
 
     room.players.push(newPlayer);
     room.sessionTokens.set(playerId, hashToken(sessionToken));
@@ -811,6 +815,7 @@ fastify.post<{ Body: QuickPlayBody }>(
         consecutiveAutoPlays: 0,
         ...identity,
       };
+      applyAccountIdentity(newPlayer, await accountIdentityFor(profileStore, identity.uid));
       existingRoom.players.push(newPlayer);
       existingRoom.sessionTokens.set(playerId, hashToken(sessionToken));
 
@@ -843,6 +848,8 @@ fastify.post<{ Body: QuickPlayBody }>(
       consecutiveAutoPlays: 0,
       ...identity,
     };
+    // Prije popune botovima — T5 mora vidjeti nadimak.
+    applyAccountIdentity(humanPlayer, await accountIdentityFor(profileStore, identity.uid));
 
     const room: LobbyRoom = {
       id: roomId,
@@ -1378,8 +1385,10 @@ function fillSeatsWithBots(
   const slots = room.rulesConfig.playerCount - room.players.length;
   if (slots <= 0) return;
 
-  // Imena za stolom (ljudi + postojeći botovi) → izbjegni duplikate kod novih botova.
-  const atTable = new Set(room.players.map((p) => p.displayName));
+  // Imena za stolom (ljudi — i nadimci naloga — plus postojeći botovi) → bot
+  // ne smije dobiti isto ime (PRD §39, SPEC_IDENTITET T5). Generator poredi
+  // NORMALIZOVANA imena (`normalizeName`), pa se tako i prosljeđuju.
+  const atTable = new Set(room.players.map((p) => normalizeName(p.displayName)));
   const identities = generateTableIdentities(slots, atTable, () => Math.random());
 
   for (let i = 0; i < slots; i++) {
@@ -1869,6 +1878,18 @@ io.on("connection", (socket) => {
           for (const p of [...room.players, ...(room.gameState?.players ?? [])]) {
             if (p.id === playerId && !p.isBot && !p.uid) p.uid = verified.user.uid;
           }
+        }
+      }
+
+      // Nalog čiji je token stigao tek sad dobija nadimak i avatar — samo u
+      // lobiju: usred partije se ime za stolom ne mijenja.
+      const subscriber = room.players.find((p) => p.id === playerId);
+      if (room.status === "waiting" && subscriber && !subscriber.isBot && subscriber.uid && !subscriber.profileId) {
+        const account = await accountIdentityFor(profileStore, subscriber.uid);
+        if (account) {
+          applyAccountIdentity(subscriber, account);
+          persistRoom(room);
+          io.to(roomId).emit("room:update");
         }
       }
 

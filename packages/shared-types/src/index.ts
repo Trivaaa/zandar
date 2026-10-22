@@ -56,6 +56,15 @@ export type PublicPlayer = {
   isHost: boolean;
   teamId?: number;
   connectionStatus: "connected" | "reconnecting" | "abandoned";
+  /**
+   * Avatar naloga (SPEC_IDENTITET §6.8). `null` za SVAKOG igrača bez naloga —
+   * gost i bot izgledaju potpuno isto (G3, HARD RULE 3). Server ga uvijek
+   * šalje; opciono je jer stariji server (i dev pregledi) ga nemaju —
+   * `undefined` se čita kao `null`.
+   */
+  avatar?: ProfileAvatar | null;
+  /** Javni ID za tuđi profil (ključ nadimka). `null` za gosta i bota, isto. */
+  profileId?: string | null;
 };
 
 /**
@@ -89,6 +98,13 @@ export type Player = {
    * starih klijenata koji ne šalju token, ni stari perzistirani snapshot-i.
    */
   uid?: string;
+  /**
+   * Nalog sa nadimkom (SPEC_IDENTITET §6.8): avatar i javni ID profila. Javni
+   * su (idu u `PublicPlayer`), ali ih postavlja SAMO server iz profila, i
+   * NIKAD botu. Opciono: gosti ih nemaju, a ni stari snapshot-i.
+   */
+  avatar?: ProfileAvatar;
+  profileId?: string;
 };
 
 // ====================================================
