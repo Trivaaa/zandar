@@ -9,6 +9,9 @@ import { roomIdFromLink, roomPath } from "@/lib/routes";
 
 const LAUNCH_URL_KEY = "zandar:launchUrlHandled";
 
+/** Glavni ekrani pored Igraj (donja navigacija), bez kose crte na kraju. */
+const TAB_PATHS = new Set(["/prijatelji", "/profil"]);
+
 /**
  * Link koji je POKRENUO aplikaciju obrađuje se jednom po pokretanju.
  * `getLaunchUrl` vraća isti URL dok proces živi, pa bi ponovno učitavanje
@@ -69,9 +72,12 @@ export function NativeShell() {
         // Otvoren sheet/modal (postavke, pravila) se zatvara prvi — inače bi
         // „nazad" na home-u ugasio aplikaciju ispod otvorenog sloja.
         if (runBackHandler()) return;
-        const path = window.location.pathname;
+        const path = window.location.pathname.replace(/\/+$/, "");
         // Home je korijen — tu "nazad" znači izlaz, a ne prazan ekran.
-        if (path === "/" || path === "") void App.exitApp();
+        if (path === "") void App.exitApp();
+        // Tabovi Prijatelji i Profil su braća Igraj-a, ne njegova djeca:
+        // „nazad" vodi na Igraj (SPEC_IDENTITET §4), ne kroz istoriju tabova.
+        else if (TAB_PATHS.has(path)) router.replace("/");
         else router.back();
       });
       removers.push(() => void back.remove());

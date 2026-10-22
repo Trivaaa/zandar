@@ -3,6 +3,8 @@
 
 import { CONSENT_TEXTS, CURRENT_CONSENT_TEXT_ID, type TableTheme } from "@zandar/shared-types";
 
+import { pluralForm } from "./plural";
+
 export const sr = {
   // Zaglavlje stola. "Runda" je ono sto igrac broji za stolom; u kodu je to
   // `handNumber` (dijeljenje). Ne mijenjati jedno bez drugog.
@@ -359,5 +361,43 @@ export const sr = {
     toggleOff: "Uključi obavještenja o stolu",
     stateOn: "Obavještenja o stolu uključena",
     stateOff: "Obavještenja o stolu isključena",
+  },
+  /* Donja navigacija (SPEC_IDENTITET §4). */
+  nav: {
+    label: "Glavna navigacija",
+    play: "Igraj",
+    friends: "Prijatelji",
+    profile: "Profil",
+    /** Broj zahtjeva na tabu Prijatelji, za čitač ekrana. */
+    requests: (n: number) => `${n} ${pluralForm(n, "zahtjev", "zahtjeva", "zahtjeva")}`,
+  },
+  /* Profil (SPEC_IDENTITET §6.1, §6.2). */
+  profile: {
+    title: "Profil",
+    completed: (n: number) =>
+      `${n} ${pluralForm(n, "završena partija", "završene partije", "završenih partija")}`,
+    guestCompleted: (n: number) =>
+      `Gost · ${n} ${pluralForm(n, "završena partija", "završene partije", "završenih partija")}`,
+    /** Gost bez upisanog imena — slovo i nadimak ne smiju ostati prazni. */
+    guestNoName: "Gost",
+    benefitsTitle: "Uz nalog:",
+    benefits: {
+      results: "Rezultati ostaju sačuvani",
+      nickname: "Nadimak je samo tvoj",
+      devices: "Isti nalog na svakom uređaju",
+      friends: "Možeš dodavati prijatelje",
+    },
+    register: "Registruj se",
+    login: "Prijavi se",
+    backToPlay: "Nazad na igru",
+    loading: "Učitavam profil",
+    countError: "Broj partija se nije učitao.",
+    retry: "Pokušaj ponovo",
+  },
+  /* Prijatelji (SPEC_IDENTITET §6.6). */
+  friends: {
+    title: "Prijatelji",
+    guestTitle: "Prijatelji su za igrače s nalogom",
+    guestBody: "Napravi nalog, dodaj svoje društvo i zovi ih na partiju jednim dodirom.",
   },
 } as const;

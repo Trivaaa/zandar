@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { identityUi } from "@/lib/features";
 import { isNative } from "@/lib/platform";
 import { StoreOffer, useStoreOffer } from "@/components/StoreBanner";
 
@@ -38,7 +39,10 @@ function PwaBanner() {
   // Na formama (prijava za buducu igru, ime prije stola) glavno dugme stoji pri
   // dnu ekrana — tacno gdje je banner. Ponuda za instalaciju koja zaklanja jedinu
   // radnju stranice je gora od nikakve; pojavice se na sljedecem ekranu.
-  const onForm = /^[/](igre|ime)([/]|$)/.test(pathname ?? "");
+  // Isto važi za Profil i Prijatelje: Registruj se / Prijavi se stoje pri dnu.
+  const onForm = /^[/](igre|ime|prijatelji|profil)([/]|$)/.test(pathname ?? "");
+  // Home nosi donju navigaciju (`TabBar`) — banner stoji iznad nje.
+  const overTabBar = identityUi && /^[/]?$/.test(pathname ?? "");
   const store = useStoreOffer(pathname);
 
   useEffect(() => {
@@ -121,7 +125,9 @@ function PwaBanner() {
             // `--stage-header-h` je u globals.css `:root` bas zato sto je ovaj
             // element `fixed` i ne bi ga naslijedio sa `.felt-stage`.
             "top-[calc(var(--safe-top)+var(--stage-header-h)+0.5rem)]"
-          : "bottom-3 mb-safe-bottom"
+          : overTabBar
+            ? "bottom-[calc(var(--tabbar-h)+0.75rem)] mb-safe-bottom"
+            : "bottom-3 mb-safe-bottom"
       }`}
     >
       {updateReady ? (

@@ -8,7 +8,9 @@ import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { RulesModal } from "@/components/RulesModal";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { SettingsSheet } from "@/components/home/SettingsSheet";
+import { TabBar } from "@/components/nav/TabBar";
 import { useBackHandler } from "@/lib/backHandlers";
+import { identityUi } from "@/lib/features";
 import { isNative } from "@/lib/platform";
 import { usePlayerName } from "@/lib/playerName";
 import { namePath, quickPlaySetupPath } from "@/lib/routes";
@@ -58,7 +60,9 @@ export default function Home() {
         showStores={!isNative}
         onUpcomingViewed={() => track("upcoming_games_viewed")}
         {...(isNative ? {} : { legalSlot })}
+        className={identityUi ? "screen--tabbed" : ""}
       />
+      {identityUi ? <TabBar /> : null}
 
       {/* Slojevi preko home-a. Omotač pravi stacking context IZNAD PWA banera
           (`PwaManager`, z-60): na home-u baner stoji dole, tačno gdje je sheet, i

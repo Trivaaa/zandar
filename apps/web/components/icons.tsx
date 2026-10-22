@@ -61,6 +61,74 @@ export function FriendsIcon({ className }: IconProps) {
   );
 }
 
+/** Dvije karte — tab „Igraj". */
+export function CardsIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <rect x="9.5" y="3.5" width="10.5" height="15" rx="1.8" />
+      <path d="M7.4 6.2 4.3 7.3a1.6 1.6 0 0 0-1 2l3.4 9.5a1.6 1.6 0 0 0 2 1l3.3-1.2" />
+    </svg>
+  );
+}
+
+/** Jedna osoba — tab „Profil". */
+export function PersonIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" />
+    </svg>
+  );
+}
+
+/** Stubići — „Rezultati ostaju sačuvani". */
+export function StatsIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M5 20V12M12 20V5M19 20v-8" />
+    </svg>
+  );
+}
+
+/** Etiketa — „Nadimak je samo tvoj". */
+export function TagIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M3.5 12.3V5A1.5 1.5 0 0 1 5 3.5h7.3L20.5 12 12 20.5z" />
+      <circle cx="8" cy="8" r="1.5" />
+    </svg>
+  );
+}
+
+/** Računar i telefon — „Isti nalog na svakom uređaju". */
+export function DevicesIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <rect x="2.5" y="5" width="13" height="9.5" rx="1.5" />
+      <path d="M1.5 18h15" />
+      <rect x="17.5" y="8" width="5" height="11" rx="1.2" />
+    </svg>
+  );
+}
+
+export function RetryIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M20 12a8 8 0 1 1-2.35-5.65" />
+      <path d="M20 4v5h-5" />
+    </svg>
+  );
+}
+
+export function WarningIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M12 3.5 21.5 20H2.5z" />
+      <path d="M12 10v4.5M12 17.4v.1" />
+    </svg>
+  );
+}
+
 export function ArrowRightIcon({ className }: IconProps) {
   return (
     <svg {...stroke} className={className}>
