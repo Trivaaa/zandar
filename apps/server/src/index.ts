@@ -80,6 +80,7 @@ import { notifyDevices } from "./push/notify";
 import { parseQuickPlayConfig } from "./quickplay";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
+import { profileStore } from "./profile/store";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 const REACTION_COOLDOWN_MS = 2000;
@@ -2246,6 +2247,9 @@ try {
 }
 fastify.log.info(
   `🔐 Nalog: ${idTokens.enabled ? `Firebase ${idTokens.projectId}` : "isključen (nema FIREBASE_PROJECT_ID ni servisnog ključa)"}`,
+);
+fastify.log.info(
+  `👤 Profili: ${profileStore.kind === "firestore" ? "Firestore" : "memorija (nema servisnog ključa — ne preživljava restart)"}`,
 );
 startDeviceSweeper((removed) => {
   fastify.log.info(`🧹 Push: uklonjeno ${removed} zaboravljenih uređaja`);
