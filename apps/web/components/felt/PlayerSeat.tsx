@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { CardBack } from "./CardBack";
+import { Avatar } from "@/components/profile/Avatar";
 import { sr } from "@/lib/sr";
 import type { PublicPlayer } from "@/components/felt/types";
 
@@ -110,6 +111,9 @@ export function PlayerSeat({
           ) : null}
           {counting ? (
             <span className="seat__count">{wholeSeconds}</span>
+          ) : player.avatar ? (
+            // Nalog: avatar UNUTAR prstena (tim i potez ostaju na prstenu).
+            <Avatar avatar={player.avatar} />
           ) : (
             initial(player.displayName)
           )}

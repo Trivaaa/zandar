@@ -1,6 +1,7 @@
 import { getGuestId } from "@/lib/guestId";
 import {
   CURRENT_CONSENT_TEXT_ID,
+  type ProfileAvatar,
   type SignupRequest,
   type SignupResponse,
   type TableTheme,
@@ -26,6 +27,9 @@ export type RoomPlayer = {
   seatIndex: number;
   isHost: boolean;
   teamId?: number;
+  /** Nalog (SPEC_IDENTITET §6.8). Stariji server ih ne šalje. */
+  avatar?: ProfileAvatar | null;
+  profileId?: string | null;
 };
 
 export type RoomInfo = {

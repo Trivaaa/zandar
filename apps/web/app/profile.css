@@ -865,3 +865,19 @@
   margin-top: clamp(2rem, 18dvh, 9rem);
   text-align: center;
 }
+
+/* ------------------------------------------------------------------ *
+ * Avatar za stolom i u sobi (SPEC_IDENTITET §6.8)
+ * Sjedište: avatar UNUTAR prstena, 4 px od ivice — prsten (tim, potez) ostaje
+ * na `.seat__avatar` (felt.css). Soba: 40 px (ranije 36).
+ * ------------------------------------------------------------------ */
+
+.seat__avatar .avatar {
+  --avatar-size: calc(var(--seat-avatar, 3.25rem) - 0.5rem);
+  border-width: 1px;
+}
+
+.lobby__seat-avatar .avatar {
+  --avatar-size: 100%;
+  border: 0;
+}

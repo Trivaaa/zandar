@@ -1,6 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
+
+import type { ProfileAvatar } from "@zandar/shared-types";
+
+import { Avatar } from "@/components/profile/Avatar";
 import { sr } from "@/lib/sr";
 
 /**
@@ -14,6 +18,9 @@ export type LobbyPlayer = {
   seatIndex: number;
   isHost: boolean;
   teamId?: number;
+  /** Nalog (SPEC_IDENTITET §6.8); gost i bot `null`/bez polja — slovo. */
+  avatar?: ProfileAvatar | null;
+  profileId?: string | null;
 };
 
 export type LobbyScreenProps = {
@@ -163,7 +170,7 @@ export function LobbyScreen({
                 data-empty="false"
               >
                 <span className="lobby__seat-avatar font-display text-base" aria-hidden="true">
-                  {player.displayName.slice(0, 1)}
+                  {player.avatar ? <Avatar avatar={player.avatar} /> : player.displayName.slice(0, 1)}
                 </span>
                 <div className="lobby__seat-body">
                   <span className="lobby__seat-name font-sans text-base">
