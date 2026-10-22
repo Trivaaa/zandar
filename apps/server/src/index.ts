@@ -80,6 +80,7 @@ import { notifyDevices } from "./push/notify";
 import { parseQuickPlayConfig } from "./quickplay";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
+import { recordCompletedMatch } from "./profile/results";
 import { profileStore } from "./profile/store";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
@@ -200,7 +201,18 @@ async function requireUser(
 fastify.get("/api/me", async (request, reply) => {
   const user = await requireUser(request, reply);
   if (!user) return reply;
-  return { uid: user.uid, anonymous: user.anonymous };
+  let profile;
+  try {
+    profile = await profileStore.getProfile(user.uid);
+  } catch (err) {
+    request.log.error(`[profile] /api/me: ${String(err).slice(0, 300)}`);
+    return reply.code(503).send({ error: "Profil trenutno nije dostupan", code: "store_unavailable" });
+  }
+  return {
+    uid: user.uid,
+    anonymous: user.anonymous,
+    completedMatches: profile?.completedMatches ?? 0,
+  };
 });
 
 // ---- PUSH UREĐAJI (PRD §51) ----
@@ -1562,6 +1574,8 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
   sendCaptures(
     matchEndedEvents(gs, { mode: roomMode(room), reason, startedAt, now: Date.now() }),
   );
+  // Broj završenih partija na profilu (SPEC_IDENTITET §3) — napuštena se ne broji.
+  if (reason === "completed") void recordCompletedMatch(profileStore, gs.matchId, gs.players);
 }
 
 /**
