@@ -327,3 +327,363 @@
     opacity: 1;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Avatar naloga (A1–A10) — privremeni krug sa oznakom do faze 2.
+ * Veličina: `--avatar-size` (podrazumijevano 40 px, kao u sobi).
+ * ------------------------------------------------------------------ */
+
+.avatar {
+  --avatar-size: 2.5rem;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background-color: color-mix(in oklab, var(--accent) 22%, var(--surface));
+  border: 1.5px solid color-mix(in oklab, var(--accent) 55%, transparent);
+  color: var(--text);
+  font: 700 calc(var(--avatar-size) * 0.32) / 1 var(--font-sans-stack);
+}
+
+.avatar--xl {
+  --avatar-size: 7.5rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Moj profil (vrh P1) i traka nepotvrđenog e-maila (A8/P3)
+ * ------------------------------------------------------------------ */
+
+.profile__banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.9rem;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--warn) 22%, var(--surface));
+  color: var(--text);
+  font: 500 var(--type-sm) / 1.3 var(--font-sans-stack);
+}
+
+.profile__banner-btn {
+  flex: none;
+  min-height: 2.75rem;
+  padding: 0 0.6rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: 700 var(--type-sm) / 1 var(--font-sans-stack);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.profile__banner-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.profile__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding-block: 0.5rem;
+}
+
+.profile__hero-name {
+  margin-top: 0.4rem;
+  font: 700 var(--type-2xl) / 1.2 var(--font-sans-stack);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.profile__letter--xl {
+  width: 7.5rem;
+  height: 7.5rem;
+  font-size: var(--type-5xl);
+}
+
+/* ------------------------------------------------------------------ *
+ * Listovi naloga (A3, B2, B4/R6, A7) — sadržaj unutar `.gamemenu`
+ * ------------------------------------------------------------------ */
+
+.sheet__note {
+  margin: 0;
+  padding-inline: 0.15rem;
+  font: 400 var(--type-base) / 1.45 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.sheet__note--muted {
+  color: var(--text-muted);
+}
+
+.sheet__btn {
+  flex: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Forme naloga (A4–A6, R1–R7) — ljuska je `.namestep` iz home.css
+ * ------------------------------------------------------------------ */
+
+.acct :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.acct__col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 24rem;
+  /* Forma blizu vrha: polje i dugme ostaju iznad tastature (G8). */
+  margin-top: clamp(0.75rem, 4dvh, 2.5rem);
+}
+
+.acct__step {
+  margin: 0;
+  font: 600 var(--type-sm) / 1.3 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.acct__title {
+  margin: 0;
+  font: 700 var(--type-2xl) / 1.25 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.acct__sub,
+.acct__body {
+  margin: 0;
+  font: 400 var(--type-base) / 1.45 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.acct__sub {
+  margin-top: -0.4rem;
+  color: var(--text-muted);
+}
+
+.acct__body--muted {
+  color: var(--text-muted);
+}
+
+.acct__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.acct__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.acct__label {
+  font: 600 var(--type-sm) / 1.3 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.acct__input-wrap {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 3.5rem;
+  border: 1px solid color-mix(in oklab, var(--text-muted) 50%, transparent);
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--surface) 85%, transparent);
+}
+
+.acct__input-wrap:focus-within {
+  border-width: 2px;
+  border-color: var(--accent);
+}
+
+/* Greška kao na legendi platna: deblji obrub i tonirana podloga, ne samo boja. */
+.acct__input-wrap[data-error] {
+  border-width: 2px;
+  border-color: var(--danger-signal);
+  background-color: color-mix(in oklab, var(--danger-signal) 12%, var(--surface));
+}
+
+.acct__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 3.4rem;
+  padding: 0 1rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  /* 18px: iOS ne zumira polje od 16px naviše. */
+  font: 400 var(--type-lg) / 1.2 var(--font-sans-stack);
+}
+
+.acct__input:focus {
+  outline: none;
+}
+
+.acct__reveal {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.acct__reveal-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.acct__msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font: 400 var(--type-sm) / 1.35 var(--font-sans-stack);
+  color: var(--text);
+}
+
+/* Greška boji poruku; prigušeni redovi (pravila, K7) ostaju prigušeni. */
+.acct__msg[data-error] {
+  color: var(--danger-signal);
+}
+
+.acct__msg-line--muted {
+  color: var(--text-muted);
+}
+
+.acct__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.acct__chip {
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
+  border: 1.5px solid color-mix(in oklab, var(--accent) 60%, transparent);
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font: 600 var(--type-base) / 1 var(--font-sans-stack);
+  cursor: pointer;
+}
+
+.acct__check {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 2.75rem;
+  font: 400 var(--type-base) / 1.35 var(--font-sans-stack);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.acct__check input {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  accent-color: var(--accent);
+}
+
+.acct__submit {
+  margin-top: 0.25rem;
+}
+
+.acct__submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.acct__error {
+  min-height: 1.4em;
+  margin: 0;
+  font: 400 var(--type-base) / 1.4 var(--font-sans-stack);
+  color: var(--danger-signal);
+}
+
+.acct__error[data-empty="true"] {
+  opacity: 0;
+}
+
+.acct__alt {
+  margin: 0;
+  text-align: center;
+  font: 400 var(--type-base) / 1.4 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.acct__link {
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: 600 var(--type-base) / 1 var(--font-sans-stack);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.acct__forgot {
+  align-self: flex-start;
+  margin-top: -0.4rem;
+}
+
+.acct__center {
+  align-self: center;
+}
+
+.acct__avatar-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.acct__avatar-name {
+  min-height: 1.4em;
+  font: 700 var(--type-lg) / 1.3 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.acct__avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6rem;
+}
+
+.acct__avatar-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.5rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+}
+
+.acct__avatar-option .avatar {
+  --avatar-size: 3rem;
+}
+
+.acct__avatar-option[aria-checked="true"] {
+  border-color: var(--accent);
+  background-color: color-mix(in oklab, var(--accent) 14%, transparent);
+}

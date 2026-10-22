@@ -142,6 +142,9 @@ function isAllowedOrigin(origin: string | undefined): boolean {
 
 await fastify.register(cors, {
   origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
+  // Podrazumijevano je GET,HEAD,POST — profil mijenja nadimak/avatar sa PUT, a
+  // brisanje naloga je DELETE. Bez ovoga pregledač pada već na preflight-u.
+  methods: ["GET", "HEAD", "POST", "PUT", "DELETE"],
 });
 
 // ---- HEALTH ----

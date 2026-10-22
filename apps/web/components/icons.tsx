@@ -111,6 +111,34 @@ export function DevicesIcon({ className }: IconProps) {
   );
 }
 
+export function EyeIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function EyeOffIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M3 3l18 18" />
+      <path d="M10.6 6.6A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16.5 16.5 0 0 1-2.9 3.7M6.6 6.6A16 16 0 0 0 2.5 12S6 18.5 12 18.5a9 9 0 0 0 4.2-1" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </svg>
+  );
+}
+
+/** „G" za dugme „Nastavi s Googleom" — jednobojno, bez Google logotipa. */
+export function GoogleMarkIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M20 12.2h-8M20 12.2A8 8 0 1 1 17.7 6.6" />
+    </svg>
+  );
+}
+
 export function RetryIcon({ className }: IconProps) {
   return (
     <svg {...stroke} className={className}>
