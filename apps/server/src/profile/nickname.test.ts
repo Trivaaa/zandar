@@ -5,6 +5,9 @@ import {
   checkNickname,
   NICKNAME_CHANGE_INTERVAL_MS,
   nicknameChangeAllowedAt,
+  parseProfileAvatar,
+  PROFILE_AVATARS,
+  suggestNicknameFromGuestName,
 } from "@zandar/shared-types";
 
 /**
@@ -40,14 +43,57 @@ test("dužina se mjeri poslije skraćivanja razmaka", () => {
   assert.deepEqual(checkNickname("a".repeat(17)), { ok: false, problem: "too_long" });
 });
 
-test("razmak u sredini, drugi znakovi i druga pisma se odbijaju", () => {
+test("razmak u sredini, drugi znakovi i druga pisma se odbijaju — sa prvim lošim znakom", () => {
   const cyrillicA = "Mаrko"; // ćirilično „а" umjesto latiničnog
-  for (const bad of ["Marko Polo", "marko-polo", "marko@x", "emoji😀x", "марко", cyrillicA, "a\tb.c"]) {
-    assert.deepEqual(checkNickname(bad), { ok: false, problem: "invalid_chars" }, bad);
+  const cases: [string, string][] = [
+    ["Marko Polo", " "],
+    ["marko-polo", "-"],
+    ["marko@x", "@"],
+    ["emoji😀x", "😀"],
+    ["марко", "м"],
+    [cyrillicA, "а"],
+    ["a\tb.c", "\t"],
+    ["a b", " "], // znak ima prednost pred dužinom
+  ];
+  for (const [bad, char] of cases) {
+    assert.deepEqual(checkNickname(bad), { ok: false, problem: "invalid_chars", char }, bad);
   }
   for (const notString of [undefined, null, 42, {}, ["abc"]]) {
     assert.deepEqual(checkNickname(notString), { ok: false, problem: "invalid_chars" });
   }
+});
+
+test("K7: ime gosta → prijedlog nadimka", () => {
+  assert.deepEqual(suggestNicknameFromGuestName("Marko Polo"), {
+    nickname: "Marko_Polo",
+    changes: ["space"],
+  });
+  assert.deepEqual(suggestNicknameFromGuestName("Љубиша Џаковић"), {
+    nickname: "Ljubiša_Džaković",
+    changes: ["cyrillic", "space"],
+  });
+  assert.deepEqual(suggestNicknameFromGuestName("Marko 🃏!"), {
+    nickname: "Marko_",
+    changes: ["space", "removed"],
+  });
+  assert.deepEqual(suggestNicknameFromGuestName("Aleksandar Aleksić"), {
+    nickname: "Aleksandar_Aleks",
+    changes: ["space", "shortened"],
+  });
+  assert.deepEqual(suggestNicknameFromGuestName("Zvonko"), { nickname: "Zvonko", changes: [] });
+  // Ništa upotrebljivo → prazno polje (K4), ne „Ma".
+  assert.equal(suggestNicknameFromGuestName("Ma!").nickname, "");
+  assert.equal(suggestNicknameFromGuestName("😀😀😀").nickname, "");
+  // Svaki neprazan prijedlog prolazi pravila.
+  for (const name of ["Љубиша Џаковић", "Marko Polo", "Ana-Marija"]) {
+    assert.equal(checkNickname(suggestNicknameFromGuestName(name).nickname).ok, true, name);
+  }
+});
+
+test("avatar naloga: samo a1–a10", () => {
+  assert.equal(PROFILE_AVATARS.length, 10);
+  assert.equal(parseProfileAvatar("a4"), "a4");
+  for (const bad of ["a0", "a11", "A4", "", null, 4]) assert.equal(parseProfileAvatar(bad), null);
 });
 
 test("razloženi dijakritik se sastavlja prije provjere", () => {

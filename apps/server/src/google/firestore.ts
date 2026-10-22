@@ -82,12 +82,17 @@ export type FsWrite =
       fields: FsFields;
       /** `false` = dokument NE smije postojati (jedinstvenost, idempotentnost). */
       exists?: boolean;
+      /** Dokument se nije mijenjao od čitanja (vrijednost iz `getDoc`). */
+      updateTime?: string;
       /** Samo ova polja se mijenjaju; bez maske dokument se zamjenjuje. */
       mask?: string[];
       /** Atomski inkrement brojčanih polja (ne postoji → kreće od 0). */
       increment?: Record<string, number>;
     }
-  | { kind: "delete"; path: string; exists?: boolean };
+  | { kind: "delete"; path: string; exists?: boolean; updateTime?: string };
+
+/** Dokument sa vremenom zadnje izmjene — za `updateTime` preduslov. */
+export type FsDoc = { fields: FsFields; updateTime: string };
 
 /** Preduslov `commit`-a nije ispunjen — npr. dokument već postoji. */
 export class FirestoreConflictError extends Error {
@@ -129,7 +134,12 @@ export function createFirestore(
   }
 
   function encodeWrite(w: FsWrite): Record<string, unknown> {
-    const precondition = w.exists === undefined ? undefined : { exists: w.exists };
+    const precondition =
+      w.updateTime !== undefined
+        ? { updateTime: w.updateTime }
+        : w.exists === undefined
+          ? undefined
+          : { exists: w.exists };
     if (w.kind === "delete") {
       return { delete: docName(w.path), ...(precondition && { currentDocument: precondition }) };
     }
@@ -146,15 +156,22 @@ export function createFirestore(
     };
   }
 
+  /** `null` = dokument ne postoji. */
+  async function getDoc(path: string): Promise<FsDoc | null> {
+    const res = await call(`${base}/${path}`, { method: "GET" });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Firestore get ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    const json = (await res.json()) as { fields?: unknown; updateTime?: unknown };
+    return { fields: decodeFields(json.fields), updateTime: String(json.updateTime ?? "") };
+  }
+
   return {
     projectId,
+    getDoc,
 
     /** `null` = dokument ne postoji. */
     async get(path: string): Promise<FsFields | null> {
-      const res = await call(`${base}/${path}`, { method: "GET" });
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error(`Firestore get ${res.status}: ${(await res.text()).slice(0, 300)}`);
-      return decodeFields(((await res.json()) as { fields?: unknown }).fields);
+      return (await getDoc(path))?.fields ?? null;
     },
 
     /** Atomski: svi upisi ili nijedan. Neispunjen preduslov → `FirestoreConflictError`. */

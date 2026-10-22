@@ -29,8 +29,7 @@ test("upis: svaki igrač jednom, ponovljen kraj iste partije se ne broji", async
 
 test("upis: greška skladišta se loguje, ne baca", async () => {
   const broken: ProfileStore = {
-    kind: "memory",
-    getProfile: async () => null,
+    ...createMemoryProfileStore(),
     recordCompletedMatch: async () => {
       throw new Error("Firestore commit 503");
     },

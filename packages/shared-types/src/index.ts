@@ -625,6 +625,8 @@ export const NICKNAME_CHANGE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
  */
 const NICKNAME_PATTERN = /^[A-Za-zČĆŽŠĐčćžšđ0-9_.]+$/;
 
+const NICKNAME_CHAR = /[A-Za-zČĆŽŠĐčćžšđ0-9_.]/;
+
 export type NicknameProblem = "too_short" | "too_long" | "invalid_chars";
 
 export type NicknameCheck =
@@ -635,11 +637,18 @@ export type NicknameCheck =
       /** Ključ jedinstvenosti — mala slova, pa „Marko" i „MARKO" su isti nadimak. */
       key: string;
     }
-  | { ok: false; problem: NicknameProblem };
+  | {
+      ok: false;
+      problem: NicknameProblem;
+      /** Prvi nedozvoljeni znak, za poruku K5 („Znak @ nije dozvoljen."). */
+      char?: string;
+    };
 
 /**
- * Oblik nadimka: `trim`, dužina, skup znakova. Dijele ga forma (poruka prije
+ * Oblik nadimka: `trim`, skup znakova, dužina. Dijele ga forma (poruka prije
  * slanja) i server (odluka), pa ne mogu da tvrde različito o istom nadimku.
+ * Nedozvoljen znak ima prednost pred dužinom: „a b" treba poruku o razmaku,
+ * ne o dužini.
  *
  * NE provjerava zabranjene riječi ni zauzetost — to zna samo server.
  */
@@ -648,10 +657,80 @@ export function checkNickname(raw: unknown): NicknameCheck {
   // NFC: „č" ukucano kao c + kombinovana kvačica postaje jedan znak, pa ga
   // obrazac prepoznaje i dužina se broji kako je igrač vidi.
   const nickname = raw.trim().normalize("NFC");
+  if (nickname !== "" && !NICKNAME_PATTERN.test(nickname)) {
+    // Po kodnim tačkama, da emoji ne bude prepolovljen.
+    const char = Array.from(nickname).find((c) => !NICKNAME_CHAR.test(c));
+    return { ok: false, problem: "invalid_chars", ...(char !== undefined && { char }) };
+  }
   if (nickname.length < NICKNAME_MIN_LENGTH) return { ok: false, problem: "too_short" };
   if (nickname.length > NICKNAME_MAX_LENGTH) return { ok: false, problem: "too_long" };
-  if (!NICKNAME_PATTERN.test(nickname)) return { ok: false, problem: "invalid_chars" };
   return { ok: true, nickname, key: nickname.toLowerCase() };
+}
+
+/** Srpska i makedonska ćirilica → latinica (Q8). Ostala slova ćirilice ne postoje u imenima. */
+const CYRILLIC_TO_LATIN: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", ђ: "đ", е: "e", ж: "ž", з: "z", и: "i",
+  ј: "j", к: "k", л: "l", љ: "lj", м: "m", н: "n", њ: "nj", о: "o", п: "p", р: "r",
+  с: "s", т: "t", ћ: "ć", у: "u", ф: "f", х: "h", ц: "c", ч: "č", џ: "dž", ш: "š",
+  ѓ: "gj", ќ: "kj", ѕ: "dz",
+};
+
+function transliterateCyrillic(text: string): string {
+  return Array.from(text, (c) => {
+    const lower = c.toLowerCase();
+    const latin = CYRILLIC_TO_LATIN[lower];
+    if (latin === undefined) return c;
+    if (c === lower) return latin;
+    // Veliko slovo: „Љ" → „Lj", ne „LJ" — ime se piše kao ime.
+    return latin.charAt(0).toUpperCase() + latin.slice(1);
+  }).join("");
+}
+
+export type NicknameSuggestion = {
+  /** Prijedlog za polje A5; prazan string kad od imena ne ostane dovoljno. */
+  nickname: string;
+  /** Šta je promijenjeno — za poruku ispod polja (K7). */
+  changes: ("cyrillic" | "space" | "removed" | "shortened")[];
+};
+
+/**
+ * Ime gosta (`/ime`, bez pravila) → prijedlog nadimka (K7): ćirilica u
+ * latinicu, razmak u `_`, ostali nedozvoljeni znakovi izbačeni, rez na 16.
+ * Ako ostane kraće od 3 znaka, polje stiže prazno (K4).
+ */
+export function suggestNicknameFromGuestName(name: string): NicknameSuggestion {
+  const changes: NicknameSuggestion["changes"] = [];
+  let text = name.trim().normalize("NFC");
+
+  const latin = transliterateCyrillic(text);
+  if (latin !== text) changes.push("cyrillic");
+  text = latin;
+
+  const spaced = text.replace(/\s+/g, "_");
+  if (spaced !== text) changes.push("space");
+  text = spaced;
+
+  const kept = Array.from(text).filter((c) => NICKNAME_CHAR.test(c)).join("");
+  if (kept !== text) changes.push("removed");
+  text = kept;
+
+  if (text.length > NICKNAME_MAX_LENGTH) {
+    text = text.slice(0, NICKNAME_MAX_LENGTH);
+    changes.push("shortened");
+  }
+  return { nickname: text.length >= NICKNAME_MIN_LENGTH ? text : "", changes };
+}
+
+// ====================================================
+// AVATAR NALOGA (SPEC_IDENTITET §3) — A1–A10, svi igrači vide svih 10.
+// Nije isto što i avatari botova u game-core: bot se prikazuje kao gost (slovo).
+// ====================================================
+
+export const PROFILE_AVATARS = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10"] as const;
+export type ProfileAvatar = (typeof PROFILE_AVATARS)[number];
+
+export function parseProfileAvatar(value: unknown): ProfileAvatar | null {
+  return PROFILE_AVATARS.find((a) => a === value) ?? null;
 }
 
 /** Od kada nadimak smije opet da se promijeni; `null` = odmah. */

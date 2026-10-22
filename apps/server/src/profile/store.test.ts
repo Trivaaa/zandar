@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
+import { NICKNAME_CHANGE_INTERVAL_MS } from "@zandar/shared-types";
+
 import {
   createFirestore,
   decodeFields,
@@ -11,15 +13,16 @@ import type { AccessTokenSource } from "../google/serviceAuth";
 import {
   createFirestoreProfileStore,
   createMemoryProfileStore,
+  NICKNAME_RESERVATION_MS,
   type ProfileStore,
 } from "./store";
 
 // ---------------------------------------------------------------------------
-// Ugovor — isti za obje izvedbe; memorija ga drži ovdje, Firestore preko
-// lažnog servera ispod.
+// Ugovor — isti za obje izvedbe; memorija direktno, Firestore preko lažnog
+// servera ispod (koji provjerava i oblik zahtjeva).
 // ---------------------------------------------------------------------------
 
-async function contract(store: ProfileStore) {
+async function resultsContract(store: ProfileStore) {
   assert.equal(await store.getProfile("u1"), null);
 
   assert.equal(await store.recordCompletedMatch("m1", "u1"), true);
@@ -31,13 +34,58 @@ async function contract(store: ProfileStore) {
   assert.deepEqual(await store.getProfile("u2"), { completedMatches: 1 });
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+
+async function nicknameContract(store: ProfileStore) {
+  const t0 = 1_000_000_000;
+
+  assert.equal(await store.nicknameAvailability("marko", "u1", t0), "free");
+  assert.deepEqual(await store.setNickname("u1", "Marko", "marko", t0), { ok: true });
+  assert.equal(await store.nicknameAvailability("marko", "u1", t0), "own");
+  assert.equal(await store.nicknameAvailability("marko", "u2", t0), "taken");
+  assert.deepEqual(await store.setNickname("u2", "MARKO", "marko", t0), { ok: false, reason: "taken" });
+
+  // Prvi izbor ne pokreće bravu — odmah smije prva promjena.
+  assert.deepEqual(await store.setNickname("u1", "Zvonko", "zvonko", t0 + 1), { ok: true });
+  // Druga promjena u roku od 30 dana: brava od prve promjene.
+  assert.deepEqual(await store.setNickname("u1", "Petar", "petar", t0 + 2), {
+    ok: false,
+    reason: "locked",
+    allowedAt: t0 + 1 + NICKNAME_CHANGE_INTERVAL_MS,
+  });
+  // Samo velika/mala slova nije promjena nadimka.
+  assert.deepEqual(await store.setNickname("u1", "ZVONKO", "zvonko", t0 + 3), { ok: true });
+
+  const p = await store.getProfile("u1");
+  assert.equal(p?.nickname, "ZVONKO");
+  assert.equal(p?.nicknameKey, "zvonko");
+  assert.equal(p?.nicknameChangedAt, t0 + 1);
+
+  // Napušten nadimak: rezervisan 30 dana — drugima zauzet, vlasniku njegov.
+  assert.equal(await store.nicknameAvailability("marko", "u2", t0 + 10 * DAY), "taken");
+  assert.equal(await store.nicknameAvailability("marko", "u1", t0 + 10 * DAY), "own");
+  const after = t0 + 1 + NICKNAME_RESERVATION_MS;
+  assert.equal(await store.nicknameAvailability("marko", "u2", after), "free");
+  assert.deepEqual(await store.setNickname("u2", "marko", "marko", after), { ok: true });
+  assert.equal(await store.nicknameAvailability("marko", "u1", after), "taken");
+
+  await store.setAvatar("u2", "a7", after);
+  const p2 = await store.getProfile("u2");
+  assert.equal(p2?.avatar, "a7");
+  assert.equal(p2?.nickname, "marko");
+}
+
 test("memorija: partija se broji jednom po igraču, revanš posebno", async () => {
-  await contract(createMemoryProfileStore());
+  await resultsContract(createMemoryProfileStore());
+});
+
+test("memorija: nadimak — jedinstven, brava od prve promjene, rezervacija 30 dana", async () => {
+  await nicknameContract(createMemoryProfileStore());
 });
 
 // ---------------------------------------------------------------------------
-// Lažni Firestore: drži dokumente i poštuje `exists:false` i inkrement, pa
-// isti ugovor provjerava i oblik zahtjeva koje šaljemo.
+// Lažni Firestore: drži dokumente sa `updateTime`, poštuje preduslove
+// (`exists`, `updateTime`), masku i inkrement, atomski po commitu.
 // ---------------------------------------------------------------------------
 
 const tokens: AccessTokenSource & { invalidated: number } = {
@@ -50,44 +98,53 @@ const tokens: AccessTokenSource & { invalidated: number } = {
   },
 };
 
-type Doc = Record<string, unknown>;
+type StoredDoc = { fields: Record<string, any>; updateTime: string };
 
 function fakeFirestore() {
-  const docs = new Map<string, Doc>();
+  const docs = new Map<string, StoredDoc>();
   const prefix = "projects/p/databases/(default)/documents/";
   const bodies: unknown[] = [];
+  let clock = 0;
+
+  const conflict = (status: string) =>
+    new Response(JSON.stringify({ error: { status } }), { status: status === "ALREADY_EXISTS" ? 409 : 400 });
 
   const impl = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     if (url.endsWith(":commit")) {
       const body = JSON.parse(String(init?.body)) as { writes: Record<string, any>[] };
       bodies.push(body);
-      // Atomski: prvo sve provjere, pa tek onda upisi.
       for (const w of body.writes) {
         const name = (w.update?.name ?? w.delete) as string;
-        if (w.currentDocument?.exists === false && docs.has(name)) {
-          return new Response(JSON.stringify({ error: { code: 409, status: "ALREADY_EXISTS" } }), {
-            status: 409,
-          });
+        const cur = docs.get(name);
+        const pre = w.currentDocument;
+        if (pre?.exists === false && cur) return conflict("ALREADY_EXISTS");
+        if (pre?.exists === true && !cur) return conflict("FAILED_PRECONDITION");
+        if (pre?.updateTime !== undefined && cur?.updateTime !== pre.updateTime) {
+          return conflict("FAILED_PRECONDITION");
         }
       }
       for (const w of body.writes) {
+        if (w.delete) {
+          docs.delete(w.delete);
+          continue;
+        }
         const name = w.update.name as string;
-        const prev = (docs.get(name) ?? {}) as Record<string, any>;
+        const prev = docs.get(name)?.fields ?? {};
         const next: Record<string, any> = w.updateMask ? { ...prev } : {};
         for (const [k, v] of Object.entries(w.update.fields)) next[k] = v;
         for (const t of w.updateTransforms ?? []) {
-          const cur = Number(prev[t.fieldPath]?.integerValue ?? 0);
-          next[t.fieldPath] = { integerValue: String(cur + Number(t.increment.integerValue)) };
+          const n = Number(prev[t.fieldPath]?.integerValue ?? 0);
+          next[t.fieldPath] = { integerValue: String(n + Number(t.increment.integerValue)) };
         }
-        docs.set(name, next);
+        docs.set(name, { fields: next, updateTime: `t${++clock}` });
       }
       return new Response("{}", { status: 200 });
     }
     const name = decodeURI(url.slice(url.indexOf(prefix)));
     const doc = docs.get(name);
     if (!doc) return new Response("{}", { status: 404 });
-    return new Response(JSON.stringify({ name, fields: doc }), { status: 200 });
+    return new Response(JSON.stringify({ name, ...doc }), { status: 200 });
   }) as typeof fetch;
 
   return { impl, docs, bodies };
@@ -96,7 +153,7 @@ function fakeFirestore() {
 test("Firestore: isti ugovor; rezultat sa exists:false i inkrement u jednom commitu", async () => {
   const fake = fakeFirestore();
   const store = createFirestoreProfileStore(createFirestore("p", tokens, fake.impl));
-  await contract(store);
+  await resultsContract(store);
 
   const first = fake.bodies[0] as { writes: Record<string, any>[] };
   assert.equal(first.writes.length, 2, "rezultat i brojač idu zajedno");
@@ -106,6 +163,27 @@ test("Firestore: isti ugovor; rezultat sa exists:false i inkrement u jednom comm
   assert.deepEqual(first.writes[1]?.updateTransforms, [
     { fieldPath: "completedMatches", increment: { integerValue: "1" } },
   ]);
+});
+
+test("Firestore: isti ugovor za nadimak i avatar", async () => {
+  const fake = fakeFirestore();
+  await nicknameContract(createFirestoreProfileStore(createFirestore("p", tokens, fake.impl)));
+});
+
+test("Firestore: nadimak koji je neko uzeo između čitanja i upisa → zauzet, ne dva vlasnika", async () => {
+  const fake = fakeFirestore();
+  const db = createFirestore("p", tokens, fake.impl);
+  const store = createFirestoreProfileStore(db);
+  // Svaki commit za u1 prethodi tuđi upis istog ključa — preduslov uvijek pada.
+  const realCommit = db.commit;
+  db.commit = async (writes) => {
+    await realCommit([{ kind: "set", path: `nicknames/${docId("ana")}`, fields: { uid: "uX", nickname: "Ana" } }]);
+    return realCommit(writes);
+  };
+  assert.deepEqual(await store.setNickname("u1", "Ana", "ana"), { ok: false, reason: "taken" });
+  db.commit = realCommit;
+  assert.equal(await store.nicknameAvailability("ana", "u1"), "taken");
+  assert.equal((await store.getProfile("u1"))?.nickname, undefined);
 });
 
 test("Firestore: 401 traži svjež token i ponavlja jednom", async () => {

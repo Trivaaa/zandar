@@ -81,6 +81,7 @@ import { parseQuickPlayConfig } from "./quickplay";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
 import { recordCompletedMatch } from "./profile/results";
+import { registerProfileRoutes } from "./profile/routes";
 import { profileStore } from "./profile/store";
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
@@ -198,22 +199,8 @@ async function requireUser(
   return null;
 }
 
-fastify.get("/api/me", async (request, reply) => {
-  const user = await requireUser(request, reply);
-  if (!user) return reply;
-  let profile;
-  try {
-    profile = await profileStore.getProfile(user.uid);
-  } catch (err) {
-    request.log.error(`[profile] /api/me: ${String(err).slice(0, 300)}`);
-    return reply.code(503).send({ error: "Profil trenutno nije dostupan", code: "store_unavailable" });
-  }
-  return {
-    uid: user.uid,
-    anonymous: user.anonymous,
-    completedMatches: profile?.completedMatches ?? 0,
-  };
-});
+// `/api/me`, nadimak i avatar (SPEC_IDENTITET §6.2, §6.4).
+registerProfileRoutes(fastify, { store: profileStore, requireUser });
 
 // ---- PUSH UREĐAJI (PRD §51) ----
 
