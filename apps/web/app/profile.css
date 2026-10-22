@@ -881,3 +881,102 @@
   --avatar-size: 100%;
   border: 0;
 }
+
+/* ------------------------------------------------------------------ *
+ * Dodir na igrača (T1–T3): providna dugmad, list tuđeg profila, oblačić gosta
+ * ------------------------------------------------------------------ */
+
+/* Preko avatara/reda — pravi <button>, bez uticaja na raspored. */
+.seat__tap,
+.lobby__seat-tap {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lobby__seat-tap {
+  border-radius: var(--radius-md);
+}
+
+.lobby__seat {
+  position: relative;
+}
+
+.seat__tap:focus-visible,
+.lobby__seat-tap:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Tuđi profil: ista visina u svim stanjima (T4/T5), da list ne skače. */
+.other-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 17rem;
+  padding-top: 0.25rem;
+}
+
+.other-profile__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+.other-profile__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 3.5rem;
+  margin-top: 0.75rem;
+}
+
+/* T3: oblačić uz sjedište. Fiksiran — sjedišta su `absolute` u pozornici. */
+.guest-card {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: max-content;
+  max-width: 14rem;
+  padding: 0.5rem 0.9rem 0.5rem 0.5rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent),
+    0 0.5rem 1.25rem color-mix(in oklab, black 45%, transparent);
+  animation: gamemenu-in var(--t-toast-in) var(--ease-out-soft) both;
+}
+
+.guest-card__letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: var(--surface-raised);
+  color: var(--accent);
+  font: 400 var(--type-lg) / 1 var(--font-display-stack);
+}
+
+.guest-card__name {
+  min-width: 0;
+  font: 700 var(--type-base) / 1.25 var(--font-sans-stack);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}

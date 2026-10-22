@@ -25,6 +25,8 @@ import { JoinFlow } from "@/components/JoinFlow";
 import { readQuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import { GameScreen } from "@/components/GameScreen";
+import { usePlayerInfo } from "@/components/profile/PlayerInfo";
+import { identityUi } from "@/lib/features";
 import type { ActiveReaction } from "@/lib/reactions";
 import type {
   AbandonVote,
@@ -53,6 +55,9 @@ type GameStateWithDeadline = PrivateGameStateView & {
  */
 export function RoomScreen({ roomId }: { roomId: string }) {
   const router = useRouter();
+  // Dodir na igrača → tuđi profil / kartica gosta (SPEC_IDENTITET T1–T3).
+  const playerInfo = usePlayerInfo();
+  const onPlayerTap = identityUi ? playerInfo.open : undefined;
 
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -474,7 +479,9 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           onAbandonVote={handleAbandonVote}
           activeReactions={activeReactions}
           tableTheme={room.tableTheme}
+          onPlayerTap={onPlayerTap}
         />
+        {playerInfo.layer}
         {autoPlayToast && (
           <div className="fixed top-[calc(var(--safe-top)+var(--stage-header-h)+0.5rem)] left-1/2 -translate-x-1/2 bg-surface-raised border border-warn/40 text-white rounded-token-md px-4 py-2 z-50 max-w-md shadow-lg text-sm">
             {autoPlayToast}
@@ -548,7 +555,9 @@ export function RoomScreen({ roomId }: { roomId: string }) {
             <PushPrompt context={isHost ? "host" : "waiting"} />
           )
         }
+        onPlayerTap={onPlayerTap}
       />
+      {playerInfo.layer}
     </div>
   );
 }

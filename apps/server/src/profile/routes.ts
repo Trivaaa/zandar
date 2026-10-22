@@ -168,6 +168,30 @@ export function registerProfileRoutes(
     }
   });
 
+  /**
+   * Tuđi profil (T1/T2, F2–F5): javno lice naloga — nadimak, avatar, broj
+   * partija. NIKAD e-mail ni način prijave (G4). Gost i bot nemaju profil
+   * (njihov `profileId` je `null`), pa ih ova ruta ne može ni naći.
+   */
+  app.get<{ Params: { profileId: string } }>("/api/profiles/:profileId", async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return reply;
+    try {
+      const uid = await store.uidForNickname(request.params.profileId.toLowerCase());
+      const profile = uid ? await store.getProfile(uid) : null;
+      if (!uid || !profile?.nickname) return reply.code(404).send({ code: "not_found" });
+      return {
+        profileId: profile.nicknameKey,
+        nickname: profile.nickname,
+        avatar: profile.avatar ?? null,
+        completedMatches: profile.completedMatches,
+        relation: uid === user.uid ? "self" : "none",
+      };
+    } catch (err) {
+      return storeUnavailable(reply, err, "GET /api/profiles/:id");
+    }
+  });
+
   app.put<{ Body: { avatar?: unknown } }>("/api/me/avatar", async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return reply;

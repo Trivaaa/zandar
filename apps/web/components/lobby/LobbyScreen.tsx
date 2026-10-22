@@ -46,6 +46,8 @@ export type LobbyScreenProps = {
   onBack: () => void;
   /** Ponuda obavještenja (`PushPrompt`) — roditelj je puni, ekran ostaje bez stanja. */
   noticeSlot?: ReactNode | undefined;
+  /** Dodir na red drugog igrača → tuđi profil ili kartica gosta (T2/T3). */
+  onPlayerTap?: ((player: LobbyPlayer, anchor: DOMRect) => void) | undefined;
   className?: string | undefined;
 };
 
@@ -76,6 +78,7 @@ export function LobbyScreen({
   onBack,
   noticeSlot,
   className = "",
+  onPlayerTap,
 }: LobbyScreenProps) {
   const seatsFilled = players.length;
   const seatsNeeded = Math.max(0, playerCount - seatsFilled);
@@ -169,6 +172,14 @@ export function LobbyScreen({
                 data-team={player.teamId ?? ""}
                 data-empty="false"
               >
+                {onPlayerTap && !isYou ? (
+                  <button
+                    type="button"
+                    className="lobby__seat-tap"
+                    aria-label={sr.otherProfile.open(player.displayName)}
+                    onClick={(e) => onPlayerTap(player, e.currentTarget.getBoundingClientRect())}
+                  />
+                ) : null}
                 <span className="lobby__seat-avatar font-display text-base" aria-hidden="true">
                   {player.avatar ? <Avatar avatar={player.avatar} /> : player.displayName.slice(0, 1)}
                 </span>

@@ -67,6 +67,11 @@ export type ProfileStore = {
    */
   recordCompletedMatch(matchId: string, uid: string, now?: number): Promise<boolean>;
   nicknameAvailability(key: string, uid: string, now?: number): Promise<NicknameAvailability>;
+  /**
+   * Vlasnik nadimka (javni ID profila = ključ nadimka). `null` kad nadimak ne
+   * postoji ili je napušten (rezervacija poslije promjene/brisanja).
+   */
+  uidForNickname(key: string): Promise<string | null>;
   /** `nickname`/`key` su već prošli `checkNickname` i filter riječi. */
   setNickname(uid: string, nickname: string, key: string, now?: number): Promise<SetNicknameResult>;
   setAvatar(uid: string, avatar: ProfileAvatar, now?: number): Promise<void>;
@@ -143,6 +148,10 @@ export function createMemoryProfileStore(): ProfileStore {
     },
     async nicknameAvailability(key, uid, now = Date.now()) {
       return availabilityOf(nicknames.get(key) ?? null, uid, now);
+    },
+    async uidForNickname(key) {
+      const rec = nicknames.get(key);
+      return rec && rec.releasedAt === undefined ? rec.uid : null;
     },
     async setNickname(uid, nickname, key, now = Date.now()) {
       const profile = profiles.get(uid) ?? null;
@@ -285,6 +294,12 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
     async nicknameAvailability(key, uid, now = Date.now()) {
       const doc = await db.get(nicknamePath(key));
       return availabilityOf(doc ? decodeNickname(doc) : null, uid, now);
+    },
+    async uidForNickname(key) {
+      const doc = await db.get(nicknamePath(key));
+      if (!doc) return null;
+      const rec = decodeNickname(doc);
+      return rec.releasedAt === undefined && rec.uid ? rec.uid : null;
     },
     async setNickname(uid, nickname, key, now = Date.now()) {
       // Konflikt = neko je između čitanja i upisa promijenio nadimak ili

@@ -25,6 +25,11 @@ export type PlayerSeatProps = {
   className?: string | undefined;
   /** Pozicija na pozornici — dolazi kao `--stage-*` varijabla iz GameScreen-a. */
   style?: CSSProperties | undefined;
+  /**
+   * Dodir na igrača (SPEC_IDENTITET T1/T3): providno dugme preko avatara —
+   * pravi `<button>`, bez uticaja na raspored. Bez handlera ga nema.
+   */
+  onTap?: ((anchor: DOMRect) => void) | undefined;
 };
 
 const statusLabel = {
@@ -54,6 +59,7 @@ export function PlayerSeat({
   caption,
   className = "",
   style,
+  onTap,
 }: PlayerSeatProps) {
   const team = player.teamId === undefined ? undefined : player.teamId === 0 ? "a" : "b";
 
@@ -95,6 +101,14 @@ export function PlayerSeat({
       {caption}
 
       <div className="seat__body">
+        {onTap ? (
+          <button
+            type="button"
+            className="seat__tap"
+            aria-label={sr.otherProfile.open(player.displayName)}
+            onClick={(e) => onTap(e.currentTarget.getBoundingClientRect())}
+          />
+        ) : null}
         {/* Bez `text-num-sm`: utility bi iz kasnijeg sloja pobijedio font-size
             koji `.seat__avatar` racuna iz `--seat-avatar`, pa slovo ne bi
             pratilo velicinu avatara. */}

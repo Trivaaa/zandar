@@ -188,6 +188,32 @@ test("tok c: brisanje naloga traži nalog i prijavu iz zadnjih 5 minuta", async 
   assert.equal(await store.nicknameAvailability("marko", "u2", now()), "taken", "nadimak rezervisan");
 });
 
+test("tuđi profil: samo javno lice; nepoznat, napušten nadimak i gost → 404", async () => {
+  const { app, as, store, setNick, advance } = setup();
+  await setNick("user:u1", "Marko");
+  await store.setAvatar("u1", "a3");
+  await store.recordCompletedMatch("m1", "u1");
+  const get = (who: string, id: string) => app.inject({ method: "GET", url: `/api/profiles/${id}`, headers: as(who) });
+
+  const res = await get("anon:g1", "marko");
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.json(), {
+    profileId: "marko",
+    nickname: "Marko",
+    avatar: "a3",
+    completedMatches: 1,
+    relation: "none",
+  });
+  assert.doesNotMatch(res.body, /u1|email|provider|password/, "G4: nikad uid, e-mail ni način prijave");
+  assert.equal((await get("user:u1", "MARKO")).json().relation, "self");
+  assert.equal((await get("user:u2", "nepostoji")).statusCode, 404);
+
+  advance(1);
+  await setNick("user:u1", "Zvonko");
+  assert.equal((await get("user:u2", "marko")).statusCode, 404, "stari nadimak više ne vodi na profil");
+  assert.equal((await get("user:u2", "zvonko")).statusCode, 200);
+});
+
 test("previše provjera u minuti → 429", async () => {
   const { check } = setup();
   for (let i = 0; i < 60; i++) assert.equal((await check("user:u1", `abc${i}`)).statusCode, 200);

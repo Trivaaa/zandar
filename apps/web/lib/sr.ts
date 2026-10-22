@@ -514,6 +514,13 @@ export const sr = {
     doneBody: "Hvala na partijama. Igrati možeš i dalje, kao gost.",
     playZandar: "Igraj Žandar",
   },
+  /* Tuđi profil i kartica igrača bez naloga (T1–T5). */
+  otherProfile: {
+    open: (name: string) => `Profil igrača ${name}`,
+    title: "Profil igrača",
+    close: "Zatvori",
+    loadError: "Profil se nije učitao.",
+  },
   /* Prijatelji (SPEC_IDENTITET §6.6). */
   friends: {
     title: "Prijatelji",

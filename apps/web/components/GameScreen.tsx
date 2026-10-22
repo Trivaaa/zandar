@@ -7,6 +7,7 @@ import type {
   Card as CardType,
   CaptureOption,
   PrivateGameStateView,
+  PublicPlayer,
   ReactionType,
   TableTheme,
 } from "@zandar/shared-types";
@@ -92,6 +93,8 @@ type GameScreenProps = {
    * `undefined` i ekran kreće bez selekcije, kao i do sad.
    */
   initialSelectedCardId?: string;
+  /** Dodir na protivnika/partnera → tuđi profil ili kartica gosta (T1/T3). */
+  onPlayerTap?: ((player: PublicPlayer, anchor: DOMRect) => void) | undefined;
 };
 
 export function GameScreen({
@@ -107,7 +110,10 @@ export function GameScreen({
   activeReactions,
   tableTheme,
   initialSelectedCardId,
+  onPlayerTap,
 }: GameScreenProps) {
+  const tapFor = (player: PublicPlayer) =>
+    onPlayerTap ? (anchor: DOMRect) => onPlayerTap(player, anchor) : undefined;
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSelectedCardId ?? null,
   );
@@ -489,6 +495,7 @@ export function GameScreen({
           orientation="top"
           reaction={seatReaction(seats.partner.id)}
           caption={seatCaption(seats.partner.id)}
+          onTap={tapFor(seats.partner)}
           /* `z-20` (kao i tvoje sjediste): sjediste nosi `-translate-x-1/2`, a
              transform pravi stacking context — pa natpis unutra ne moze da se
              podigne iznad kutije stola (`z-10`) koliko god z-index imao.
@@ -514,6 +521,7 @@ export function GameScreen({
           orientation="left"
           reaction={seatReaction(seats.oppL.id)}
           caption={seatCaption(seats.oppL.id)}
+          onTap={tapFor(seats.oppL)}
           className="absolute left-1 -translate-y-1/2 pl-safe-left z-20"
           style={{ top: "var(--table-mid)" }}
         />
@@ -528,6 +536,7 @@ export function GameScreen({
           orientation="right"
           reaction={seatReaction(seats.oppR.id)}
           caption={seatCaption(seats.oppR.id)}
+          onTap={tapFor(seats.oppR)}
           className="absolute right-1 -translate-y-1/2 pr-safe-right z-20"
           style={{ top: "var(--table-mid)" }}
         />

@@ -81,6 +81,22 @@ export async function abandonGuest(guestToken: string): Promise<void> {
   }).catch(() => undefined);
 }
 
+/** Odgovor `GET /api/profiles/:id` — samo javno lice (G4). */
+export type PublicProfile = {
+  profileId: string;
+  nickname: string;
+  avatar: ProfileAvatar | null;
+  completedMatches: number;
+  /** `none` · `self`; prijatelji i blokada dolaze sa koracima 8d i 9. */
+  relation: string;
+};
+
+export async function fetchPublicProfile(profileId: string): Promise<PublicProfile> {
+  const res = await authed(`/api/profiles/${encodeURIComponent(profileId)}`);
+  if (!res.ok) throw new Error(`profile_${res.status}`);
+  return (await res.json()) as PublicProfile;
+}
+
 /** Tok c (C4). `recent_login` = prijava starija od 5 minuta → nazad na C3. */
 export async function deleteMyAccount(): Promise<"ok" | "recent_login" | "error"> {
   try {
