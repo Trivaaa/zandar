@@ -3,7 +3,7 @@ import type { Auth } from "@firebase/auth";
 import { FIREBASE_CONFIG } from "@/lib/firebaseConfig";
 
 /**
- * Nalog igrača (docs/Specs/player-profile-v1.md). Gost je anonimni Firebase
+ * Nalog igrača (docs/Specs/SPEC_IDENTITET.md). Gost je anonimni Firebase
  * nalog sa stalnim ID-jem; registracija ga kasnije nadograđuje uz ISTI ID.
  *
  * Pravilo cijelog modula: nalog NIKAD ne stoji između igrača i partije. Svaka
@@ -13,6 +13,9 @@ import { FIREBASE_CONFIG } from "@/lib/firebaseConfig";
  *
  * SDK se učitava dinamički: ne ulazi u početni bundle i ne izvršava se na
  * serveru (statički export za APK ga ne smije dotaći u build-u).
+ *
+ * Radnje koje igrač sam pokrene (registracija, prijava, odjava) su u
+ * `lib/account.ts` — one smiju i moraju da jave grešku.
  */
 
 /** Koliko zahtjev smije da čeka token prije nego što ode bez njega. */
@@ -42,9 +45,20 @@ async function loadAuth(): Promise<Auth | null> {
   }
 }
 
-function getAuthInstance(): Promise<Auth | null> {
+/** Firebase Auth instanca, ili `null` kad Firebase nije dostupan/konfigurisan. */
+export function getAuthInstance(): Promise<Auth | null> {
   authPromise ??= loadAuth();
   return authPromise;
+}
+
+/**
+ * Poslije odjave ili prijave na drugi nalog: zaboravi zapamćen pokušaj i
+ * cooldown, da sljedeći `ensureSignedIn` vidi novo stanje (i po potrebi
+ * napravi novog gosta) umjesto da vrati stari `uid`.
+ */
+export function resetSignIn(): void {
+  signInPromise = null;
+  cooldownUntil = 0;
 }
 
 async function signIn(): Promise<string | null> {
