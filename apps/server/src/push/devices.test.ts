@@ -179,3 +179,27 @@ test("hidracija sa dva zapisa istog tokena zadržava svježiji", async () => {
   await new Promise((r) => setImmediate(r));
   assert.ok(removed.includes(older));
 });
+
+test("nalog na uređaju: uid iz tokena se pamti, preživljava ponovnu registraciju i disk, odjava ga briše", async () => {
+  const { adapter, saved } = memoryAdapter();
+  const store = createDeviceStore(adapter);
+  const pushId = register(store, { token: "tok-u", uid: "uid-1" });
+  const idHash = hashOrFail(store, pushId);
+  assert.equal(store.get(idHash)?.uid, "uid-1");
+
+  // Ponovno otvaranje bez tokena (Firebase nedostupan) ne odvezuje nalog.
+  register(store, { token: "tok-u", pushId }, 2_000);
+  assert.equal(store.get(idHash)?.uid, "uid-1");
+  assert.equal((saved.get(idHash) as { uid?: string }).uid, "uid-1");
+
+  // Hidracija čita uid sa diska; stari zapis bez uid-a ostaje ispravan.
+  const fresh = createDeviceStore(memoryAdapter([saved.get(idHash), { ...(saved.get(idHash) as object), idHash: "b".repeat(64), token: "tok-x", uid: undefined }]).adapter);
+  await fresh.hydrate(3_000);
+  assert.equal(fresh.get(idHash)?.uid, "uid-1");
+  assert.equal(fresh.get("b".repeat(64))?.uid, undefined);
+
+  assert.equal(store.unbind(pushId), true);
+  assert.equal(store.get(idHash)?.uid, undefined);
+  assert.equal((saved.get(idHash) as { uid?: string }).uid, undefined);
+  assert.equal(store.unbind("nepoznat"), false);
+});

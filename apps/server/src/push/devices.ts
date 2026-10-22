@@ -30,6 +30,12 @@ export type DeviceRecord = {
   guestId?: string;
   /** IANA zona sa uređaja — za tihe sate podsjetnika (slice 2). */
   tz?: string;
+  /**
+   * Firebase `uid` naloga prijavljenog na ovom uređaju (SPEC_IDENTITET §8) —
+   * obavještenja o prijateljima idu na sve uređaje naloga. Postavlja ga SAMO
+   * server iz provjerenog tokena; briše se na odjavi (T3).
+   */
+  uid?: string;
   createdAt: number;
   /** Zadnje otvaranje aplikacije — signal neaktivnosti za podsjetnike (slice 2). */
   lastSeenAt: number;
@@ -42,6 +48,8 @@ export type RegisterInput = {
   tz?: unknown;
   guestId?: unknown;
   table?: unknown;
+  /** Iz provjerenog Firebase tokena — NIKAD iz tijela zahtjeva. */
+  uid?: string | undefined;
 };
 
 export type RegisterResult =
@@ -85,6 +93,8 @@ function fromDisk(raw: unknown, now: number): DeviceRecord | null {
   if (guestId) rec.guestId = guestId;
   const tz = shortString(r.tz);
   if (tz) rec.tz = tz;
+  const uid = shortString(r.uid);
+  if (uid) rec.uid = uid;
   return rec;
 }
 
@@ -194,6 +204,9 @@ export function createDeviceStore(
       if (guestId) rec.guestId = guestId;
       const tz = shortString(input.tz) ?? existing?.tz;
       if (tz) rec.tz = tz;
+      // Bez tokena (Firebase nedostupan) uređaj ostaje vezan za dosadašnji nalog.
+      const uid = shortString(input.uid) ?? existing?.uid;
+      if (uid) rec.uid = uid;
 
       devices.set(idHash, rec);
       owners.set(token, idHash);
@@ -206,6 +219,16 @@ export function createDeviceStore(
       const rec = idHash === null ? undefined : devices.get(idHash);
       if (!rec) return false;
       if (typeof prefs.table === "boolean") rec.prefs.table = prefs.table;
+      persist(rec);
+      return true;
+    },
+
+    /** T3: odjava — uređaj više ne prima obavještenja tog naloga. */
+    unbind(pushId: unknown): boolean {
+      const idHash = resolve(pushId);
+      const rec = idHash === null ? undefined : devices.get(idHash);
+      if (!rec) return false;
+      delete rec.uid;
       persist(rec);
       return true;
     },

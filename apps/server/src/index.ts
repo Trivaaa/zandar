@@ -222,7 +222,16 @@ type PushDeviceBody = {
  * klijent čuva i šalje umjesto tokena.
  */
 fastify.post<{ Body: PushDeviceBody }>("/api/push/devices", async (request, reply) => {
-  const result = deviceStore.register(request.body ?? {});
+  const body = request.body ?? {};
+  // `uid` samo iz provjerenog tokena — polje iz tijela se ne prosljeđuje.
+  const result = deviceStore.register({
+    token: body.token,
+    pushId: body.pushId,
+    tz: body.tz,
+    guestId: body.guestId,
+    table: body.table,
+    uid: (await optionalUid(request)).uid,
+  });
   if (!result.ok) {
     return reply.code(400).send({ error: result.error });
   }
@@ -239,6 +248,14 @@ fastify.post<{ Body: { pushId?: unknown; table?: unknown } }>(
     return { success: true };
   },
 );
+
+/** T3: odjava — uređaj se odvezuje od naloga. `pushId` je tajna uređaja, pa je dovoljan. */
+fastify.post<{ Body: { pushId?: unknown } }>("/api/push/devices/unbind", async (request, reply) => {
+  if (!deviceStore.unbind(request.body?.pushId)) {
+    return reply.code(404).send({ error: "Uređaj nije registrovan" });
+  }
+  return { success: true };
+});
 
 // ---- ROOMS ----
 

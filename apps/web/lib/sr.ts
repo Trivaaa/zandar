@@ -393,6 +393,24 @@ export const sr = {
     loading: "Učitavam profil",
     countError: "Broj partija se nije učitao.",
     retry: "Pokušaj ponovo",
+    // Moj profil (P1–P8)
+    nicknameRow: "Nadimak",
+    avatarRow: "Avatar",
+    change: "Promijeni",
+    lockedUntil: (date: string) => `Opet od ${date}`,
+    settings: "Postavke",
+    logout: "Odjavi se",
+    loadError: "Profil se nije učitao.",
+    loadErrorBody: "Provjeri internet vezu i pokušaj ponovo.",
+    avatarSaveFailed: "Avatar nije sačuvan. Ostaje stari.",
+    changeNicknameTitle: "Promijeni nadimak",
+    changeNicknameNote: "Poslije promjene, sljedeća je moguća za 30 dana.",
+    save: "Sačuvaj",
+    changeAvatarTitle: "Promijeni avatar",
+    // O1
+    logoutTitle: "Odjaviti se?",
+    logoutBody:
+      "Na ovom uređaju igraćeš kao gost dok se ponovo ne prijaviš. Nalog i rezultati ostaju sačuvani.",
   },
   /* Nalog: registracija, prijava, nadimak, avatar (SPEC_IDENTITET tok a/b, §6.3, §6.4). */
   account: {

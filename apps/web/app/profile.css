@@ -702,3 +702,104 @@
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
+
+/* ------------------------------------------------------------------ *
+ * Moj profil — redovi (P1), brava nadimka (P2), poruka (P4), skeleton (P7)
+ * ------------------------------------------------------------------ */
+
+.profile__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile__row-avatar {
+  display: flex;
+  padding-top: 0.15rem;
+}
+
+.avatar--sm {
+  --avatar-size: 2rem;
+}
+
+.profile__locked {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 3rem;
+  padding-inline: 0.6rem;
+  font: 500 var(--type-sm) / 1.2 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.profile__locked-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.profile__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3rem;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  color: var(--text);
+  font: 500 var(--type-base) / 1.2 var(--font-sans-stack);
+  text-align: start;
+  cursor: pointer;
+}
+
+.profile__item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.profile__item-icon,
+.profile__item-chevron {
+  width: 1.3rem;
+  height: 1.3rem;
+  color: var(--text-muted);
+}
+
+.profile__toast {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--danger-signal) 16%, var(--surface));
+}
+
+.profile__toast-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font: 500 var(--type-sm) / 1.35 var(--font-sans-stack);
+  color: var(--text);
+}
+
+.profile__empty-cta {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.profile__skel-avatar {
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 50%;
+}
+
+.profile__skel-row {
+  height: 3.5rem;
+  border-radius: var(--radius-md);
+}
+
+.profile__skel-row--sm {
+  height: 3rem;
+}

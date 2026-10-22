@@ -149,7 +149,8 @@ export async function registerPushDevice(input: {
 }): Promise<{ pushId: string }> {
   const res = await fetch(`${API_BASE}/api/push/devices`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    // Token naloga veže uređaj za nalog (obavještenja o prijateljima, §8).
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify(input),
   });
   if (!res.ok) {
@@ -157,6 +158,15 @@ export async function registerPushDevice(input: {
     throw new Error(err.error || "Greška");
   }
   return res.json();
+}
+
+/** T3: odjava — uređaj prestaje da prima obavještenja tog naloga. Ne baca. */
+export async function unbindPushDevice(pushId: string): Promise<void> {
+  await fetch(`${API_BASE}/api/push/devices/unbind`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pushId }),
+  }).catch(() => undefined);
 }
 
 export async function setPushDevicePrefs(

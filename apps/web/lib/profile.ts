@@ -93,7 +93,7 @@ export type MeState =
   | { status: "ready"; me: Me };
 
 /** Profil za ekran — učitavanje, greška (sa ponovnim pokušajem) ili podaci. */
-export function useMe(): MeState & { retry: () => void } {
+export function useMe(): MeState & { retry: () => void; update: (me: Me) => void } {
   const [state, setState] = useState<MeState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
 
@@ -117,5 +117,8 @@ export function useMe(): MeState & { retry: () => void } {
     setAttempt((n) => n + 1);
   }, []);
 
-  return { ...state, retry };
+  /** Svjež profil iz odgovora izmjene (PUT vraća isto što i GET /api/me). */
+  const update = useCallback((me: Me) => setState({ status: "ready", me }), []);
+
+  return { ...state, retry, update };
 }

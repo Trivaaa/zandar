@@ -139,6 +139,32 @@ export function GoogleMarkIcon({ className }: IconProps) {
   );
 }
 
+export function LockIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <rect x="5" y="10.5" width="14" height="10" rx="1.8" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+export function LogoutIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14" />
+      <path d="M10 8l-4 4 4 4M6 12h10" />
+    </svg>
+  );
+}
+
+export function ChevronRightIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
 export function RetryIcon({ className }: IconProps) {
   return (
     <svg {...stroke} className={className}>

@@ -10,6 +10,7 @@ import { AccountShell } from "@/components/account/AccountShell";
 import { Field } from "@/components/account/Field";
 import { usePlayerName } from "@/lib/playerName";
 import { checkNicknameRemote, saveNickname, useMe, type NicknameVerdict } from "@/lib/profile";
+import { dayMonth } from "@/lib/dates";
 import { sr } from "@/lib/sr";
 
 /** K1: provjera kreće pola sekunde poslije zadnjeg slova. */
@@ -36,8 +37,12 @@ function localProblem(value: string): string | null {
  * A5 (Korak 2 od 3) — stanja K1–K7. Polje stiže popunjeno imenom gosta,
  * ispravljenim po pravilima (K7). Dalje tek kad je nadimak slobodan i uslovi
  * prihvaćeni. Nalog bez nadimka je nedovršen (Q10) — Profil vraća ovdje.
+ *
+ * `mode="change"` je P5 (promjena postojećeg): bez koraka i uslova, polje
+ * stiže sa trenutnim nadimkom, napomena o 30 dana, dugme Sačuvaj.
  */
-export function NicknameScreen() {
+export function NicknameScreen({ mode = "first" }: { mode?: "first" | "change" }) {
+  const changing = mode === "change";
   const router = useRouter();
   const me = useMe();
   const guestName = usePlayerName();
@@ -50,18 +55,23 @@ export function NicknameScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Gost nema šta da radi ovdje; nalog sa nadimkom ide dalje.
+  // Gost nema šta da radi ovdje; prvi izbor samo bez nadimka, promjena samo
+  // sa nadimkom koji nije zaključan (P2).
   useEffect(() => {
     if (me.status !== "ready") return;
     if (me.me.anonymous) router.replace("/profil");
-    else if (me.me.nickname) router.replace(me.me.avatar ? "/profil" : "/nalog/avatar");
-  }, [me, router]);
+    else if (changing) {
+      if (!me.me.nickname) router.replace("/nalog/nadimak");
+      else if (me.me.nicknameChangeAllowedAt !== null) router.replace("/profil");
+    } else if (me.me.nickname) router.replace(me.me.avatar ? "/profil" : "/nalog/avatar");
+  }, [me, router, changing]);
+  const current = me.status === "ready" ? (me.me.nickname ?? "") : "";
 
   // K7: prijedlog iz imena gosta, sa objašnjenjem dok ga igrač ne mijenja.
   const suggestion = useMemo(() => suggestNicknameFromGuestName(guestName ?? ""), [guestName]);
-  const value = typed ?? suggestion.nickname;
+  const value = typed ?? (changing ? current : suggestion.nickname);
   const note =
-    typed !== null || !suggestion.nickname
+    changing || typed !== null || !suggestion.nickname
       ? null
       : suggestion.changes.includes("cyrillic")
         ? sr.account.fromGuestCyrillic
@@ -102,7 +112,7 @@ export function NicknameScreen() {
 
   const free =
     status.kind === "server" && (status.verdict.status === "free" || status.verdict.status === "own");
-  const canSubmit = free && terms && !busy;
+  const canSubmit = free && !busy && (changing ? trimmed !== current : terms);
 
   async function submit() {
     if (!canSubmit) return;
@@ -111,7 +121,11 @@ export function NicknameScreen() {
     try {
       const result = await saveNickname(value.trim());
       if (result.ok) {
-        router.replace("/nalog/avatar");
+        router.replace(changing ? "/profil" : "/nalog/avatar");
+        return;
+      }
+      if (result.code === "locked") {
+        setSaveError(sr.profile.lockedUntil(dayMonth(result.allowedAt)));
         return;
       }
       if (result.code === "taken") setResult({ for: trimmed, verdict: { status: "taken", suggestions: result.suggestions } });
@@ -153,11 +167,12 @@ export function NicknameScreen() {
 
   return (
     <AccountShell
-      step={2}
-      title={sr.account.nicknameTitle}
+      {...(changing ? {} : { step: 2 })}
+      title={changing ? sr.profile.changeNicknameTitle : sr.account.nicknameTitle}
       subtitle={sr.account.nicknameSub}
-      // Nalog već postoji; nazad ne briše ništa — Profil kasnije vraća ovdje.
-      onBack={() => router.replace("/")}
+      // Prvi izbor: nalog već postoji, nazad ne briše ništa — Profil kasnije
+      // vraća ovdje. Promjena: nazad na profil.
+      onBack={() => (changing ? router.back() : router.replace("/"))}
     >
       <form
         className="acct__form"
@@ -183,7 +198,10 @@ export function NicknameScreen() {
           error={error}
           message={
             <>
-              {message ? <span className="acct__msg-line">{message}</span> : null}
+              {/* Trenutni nadimak nije „slobodan" — on je već tvoj; bez poruke. */}
+              {message && !(changing && trimmed === current) ? (
+                <span className="acct__msg-line">{message}</span>
+              ) : null}
               {note ? <span className="acct__msg-line acct__msg-line--muted">{note}</span> : null}
               <span className="acct__msg-line acct__msg-line--muted">{sr.account.nicknameRules}</span>
             </>
@@ -208,18 +226,22 @@ export function NicknameScreen() {
           ) : null}
         </Field>
 
-        <label className="acct__check">
-          <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} />
-          <span>
-            {sr.account.terms.replace(sr.account.termsLink, "")}
-            <Link href="/uslovi" className="acct__link">
-              {sr.account.termsLink}
-            </Link>
-          </span>
-        </label>
+        {changing ? (
+          <p className="acct__body acct__body--muted">{sr.profile.changeNicknameNote}</p>
+        ) : (
+          <label className="acct__check">
+            <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} />
+            <span>
+              {sr.account.terms.replace(sr.account.termsLink, "")}
+              <Link href="/uslovi" className="acct__link">
+                {sr.account.termsLink}
+              </Link>
+            </span>
+          </label>
+        )}
 
         <button type="submit" className="home__cta acct__submit" disabled={!canSubmit} aria-busy={busy}>
-          {sr.account.next}
+          {changing ? sr.profile.save : sr.account.next}
         </button>
         <p className="acct__error" data-empty={!saveError} role="status">
           {saveError ?? ""}
