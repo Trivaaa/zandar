@@ -27,6 +27,22 @@ export async function abandonGuest(uid: string, deps: CleanupDeps): Promise<void
   await deps.identity?.deleteUser(uid);
 }
 
+/**
+ * Tok c — brisanje naloga (SPEC_IDENTITET §7). Redom: podaci u skladištu
+ * (nadimak ostaje rezervisan 30 dana), push uređaji odvezani od naloga, pa
+ * Firebase nalog sa e-mailom. Firebase ide ZADNJI: ako nešto prije padne,
+ * igrač može ponoviti brisanje istim nalogom.
+ */
+export async function deleteAccount(
+  uid: string,
+  deps: CleanupDeps & { unbindDevices: (uid: string) => void },
+  now: number = Date.now(),
+): Promise<void> {
+  await deps.store.deleteAccount(uid, now);
+  deps.unbindDevices(uid);
+  await deps.identity?.deleteUser(uid);
+}
+
 const account = parseServiceAccount(process.env.FCM_SERVICE_ACCOUNT_JSON);
 export const identityAdmin: IdentityAdmin | null = account
   ? createIdentityAdmin(account.project_id, createAccessTokenSource(account, [IDENTITY_SCOPE]))

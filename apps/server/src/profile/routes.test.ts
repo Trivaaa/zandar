@@ -16,22 +16,37 @@ async function fakeRequireUser(
   request: { headers: { authorization?: string | undefined } },
   reply: { code: (status: number) => { send: (body: unknown) => unknown } },
 ): Promise<AuthUser | null> {
-  const m = /^Bearer (user|anon):(\w+)$/.exec(request.headers.authorization ?? "");
+  const m = /^Bearer (user|anon):(\w+)(?::(\d+))?$/.exec(request.headers.authorization ?? "");
   if (!m) {
     reply.code(401).send({ code: "invalid" });
     return null;
   }
-  return { uid: m[2]!, anonymous: m[1] === "anon", provider: m[1] === "anon" ? "anonymous" : "password", emailVerified: false };
+  return {
+    uid: m[2]!,
+    anonymous: m[1] === "anon",
+    provider: m[1] === "anon" ? "anonymous" : "password",
+    emailVerified: false,
+    // `user:u1:<ms>` = prijava u tom trenutku (auth_time).
+    ...(m[3] ? { authTime: Number(m[3]) } : {}),
+  };
 }
 
 function setup(store: ProfileStore = createMemoryProfileStore()) {
   let clock = 1_000_000_000;
   const app = Fastify();
-  registerProfileRoutes(app, { store, requireUser: fakeRequireUser, now: () => clock });
+  const unbound: string[] = [];
+  registerProfileRoutes(app, {
+    store,
+    requireUser: fakeRequireUser,
+    now: () => clock,
+    unbindDevices: (uid) => unbound.push(uid),
+  });
   const as = (who: string) => ({ authorization: `Bearer ${who}` });
   return {
     app,
     store,
+    unbound,
+    now: () => clock,
     as,
     advance: (ms: number) => (clock += ms),
     check: async (who: string, n: string) =>
@@ -152,6 +167,25 @@ test("T6 abandon: gost se briše (204), nalog ne može da obriše sebe ovom ruto
   const acc = await app.inject({ method: "POST", url: "/api/me/abandon", headers: as("user:u1") });
   assert.equal(acc.statusCode, 403);
   assert.deepEqual(await store.getProfile("u1"), { completedMatches: 1 });
+});
+
+test("tok c: brisanje naloga traži nalog i prijavu iz zadnjih 5 minuta", async () => {
+  const { app, as, store, unbound, setNick, now } = setup();
+  await setNick("user:u1", "Marko");
+  await store.recordCompletedMatch("m1", "u1");
+  const del = (who: string) => app.inject({ method: "DELETE", url: "/api/me", headers: as(who) });
+
+  assert.equal((await del("anon:g1")).statusCode, 403);
+  const noAuthTime = await del("user:u1");
+  assert.equal(noAuthTime.statusCode, 401);
+  assert.equal((noAuthTime.json() as { code: string }).code, "recent_login_required");
+  assert.equal((await del(`user:u1:${now() - 6 * 60 * 1000}`)).statusCode, 401, "stara prijava");
+  assert.ok(await store.getProfile("u1"), "ništa nije obrisano prije svježe prijave");
+
+  assert.equal((await del(`user:u1:${now() - 60 * 1000}`)).statusCode, 204);
+  assert.equal(await store.getProfile("u1"), null);
+  assert.deepEqual(unbound, ["u1"]);
+  assert.equal(await store.nicknameAvailability("marko", "u2", now()), "taken", "nadimak rezervisan");
 });
 
 test("previše provjera u minuti → 429", async () => {

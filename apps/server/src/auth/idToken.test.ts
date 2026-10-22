@@ -112,6 +112,13 @@ test("registrovan nalog nosi email i potvrdu, i nije anoniman", async () => {
   });
 });
 
+test("auth_time (zadnja prava prijava) stiže u ms — za brisanje naloga", async () => {
+  const { v } = verifier();
+  const result = await v.verify(sign(claims({ auth_time: 1_700_000_000 })));
+  assert.ok(result.ok);
+  assert.equal(result.user.authTime, 1_700_000_000_000);
+});
+
 test("tuđi potpis, izmijenjen sadržaj i smeće su nevažeći", async () => {
   const { v } = verifier();
   assert.deepEqual(await v.verify(sign(claims(), { key: attacker.privateKey })), {

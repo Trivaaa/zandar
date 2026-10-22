@@ -803,3 +803,65 @@
 .profile__skel-row--sm {
   height: 3rem;
 }
+
+/* ------------------------------------------------------------------ *
+ * Brisanje naloga — tok c (C1–C5)
+ * ------------------------------------------------------------------ */
+
+/* C1: tekstualno dugme na dnu — vodi ka nepovratnoj radnji, još ništa ne briše. */
+.profile__delete {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  margin-top: auto;
+  padding: 0 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: 600 var(--type-base) / 1 var(--font-sans-stack);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.profile__delete-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.acct__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: -0.25rem 0 0;
+  padding-left: 1.25rem;
+  font: 400 var(--type-base) / 1.45 var(--font-sans-stack);
+  color: var(--text);
+}
+
+/* C4: jedina nepovratna radnja u proizvodu — boja opasnosti, ne mesing. */
+.acct__danger {
+  min-height: 3.5rem;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background-color: var(--danger);
+  color: var(--text);
+  font: 700 var(--type-lg) / 1.2 var(--font-sans-stack);
+  cursor: pointer;
+}
+
+.acct__danger:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.avatar--lg {
+  --avatar-size: 4rem;
+}
+
+.acct__done {
+  margin-top: clamp(2rem, 18dvh, 9rem);
+  text-align: center;
+}

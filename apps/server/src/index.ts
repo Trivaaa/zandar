@@ -204,7 +204,12 @@ async function requireUser(
 }
 
 // `/api/me`, nadimak i avatar (SPEC_IDENTITET §6.2, §6.4).
-registerProfileRoutes(fastify, { store: profileStore, requireUser, identity: identityAdmin });
+registerProfileRoutes(fastify, {
+  store: profileStore,
+  requireUser,
+  identity: identityAdmin,
+  unbindDevices: (uid) => void deviceStore.unbindUid(uid),
+});
 
 // ---- PUSH UREĐAJI (PRD §51) ----
 

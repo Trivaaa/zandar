@@ -149,6 +149,43 @@ export async function refreshAccount(): Promise<AccountInfo | null> {
 }
 
 /**
+ * C3: ponovna prijava lozinkom prije brisanja. Svjež token nosi novi
+ * `auth_time`, koji server traži (prijava iz zadnjih 5 minuta).
+ */
+export async function reauthenticateWithPassword(password: string): Promise<void> {
+  try {
+    const user = await requireUser();
+    if (!user.email) throw new AccountError("unavailable");
+    const { EmailAuthProvider, reauthenticateWithCredential } = await import("@firebase/auth");
+    await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+    await user.getIdToken(true);
+  } catch (err) {
+    rethrow(err);
+  }
+}
+
+/** C6: ponovna prijava Googleom — stiže sa Google prijavom (korak 5c). */
+export async function reauthenticateWithGoogle(): Promise<void> {
+  throw new AccountError("unavailable");
+}
+
+/**
+ * C5: nalog je obrisan na serveru (i Firebase nalog). Lokalna sesija se
+ * gasi i uređaj nastavlja kao NOVI gost. Ne baca — igra mora ići dalje.
+ */
+export async function continueAsNewGuest(): Promise<void> {
+  try {
+    const auth = await requireAuth();
+    const { signOut } = await import("@firebase/auth");
+    await signOut(auth);
+  } catch {
+    // obrisan nalog ionako više ne važi
+  }
+  resetSignIn();
+  await ensureSignedIn();
+}
+
+/**
  * O1: odjava. Uređaj nastavlja kao NOVI gost (nalog i rezultati ostaju na
  * serveru). Odvezivanje push uređaja od naloga (T3) radi pozivalac prije.
  */

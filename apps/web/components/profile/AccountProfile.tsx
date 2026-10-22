@@ -8,6 +8,7 @@ import {
   LockIcon,
   LogoutIcon,
   RetryIcon,
+  TrashIcon,
   WarningIcon,
 } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
@@ -31,11 +32,13 @@ export type AccountProfileProps = {
   onChangeAvatar: () => void;
   onSettings: () => void;
   onLogout: () => void;
+  /** C1 — ulaz u brisanje naloga. */
+  onDelete: () => void;
 };
 
 /**
  * Moj profil — P1 sa stanjima P2 (nadimak zaključan), P3 (e-mail nije
- * potvrđen) i P4 (čuvanje nije uspjelo). „Obriši nalog" stiže u koraku 7.
+ * potvrđen) i P4 (čuvanje nije uspjelo); na dnu C1 „Obriši nalog".
  */
 export function AccountProfile(props: AccountProfileProps) {
   const { nickname, avatar, completedMatches, nicknameLockedUntil } = props;
@@ -110,6 +113,11 @@ export function AccountProfile(props: AccountProfileProps) {
           </span>
         </button>
       </div>
+
+      <button type="button" className="profile__delete" onClick={props.onDelete}>
+        <TrashIcon className="profile__delete-icon" />
+        {sr.deleteAccount.entry}
+      </button>
 
       {props.avatarFailed ? (
         <div className="profile__toast" role="alert">

@@ -139,6 +139,14 @@ export function GoogleMarkIcon({ className }: IconProps) {
   );
 }
 
+export function TrashIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9.5 7V4.5h5V7" />
+    </svg>
+  );
+}
+
 export function LockIcon({ className }: IconProps) {
   return (
     <svg {...stroke} className={className}>

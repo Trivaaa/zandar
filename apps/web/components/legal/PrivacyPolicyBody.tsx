@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { LegalSection } from "@/components/legal/LegalPage";
+import { identityUi } from "@/lib/features";
 import {
   ADDRESS_LINE,
   CONTACT_EMAIL,
@@ -20,7 +21,9 @@ import {
  * NACRT — nije pravni savjet. Sadrzaj opisuje ono sto je procitano IZ KODA
  * (vidi reference u komentarima ispod); ako se kod promijeni, mijenja se i ovo.
  */
-export const PRIVACY_UPDATED = "14. septembar 2026.";
+// Tekst o nalogu (SPEC_IDENTITET T8) važi tek kad nalog postoji — iza istog
+// prekidača kao i sam UI, da politika nikad ne opisuje nešto čega nema.
+export const PRIVACY_UPDATED = identityUi ? "22. oktobar 2026." : "14. septembar 2026.";
 
 export function PrivacyPolicyBody() {
   return (
@@ -31,18 +34,33 @@ export function PrivacyPolicyBody() {
         prikupljamo, zašto, kome ih prosljeđujemo i kako tražiš brisanje.
       </p>
 
-      <LegalSection title="Igra nema naloge">
-        <p>
-          Ne postoji registracija ni prijavljivanje na nalog. Za igru ne tražimo
-          e-mail adresu, broj telefona ni lozinku, i ne naplaćujemo ništa —
-          dovoljan je nadimak koji sam upišeš. E-adresu uzimamo samo ako se sam
-          prijaviš za obavještenje o nekoj budućoj igri (vidi ispod).
-        </p>
-        <p>
-          To ne znači da ne prikupljamo podatke. Prikupljamo ih — spisak je
-          ispod.
-        </p>
-      </LegalSection>
+      {identityUi ? (
+        <LegalSection title="Nalog nije obavezan">
+          <p>
+            Igrati možeš bez naloga, kao gost. Nalog praviš sam, ako želiš: tada
+            rezultati ostaju sačuvani, nadimak je samo tvoj, isti nalog radi na
+            svakom uređaju i možeš dodavati prijatelje. Za nalog tražimo e-mail
+            adresu i lozinku. Ne naplaćujemo ništa.
+          </p>
+          <p>
+            Pravljenjem naloga prihvataš ovu politiku. To ne znači da bez naloga
+            ne prikupljamo podatke — spisak je ispod.
+          </p>
+        </LegalSection>
+      ) : (
+        <LegalSection title="Igra nema naloge">
+          <p>
+            Ne postoji registracija ni prijavljivanje na nalog. Za igru ne tražimo
+            e-mail adresu, broj telefona ni lozinku, i ne naplaćujemo ništa —
+            dovoljan je nadimak koji sam upišeš. E-adresu uzimamo samo ako se sam
+            prijaviš za obavještenje o nekoj budućoj igri (vidi ispod).
+          </p>
+          <p>
+            To ne znači da ne prikupljamo podatke. Prikupljamo ih — spisak je
+            ispod.
+          </p>
+        </LegalSection>
+      )}
 
       <LegalSection title="Šta prikupljamo">
         <ul className="space-y-1 list-disc list-inside">
@@ -59,6 +77,24 @@ export function PrivacyPolicyBody() {
             tvoj sto poslije prekida veze. Isti broj je oznaka pod kojom se vode
             podaci u analitici.
           </li>
+          {identityUi ? (
+            <>
+              <li>
+                <strong>Identifikator prijave</strong> — svaki uređaj, i bez
+                naloga, dobija nasumičan identifikator kod Google Firebase
+                Authentication (&bdquo;gost&ldquo;). Pod njim brojimo završene
+                partije, da bi prešle na nalog ako ga napraviš.
+              </li>
+              <li>
+                <strong>Podaci naloga</strong> — samo ako napraviš nalog:
+                e-mail adresa, lozinka (čuva je Google Firebase Authentication u
+                zaštićenom obliku; mi je ne vidimo), da li je e-mail potvrđen,
+                nadimak, izabrani avatar, broj završenih partija i vrijeme
+                posljednje promjene nadimka. Nadimak, avatar i broj partija vide
+                drugi igrači; e-mail i način prijave ne vidi niko drugi.
+              </li>
+            </>
+          ) : null}
           <li>
             <strong>Tok partije</strong> — odigrani potezi, rezultat, sjedište,
             tim i trajanje. Bez ovoga igra ne bi mogla da radi.
@@ -146,6 +182,13 @@ export function PrivacyPolicyBody() {
             adresu, podatke o uređaju i pregledaču, adrese stranica i zahtjeva, a
             na serverskoj strani i zaglavlja zahtjeva.
           </li>
+          {identityUi ? (
+            <li>
+              <strong>Google Firebase Authentication i Cloud Firestore</strong>{" "}
+              — prijava gosta i naloga (e-mail, lozinka, identifikator) i čuvanje
+              profila: nadimak, avatar i broj završenih partija.
+            </li>
+          ) : null}
           <li>
             <strong>Google Firebase Cloud Messaging</strong> (Sjedinjene
             Američke Države) — isporuka obavještenja na Android telefon, samo
@@ -170,6 +213,16 @@ export function PrivacyPolicyBody() {
             Provjera ide svakih deset minuta. Poslije toga zapis o partiji,
             zajedno sa nadimcima, više ne postoji kod nas.
           </li>
+          {identityUi ? (
+            <li>
+              <strong>Nalog i profil</strong> čuvamo dok ih ne obrišeš (u
+              aplikaciji: Profil → Obriši nalog), a brisanje je odmah. Nadimak
+              obrisanog naloga ostaje rezervisan još <strong>30 dana</strong>, da
+              ga niko ne bi preuzeo i predstavljao se kao ti — sam nadimak, bez
+              ičega drugog. Gostujući identifikator i njegove partije brišemo
+              čim se na tom uređaju prijaviš na drugi, postojeći nalog.
+            </li>
+          ) : null}
           <li>
             <strong>Prijave za obavještenje</strong> brišemo kad pošaljemo
             obavještenje o toj igri ili odlučimo da je ne pravimo — a najkasnije{" "}
@@ -258,6 +311,12 @@ export function PrivacyPolicyBody() {
           adresu ispod i navedi e-adresu koju si ostavio. Brišemo je za sve
           igre za koje si se prijavio.
         </p>
+        {identityUi ? (
+          <p>
+            Nalog brišeš sam, u aplikaciji: <strong>Profil → Obriši nalog</strong>
+            . Poslije ponovne prijave nalog i svi rezultati se brišu odmah.
+          </p>
+        ) : null}
         <p>
           Možeš tražiti uvid u podatke koje vodimo pod tvojim ID-om uređaja,
           njihov ispravak ili brisanje. Kako se to radi i šta tačno brišemo piše

@@ -75,6 +75,11 @@ export type ProfileStore = {
    * Nadimak NE dira — rezervacija nadimka je stvar brisanja naloga (korak 7).
    */
   deleteUserData(uid: string): Promise<void>;
+  /**
+   * Brisanje NALOGA (tok c): podaci kao `deleteUserData`, a nadimak ostaje
+   * rezervisan 30 dana (Q2 — zaštita od lažnog predstavljanja).
+   */
+  deleteAccount(uid: string, now?: number): Promise<void>;
 };
 
 type NicknameRecord = { uid: string; nickname: string; releasedAt?: number };
@@ -163,6 +168,12 @@ export function createMemoryProfileStore(): ProfileStore {
     async deleteUserData(uid) {
       profiles.delete(uid);
       for (const [key, owner] of results) if (owner === uid) results.delete(key);
+    },
+    async deleteAccount(uid, now = Date.now()) {
+      const key = profiles.get(uid)?.nicknameKey;
+      const rec = key ? nicknames.get(key) : undefined;
+      if (key && rec?.uid === uid) nicknames.set(key, { ...rec, releasedAt: now });
+      await this.deleteUserData(uid);
     },
   };
 }
@@ -305,6 +316,19 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
         await db.commit(paths.map((path) => ({ kind: "delete" as const, path })));
       }
       await db.commit([{ kind: "delete", path: profilePath(uid) }]);
+    },
+    async deleteAccount(uid, now = Date.now()) {
+      const profile = await this.getProfile(uid);
+      if (profile?.nicknameKey) {
+        const doc = await db.get(nicknamePath(profile.nicknameKey));
+        // Samo ako je nadimak još njegov — tuđi (preuzet poslije rezervacije) se ne dira.
+        if (doc && decodeNickname(doc).uid === uid) {
+          await db.commit([
+            { kind: "set", path: nicknamePath(profile.nicknameKey), fields: { releasedAt: now }, mask: ["releasedAt"], exists: true },
+          ]);
+        }
+      }
+      await this.deleteUserData(uid);
     },
   };
 }

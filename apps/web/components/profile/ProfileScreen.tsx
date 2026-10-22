@@ -132,6 +132,7 @@ export function ProfileScreen() {
         onChangeAvatar={() => setSheet("avatar")}
         onSettings={() => setSheet("settings")}
         onLogout={() => setSheet("logout")}
+        onDelete={() => router.push("/nalog/brisanje")}
       />
     );
   } else if (isAccount && me.status === "error") {

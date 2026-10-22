@@ -87,6 +87,26 @@ async function deleteContract(store: ProfileStore) {
   assert.equal(await store.recordCompletedMatch("m1", "drugi"), false);
 }
 
+async function deleteAccountContract(store: ProfileStore) {
+  const t0 = 5_000_000_000;
+  await store.setNickname("u1", "Marko", "marko", t0);
+  await store.recordCompletedMatch("m1", "u1");
+  await store.deleteAccount("u1", t0 + 1);
+  assert.equal(await store.getProfile("u1"), null);
+  // Nadimak obrisanog naloga: 30 dana zauzet za druge (Q2), pa slobodan.
+  assert.equal(await store.nicknameAvailability("marko", "u2", t0 + 2), "taken");
+  assert.equal(await store.nicknameAvailability("marko", "u2", t0 + 1 + NICKNAME_RESERVATION_MS), "free");
+}
+
+test("memorija: brisanje naloga — podaci nestaju, nadimak rezervisan 30 dana", async () => {
+  await deleteAccountContract(createMemoryProfileStore());
+});
+
+test("Firestore: brisanje naloga — isti ugovor", async () => {
+  const fake = fakeFirestore();
+  await deleteAccountContract(createFirestoreProfileStore(createFirestore("p", tokens, fake.impl)));
+});
+
 test("memorija: brisanje igrača — profil i svi rezultati, drugi netaknuti", async () => {
   await deleteContract(createMemoryProfileStore());
 });

@@ -233,6 +233,18 @@ export function createDeviceStore(
       return true;
     },
 
+    /** Brisanje naloga: nijedan uređaj više ne prima obavještenja tog naloga. */
+    unbindUid(uid: string): number {
+      let n = 0;
+      for (const rec of devices.values()) {
+        if (rec.uid !== uid) continue;
+        delete rec.uid;
+        persist(rec);
+        n++;
+      }
+      return n;
+    },
+
     /** FCM javio UNREGISTERED — aplikacija je deinstalirana ili je token zamijenjen. */
     removeByHash: drop,
 

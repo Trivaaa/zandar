@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LegalPage, LegalSection } from "@/components/legal/LegalPage";
 import { GuestIdBlock } from "@/components/legal/GuestIdBlock";
 import { BRAND, CONTACT_EMAIL, LEGAL_NAME, PUBLISHER } from "@/lib/contact";
+import { identityUi } from "@/lib/features";
 
 export const metadata: Metadata = {
   title: "Brisanje podataka — Žandar",
@@ -29,16 +30,49 @@ export const metadata: Metadata = {
  */
 export default function DeleteAccountPage() {
   return (
-    <LegalPage title="Brisanje podataka" updated="14. septembar 2026.">
+    <LegalPage
+      title={identityUi ? "Brisanje naloga i podataka" : "Brisanje podataka"}
+      updated={identityUi ? "22. oktobar 2026." : "14. septembar 2026."}
+    >
       <p>
         Ova stranica se odnosi na <strong>{BRAND}</strong> i igru Žandar
         (kartaonica.com i Android aplikacija), koje izdaje {PUBLISHER} (
         {LEGAL_NAME}).
       </p>
 
-      <LegalSection title="Igra nema naloge">
+      {identityUi ? (
+        <LegalSection title="Brisanje naloga">
+          <p>
+            Ako imaš nalog, brišeš ga sam, u aplikaciji ili na kartaonica.com:{" "}
+            <strong>Profil → Obriši nalog</strong>. Poslije ponovne prijave
+            brisanje je <strong>odmah</strong>:
+          </p>
+          <ul className="space-y-1 list-disc list-inside">
+            <li>nalog i e-mail adresa, sa prijavom na svim uređajima;</li>
+            <li>nadimak i avatar;</li>
+            <li>broj završenih partija i svi rezultati;</li>
+            <li>veza naloga sa uređajima za obavještenja.</li>
+          </ul>
+          <p>
+            Nadimak ostaje rezervisan još <strong>30 dana</strong>, da ga niko
+            ne bi preuzeo i predstavljao se kao ti. Igrati možeš i dalje, kao
+            gost.
+          </p>
+          <p>
+            Ako aplikaciji više nemaš pristup (npr. zaboravljena lozinka), piši
+            na <strong>{CONTACT_EMAIL}</strong> sa e-adrese naloga i naslovom{" "}
+            <strong>&bdquo;Brisanje naloga — Kartaonica&ldquo;</strong>. Nalog
+            brišemo <strong>najkasnije u roku od 30 dana</strong> i javljamo ti
+            kad je gotovo.
+          </p>
+        </LegalSection>
+      ) : null}
+
+      <LegalSection title={identityUi ? "Igra bez naloga" : "Igra nema naloge"}>
         <p>
-          Ne postoji registracija ni prijava, pa nema naloga koji bi se ugasio.
+          {identityUi
+            ? "Ako igraš bez naloga, nema naloga koji bi se ugasio. "
+            : "Ne postoji registracija ni prijava, pa nema naloga koji bi se ugasio. "}
           Umjesto naloga, tvoj uređaj nosi{" "}
           <strong>nasumični identifikator</strong> pod kojim se vode podaci u
           analitici i izvještajima o greškama. Brisanje se traži za taj broj.

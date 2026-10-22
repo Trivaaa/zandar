@@ -81,6 +81,21 @@ export async function abandonGuest(guestToken: string): Promise<void> {
   }).catch(() => undefined);
 }
 
+/** Tok c (C4). `recent_login` = prijava starija od 5 minuta → nazad na C3. */
+export async function deleteMyAccount(): Promise<"ok" | "recent_login" | "error"> {
+  try {
+    const res = await authed("/api/me", { method: "DELETE" });
+    if (res.status === 204) return "ok";
+    if (res.status === 401) {
+      const body = (await res.json().catch(() => ({}))) as { code?: string };
+      if (body.code === "recent_login_required") return "recent_login";
+    }
+    return "error";
+  } catch {
+    return "error";
+  }
+}
+
 export async function saveAvatar(avatar: ProfileAvatar): Promise<Me> {
   const res = await authed("/api/me/avatar", { method: "PUT", body: JSON.stringify({ avatar }) });
   if (!res.ok) throw new Error(`avatar_${res.status}`);

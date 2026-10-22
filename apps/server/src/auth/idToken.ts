@@ -41,6 +41,11 @@ export type AuthUser = {
   provider: string;
   email?: string;
   emailVerified: boolean;
+  /**
+   * Kad se igrač zadnji put STVARNO prijavio (Firebase `auth_time`, ms) — ne
+   * kad je token osvježen. Osjetljive radnje (brisanje naloga) traže svježu.
+   */
+  authTime?: number;
 };
 
 export type VerifyFailure =
@@ -198,6 +203,7 @@ export function createIdTokenVerifier(
           provider,
           ...(typeof claims.email === "string" ? { email: claims.email } : {}),
           emailVerified: claims.email_verified === true,
+          ...(typeof claims.auth_time === "number" ? { authTime: claims.auth_time * 1000 } : {}),
         },
       };
     },

@@ -4,7 +4,7 @@ import { nicknameChangeAllowedAt, parseProfileAvatar } from "@zandar/shared-type
 
 import type { AuthUser } from "../auth/idToken";
 import type { IdentityAdmin } from "../google/identityToolkit";
-import { abandonGuest } from "./cleanup";
+import { abandonGuest, deleteAccount } from "./cleanup";
 import { SlidingWindowLimiter } from "../rateLimit";
 import { evaluateNickname } from "./nickname";
 import type { ProfileStore } from "./store";
@@ -19,6 +19,9 @@ type RequireUser = (
   reply: { code: (status: number) => { send: (body: unknown) => unknown } },
 ) => Promise<AuthUser | null>;
 
+/** C3/C6: brisanje traži prijavu iz zadnjih 5 minuta (kao Firebase za osjetljive radnje). */
+export const RECENT_LOGIN_MS = 5 * 60 * 1000;
+
 /** Provjera dok igrač kuca (0,5 s debounce) — 60 u minuti je daleko iznad ruke. */
 const NICKNAME_LIMIT_PER_MINUTE = 60;
 
@@ -29,6 +32,8 @@ export function registerProfileRoutes(
     requireUser: RequireUser;
     /** Firebase Auth admin; `null` = brišu se samo podaci, ne i Firebase nalog. */
     identity?: IdentityAdmin | null;
+    /** Brisanje naloga: odveži sve push uređaje tog naloga (T3). */
+    unbindDevices?: (uid: string) => void;
     now?: () => number;
   },
 ): void {
@@ -137,6 +142,29 @@ export function registerProfileRoutes(
       return reply.code(204).send();
     } catch (err) {
       return storeUnavailable(reply, err, "POST /api/me/abandon");
+    }
+  });
+
+  /**
+   * Tok c — brisanje naloga. Tek poslije ponovne prijave (C3/C6): token mora
+   * nositi prijavu iz zadnjih 5 minuta, inače 401 `recent_login_required`.
+   */
+  app.delete("/api/me", async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return reply;
+    if (accountRequired(user, reply)) return reply;
+    if (user.authTime === undefined || now() - user.authTime > RECENT_LOGIN_MS) {
+      return reply.code(401).send({ error: "Potrebna je ponovna prijava", code: "recent_login_required" });
+    }
+    try {
+      await deleteAccount(user.uid, {
+        store,
+        identity: deps.identity ?? null,
+        unbindDevices: deps.unbindDevices ?? (() => {}),
+      }, now());
+      return reply.code(204).send();
+    } catch (err) {
+      return storeUnavailable(reply, err, "DELETE /api/me");
     }
   });
 

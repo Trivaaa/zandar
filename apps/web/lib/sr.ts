@@ -491,6 +491,29 @@ export const sr = {
     networkError: "Nema veze. Provjeri internet i pokušaj ponovo.",
     tooMany: "Previše pokušaja. Sačekaj malo pa pokušaj ponovo.",
   },
+  /* Brisanje naloga — tok c (SPEC_IDENTITET C1–C6). */
+  deleteAccount: {
+    entry: "Obriši nalog",
+    title: "Obriši nalog",
+    whatGoes: "Brisanjem nestaje:",
+    nicknameAndAvatar: (nickname: string) => `Nadimak ${nickname} i avatar`,
+    results: (n: number) =>
+      `${n} ${pluralForm(n, "završena partija", "završene partije", "završenih partija")} i svi rezultati`,
+    signInEverywhere: "Prijava na svim uređajima",
+    irreversible: "Ovo se ne može vratiti.",
+    keepPlaying: "Igrati možeš i dalje, kao gost.",
+    continue: "Nastavi",
+    verifyTitle: "Potvrdi da si to ti",
+    verifyPassword: (email: string) => `Upiši lozinku za ${email}.`,
+    verifyGoogle: "Prijavi se ponovo istim Google nalogom.",
+    wrongPassword: "Lozinka nije tačna.",
+    confirm: "Potvrdi",
+    finalTitle: "Obrisati nalog zauvijek?",
+    finalBody: "Nalog i rezultati brišu se odmah i ne mogu se vratiti.",
+    doneTitle: "Nalog je obrisan",
+    doneBody: "Hvala na partijama. Igrati možeš i dalje, kao gost.",
+    playZandar: "Igraj Žandar",
+  },
   /* Prijatelji (SPEC_IDENTITET §6.6). */
   friends: {
     title: "Prijatelji",

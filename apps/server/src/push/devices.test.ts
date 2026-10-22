@@ -203,3 +203,14 @@ test("nalog na uređaju: uid iz tokena se pamti, preživljava ponovnu registraci
   assert.equal((saved.get(idHash) as { uid?: string }).uid, undefined);
   assert.equal(store.unbind("nepoznat"), false);
 });
+
+test("brisanje naloga: svi uređaji tog naloga se odvezuju, tuđi ostaju", () => {
+  const store = createDeviceStore(memoryAdapter().adapter);
+  const a = hashOrFail(store, register(store, { token: "t1", uid: "u1" }));
+  const b = hashOrFail(store, register(store, { token: "t2", uid: "u1" }));
+  const c = hashOrFail(store, register(store, { token: "t3", uid: "u2" }));
+  assert.equal(store.unbindUid("u1"), 2);
+  assert.equal(store.get(a)?.uid, undefined);
+  assert.equal(store.get(b)?.uid, undefined);
+  assert.equal(store.get(c)?.uid, "u2");
+});
