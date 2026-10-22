@@ -69,6 +69,18 @@ export async function saveNickname(nickname: string): Promise<SaveNicknameResult
   return { ok: false, code: "error" };
 }
 
+/**
+ * T6: posle prijave na postojeći nalog — obriši gosta koji je ostao na ovom
+ * uređaju. Token je GOSTOV (zapamćen prije prijave), ne trenutni. Ne baca:
+ * ako ne uspije, gost ostaje siroče, a igrač to ne treba da vidi.
+ */
+export async function abandonGuest(guestToken: string): Promise<void> {
+  await fetch(`${API_BASE}/api/me/abandon`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${guestToken}` },
+  }).catch(() => undefined);
+}
+
 export async function saveAvatar(avatar: ProfileAvatar): Promise<Me> {
   const res = await authed("/api/me/avatar", { method: "PUT", body: JSON.stringify({ avatar }) });
   if (!res.ok) throw new Error(`avatar_${res.status}`);

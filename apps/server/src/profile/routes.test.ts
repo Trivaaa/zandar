@@ -141,6 +141,19 @@ test("avatar: samo a1–a10, gost ne može", async () => {
   assert.equal((ok.json() as { avatar: string }).avatar, "a4");
 });
 
+test("T6 abandon: gost se briše (204), nalog ne može da obriše sebe ovom rutom (403)", async () => {
+  const { app, as, store } = setup();
+  await store.recordCompletedMatch("m1", "g1");
+  const res = await app.inject({ method: "POST", url: "/api/me/abandon", headers: as("anon:g1") });
+  assert.equal(res.statusCode, 204);
+  assert.equal(await store.getProfile("g1"), null);
+
+  await store.recordCompletedMatch("m1", "u1");
+  const acc = await app.inject({ method: "POST", url: "/api/me/abandon", headers: as("user:u1") });
+  assert.equal(acc.statusCode, 403);
+  assert.deepEqual(await store.getProfile("u1"), { completedMatches: 1 });
+});
+
 test("previše provjera u minuti → 429", async () => {
   const { check } = setup();
   for (let i = 0; i < 60; i++) assert.equal((await check("user:u1", `abc${i}`)).statusCode, 200);

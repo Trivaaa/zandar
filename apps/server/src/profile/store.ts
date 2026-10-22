@@ -70,6 +70,11 @@ export type ProfileStore = {
   /** `nickname`/`key` su već prošli `checkNickname` i filter riječi. */
   setNickname(uid: string, nickname: string, key: string, now?: number): Promise<SetNicknameResult>;
   setAvatar(uid: string, avatar: ProfileAvatar, now?: number): Promise<void>;
+  /**
+   * Profil i svi rezultati igrača (napušten gost T6, nedovršen nalog Q10).
+   * Nadimak NE dira — rezervacija nadimka je stvar brisanja naloga (korak 7).
+   */
+  deleteUserData(uid: string): Promise<void>;
 };
 
 type NicknameRecord = { uid: string; nickname: string; releasedAt?: number };
@@ -112,7 +117,8 @@ function planNicknameChange(
 export function createMemoryProfileStore(): ProfileStore {
   const profiles = new Map<string, StoredProfile>();
   const nicknames = new Map<string, NicknameRecord>();
-  const results = new Set<string>();
+  /** `matchId__uid` → uid */
+  const results = new Map<string, string>();
 
   const profileOf = (uid: string): StoredProfile => profiles.get(uid) ?? { completedMatches: 0 };
 
@@ -125,7 +131,7 @@ export function createMemoryProfileStore(): ProfileStore {
     async recordCompletedMatch(matchId, uid) {
       const key = docId(matchId, uid);
       if (results.has(key)) return false;
-      results.add(key);
+      results.set(key, uid);
       const p = profileOf(uid);
       profiles.set(uid, { ...p, completedMatches: p.completedMatches + 1 });
       return true;
@@ -153,6 +159,10 @@ export function createMemoryProfileStore(): ProfileStore {
     },
     async setAvatar(uid, avatar) {
       profiles.set(uid, { ...profileOf(uid), avatar });
+    },
+    async deleteUserData(uid) {
+      profiles.delete(uid);
+      for (const [key, owner] of results) if (owner === uid) results.delete(key);
     },
   };
 }
@@ -286,6 +296,15 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
           mask: ["avatar", "updatedAt"],
         },
       ]);
+    },
+    async deleteUserData(uid) {
+      // Rezultati u stranicama (commit nosi najviše 500 upisa), pa profil.
+      for (;;) {
+        const paths = await db.findPaths("results", "uid", uid, 400);
+        if (paths.length === 0) break;
+        await db.commit(paths.map((path) => ({ kind: "delete" as const, path })));
+      }
+      await db.commit([{ kind: "delete", path: profilePath(uid) }]);
     },
   };
 }

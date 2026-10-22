@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { AccountShell } from "@/components/account/AccountShell";
 import { DataLossSheet } from "@/components/account/AccountSheets";
 import { Field } from "@/components/account/Field";
-import { signInWithEmail } from "@/lib/account";
+import { currentAccount, signInWithEmail } from "@/lib/account";
 import { accountErrorCode, looksLikeEmail } from "@/lib/accountErrors";
-import { fetchMe, useMe } from "@/lib/profile";
+import { getIdToken } from "@/lib/auth";
+import { abandonGuest, fetchMe, useMe } from "@/lib/profile";
 import { sr } from "@/lib/sr";
 import { useQueryParam, withQuery } from "@/lib/useQuery";
 
@@ -45,7 +46,11 @@ export function LoginEmailScreen() {
     setError(null);
     setWrong(false);
     try {
+      // T6: token gosta se uzima PRIJE prijave — poslije nje je trenutni nalog drugi.
+      const guest = await currentAccount();
+      const guestToken = guest?.anonymous ? await getIdToken() : null;
       await signInWithEmail(email, password);
+      if (guestToken) void abandonGuest(guestToken);
       // Nalog bez nadimka (izašao prije A5) nastavlja registraciju.
       const after = await fetchMe().catch(() => null);
       router.replace(after && !after.nickname ? "/nalog/nadimak" : "/profil");

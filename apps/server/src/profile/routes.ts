@@ -3,6 +3,8 @@ import type { FastifyInstance } from "fastify";
 import { nicknameChangeAllowedAt, parseProfileAvatar } from "@zandar/shared-types";
 
 import type { AuthUser } from "../auth/idToken";
+import type { IdentityAdmin } from "../google/identityToolkit";
+import { abandonGuest } from "./cleanup";
 import { SlidingWindowLimiter } from "../rateLimit";
 import { evaluateNickname } from "./nickname";
 import type { ProfileStore } from "./store";
@@ -22,7 +24,13 @@ const NICKNAME_LIMIT_PER_MINUTE = 60;
 
 export function registerProfileRoutes(
   app: FastifyInstance,
-  deps: { store: ProfileStore; requireUser: RequireUser; now?: () => number },
+  deps: {
+    store: ProfileStore;
+    requireUser: RequireUser;
+    /** Firebase Auth admin; `null` = brišu se samo podaci, ne i Firebase nalog. */
+    identity?: IdentityAdmin | null;
+    now?: () => number;
+  },
 ): void {
   const { store, requireUser } = deps;
   const now = deps.now ?? Date.now;
@@ -110,6 +118,25 @@ export function registerProfileRoutes(
       return await me(user);
     } catch (err) {
       return storeUnavailable(reply, err, "PUT /api/me/nickname");
+    }
+  });
+
+  /**
+   * T6: gost se prijavio na postojeći nalog. Klijent PRIJE prijave zapamti
+   * token gosta i poslije uspjeha ga šalje ovdje — tako se gost briše samo
+   * kad je prijava stvarno uspjela, a ne kad je lozinka bila pogrešna.
+   */
+  app.post("/api/me/abandon", async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return reply;
+    if (!user.anonymous) {
+      return reply.code(403).send({ error: "Samo gost", code: "guest_only" });
+    }
+    try {
+      await abandonGuest(user.uid, { store, identity: deps.identity ?? null });
+      return reply.code(204).send();
+    } catch (err) {
+      return storeUnavailable(reply, err, "POST /api/me/abandon");
     }
   });
 

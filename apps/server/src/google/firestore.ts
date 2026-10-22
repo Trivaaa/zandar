@@ -174,6 +174,31 @@ export function createFirestore(
       return (await getDoc(path))?.fields ?? null;
     },
 
+    /**
+     * Putanje (`kolekcija/id`) dokumenata gdje je `field == value`. Čita samo
+     * imena, ne sadržaj — za brisanje svih zapisa jednog igrača.
+     */
+    async findPaths(collection: string, field: string, value: string, limit = 500): Promise<string[]> {
+      const res = await call(`${base}:runQuery`, {
+        method: "POST",
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: collection }],
+            where: { fieldFilter: { field: { fieldPath: field }, op: "EQUAL", value: encodeValue(value) } },
+            select: { fields: [{ fieldPath: "__name__" }] },
+            limit,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error(`Firestore query ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      const rows = (await res.json()) as { document?: { name?: unknown } }[];
+      const prefix = `${root}/`;
+      return rows
+        .map((r) => r.document?.name)
+        .filter((n): n is string => typeof n === "string" && n.startsWith(prefix))
+        .map((n) => n.slice(prefix.length));
+    },
+
     /** Atomski: svi upisi ili nijedan. Neispunjen preduslov → `FirestoreConflictError`. */
     async commit(writes: FsWrite[]): Promise<void> {
       const res = await call(`${base}:commit`, {

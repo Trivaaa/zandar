@@ -75,6 +75,27 @@ async function nicknameContract(store: ProfileStore) {
   assert.equal(p2?.nickname, "marko");
 }
 
+async function deleteContract(store: ProfileStore) {
+  await store.recordCompletedMatch("m1", "gost");
+  await store.recordCompletedMatch("m2", "gost");
+  await store.recordCompletedMatch("m1", "drugi");
+  await store.deleteUserData("gost");
+  assert.equal(await store.getProfile("gost"), null);
+  // Rezultati su zaista nestali: ista partija se opet može upisati.
+  assert.equal(await store.recordCompletedMatch("m1", "gost"), true);
+  assert.deepEqual(await store.getProfile("drugi"), { completedMatches: 1 }, "drugi igrač netaknut");
+  assert.equal(await store.recordCompletedMatch("m1", "drugi"), false);
+}
+
+test("memorija: brisanje igrača — profil i svi rezultati, drugi netaknuti", async () => {
+  await deleteContract(createMemoryProfileStore());
+});
+
+test("Firestore: brisanje igrača — isti ugovor (runQuery + delete)", async () => {
+  const fake = fakeFirestore();
+  await deleteContract(createFirestoreProfileStore(createFirestore("p", tokens, fake.impl)));
+});
+
 test("memorija: partija se broji jednom po igraču, revanš posebno", async () => {
   await resultsContract(createMemoryProfileStore());
 });
@@ -140,6 +161,16 @@ function fakeFirestore() {
         docs.set(name, { fields: next, updateTime: `t${++clock}` });
       }
       return new Response("{}", { status: 200 });
+    }
+    if (url.endsWith(":runQuery")) {
+      const q = JSON.parse(String(init?.body)).structuredQuery;
+      const coll = q.from[0].collectionId;
+      const f = q.where.fieldFilter;
+      const rows = [...docs.entries()]
+        .filter(([name, d]) => name.startsWith(prefix + coll + "/") && d.fields[f.field.fieldPath]?.stringValue === f.value.stringValue)
+        .slice(0, q.limit)
+        .map(([name]) => ({ document: { name } }));
+      return new Response(JSON.stringify(rows.length ? rows : [{ readTime: "t" }]), { status: 200 });
     }
     const name = decodeURI(url.slice(url.indexOf(prefix)));
     const doc = docs.get(name);

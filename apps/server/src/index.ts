@@ -80,6 +80,7 @@ import { notifyDevices } from "./push/notify";
 import { parseQuickPlayConfig } from "./quickplay";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
+import { identityAdmin, sweepIncompleteAccounts } from "./profile/cleanup";
 import { recordCompletedMatch } from "./profile/results";
 import { registerProfileRoutes } from "./profile/routes";
 import { profileStore } from "./profile/store";
@@ -203,7 +204,7 @@ async function requireUser(
 }
 
 // `/api/me`, nadimak i avatar (SPEC_IDENTITET §6.2, §6.4).
-registerProfileRoutes(fastify, { store: profileStore, requireUser });
+registerProfileRoutes(fastify, { store: profileStore, requireUser, identity: identityAdmin });
 
 // ---- PUSH UREĐAJI (PRD §51) ----
 
@@ -1071,6 +1072,17 @@ function sweepSignups(): void {
 }
 sweepSignups();
 setInterval(sweepSignups, 24 * 60 * 60 * 1000).unref();
+
+/** Nedovršen nalog (bez nadimka) briše se poslije 30 dana (SPEC_IDENTITET Q10). */
+function sweepAccounts(): void {
+  sweepIncompleteAccounts({ store: profileStore, identity: identityAdmin })
+    .then((n) => {
+      if (n > 0) fastify.log.info(`🧹 Obrisano ${n} nedovršenih naloga`);
+    })
+    .catch((err) => fastify.log.error(`Brisanje nedovršenih naloga nije uspjelo: ${err}`));
+}
+sweepAccounts();
+setInterval(sweepAccounts, 24 * 60 * 60 * 1000).unref();
 
 // ---- SOCKET.IO ----
 
