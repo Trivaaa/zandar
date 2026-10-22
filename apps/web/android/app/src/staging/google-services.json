@@ -12,7 +12,20 @@
           "package_name": "com.kartaonica.zandar.staging"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "228917580477-jar76mn00lvdvupht8lp3hqfcu8635ed.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kartaonica.zandar.staging",
+            "certificate_hash": "ccb4372d45dedf3201959524cbf398e037e40e05"
+          }
+        },
+        {
+          "client_id": "228917580477-6vo3c0i6ub89v1v5qn7cs7r2n0ob9apj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCqn2odegwXUrcYnbUg4VUBvSb7eGlYF88"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "228917580477-6vo3c0i6ub89v1v5qn7cs7r2n0ob9apj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
