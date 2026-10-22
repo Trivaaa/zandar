@@ -38,7 +38,10 @@ import { networkInterfaces } from "node:os";
 import { connect } from "node:net";
 import { join } from "node:path";
 
-import { pushFlag } from "./build-mobile.mjs";
+import { pushFlag, requireFirebaseConfig } from "./build-mobile.mjs";
+
+// `installDebug` pakuje debug build tip; bez njegovog google-services.json APK pada na startu.
+requireFirebaseConfig("debug");
 
 /**
  * Port se BIRA, ne pretpostavlja. Ako na 3000 vec nesto slusa — a tipicno je to

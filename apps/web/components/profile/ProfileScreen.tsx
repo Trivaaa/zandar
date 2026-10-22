@@ -51,9 +51,13 @@ export function ProfileScreen() {
   const router = useRouter();
   const name = usePlayerName();
   const me = useMe();
-  const entry = useAccountEntry();
   const verifyParam = useQueryParam("potvrda") === "1";
   const [account, setAccount] = useState<AccountInfo | null>(null);
+  // Google prijava na postojeći nalog ostaje na ovom ekranu — profil se osvježi.
+  const entry = useAccountEntry(() => {
+    me.retry();
+    void refreshAccount().then(setAccount);
+  });
   const [verifyDismissed, setVerifyDismissed] = useState(false);
   const [resent, setResent] = useState(false);
   const [sheet, setSheet] = useState<"avatar" | "logout" | "settings" | null>(null);

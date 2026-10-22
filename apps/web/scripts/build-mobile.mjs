@@ -58,6 +58,23 @@ export function pushFlag(buildType) {
   return candidates.some((file) => existsSync(file)) ? "1" : "0";
 }
 
+/**
+ * Od Google prijave (`@capacitor-firebase/authentication`) APK BEZ Firebase
+ * konfiguracije pada već na startu: plugin pri učitavanju zove
+ * `FirebaseAuth.getInstance()`. Ranije je bez fajla samo push bio ugašen —
+ * sada build odbija, jer bi APK koji se ne otvara bio gori od nikakvog.
+ */
+export function requireFirebaseConfig(buildType) {
+  if (pushFlag(buildType) === "1") return;
+  console.error(
+    `\n✗ Nema google-services.json za build tip "${buildType}".\n` +
+      `  Očekivano: android/app/src/${buildType}/google-services.json (ili android/app/google-services.json).\n` +
+      `  Bez njega aplikacija pada pri pokretanju (Firebase Auth plugin). Fajl se preuzima\n` +
+      `  iz Firebase konzole → Project settings → Your apps → Android.\n`,
+  );
+  process.exit(1);
+}
+
 /** `--env staging` | `--env=staging`; bez argumenta ostaje produkcija (zatečeno ponašanje). */
 export function parseTarget(argv) {
   const flag = argv.indexOf("--env");
@@ -82,6 +99,7 @@ export function mobileEnv(target) {
     NEXT_PUBLIC_PLATFORM: "native",
     NEXT_PUBLIC_PUSH: pushFlag(PUSH_BUILD_TYPE[target]),
   };
+  requireFirebaseConfig(PUSH_BUILD_TYPE[target]);
   for (const [key, fallback] of Object.entries(TARGETS[target])) {
     env[key] = process.env[key] || fallback;
   }

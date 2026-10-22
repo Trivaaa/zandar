@@ -14,13 +14,18 @@ import { sr } from "@/lib/sr";
 export function MethodSheet({
   kind,
   googleAvailable,
+  busy = false,
+  error = null,
   onGoogle,
   onEmail,
   onClose,
 }: {
   kind: "register" | "login";
-  /** Google prijava stiže u koraku 5c; do tada dugme ne postoji. */
+  /** Bez Firebase konfiguracije (ili google-services.json u APK-u) dugme ne postoji. */
   googleAvailable: boolean;
+  /** Google prozor je otvoren — dugmad čekaju. */
+  busy?: boolean;
+  error?: string | null;
   onGoogle: () => void;
   onEmail: () => void;
   onClose: () => void;
@@ -33,14 +38,25 @@ export function MethodSheet({
     >
       {kind === "register" ? <p className="sheet__note">{sr.account.registerSheetNote}</p> : null}
       {googleAvailable ? (
-        <button type="button" className="home__friends sheet__btn" onClick={onGoogle}>
+        <button
+          type="button"
+          className="home__friends sheet__btn"
+          onClick={onGoogle}
+          disabled={busy}
+          aria-busy={busy}
+        >
           <GoogleMarkIcon className="home__friends-icon" />
           {sr.account.withGoogle}
         </button>
       ) : null}
-      <button type="button" className="home__friends sheet__btn" onClick={onEmail}>
+      <button type="button" className="home__friends sheet__btn" onClick={onEmail} disabled={busy}>
         {sr.account.withEmail}
       </button>
+      {error ? (
+        <p className="acct__error" role="status">
+          {error}
+        </p>
+      ) : null}
       {kind === "register" ? <PrivacyNote /> : null}
     </Sheet>
   );

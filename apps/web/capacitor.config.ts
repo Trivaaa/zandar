@@ -56,6 +56,13 @@ const config: CapacitorConfig = {
       hidden: true,
       style: "DARK",
     },
+    // Google prijava (SPEC_IDENTITET tok a/b). Nativni dio samo izabere Google
+    // nalog i vrati kredencijal; prijava i povezivanje sa gostom ostaju u JS
+    // Firebase SDK-u (`lib/account.ts`), pa je nalog isti na webu i u APK-u.
+    FirebaseAuthentication: {
+      skipNativeAuth: true,
+      providers: ["google.com"],
+    },
   },
 };
 

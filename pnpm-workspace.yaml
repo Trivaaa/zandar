@@ -6,5 +6,6 @@ allowBuilds:
   '@sentry/cli': false
   core-js: true
   esbuild: true
+  protobufjs: false
   sharp: true
   unrs-resolver: false

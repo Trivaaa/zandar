@@ -1,7 +1,9 @@
-import type { Auth, User } from "@firebase/auth";
+import type { Auth, OAuthCredential, User } from "@firebase/auth";
 
 import { AccountError, accountErrorCode } from "@/lib/accountErrors";
 import { ensureSignedIn, getAuthInstance, resetSignIn } from "@/lib/auth";
+import { FIREBASE_CONFIG } from "@/lib/firebaseConfig";
+import { isNative } from "@/lib/platform";
 
 /**
  * Radnje naloga koje igrač sam pokreće (SPEC_IDENTITET tok a, b, §6.3, §6.7).
@@ -164,9 +166,120 @@ export async function reauthenticateWithPassword(password: string): Promise<void
   }
 }
 
-/** C6: ponovna prijava Googleom — stiže sa Google prijavom (korak 5c). */
+/**
+ * Google prijava postoji kad postoji Firebase konfiguracija, a u APK-u i
+ * `google-services.json` (build ga od 5c traži, `NEXT_PUBLIC_PUSH` je njegov
+ * trag u web bundle-u).
+ */
+export const googleSignInAvailable =
+  FIREBASE_CONFIG !== null && (!isNative || process.env.NEXT_PUBLIC_PUSH === "1");
+
+/**
+ * U APK-u: nativni izbor Google naloga → kredencijal za JS SDK (plugin ima
+ * `skipNativeAuth`, pa se nativno NE prijavljuje). Pravilo iz CLAUDE.md:
+ * plugin objekat se nikad ne vraća iz `async` funkcije — poziva se odmah.
+ */
+async function nativeGoogleCredential(): Promise<OAuthCredential> {
+  let idToken: string | null | undefined;
+  let accessToken: string | null | undefined;
+  try {
+    const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
+    const result = await FirebaseAuthentication.signInWithGoogle();
+    idToken = result.credential?.idToken;
+    accessToken = result.credential?.accessToken;
+  } catch (err) {
+    // Nativni plugin javlja odustajanje porukom, ne Firebase kodom.
+    if (/cancel/i.test(String((err as { message?: unknown })?.message ?? err))) {
+      throw new AccountError("cancelled", err);
+    }
+    throw err;
+  }
+  if (!idToken) throw new AccountError("cancelled");
+  const { GoogleAuthProvider } = await import("@firebase/auth");
+  return GoogleAuthProvider.credential(idToken, accessToken ?? null);
+}
+
+export type GoogleOutcome =
+  /** A3 Google: gost je postao nalog (isti `uid`) → A5. */
+  | { kind: "linked"; account: AccountInfo }
+  /** Taj Google nalog već ima nalog kod nas → B4, pa `signInWithGoogleCredential`. */
+  | { kind: "exists"; credential: OAuthCredential };
+
+const EXISTING_ACCOUNT_CODES = new Set([
+  "auth/credential-already-in-use",
+  "auth/email-already-in-use",
+  "auth/account-exists-with-different-credential",
+]);
+
+/**
+ * A3/B2 „Nastavi s Googleom" za gosta: prvo pokušaj povezati Google sa
+ * gostom (registracija bez gubitka partija). Ako Google nalog već postoji,
+ * NE prijavljuje — vraća kredencijal, da ekran prvo pokaže upozorenje (B4).
+ */
+export async function continueWithGoogle(): Promise<GoogleOutcome> {
+  try {
+    const user = await requireUser();
+    const fa = await import("@firebase/auth");
+    if (isNative) {
+      const credential = await nativeGoogleCredential();
+      try {
+        const { user: linked } = await fa.linkWithCredential(user, credential);
+        await linked.getIdToken(true);
+        return { kind: "linked", account: infoOf(linked) };
+      } catch (err) {
+        if (EXISTING_ACCOUNT_CODES.has(String((err as { code?: unknown })?.code))) {
+          return { kind: "exists", credential };
+        }
+        throw err;
+      }
+    }
+    try {
+      const { user: linked } = await fa.linkWithPopup(
+        user,
+        new fa.GoogleAuthProvider(),
+        fa.browserPopupRedirectResolver,
+      );
+      await linked.getIdToken(true);
+      return { kind: "linked", account: infoOf(linked) };
+    } catch (err) {
+      if (EXISTING_ACCOUNT_CODES.has(String((err as { code?: unknown })?.code))) {
+        const credential = fa.GoogleAuthProvider.credentialFromError(err as never);
+        if (credential) return { kind: "exists", credential };
+      }
+      throw err;
+    }
+  } catch (err) {
+    rethrow(err);
+  }
+}
+
+/** B5: prijava na POSTOJEĆI nalog Google kredencijalom (poslije B4). */
+export async function signInWithGoogleCredential(credential: OAuthCredential): Promise<AccountInfo> {
+  try {
+    const auth = await requireAuth();
+    const { signInWithCredential } = await import("@firebase/auth");
+    const { user } = await signInWithCredential(auth, credential);
+    resetSignIn();
+    return infoOf(user);
+  } catch (err) {
+    rethrow(err);
+  }
+}
+
+/** C6: ponovna prijava istim Google nalogom prije brisanja. */
 export async function reauthenticateWithGoogle(): Promise<void> {
-  throw new AccountError("unavailable");
+  try {
+    const user = await requireUser();
+    const fa = await import("@firebase/auth");
+    if (isNative) {
+      await fa.reauthenticateWithCredential(user, await nativeGoogleCredential());
+    } else {
+      await fa.reauthenticateWithPopup(user, new fa.GoogleAuthProvider(), fa.browserPopupRedirectResolver);
+    }
+    await user.getIdToken(true);
+  } catch (err) {
+    rethrow(err);
+  }
 }
 
 /**

@@ -28,7 +28,7 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import { readdir, rm } from "node:fs/promises";
 
-import { parseTarget, mobileEnv, logTarget } from "./build-mobile.mjs";
+import { parseTarget, mobileEnv, logTarget, requireFirebaseConfig } from "./build-mobile.mjs";
 
 /** Koji gradle task i gdje ostavi artefakt, po cilju. `out` je relativan na
  *  `app/build/outputs/`, jer se APK i AAB granaju ispod različitih podfoldera. */
@@ -81,6 +81,8 @@ if (wantsRelease && target !== "prod") {
   console.error("\n✗ --release samo uz --env prod (staging ostaje namjerno debug-potpisan)\n");
   process.exit(1);
 }
+// AAB pakuje `release` build tip — njegov google-services.json, ne debug-ov.
+if (wantsRelease) requireFirebaseConfig("release");
 
 // Jedinstven izlazni folder po pozivu (vidi next.config.ts) — zaobilazi
 // Windows EBUSY kad antivirus/indexer drži handle na starom `out/` i pošto
