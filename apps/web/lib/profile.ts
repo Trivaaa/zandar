@@ -28,7 +28,7 @@ export async function fetchMe(): Promise<Me> {
   return (await res.json()) as Me;
 }
 
-async function authed(path: string, init: RequestInit = {}): Promise<Response> {
+export async function authed(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = await authHeaders();
   if (!headers.Authorization) throw new Error("no_token");
   return fetch(`${API_BASE}${path}`, {

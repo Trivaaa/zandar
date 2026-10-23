@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { CardsIcon, FriendsIcon, PersonIcon } from "@/components/icons";
 import { sr } from "@/lib/sr";
+import { useFriendRequestCount } from "@/lib/userChannel";
 
 /**
  * Donja navigacija (SPEC_IDENTITET §4, tabla „1 · Donja navigacija").
@@ -24,8 +25,10 @@ function samePath(a: string, b: string): boolean {
   return norm(a) === norm(b);
 }
 
-export function TabBar({ friendRequests = 0 }: { friendRequests?: number }) {
+export function TabBar() {
   const pathname = usePathname() ?? "/";
+  // D4: broj zahtjeva koji čekaju, sa korisničkog kanala (0 za gosta).
+  const friendRequests = useFriendRequestCount();
   return (
     <nav className="tabbar" aria-label={sr.nav.label}>
       {TABS.map(({ href, label, Icon }) => {

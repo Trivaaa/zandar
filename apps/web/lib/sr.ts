@@ -538,11 +538,48 @@ export const sr = {
     },
     sendReport: "Pošalji prijavu",
     reportThanks: "Hvala. Pogledaćemo prijavu.",
+    // F2–F6
+    addFriend: "Dodaj za prijatelja",
+    requestSent: "Zahtjev je poslat",
+    withdraw: "Povuci zahtjev",
+    wantsFriend: "Želi da budete prijatelji",
+    acceptRequest: "Prihvati zahtjev",
+    decline: "Odbij",
+    areFriends: "Prijatelji ste",
+    removeFriend: "Ukloni iz prijatelja",
+    removeConfirm: (name: string) => `Ukloniti ${name} iz prijatelja?`,
+    removeBody: "Neće dobiti obavještenje. Kasnije možeš ponovo poslati zahtjev.",
+    remove: "Ukloni",
   },
   /* Prijatelji (SPEC_IDENTITET §6.6). */
   friends: {
     title: "Prijatelji",
     guestTitle: "Prijatelji su za igrače s nalogom",
     guestBody: "Napravi nalog, dodaj svoje društvo i zovi ih na partiju jednim dodirom.",
+    // D1
+    emptyTitle: "Još nemaš prijatelja",
+    emptyBody: "Dodaj ih po nadimku, ili dodirni igrača za stolom pa Dodaj za prijatelja.",
+    addFriend: "Dodaj prijatelja",
+    add: "Dodaj",
+    // D4 / lista
+    requestsTitle: (n: number) => `Zahtjevi za prijateljstvo (${n})`,
+    listTitle: (n: number) => `Prijatelji (${n})`,
+    accept: "Prihvati",
+    decline: "Odbij",
+    // D5
+    accepted: (name: string) => `${name} je sada tvoj prijatelj.`,
+    // D2 / D3
+    addTitle: "Dodaj prijatelja",
+    addSub: "Upiši nadimak igrača. Dobiće zahtjev i odlučiti da li prihvata.",
+    searchLabel: "Nadimak",
+    minChars: "Najmanje 3 slova.",
+    searching: "Tražim…",
+    noResults: "Nema igrača s tim nadimkom.",
+    sent: "Zahtjev poslat",
+    already: "Već ste prijatelji",
+    // F8 / F9
+    loading: "Učitavam prijatelje",
+    loadError: "Prijatelji se nisu učitali.",
+    loadErrorBody: "Provjeri internet vezu i pokušaj ponovo.",
   },
 } as const;
