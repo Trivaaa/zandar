@@ -26,7 +26,7 @@ export function MatchingScreen({ roomId }: { roomId: string }) {
   const [revealed, setRevealed] = useState(0);
   const [stage, setStage] = useState<"loading" | "filling" | "done">("loading");
   const [statusText, setStatusText] = useState<string>(sr.matching.preparing);
-  // Veličina stola dok soba ne stigne: zadnji izbor sa `/igraj`, koji je upravo
+  // Veličina stola dok soba ne stigne: zapamćen izbor brze igre, koji je upravo
   // sačuvan (`startQuickPlay`). Čim roster stigne, broj mjesta daje on.
   const prefsRaw = useSyncExternalStore(subscribeToNothing, readQuickPlayPrefsRaw, () => null);
   const expectedPlaces = parseQuickPlayPrefs(prefsRaw).playerCount;

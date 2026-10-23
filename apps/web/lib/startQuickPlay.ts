@@ -8,11 +8,11 @@ import { saveSession } from "@/lib/session";
 import { saveTableTheme } from "@/lib/tableTheme";
 
 /**
- * Jedan put do javnog stola, sa ekrana `/igraj`.
+ * Jedan put do javnog stola — „Igraj Žandar" na početnoj.
  *
  * Ime i izbor se pamte PRIJE zahtjeva, pa mrežna greška ne briše ono što je
  * igrač upisao i izabrao. Vraća putanju matching ekrana; navigaciju radi
- * pozivalac (`/igraj` zamjenjuje sebe).
+ * pozivalac (`replace`, da „nazad" sa traženja vodi na početnu).
  */
 export async function startQuickPlay(
   name: string,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
 
 import { useBackHandler } from "@/lib/backHandlers";
 
@@ -10,6 +10,8 @@ export type SheetProps = {
   /** Donje dugme (Odustani / Zatvori) — uvijek postoji, kao u Postavkama. */
   closeLabel: string;
   onClose: () => void;
+  /** Šta dobija fokus na otvaranju (npr. polje za unos); inače donje dugme. */
+  initialFocusRef?: RefObject<HTMLElement | null> | undefined;
 };
 
 /**
@@ -19,7 +21,7 @@ export type SheetProps = {
  *
  * Omotač `.home-layer` diže list iznad PWA trake i donje navigacije.
  */
-export function Sheet({ title, children, closeLabel, onClose }: SheetProps) {
+export function Sheet({ title, children, closeLabel, onClose, initialFocusRef }: SheetProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   // Fokus se vraća tamo gdje je bio — host ne mora da pamti dugme.
@@ -27,11 +29,12 @@ export function Sheet({ title, children, closeLabel, onClose }: SheetProps) {
 
   useEffect(() => {
     returnFocus.current = document.activeElement;
-    closeRef.current?.focus();
+    (initialFocusRef?.current ?? closeRef.current)?.focus();
     return () => {
       if (returnFocus.current instanceof HTMLElement) returnFocus.current.focus();
     };
-  }, []);
+    // `initialFocusRef` je ref (stabilan objekat) — efekat ostaje „na otvaranju".
+  }, [initialFocusRef]);
 
   useBackHandler(true, onClose);
 

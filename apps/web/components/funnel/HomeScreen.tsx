@@ -14,6 +14,8 @@ export type HomeScreenProps = {
   settingsButtonRef?: Ref<HTMLButtonElement> | undefined;
   loading: boolean;
   error?: string | undefined;
+  playSummary: string;
+  onPlaySettings: () => void;
   /** Web da, APK ne — odluku donosi host (`!isNative`), da preview može oboje. */
   showStores: boolean;
   /** Prikaz sekcije budućih igara (analitika). Zove se jednom po prikazu. */
@@ -29,7 +31,7 @@ export type HomeScreenProps = {
  * linkova ka teaser stranicama). Glavna radnja je jedna i glasna; privatna soba
  * je vidljiva ali tiša; buduće igre i prodavnice su ispod pregiba.
  *
- * Ime više NIJE ovdje — traži se na `/ime` tek kad je igrač izabrao radnju.
+ * Ime nije ovdje — „Igraj Žandar" ga traži u listu samo kad nije sačuvano.
  */
 export function HomeScreen({
   onPlay,
@@ -38,6 +40,8 @@ export function HomeScreen({
   settingsButtonRef,
   loading,
   error,
+  playSummary,
+  onPlaySettings,
   showStores,
   onUpcomingViewed,
   legalSlot,
@@ -52,6 +56,8 @@ export function HomeScreen({
         settingsButtonRef={settingsButtonRef}
         loading={loading}
         error={error}
+        playSummary={playSummary}
+        onPlaySettings={onPlaySettings}
       />
       <UpcomingGames onViewed={onUpcomingViewed} />
       {showStores ? <StoreRow /> : null}

@@ -1,7 +1,8 @@
 "use client";
 
-import { TABLE_THEMES, type TableTheme } from "@zandar/shared-types";
+import type { TableTheme } from "@zandar/shared-types";
 
+import { TableSetupFields } from "@/components/lobby/TableSetupFields";
 import { sr } from "@/lib/sr";
 
 export type CreateRoomScreenProps = {
@@ -57,7 +58,6 @@ export function CreateRoomScreen({
   copy = sr.create,
   className = "",
 }: CreateRoomScreenProps) {
-  const targets: number[] = [11, 21];
   const ctaDisabled = loading || displayName.trim() === "";
 
   return (
@@ -83,66 +83,17 @@ export function CreateRoomScreen({
           />
         </div>
 
-        <div className="create__field">
-          <span className="create__label font-sans text-sm">{copy.players}</span>
-          <div className="create__segmented" role="radiogroup" aria-label={copy.players}>
-            {counts.map((n) => (
-              <button
-                key={n}
-                type="button"
-                role="radio"
-                aria-checked={playerCount === n}
-                className="create__option font-display text-base"
-                data-selected={playerCount === n}
-                onClick={() => onPlayerCount(n)}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="create__field">
-          <span className="create__label font-sans text-sm">{copy.target}</span>
-          <div className="create__segmented" role="radiogroup" aria-label={copy.target}>
-            {targets.map((n) => (
-              <button
-                key={n}
-                type="button"
-                role="radio"
-                aria-checked={targetScore === n}
-                className="create__option font-display text-base"
-                data-selected={targetScore === n}
-                onClick={() => onTargetScore(n)}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {onTableTheme && (
-          <div className="create__field">
-            <span className="create__label font-sans text-sm">{sr.tableTheme.label}</span>
-            <div className="create__themes" role="radiogroup" aria-label={sr.tableTheme.label}>
-              {TABLE_THEMES.map((theme) => (
-                <button
-                  key={theme}
-                  type="button"
-                  role="radio"
-                  aria-checked={tableTheme === theme}
-                  className="create__theme font-sans text-sm"
-                  data-selected={tableTheme === theme}
-                  onClick={() => onTableTheme(theme)}
-                >
-                  {/* Ukras: naziv ispod već imenuje izbor. */}
-                  <span className="create__theme-thumb" data-table={theme} aria-hidden="true" />
-                  {sr.tableTheme.names[theme]}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <TableSetupFields
+          playerCount={playerCount}
+          onPlayerCount={onPlayerCount}
+          targetScore={targetScore}
+          onTargetScore={onTargetScore}
+          tableTheme={tableTheme}
+          onTableTheme={onTableTheme}
+          counts={counts}
+          playersLabel={copy.players}
+          targetLabel={copy.target}
+        />
 
         <button
           type="button"

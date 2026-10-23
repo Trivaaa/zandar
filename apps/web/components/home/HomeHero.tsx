@@ -4,7 +4,7 @@ import type { Ref } from "react";
 
 import { BrandLockup } from "@/components/brand/BrandLockup";
 import { PlayingCard } from "@/components/felt/PlayingCard";
-import { ArrowRightIcon, FriendsIcon, GearIcon } from "@/components/icons";
+import { ArrowRightIcon, ChevronRightIcon, FriendsIcon, GearIcon } from "@/components/icons";
 import { HOME_HERO_CARDS } from "@/lib/games";
 import { isStaging } from "@/lib/platform";
 import { sr } from "@/lib/sr";
@@ -16,10 +16,15 @@ export type HomeHeroProps = {
   settingsButtonRef?: Ref<HTMLButtonElement> | undefined;
   loading: boolean;
   error?: string | undefined;
+  /** Zapamćen izbor stola („4 igrača · do 21 · Klasik"); dodir otvara list. */
+  playSummary: string;
+  onPlaySettings: () => void;
 };
 
 /**
- * Gornji dio home-a: brend, motiv, ime igre i dvije radnje.
+ * Gornji dio home-a: brend, motiv, ime igre i dvije radnje. Ispod „Igraj
+ * Žandar" stoji zapamćen izbor stola — dugme je jedan dodir do stola, a izbor
+ * se mijenja u listu.
  *
  * Glavni CTA mora stati iznad pregiba na 360×760, pa motiv karata raste sa
  * `dvh` i ima plafon (`--hero-card-w` u home.css) — na niskom ekranu se
@@ -32,6 +37,8 @@ export function HomeHero({
   settingsButtonRef,
   loading,
   error,
+  playSummary,
+  onPlaySettings,
 }: HomeHeroProps) {
   return (
     <>
@@ -76,7 +83,18 @@ export function HomeHero({
             <span>{loading ? sr.home.playLoading : sr.home.play}</span>
             {loading ? null : <ArrowRightIcon className="home__cta-arrow" />}
           </button>
-          <p className="home__note">{sr.home.playNote}</p>
+          {/* Šta će igrač dobiti, prije nego što dodirne — i ulaz u izmjenu. */}
+          <button
+            type="button"
+            className="home__setup"
+            onClick={onPlaySettings}
+            disabled={loading}
+            aria-haspopup="dialog"
+            aria-label={sr.quickSetup.summaryLabel(playSummary)}
+          >
+            <span>{playSummary}</span>
+            <ChevronRightIcon className="home__setup-icon" />
+          </button>
 
           {/* Rezervisan red: greška ne pomjera dugme ispod nje. */}
           <p className="home__error" data-empty={!error} role="status">

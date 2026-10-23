@@ -297,7 +297,7 @@ export type QuickPlayResponse = {
   playerSessionToken: string;
 };
 
-/** Quick Play: veličinu stola i cilj bira igrač na `/igraj` (`lib/quickPlayPrefs.ts`). */
+/** Quick Play: veličina stola i cilj su zapamćen izbor igrača (`lib/quickPlayPrefs.ts`). */
 export async function quickPlay(input: {
   displayName: string;
   playerCount: number;

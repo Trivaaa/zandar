@@ -71,6 +71,8 @@ export default function DevFunnelPage() {
             onPlay={() => undefined}
             onFriends={() => undefined}
             onOpenSettings={() => undefined}
+            playSummary={sr.quickSetup.summary(4, 21, sr.tableTheme.names.classic)}
+            onPlaySettings={() => undefined}
             loading={loading}
             {...(withError ? { error: ERROR } : {})}
             showStores={stores}

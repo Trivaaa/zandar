@@ -13,9 +13,9 @@ import { sr } from "@/lib/sr";
  * Zasebna ruta, a ne sheet na home-u: Android „nazad" (`NativeShell`) na `/`
  * gasi aplikaciju, a ovdje radi `router.back()` bez ijedne dopune.
  *
- * Brza igra je ranije ovdje tražila ime (`?next=quickplay`); otkad ima svoj
- * ekran (`/igraj`) sa poljem za ime, taj put više ne postoji. Stari link sa
- * `?next=quickplay` se ponaša kao obična izmjena imena.
+ * Brza igra je ranije ovdje tražila ime (`?next=quickplay`); sad ga traži u
+ * listu na početnoj, samo prvi put. Stari link sa `?next=quickplay` se ponaša
+ * kao obična izmjena imena.
  */
 export default function NamePage() {
   const router = useRouter();

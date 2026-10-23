@@ -20,7 +20,7 @@ export default function CreatePage() {
   const displayName = nameDraft ?? savedName ?? "";
   const [playerCount, setPlayerCount] = useState<2 | 3 | 4>(2);
   const [targetScore, setTargetScore] = useState(21);
-  // Zadnja izabrana podloga, zajednička sa `/igraj`; `null` = nije dirano.
+  // Zadnja izabrana podloga, zajednička sa brzom igrom; `null` = nije dirano.
   const savedTheme = useSyncExternalStore(subscribeToNothing, readTableThemeRaw, () => null);
   const [themeDraft, setThemeDraft] = useState<TableTheme | null>(null);
   const tableTheme = themeDraft ?? parseTableTheme(savedTheme);
@@ -31,7 +31,7 @@ export default function CreatePage() {
     setError(null);
     setLoading(true);
     try {
-      // Pamti se PRIJE zahtjeva, kao na `/igraj`: mrežna greška ne briše izbor.
+      // Pamti se PRIJE zahtjeva, kao kod brze igre: mrežna greška ne briše izbor.
       saveTableTheme(tableTheme);
       const res = await createRoom({ displayName, playerCount, targetScore, tableTheme });
       savePlayerName(displayName);

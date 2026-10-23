@@ -116,13 +116,23 @@ export const sr = {
     label: "Izgled stola",
     names: { classic: "Klasik", wood: "Drvo", cloth: "Kafana" } satisfies Record<TableTheme, string>,
   },
-  /* „Igraj Žandar" — isti ekran kao „Nova soba" (`CreateRoomScreen`), drugi tekst. */
+  /* „Igraj Žandar" sa početne: jedan dodir do stola. Izbor stola se mijenja u
+     listu ispod dugmeta, ime se pita samo prvi put. */
   quickSetup: {
-    title: "Igraj Žandar",
     players: "Broj igrača",
     target: "Igra se do",
+    // Red ispod dugmeta: šta će igrač dobiti, i ujedno ulaz u list.
+    summary: (players: number, target: number, table: string) => `${players} igrača · do ${target} · ${table}`,
+    summaryLabel: (summary: string) => `Podešavanja igre: ${summary}. Promijeni`,
+    settingsTitle: "Podešavanja igre",
+    save: "Sačuvaj",
+    cancel: "Odustani",
+    nameTitle: "Kako da te zovemo?",
+    nameSub: "Pod ovim imenom te vide za stolom. Promijeniti ga možeš u Postavkama.",
+    nameLabel: "Ime za stolom",
     submit: "Nađi sto",
     submitting: "Tražim sto...",
+    error: "Nismo uspjeli naći sto. Pokušaj ponovo.",
   },
   create: {
     title: "Nova soba",
@@ -183,7 +193,6 @@ export const sr = {
     tagline: "Imaš vremena za jednu?",
     play: "Igraj Žandar",
     playLoading: "Tražim sto...",
-    playNote: "Zaigraj s drugima. Pokaži šta znaš.",
     friends: "Igraj s prijateljima",
     friendsNote: "Vaše društvo. Vaš sto.",
     privacy: "Privatnost",

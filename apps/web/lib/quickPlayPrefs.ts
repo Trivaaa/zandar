@@ -1,7 +1,10 @@
+import { useMemo, useSyncExternalStore } from "react";
+
 /**
  * Izbor za „Igraj Žandar" — veličina stola i cilj partije.
  *
- * Pamti se zadnji izbor, pa ekran `/igraj` sljedeći put traži samo potvrdu.
+ * Pamti se zadnji izbor: „Igraj Žandar" na početnoj kreće pravo s njim, a
+ * mijenja se u listu podešavanja ispod dugmeta.
  * Podrazumijevano je 4 / 21: tako je brza igra radila dok izbora nije bilo.
  * Sto za 3 se ovdje ne nudi — ostaje kod „Igraj s prijateljima".
  */
@@ -57,6 +60,32 @@ export function saveQuickPlayPrefs(prefs: QuickPlayPrefs): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
   } catch {
-    // bez pamćenja — ekran sljedeći put kreće od podrazumijevanog
+    // bez pamćenja — sljedeći put se kreće od podrazumijevanog
   }
+  for (const listener of listeners) listener();
+}
+
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  // Druga kartica promijenila izbor.
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === STORAGE_KEY) listener();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+/**
+ * Zapamćen izbor kao React stanje. Snapshot je SIROV string (stabilan), a
+ * parsira se u renderu; server snapshot je `null` → podrazumijevano, pa nema
+ * hydration mismatch-a.
+ */
+export function useQuickPlayPrefs(): QuickPlayPrefs {
+  const raw = useSyncExternalStore(subscribe, readQuickPlayPrefsRaw, () => null);
+  return useMemo(() => parseQuickPlayPrefs(raw), [raw]);
 }

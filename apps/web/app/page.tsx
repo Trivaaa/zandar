@@ -7,14 +7,19 @@ import { useRouter } from "next/navigation";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { RulesModal } from "@/components/RulesModal";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
+import { QuickPlayNameSheet, QuickPlaySettingsSheet } from "@/components/home/QuickPlaySheets";
 import { SettingsSheet } from "@/components/home/SettingsSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { useBackHandler } from "@/lib/backHandlers";
 import { identityUi } from "@/lib/features";
 import { isNative } from "@/lib/platform";
-import { usePlayerName } from "@/lib/playerName";
-import { namePath, quickPlaySetupPath } from "@/lib/routes";
+import { readPlayerName, savePlayerName, usePlayerName } from "@/lib/playerName";
+import { fetchMe } from "@/lib/profile";
+import { saveQuickPlayPrefs, useQuickPlayPrefs } from "@/lib/quickPlayPrefs";
+import { namePath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
+import { startQuickPlay } from "@/lib/startQuickPlay";
+import { saveTableTheme, useTableTheme } from "@/lib/tableTheme";
 import { track } from "@/lib/track";
 
 // Privatnost / uslovi / o nama. Na webu žive u footeru home-a (Play traži
@@ -32,8 +37,54 @@ const legalSlot = (
 export default function Home() {
   const router = useRouter();
   const playerName = usePlayerName();
+  const prefs = useQuickPlayPrefs();
+  const tableTheme = useTableTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [sheet, setSheet] = useState<"name" | "setup" | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [playError, setPlayError] = useState<string | null>(null);
+  // `playing` gasi dugme tek na sljedećem renderu; brz dupli tap stigne prije.
+  const busy = useRef(false);
+
+  /** Pravo za sto sa zapamćenim izborom. `replace`: „nazad" sa traženja vodi na početnu. */
+  async function play(name: string) {
+    if (busy.current) return;
+    busy.current = true;
+    setPlayError(null);
+    setPlaying(true);
+    try {
+      router.replace(await startQuickPlay(name, prefs, tableTheme));
+    } catch {
+      setPlayError(sr.quickSetup.error);
+      setPlaying(false);
+      busy.current = false;
+    }
+  }
+
+  /**
+   * „Igraj Žandar": jedan dodir kad je ime poznato. Bez imena: nalog s
+   * nadimkom ide pod nadimkom (server ga ionako stavlja za sto), inače list
+   * sa imenom — samo taj put.
+   */
+  async function onPlay() {
+    const saved = readPlayerName();
+    if (saved) return play(saved);
+    if (identityUi) {
+      setPlaying(true);
+      const nickname = await fetchMe().then(
+        (me) => (me.anonymous ? null : me.nickname),
+        () => null,
+      );
+      setPlaying(false);
+      if (nickname) {
+        savePlayerName(nickname);
+        return play(nickname);
+      }
+    }
+    setPlayError(null);
+    setSheet("name");
+  }
   // Fokus se vraća na ZUPČANIK, ne na `document.activeElement` zapamćen pri
   // otvaranju: Safari (i programski klik) ne fokusira dugme na tap, pa bi
   // zapamćen bio `body` i fokus bi se izgubio.
@@ -50,13 +101,14 @@ export default function Home() {
   return (
     <>
       <HomeScreen
-        /* Ime, veličina stola i cilj se biraju na `/igraj` — zasebna ruta, pa
-           Android „nazad" tamo radi sam od sebe (na `/` gasi aplikaciju). */
-        onPlay={() => router.push(quickPlaySetupPath)}
+        onPlay={() => void onPlay()}
+        playSummary={sr.quickSetup.summary(prefs.playerCount, prefs.targetScore, sr.tableTheme.names[tableTheme])}
+        onPlaySettings={() => setSheet("setup")}
         onFriends={() => router.push("/create")}
         onOpenSettings={() => setSettingsOpen(true)}
         settingsButtonRef={settingsButton}
-        loading={false}
+        loading={playing && sheet === null}
+        {...(playError && sheet === null ? { error: playError } : {})}
         showStores={!isNative}
         onUpcomingViewed={() => track("upcoming_games_viewed")}
         {...(isNative ? {} : { legalSlot })}
@@ -91,6 +143,30 @@ export default function Home() {
 
         <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
       </div>
+
+      {/* `Sheet` nosi svoj `.home-layer` i Android „nazad". */}
+      {sheet === "name" ? (
+        <QuickPlayNameSheet
+          loading={playing}
+          {...(playError ? { error: playError } : {})}
+          onSubmit={(name) => void play(name)}
+          onClose={() => {
+            if (!busy.current) setSheet(null);
+          }}
+        />
+      ) : null}
+      {sheet === "setup" ? (
+        <QuickPlaySettingsSheet
+          prefs={prefs}
+          tableTheme={tableTheme}
+          onSave={(next, theme) => {
+            saveQuickPlayPrefs(next);
+            saveTableTheme(theme);
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
     </>
   );
 }
