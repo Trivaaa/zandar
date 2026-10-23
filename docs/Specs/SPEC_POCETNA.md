@@ -32,8 +32,8 @@ Ilustracija se smanjuje kad ima više igara, da sve stane bez skrolovanja. Kad b
 
 ## 4. Igraj = odmah za sto
 
-- **Igraj** pokreće brzu igru za glavnu igru sa **zadnjim podešavanjima te igre**. Prvi put: 4 igrača · do 21 · Klasik.
-- Nema forme prije partije. Današnja forma `/igraj` (`quickPlaySetupPath`) se više ne prikazuje prije svake igre.
+- **Igraj** otvara sheet **Brza igra · {igra}** (V5) sa **zadnjim podešavanjima te igre** već označenim; **Igraj** u sheetu kreće za sto. Prvi put: 4 igrača · do 21 · Klasik. *Izmjena 2026-10-23, odluka vlasnika: prvobitno je Igraj išao pravo za sto bez izbora, ali igrač nije znao s koliko igrača i do koliko igra — izbor se sad vidi prije svake partije (dva dodira umjesto jednog).*
+- Stara forma `/igraj` (zasebna ruta) se ne vraća; izbor je u sheetu na početnoj.
 - **Ime:** ako igrač nema sačuvano ime, prvi put se otvara list „Kako da te zovemo?" na samoj početnoj (jedno polje + **Nađi sto**), pa odmah dalje za sto. Poslije toga nikad više. *Odstupanje od prvobitnog `/ime`, odluka vlasnika 2026-10-23 — igrač ne napušta početnu; `/ime` ostaje za izmjenu imena iz Postavki.* Igrač s nalogom ide pod nadimkom, bez lista.
 - **Red podešavanja** odmah ispod Igraj: `4 igrača · do 21 · Klasik ✎` (meta ≥44 px). Dodir otvara sheet **Brza igra · {igra}**: broj igrača, igra se do, izgled stola, pa **Igraj** i **Sačuvaj i zatvori** (slika V5). Isti izbori kao današnja forma, samo u sheetu.
 - Sačuvana podešavanja važe po igri, lokalno na uređaju (kao danas).

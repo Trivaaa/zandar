@@ -86,9 +86,9 @@ export default function Home() {
   }
 
   /**
-   * Igraj (SPEC_POCETNA §4): jedan dodir kad je ime poznato. Bez imena: nalog
-   * s nadimkom ide pod nadimkom (server ga ionako stavlja za sto), inače list
-   * sa imenom — samo taj put.
+   * Start partije (iz lista podešavanja ili lista igre): odmah za sto kad je
+   * ime poznato. Bez imena: nalog s nadimkom ide pod nadimkom (server ga
+   * ionako stavlja za sto), inače list sa imenom — samo taj put.
    */
   async function start(game: GameConfig, choice?: Choice) {
     if (busy.current) return;
@@ -128,7 +128,10 @@ export default function Home() {
         loading={playing && !sheetOpen}
         {...(playError && !sheetOpen ? { error: playError } : {})}
         setupSummary={sr.quickSetup.summary(prefs.playerCount, prefs.targetScore, sr.tableTheme.names[tableTheme])}
-        onPlay={() => void start(main)}
+        // Igraj prvo pokazuje izbor (2 ili 4 igrača, do 11 ili 21, sto) sa
+        // zadnjim izborom označenim — odluka vlasnika 2026-10-23, mimo prvobitnog
+        // SPEC_POCETNA §4 („bez forme"). „Igraj" u listu kreće za sto.
+        onPlay={() => setSheet({ kind: "setup" })}
         onSetup={() => setSheet({ kind: "setup" })}
         onFriends={() => router.push("/create")}
         onOpenGame={(game) => setSheet({ kind: "game", game })}

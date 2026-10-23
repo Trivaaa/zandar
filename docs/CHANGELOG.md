@@ -710,3 +710,12 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Posljedica:** na 360×701 profil gosta skroluje 61 px, a Moj profil 19 px („Obriši nalog" je ispod pregiba) — profil nema pravilo bez skrolovanja; manji hero avatar bi tražio izmjenu `size={120}` u `AccountProfile`.
 
 **Provjereno:** typecheck, lint = osnovica (5/2), web 64 testa, snimci okom (početna H1/H3, profil gosta, Moj profil kroz privremenu dev stranicu — obrisana). **Nije provjereno:** `next build`/`build:mobile`, ništa na uređaju. **Korak 4 (sto) se ne radi** — odluka vlasnika: sto ostaje kakav jeste, pilula tajmera iznad avatara ostaje (spec §3.10).
+
+
+## 96. Igraj opet pokazuje izbor 2/4 i 11/21 (2026-10-23, `feat/home-v5`)
+
+**Povod:** vlasnik je na telefonu dodirnuo „Igraj" i krenuo za sto sa jednim protivnikom bez ikakvog izbora — zapamćen izbor 2 · do 11 bio je ostao od stare forme `/igraj`, a red podešavanja ispod dugmeta nije primijetio. Odluka: izbor mora biti vidljiv prije partije.
+
+**Sad:** „Igraj" na kartici glavne igre otvara list „Brza igra · Žandar" (V5) sa zadnjim izborom označenim; „Igraj" u listu sačuva izbor i kreće (bez imena → list za ime, pa za sto). Red podešavanja ispod dugmeta ostaje (pokazuje šta je izabrano i otvara isti list). „Igraj" iz lista druge igre (H4) i dalje kreće odmah. Spec §4 dopunjen. Jedina izmjena koda je `onPlay` u `app/page.tsx`.
+
+**Provjereno:** E2E protiv lokalnog servera (dev server druge sesije na 3107 posuđen — Next 16 dozvoljava jedan po projektu): Igraj otvara izbor i ne kreće, zadnji izbor (2, 11) označen, promjena na 4/21 → `/matching` i izbor sačuvan, bez imena izbor → list za ime → `/matching`; server pravi 4P pa 2P sto po izboru. Web testovi i lint na osnovici. **Nije provjereno na uređaju.**
