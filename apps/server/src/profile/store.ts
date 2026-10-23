@@ -92,7 +92,25 @@ export type ProfileStore = {
   isBlocked(fromUid: string, toUid: string): Promise<boolean>;
   /** §6.9: prijava igrača — pregled je ručni (V1 nema admin ekran). */
   addReport(report: StoredReport): Promise<void>;
+
+  // --- Prijatelji (§5 tok d, §6.6) — samo zapisi; pravila su u friends.ts ---
+  hasRequest(fromUid: string, toUid: string): Promise<boolean>;
+  setRequest(fromUid: string, toUid: string, on: boolean, now?: number): Promise<void>;
+  areFriends(a: string, b: string): Promise<boolean>;
+  setFriends(a: string, b: string, on: boolean, now?: number): Promise<void>;
+  friendUids(uid: string): Promise<string[]>;
+  /** Ko je poslao zahtjev ovom igraču (D4). */
+  incomingRequestUids(uid: string): Promise<string[]>;
+  /** Kome je ovaj igrač poslao zahtjev (D2 „Zahtjev poslat"). */
+  outgoingRequestUids(uid: string): Promise<string[]>;
+  /** D2: nadimci koji počinju sa `prefix` (ključ, mala slova), bez napuštenih. */
+  searchNicknames(prefix: string, limit: number): Promise<{ key: string; uid: string }[]>;
 };
+
+/** Par prijatelja je neuređen — jedan dokument, ključ po sortiranim uid-ovima. */
+function pair(a: string, b: string): [string, string] {
+  return a < b ? [a, b] : [b, a];
+}
 
 export const REPORT_REASONS = ["nickname", "impersonation", "harassment", "other"] as const;
 export type ReportReason = (typeof REPORT_REASONS)[number];
@@ -150,6 +168,10 @@ export function createMemoryProfileStore(): ProfileStore {
   const results = new Map<string, string>();
   const blocks = new Set<string>();
   const reports: StoredReport[] = [];
+  /** `from|to` */
+  const requests = new Set<string>();
+  /** sortirani `a|b` */
+  const friendships = new Set<string>();
 
   const profileOf = (uid: string): StoredProfile => profiles.get(uid) ?? { completedMatches: 0 };
 
@@ -203,9 +225,12 @@ export function createMemoryProfileStore(): ProfileStore {
       const key = profiles.get(uid)?.nicknameKey;
       const rec = key ? nicknames.get(key) : undefined;
       if (key && rec?.uid === uid) nicknames.set(key, { ...rec, releasedAt: now });
-      for (const b of blocks) {
-        const [from, to] = b.split("|");
-        if (from === uid || to === uid) blocks.delete(b);
+      // Blokade, zahtjevi i prijateljstva u oba smjera nestaju sa nalogom.
+      for (const set of [blocks, requests, friendships]) {
+        for (const k of set) {
+          const [x, y] = k.split("|");
+          if (x === uid || y === uid) set.delete(k);
+        }
       }
       await this.deleteUserData(uid);
     },
@@ -219,6 +244,45 @@ export function createMemoryProfileStore(): ProfileStore {
     },
     async addReport(report) {
       reports.push({ ...report });
+    },
+    async hasRequest(fromUid, toUid) {
+      return requests.has(`${fromUid}|${toUid}`);
+    },
+    async setRequest(fromUid, toUid, on) {
+      if (on) requests.add(`${fromUid}|${toUid}`);
+      else requests.delete(`${fromUid}|${toUid}`);
+    },
+    async areFriends(a, b) {
+      return friendships.has(pair(a, b).join("|"));
+    },
+    async setFriends(a, b, on) {
+      if (on) friendships.add(pair(a, b).join("|"));
+      else friendships.delete(pair(a, b).join("|"));
+    },
+    async friendUids(uid) {
+      return [...friendships].flatMap((k) => {
+        const [x, y] = k.split("|");
+        return x === uid ? [y!] : y === uid ? [x!] : [];
+      });
+    },
+    async incomingRequestUids(uid) {
+      return [...requests].flatMap((k) => {
+        const [from, to] = k.split("|");
+        return to === uid ? [from!] : [];
+      });
+    },
+    async outgoingRequestUids(uid) {
+      return [...requests].flatMap((k) => {
+        const [from, to] = k.split("|");
+        return from === uid ? [to!] : [];
+      });
+    },
+    async searchNicknames(prefix, limit) {
+      return [...nicknames.entries()]
+        .filter(([key, rec]) => key.startsWith(prefix) && rec.releasedAt === undefined)
+        .sort(([a], [b]) => (a < b ? -1 : 1))
+        .slice(0, limit)
+        .map(([key, rec]) => ({ key, uid: rec.uid }));
     },
   };
 }
@@ -270,7 +334,8 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
       {
         kind: "set",
         path: nicknamePath(key),
-        fields: { uid, nickname },
+        // `key` služi pretrazi po prefiksu (D2) — upit ide po polju, ne po id-u.
+        fields: { uid, nickname, key },
         ...(targetDoc ? { updateTime: targetDoc.updateTime } : { exists: false }),
       },
     ];
@@ -379,10 +444,18 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
           ]);
         }
       }
-      // Blokade u oba smjera nestaju sa nalogom.
-      for (const field of ["from", "to"]) {
+      // Blokade, zahtjevi i prijateljstva u oba smjera nestaju sa nalogom.
+      const owned: [string, string][] = [
+        ["blocks", "from"],
+        ["blocks", "to"],
+        ["friendRequests", "from"],
+        ["friendRequests", "to"],
+        ["friendships", "a"],
+        ["friendships", "b"],
+      ];
+      for (const [collection, field] of owned) {
         for (;;) {
-          const paths = await db.findPaths("blocks", field, uid, 400);
+          const paths = await db.findPaths(collection, field, uid, 400);
           if (paths.length === 0) break;
           await db.commit(paths.map((path) => ({ kind: "delete" as const, path })));
         }
@@ -404,6 +477,44 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
       await db.commit([
         { kind: "set", path: `reports/${randomUUID()}`, fields: { ...report }, exists: false },
       ]);
+    },
+    async hasRequest(fromUid, toUid) {
+      return (await db.get(`friendRequests/${docId(fromUid, toUid)}`)) !== null;
+    },
+    async setRequest(fromUid, toUid, on, now = Date.now()) {
+      const path = `friendRequests/${docId(fromUid, toUid)}`;
+      await db.commit([
+        on ? { kind: "set", path, fields: { from: fromUid, to: toUid, at: now } } : { kind: "delete", path },
+      ]);
+    },
+    async areFriends(a, b) {
+      return (await db.get(`friendships/${docId(...pair(a, b))}`)) !== null;
+    },
+    async setFriends(a, b, on, now = Date.now()) {
+      const [x, y] = pair(a, b);
+      const path = `friendships/${docId(x, y)}`;
+      await db.commit([on ? { kind: "set", path, fields: { a: x, b: y, at: now } } : { kind: "delete", path }]);
+    },
+    async friendUids(uid) {
+      const [asA, asB] = await Promise.all([
+        db.findDocs("friendships", "a", uid),
+        db.findDocs("friendships", "b", uid),
+      ]);
+      return [...asA.map((d) => String(d.fields.b)), ...asB.map((d) => String(d.fields.a))];
+    },
+    async incomingRequestUids(uid) {
+      return (await db.findDocs("friendRequests", "to", uid)).map((d) => String(d.fields.from));
+    },
+    async outgoingRequestUids(uid) {
+      return (await db.findDocs("friendRequests", "from", uid)).map((d) => String(d.fields.to));
+    },
+    async searchNicknames(prefix, limit) {
+      // Napuštene (rezervisane) se filtriraju poslije upita — uzmi rezervu.
+      const docs = await db.findPrefix("nicknames", "key", prefix, limit * 2);
+      return docs
+        .filter((d) => d.fields.releasedAt === undefined && typeof d.fields.uid === "string")
+        .slice(0, limit)
+        .map((d) => ({ key: String(d.fields.key), uid: String(d.fields.uid) }));
     },
   };
 }

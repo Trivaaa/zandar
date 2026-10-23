@@ -5,6 +5,7 @@ import { nicknameChangeAllowedAt, parseProfileAvatar } from "@zandar/shared-type
 import type { AuthUser } from "../auth/idToken";
 import type { IdentityAdmin } from "../google/identityToolkit";
 import { abandonGuest, deleteAccount } from "./cleanup";
+import { relationOf, severOnBlock } from "./friends";
 import { SlidingWindowLimiter } from "../rateLimit";
 import { evaluateNickname } from "./nickname";
 import { REPORT_REASONS, type ProfileStore, type ReportReason } from "./store";
@@ -37,6 +38,8 @@ export function registerProfileRoutes(
     identity?: IdentityAdmin | null;
     /** Brisanje naloga: odveži sve push uređaje tog naloga (T3). */
     unbindDevices?: (uid: string) => void;
+    /** Promijenio se broj zahtjeva ovih igrača (blokada briše zahtjeve). */
+    onFriendsChanged?: (uids: string[]) => void;
     now?: () => number;
   },
 ): void {
@@ -199,8 +202,8 @@ export function registerProfileRoutes(
         nickname: profile.nickname,
         avatar: profile.avatar ?? null,
         completedMatches: profile.completedMatches,
-        relation:
-          uid === user.uid ? "self" : (await store.isBlocked(user.uid, uid)) ? "blocked" : "none",
+        // F2–F5 i „blocked" — uvijek iz ugla gledaoca (friends.ts).
+        relation: await relationOf(store, user.uid, uid),
       };
     } catch (err) {
       return storeUnavailable(reply, err, "GET /api/profiles/:id");
@@ -224,6 +227,11 @@ export function registerProfileRoutes(
           if (!target) return reply.code(404).send({ code: "not_found" });
           if (target.uid === user.uid) return reply.code(400).send({ code: "self" });
           await store.setBlock(user.uid, target.uid, method === "POST", now());
+          if (method === "POST") {
+            // §6.9: blokada briše prijateljstvo i zahtjeve u oba smjera.
+            await severOnBlock(store, user.uid, target.uid);
+            deps.onFriendsChanged?.([user.uid, target.uid]);
+          }
           return reply.code(204).send();
         } catch (err) {
           return storeUnavailable(reply, err, `${method} /api/blocks`);

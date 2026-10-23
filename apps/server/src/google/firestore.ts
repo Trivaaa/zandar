@@ -165,6 +165,21 @@ export function createFirestore(
     return { fields: decodeFields(json.fields), updateTime: String(json.updateTime ?? "") };
   }
 
+  async function runQuery(structuredQuery: object): Promise<{ path: string; fields: FsFields }[]> {
+    const res = await call(`${base}:runQuery`, {
+      method: "POST",
+      body: JSON.stringify({ structuredQuery }),
+    });
+    if (!res.ok) throw new Error(`Firestore query ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    const rows = (await res.json()) as { document?: { name?: unknown; fields?: unknown } }[];
+    const prefix = `${root}/`;
+    return rows.flatMap((r) => {
+      const name = r.document?.name;
+      if (typeof name !== "string" || !name.startsWith(prefix)) return [];
+      return [{ path: name.slice(prefix.length), fields: decodeFields(r.document?.fields) }];
+    });
+  }
+
   return {
     projectId,
     getDoc,
@@ -197,6 +212,46 @@ export function createFirestore(
         .map((r) => r.document?.name)
         .filter((n): n is string => typeof n === "string" && n.startsWith(prefix))
         .map((n) => n.slice(prefix.length));
+    },
+
+    /** Dokumenti (putanja + polja) gdje je `field == value`. */
+    async findDocs(
+      collection: string,
+      field: string,
+      value: string,
+      limit = 500,
+    ): Promise<{ path: string; fields: FsFields }[]> {
+      return runQuery({
+        from: [{ collectionId: collection }],
+        where: { fieldFilter: { field: { fieldPath: field }, op: "EQUAL", value: encodeValue(value) } },
+        limit,
+      });
+    },
+
+    /**
+     * Dokumenti čije polje POČINJE sa `prefix` (opseg `[prefix, prefix + )`),
+     * poređani po tom polju — pretraga nadimaka (D2).
+     */
+    async findPrefix(
+      collection: string,
+      field: string,
+      prefix: string,
+      limit = 20,
+    ): Promise<{ path: string; fields: FsFields }[]> {
+      return runQuery({
+        from: [{ collectionId: collection }],
+        where: {
+          compositeFilter: {
+            op: "AND",
+            filters: [
+              { fieldFilter: { field: { fieldPath: field }, op: "GREATER_THAN_OR_EQUAL", value: encodeValue(prefix) } },
+              { fieldFilter: { field: { fieldPath: field }, op: "LESS_THAN", value: encodeValue(`${prefix}`) } },
+            ],
+          },
+        },
+        orderBy: [{ field: { fieldPath: field }, direction: "ASCENDING" }],
+        limit,
+      });
     },
 
     /** Atomski: svi upisi ili nijedan. Neispunjen preduslov → `FirestoreConflictError`. */

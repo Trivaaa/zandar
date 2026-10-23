@@ -84,6 +84,7 @@ import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth
 import { identityAdmin } from "./profile/cleanup";
 import { recordCompletedMatch } from "./profile/results";
 import { registerProfileRoutes } from "./profile/routes";
+import { registerFriendRoutes } from "./profile/friendRoutes";
 import { accountIdentityFor, applyAccountIdentity } from "./profile/accountIdentity";
 import { toPublicPlayer } from "./publicPlayer";
 import { profileStore } from "./profile/store";
@@ -212,7 +213,28 @@ registerProfileRoutes(fastify, {
   requireUser,
   identity: identityAdmin,
   unbindDevices: (uid) => void deviceStore.unbindUid(uid),
+  onFriendsChanged: (uids) => uids.forEach((uid) => void pushFriendCount(uid)),
 });
+// Prijatelji (SPEC_IDENTITET tok d, §6.6).
+registerFriendRoutes(fastify, {
+  store: profileStore,
+  requireUser,
+  onFriendsChanged: (uids) => uids.forEach((uid) => void pushFriendCount(uid)),
+});
+
+/**
+ * Korisnički kanal (SPEC_IDENTITET T2): socket soba `user:<uid>`, nezavisna od
+ * stola — broj zahtjeva na tabu Prijatelji (D4) stiže i kad igrač nije u sobi.
+ * Ne baca: kanal je udobnost, ne uslov.
+ */
+async function pushFriendCount(uid: string): Promise<void> {
+  try {
+    const incoming = (await profileStore.incomingRequestUids(uid)).length;
+    io.to(`user:${uid}`).emit("user:friends", { incoming });
+  } catch (err) {
+    fastify.log.error(`[friends] broj zahtjeva za kanal: ${String(err).slice(0, 200)}`);
+  }
+}
 
 // ---- PUSH UREĐAJI (PRD §51) ----
 
@@ -1826,6 +1848,26 @@ async function broadcastGameState(roomId: string): Promise<void> {
 
 io.on("connection", (socket) => {
   fastify.log.info(`✓ Socket connected: ${socket.id}`);
+
+  // T2: korisnički kanal. Token iz payload-a (ističe za sat; klijent ga šalje
+  // pri svakom spajanju). Samo nalog — gost nema prijatelje.
+  socket.on(
+    "user:subscribe",
+    async (payload: { idToken?: unknown }, ack?: (res: { ok: boolean }) => void) => {
+      const verified =
+        typeof payload?.idToken === "string" ? await idTokens.verify(payload.idToken) : null;
+      if (!verified?.ok || verified.user.anonymous) {
+        ack?.({ ok: false });
+        return;
+      }
+      const room = `user:${verified.user.uid}`;
+      // Jedan nalog po socketu: prijava na drugi nalog izlazi iz starog kanala.
+      for (const r of socket.rooms) if (r.startsWith("user:") && r !== room) void socket.leave(r);
+      await socket.join(room);
+      ack?.({ ok: true });
+      void pushFriendCount(verified.user.uid);
+    },
+  );
 
   socket.on(
     "room:subscribe",

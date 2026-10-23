@@ -112,6 +112,38 @@ async function blockContract(store: ProfileStore) {
   assert.equal(await store.isBlocked("x", "y"), false);
 }
 
+async function friendsContract(store: ProfileStore) {
+  await store.setNickname("u1", "Marko", "marko");
+  await store.setNickname("u2", "Marina", "marina");
+  await store.setNickname("u3", "Ana", "ana");
+  assert.deepEqual(
+    (await store.searchNicknames("mar", 10)).map((h) => h.key),
+    ["marina", "marko"],
+    "prefiks, po abecedi",
+  );
+  await store.setRequest("u1", "u2", true);
+  assert.equal(await store.hasRequest("u1", "u2"), true);
+  assert.deepEqual(await store.incomingRequestUids("u2"), ["u1"]);
+  assert.deepEqual(await store.outgoingRequestUids("u1"), ["u2"]);
+  await store.setFriends("u3", "u1", true);
+  assert.equal(await store.areFriends("u1", "u3"), true, "par je neuređen");
+  assert.deepEqual((await store.friendUids("u1")).sort(), ["u3"]);
+  assert.deepEqual(await store.friendUids("u3"), ["u1"]);
+  await store.deleteAccount("u1");
+  assert.deepEqual(await store.friendUids("u3"), [], "brisanje naloga briše prijateljstva");
+  assert.deepEqual(await store.incomingRequestUids("u2"), [], "i zahtjeve");
+  assert.deepEqual((await store.searchNicknames("mar", 10)).map((h) => h.key), ["marina"], "napušten nadimak nije u pretrazi");
+}
+
+test("memorija: prijatelji — zahtjevi, parovi, pretraga, brisanje naloga", async () => {
+  await friendsContract(createMemoryProfileStore());
+});
+
+test("Firestore: prijatelji — isti ugovor", async () => {
+  const fake = fakeFirestore();
+  await friendsContract(createFirestoreProfileStore(createFirestore("p", tokens, fake.impl)));
+});
+
 test("memorija: blokade — jednosmjerne, odblokiranje, nestaju sa nalogom", async () => {
   await blockContract(createMemoryProfileStore());
 });
@@ -212,11 +244,21 @@ function fakeFirestore() {
     if (url.endsWith(":runQuery")) {
       const q = JSON.parse(String(init?.body)).structuredQuery;
       const coll = q.from[0].collectionId;
-      const f = q.where.fieldFilter;
+      const filters: { field: { fieldPath: string }; op: string; value: { stringValue: string } }[] =
+        q.where.fieldFilter ? [q.where.fieldFilter] : q.where.compositeFilter.filters.map((f: any) => f.fieldFilter);
+      const ok = (v: string | undefined, f: (typeof filters)[number]) =>
+        v !== undefined &&
+        (f.op === "EQUAL" ? v === f.value.stringValue
+          : f.op === "GREATER_THAN_OR_EQUAL" ? v >= f.value.stringValue
+          : v < f.value.stringValue);
       const rows = [...docs.entries()]
-        .filter(([name, d]) => name.startsWith(prefix + coll + "/") && d.fields[f.field.fieldPath]?.stringValue === f.value.stringValue)
+        .filter(([name, d]) => name.startsWith(prefix + coll + "/") && filters.every((f) => ok(d.fields[f.field.fieldPath]?.stringValue, f)))
+        .sort(([, a], [, b]) => {
+          const k = q.orderBy?.[0]?.field.fieldPath;
+          return k ? String(a.fields[k]?.stringValue).localeCompare(String(b.fields[k]?.stringValue)) : 0;
+        })
         .slice(0, q.limit)
-        .map(([name]) => ({ document: { name } }));
+        .map(([name, d]) => ({ document: { name, fields: d.fields } }));
       return new Response(JSON.stringify(rows.length ? rows : [{ readTime: "t" }]), { status: 200 });
     }
     const name = decodeURI(url.slice(url.indexOf(prefix)));
