@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
 
+import { DownloadIcon } from "@/components/icons";
 import { sr } from "@/lib/sr";
 
 export type SettingsSheetProps = {
@@ -12,14 +13,18 @@ export type SettingsSheetProps = {
   onClose: () => void;
   /** Preklopke zvuka i vibracije — iste koje igra koristi. */
   feedbackSlot?: ReactNode;
-  /** Privatnost / uslovi / o nama — samo na Androidu (home footer ih nosi na
-   * webu). Zadnja, suptilna sekcija — isti stil kao footer na home-u. */
+  /** Privatnost / uslovi / o nama — zadnja, suptilna sekcija (H6), na webu i
+   * na Androidu. Isti stil kao red na dnu početne. */
   legalSlot?: ReactNode;
+  /** „Preuzmi aplikaciju" (SPEC_POCETNA §6) — samo web, i samo kad prodavnica
+   * ima živ URL; host ga ne prosljeđuje u APK-u. */
+  storeUrl?: string | null | undefined;
   className?: string | undefined;
 };
 
 /**
- * Odredište zupčanika na home-u. Skuplja ono što je ranije stajalo po home
+ * Postavke — otvaraju se iz Profila, za gosta i za nalog (SPEC_POCETNA §6, H6;
+ * zupčanik sa početne je uklonjen). Skuplja ono što je ranije stajalo po home
  * ekranu (preklopke, „Igraš kao … Promijeni") uz pravila i brisanje podataka.
  *
  * Površina je ISTA kao meni stola (`.gamemenu*` iz overlay.css) — jedan jezik
@@ -32,6 +37,7 @@ export function SettingsSheet({
   onClose,
   feedbackSlot,
   legalSlot,
+  storeUrl,
   className = "",
 }: SettingsSheetProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -68,6 +74,18 @@ export function SettingsSheet({
         </div>
 
         {feedbackSlot ? <div className="settings__feedback">{feedbackSlot}</div> : null}
+
+        {storeUrl ? (
+          <a
+            className="gamemenu__item settings__link font-sans text-base"
+            href={storeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <DownloadIcon className="settings__link-icon" />
+            {sr.settings.getApp}
+          </a>
+        ) : null}
 
         <button type="button" className="gamemenu__item font-sans text-base" onClick={onRules}>
           {sr.settings.rules}

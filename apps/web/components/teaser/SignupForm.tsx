@@ -19,7 +19,10 @@ const MESSAGE: Record<Exclude<Problem, null>, string> = {
 };
 
 /**
- * Prijava za obavještenje o jednoj budućoj igri.
+ * Prijava za obavještenje o budućoj igri — jednoj (`/igre/[slug]`) ili svim
+ * najavljenim odjednom (red „Uskoro" na početnoj). Jedna adresa i jedna
+ * saglasnost važe za sve navedene; šalje se po jedan zahtjev za svaku igru, jer
+ * server pamti prijavu po (igra, adresa) i ponovljena je idempotentna.
  *
  * - Uspjeh zamjenjuje formu TEK kad server potvrdi upis. Ponovljena prijava
  *   (`created: false`) je isto uspjeh za igrača — adresa je već na spisku.
@@ -29,11 +32,15 @@ const MESSAGE: Record<Exclude<Problem, null>, string> = {
  *   adresu. Snimak već maskira polja, ali klasa isključuje i klikove u formi.
  */
 export function SignupForm({
-  game,
+  games,
   onBackToGame,
+  backLabel = sr.signup.backToGame,
+  successBody = sr.signup.successBody,
 }: {
-  game: UpcomingGameSlug;
+  games: readonly UpcomingGameSlug[];
   onBackToGame: () => void;
+  backLabel?: string;
+  successBody?: string;
 }) {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
@@ -66,7 +73,7 @@ export function SignupForm({
     setProblem(null);
     setPhase("sending");
     try {
-      await submitSignup({ game, email });
+      await Promise.all(games.map((game) => submitSignup({ game, email })));
       setPhase("done");
     } catch {
       setProblem("network");
@@ -81,9 +88,9 @@ export function SignupForm({
         <h2 id="signup-done-title" className="signup__done-title">
           {sr.signup.successTitle}
         </h2>
-        <p className="signup__done-text">{sr.signup.successBody}</p>
+        <p className="signup__done-text">{successBody}</p>
         <button type="button" className="home__cta signup__submit" onClick={onBackToGame}>
-          {sr.signup.backToGame}
+          {backLabel}
         </button>
       </section>
     );

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { NameStep } from "@/components/funnel/NameStep";
 import { SettingsSheet } from "@/components/home/SettingsSheet";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
@@ -43,9 +42,6 @@ function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; c
 const frame = "mx-auto w-[360px] h-[800px] max-w-full overflow-auto rounded-token-lg ring-1 ring-white/10";
 
 export default function DevFunnelPage() {
-  const [loading, setLoading] = useState(false);
-  const [withError, setWithError] = useState(false);
-  const [stores, setStores] = useState(true);
   const [name, setName] = useState("");
   const [nameLoading, setNameLoading] = useState(false);
   const [nameError, setNameError] = useState(false);
@@ -61,23 +57,15 @@ export default function DevFunnelPage() {
 
       <section className="space-y-3">
         <h2 className="font-bold">HomeScreen</h2>
-        <div className="flex flex-wrap gap-2">
-          <Toggle on={loading} onClick={() => setLoading((v) => !v)}>loading</Toggle>
-          <Toggle on={withError} onClick={() => setWithError((v) => !v)}>greška</Toggle>
-          <Toggle on={stores} onClick={() => setStores((v) => !v)}>web (prodavnice)</Toggle>
-        </div>
-        <div className={frame}>
-          <HomeScreen
-            onPlay={() => undefined}
-            onFriends={() => undefined}
-            onOpenSettings={() => undefined}
-            playSummary={sr.quickSetup.summary(4, 21, sr.tableTheme.names.classic)}
-            onPlaySettings={() => undefined}
-            loading={loading}
-            {...(withError ? { error: ERROR } : {})}
-            showStores={stores}
-          />
-        </div>
+        <p className="text-sm text-muted">
+          Preko cijelog ekrana (pregib, 1/2/3 igre, zakačena): <a className="underline" href="/dev/home?live=1">/dev/home?live=1</a>
+          {" · "}
+          <a className="underline" href="/dev/home?live=2">live=2</a>
+          {" · "}
+          <a className="underline" href="/dev/home?live=3">live=3</a>
+          {" · "}
+          <a className="underline" href="/dev/home?live=3&pin=poker">pin=poker</a>
+        </p>
       </section>
 
       <section className="space-y-3">

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { TableTheme } from "@zandar/shared-types";
 
+import { ArrowRightIcon } from "@/components/icons";
 import { TableSetupFields } from "@/components/lobby/TableSetupFields";
 import { Sheet } from "@/components/sheet/Sheet";
 import { isValidPlayerName } from "@/lib/playerName";
@@ -69,25 +70,33 @@ export function QuickPlayNameSheet({
 }
 
 /**
- * Podešavanja brze igre: broj igrača, cilj, izgled stola. Ništa se ne čuva dok
- * igrač ne dodirne „Sačuvaj" — Odustani/nazad ostavljaju stari izbor.
+ * Podešavanja brze igre (SPEC_POCETNA §4, V5): broj igrača, cilj, izgled stola,
+ * pa **Igraj** (sačuva i kreće) i **Sačuvaj i zatvori**. Zatvaranje na scrim
+ * ili Android nazad takođe čuva — na V5 je „Sačuvaj i zatvori" jedini izlaz,
+ * pa ne smije postojati put koji tiho baca izbor.
  */
 export function QuickPlaySettingsSheet({
+  gameName,
   prefs,
   tableTheme,
+  onPlay,
   onSave,
-  onClose,
 }: {
+  gameName: string;
   prefs: QuickPlayPrefs;
   tableTheme: TableTheme;
+  onPlay: (prefs: QuickPlayPrefs, tableTheme: TableTheme) => void;
   onSave: (prefs: QuickPlayPrefs, tableTheme: TableTheme) => void;
-  onClose: () => void;
 }) {
   const [draft, setDraft] = useState(prefs);
   const [theme, setTheme] = useState(tableTheme);
 
   return (
-    <Sheet title={sr.quickSetup.settingsTitle} closeLabel={sr.quickSetup.cancel} onClose={onClose}>
+    <Sheet
+      title={sr.quickSetup.settingsTitle(gameName)}
+      closeLabel={sr.quickSetup.saveAndClose}
+      onClose={() => onSave(draft, theme)}
+    >
       <div className="qp-sheet">
         <TableSetupFields
           counts={QUICK_PLAY_COUNTS}
@@ -106,8 +115,9 @@ export function QuickPlaySettingsSheet({
           playersLabel={sr.quickSetup.players}
           targetLabel={sr.quickSetup.target}
         />
-        <button type="button" className="home__cta sheet__btn" onClick={() => onSave(draft, theme)}>
-          {sr.quickSetup.save}
+        <button type="button" className="home__cta sheet__btn" onClick={() => onPlay(draft, theme)}>
+          <span>{sr.home.play}</span>
+          <ArrowRightIcon className="home__cta-arrow" />
         </button>
       </div>
     </Sheet>

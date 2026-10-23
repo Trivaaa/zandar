@@ -37,10 +37,17 @@
   /* Tekst */
   --text:           #f2efe6;
   --text-muted:     #b2c5be;
+  /* Sekundarni tekst pravca A+ (SPEC_IZGLED_APLUS §2.2): krem sa providnošću
+     umjesto zelenkaste muted — jači kontrast. Soft za podnaslove i napomene
+     (8.2:1 na feltu), faint za labele u redu liste (5.5:1 na redu). */
+  --text-soft:      color-mix(in oklab, var(--text) 85%, transparent);
+  --text-faint:     color-mix(in oklab, var(--text) 75%, transparent);
 
   /* Akcent — mesing. Samo žetoni i primarni CTA. */
   --accent:         #c9a227;
   --accent-contrast:#16221f;
+  /* Tanak mesing obrub — kartice, prsten avatara, gornja ivica trake. */
+  --accent-line:    color-mix(in oklab, var(--accent) 35%, transparent);
 
   /* Timovi (4P) — nikad samo bojom; pozicija (partner je uvijek gore) i
      prsten oko avatara nose razliku. Plavo vs roza preživljava deuteranopiju. */
@@ -144,6 +151,8 @@
   --color-surface-raised:  var(--surface-raised);
   --color-felt:            var(--felt);
   --color-muted:           var(--text-muted);
+  --color-soft:            var(--text-soft);
+  --color-faint:           var(--text-faint);
   --color-accent:          var(--accent);
   --color-accent-contrast: var(--accent-contrast);
   --color-team-a:          var(--team-a);

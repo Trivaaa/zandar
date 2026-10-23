@@ -8,7 +8,7 @@
  *     line-height i iz kasnijeg sloja bi ga pregazio (zamka iz v3.5).
  *
  * Lokalne geometrijske ručke (ne tokeni): --home-col, --home-wide,
- * --hero-card-w.
+ * --hero-card-w (lepeza teaser stranica), --art-h i --fan-w (kartica igre).
  */
 
 /* ------------------------------------------------------------------ *
@@ -16,10 +16,9 @@
  * ------------------------------------------------------------------ */
 
 .home {
-  /* Kolona radnji ostaje uska i na desktopu — dugme preko 900px nije CTA. */
-  --home-col: 24rem;
-  /* Buduće igre i prodavnice smiju šire, da na desktopu stanu u jedan red. */
-  --home-wide: 56rem;
+  /* Ista kolona do 600 px i na desktopu (SPEC_POCETNA §9). */
+  --home-col: 37.5rem;
+  --home-wide: 37.5rem;
   /* Motiv raste sa visinom ekrana i ima plafon: na niskom ekranu se smanjuju
      karte, a glavno dugme ostaje iznad pregiba. */
   --hero-card-w: min(5.5rem, 12dvh);
@@ -27,9 +26,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 0;
-  background-image:
-    radial-gradient(ellipse 120% 60% at 50% 0%, color-mix(in oklab, var(--surface-raised) 40%, transparent), transparent 70%),
-    linear-gradient(to bottom, transparent 40%, color-mix(in oklab, var(--surface) 60%, transparent));
+  /* Pozadina je zajednička sa profilom — `.screen.home` u funnel.css. */
 }
 
 .home :focus-visible,
@@ -111,41 +108,13 @@
   letter-spacing: 0.08em;
 }
 
-.home__settings {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 3rem;
-  height: 3rem;
-  border: 1px solid color-mix(in oklab, var(--text-muted) 40%, transparent);
-  border-radius: var(--radius-md);
-  background-color: color-mix(in oklab, var(--surface) 40%, transparent);
-  color: var(--text);
-  cursor: pointer;
-  transition: transform var(--t-card-play) var(--ease-snap);
-}
 
-.home__settings:active {
-  transform: scale(0.95);
-}
 
-.home__settings-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-}
 
 /* ------------------------------------------------------------------ *
- * Hero: motiv, ime igre, radnje
+ * Lepeza od tri karte (teaser stranice, zahtjev za ulazak) i dugmad radnji
  * ------------------------------------------------------------------ */
 
-.home__hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: var(--home-col);
-  text-align: center;
-}
 
 .card-fan {
   position: relative;
@@ -187,29 +156,8 @@
   transform: translateX(calc(-50% + var(--hero-card-w) * 0.72)) rotate(12deg);
 }
 
-.home__title {
-  margin: 0.5rem 0 0;
-  font: 400 clamp(2.75rem, 14vw, 4.25rem) / 1.05 var(--font-display-stack);
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  color: var(--text);
-  text-shadow: 0 0.15rem 0.6rem color-mix(in oklab, black 35%, transparent);
-}
 
-.home__tagline {
-  margin: 0.1rem 0 0;
-  font: 400 var(--type-xl) / 1.35 var(--font-sans-stack);
-  color: var(--text);
-}
 
-.home__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.4rem;
-  width: 100%;
-  margin-top: 1rem;
-}
 
 .home__cta,
 .home__friends {
@@ -267,17 +215,9 @@
   height: 1.6rem;
 }
 
-.home__note {
-  align-self: center;
-  max-width: 17rem;
-  margin: 0;
-  font: 400 var(--type-base) / 1.4 var(--font-sans-stack);
-  color: var(--text-muted);
-  text-wrap: balance;
-}
 
-/* Zapamćen izbor stola ispod „Igraj Žandar": tih red, ali pravo dugme od 44px,
-   jer otvara list podešavanja. */
+/* Zapamćen izbor stola ispod „Igraj": tih red, ali pravo dugme od 44px, jer
+   otvara list podešavanja (V5). */
 .home__setup {
   align-self: center;
   display: inline-flex;
@@ -329,164 +269,376 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Buduće igre
+ * Početna (SPEC_POCETNA): kolona, kartica glavne igre, „Još igara", „Uskoro".
+ * Budžet visine: 360×740 sa trakom kamere (39 px) i donjom navigacijom, bez
+ * skrolovanja za 1, 2 i 3 igre. Plaća ilustracija (--art-h po gustini),
+ * nikad dugmad. Obrubi i sekundarni tekst su tokeni pravca A+.
  * ------------------------------------------------------------------ */
 
-.upcoming,
-.stores {
+.home__col {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: 0.6rem;
   width: 100%;
-  max-width: var(--home-wide);
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid color-mix(in oklab, var(--text-muted) 28%, transparent);
+  max-width: var(--home-col);
+  margin-top: 0.6rem;
 }
 
-.upcoming__title,
-.stores__title {
-  margin: 0;
-  font: 700 var(--type-xl) / 1.25 var(--font-sans-stack);
-  color: var(--text);
+.game-card {
+  --art-h: clamp(6rem, 22dvh, 10rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.75rem;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 55%, transparent);
 }
 
-.upcoming__body {
-  margin: 0.2rem 0 0.9rem;
-  font: 400 var(--type-base) / 1.4 var(--font-sans-stack);
-  color: var(--text-muted);
+.game-card[data-density="2"] {
+  --art-h: clamp(3.25rem, 7dvh, 6rem);
 }
 
-.upcoming__grid,
-.stores__list {
+.game-card[data-density="3"] {
+  --art-h: clamp(3rem, 6dvh, 5rem);
+}
+
+.game-card__art {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  place-items: center;
+  height: var(--art-h);
+  overflow: hidden;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-md);
+  background: radial-gradient(ellipse 70% 90% at 50% 40%, var(--surface-raised), var(--felt) 60%, var(--surface));
+}
+
+/* Lepeza od N karata (Žandar 3, poker 5). Razmak i ugao se dijele sa N, pa
+   šira ruka ostaje iste širine. Karta viri iz dna okvira, kao na H1–H5. */
+.game-fan {
+  --fan-w: calc(var(--art-h) * 0.62);
+  position: absolute;
+  inset: 0;
+}
+
+.game-fan .card {
+  --card-w: var(--fan-w);
+  --card-h: calc(var(--fan-w) * 1.417);
+}
+
+.game-fan .card-face {
+  box-shadow: 0 0.4rem 0.9rem color-mix(in oklab, black 45%, transparent);
+}
+
+.game-fan__slot {
+  --off: calc(var(--i) - (var(--n) - 1) / 2);
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  z-index: var(--i);
+  transform-origin: 50% 100%;
+  transform: translateX(calc(-50% + var(--off) * var(--fan-w) * 2.2 / var(--n)))
+    rotate(calc(var(--off) * 30deg / var(--n)));
+}
+
+.game-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.game-card__title {
+  margin: 0;
+  font: 400 clamp(2rem, 9.5vw, 2.75rem) / 1.05 var(--font-display-stack);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--card-face);
+}
+
+.game-card__meta {
+  margin: 0;
+  font: 400 var(--type-base) / 1.35 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+
+/* Red podešavanja i greška dijele jedan slot (44 px). */
+.game-card__slot {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  min-height: 2.75rem;
+}
+
+.game-card__error {
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+
+.game-card__error[data-empty="true"] {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.game-card[data-density="3"] .game-card__title {
+  font-size: clamp(1.75rem, 8vw, 2.25rem);
+}
+
+.game-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.game-pinned {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  font: 700 var(--type-sm) / 1.2 var(--font-sans-stack);
+}
+
+.game-pinned__icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Mala karta sa slovom i znakom igre. Papir i mastilo su tokeni karte. */
+.letter-card {
+  display: inline-flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  width: 3.25rem;
+  height: 3.75rem;
+  border-radius: var(--radius-md);
+  background-color: var(--card-face);
+  color: var(--card-ink);
+}
+
+.letter-card__letter {
+  font: 400 1.6rem / 1 var(--font-display-stack);
+}
+
+.letter-card__suit {
+  width: 1rem;
+  height: 1rem;
+}
+
+.letter-card[data-suit="hearts"] .letter-card__suit,
+.letter-card[data-suit="diamonds"] .letter-card__suit {
+  color: var(--card-ink-red);
+}
+
+.letter-card--hero {
+  width: calc(var(--art-h) * 0.55);
+  height: calc(var(--art-h) * 0.75);
+}
+
+/* „Još igara": red igre je jedno dugme, ≥76 px (SPEC_POCETNA §5.1). */
+.home__more {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.home__more-title {
+  margin: 0;
+  font: 700 var(--type-base) / 1.3 var(--font-sans-stack);
+  color: var(--accent);
+}
+
+.home__more-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* Ispod ~358px dvije kartice ne primaju ime + zvono bez lomljenja. */
-@media (max-width: 22.4rem) {
-  .upcoming__grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (min-width: 48rem) {
-  .upcoming__grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-.teaser-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+.game-row {
+  display: flex;
   align-items: center;
-  gap: 0.55rem;
-  min-height: 4rem;
-  padding: 0.6rem;
-  border: 1px solid color-mix(in oklab, var(--text-muted) 35%, transparent);
+  gap: 0.9rem;
+  width: 100%;
+  min-height: 4.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 0;
   border-radius: var(--radius-lg);
-  background-color: color-mix(in oklab, var(--surface) 45%, transparent);
+  background-color: var(--surface-raised);
   color: var(--text);
-  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
   transition: transform var(--t-card-play) var(--ease-snap);
 }
 
-.teaser-card:active {
+.game-row:active {
   transform: scale(0.98);
 }
 
-/* Prigušena poleđina: nije igra koju možeš igrati, pa ne smije da čita kao
-   karta na stolu. `--card-radius` inače postavlja .card, ovdje ga nema. */
-.teaser-card__motif {
-  --card-radius: calc(2rem * 0.075);
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: calc(2rem * 1.417);
-  opacity: 0.55;
-  transform: rotate(-8deg);
-}
-
-.teaser-card__motif .card-back {
-  position: absolute;
-  inset: 0;
-}
-
-.teaser-card__suit {
-  position: relative;
-  width: 0.95rem;
-  height: 0.95rem;
-  color: var(--text);
-}
-
-.teaser-card__text {
+.game-row__text {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  gap: 0.1rem;
   min-width: 0;
 }
 
-.teaser-card__name {
-  font: 700 var(--type-base) / 1.2 var(--font-sans-stack);
-  letter-spacing: 0.02em;
+.game-row__name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font: 700 var(--type-lg) / 1.2 var(--font-sans-stack);
+}
+
+.game-row__meta {
+  font: 400 var(--type-base) / 1.3 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+
+.game-row__chevron {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  color: var(--accent);
+}
+
+.game-new {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background-color: var(--danger-signal);
+  color: var(--surface);
+  font: 700 var(--type-xs) / 1.3 var(--font-sans-stack);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  overflow-wrap: anywhere;
 }
 
-.teaser-card__tag {
-  font: 400 var(--type-sm) / 1.3 var(--font-sans-stack);
-  color: var(--text-muted);
+/* „Uskoro": jedan red za sve najavljene igre (SPEC_POCETNA §7). */
+.soon {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.6rem 0.6rem 1rem;
+  border: 1.5px dashed var(--accent-line);
+  border-radius: var(--radius-lg);
 }
 
-.teaser-card__bell {
-  width: 1.3rem;
-  height: 1.3rem;
-  color: var(--text-muted);
+.soon__text {
+  flex: 1;
+  min-width: 0;
 }
 
-/* ------------------------------------------------------------------ *
- * Prodavnice (samo web)
- * ------------------------------------------------------------------ */
-
-.stores__title {
-  margin-bottom: 0.75rem;
-  font-size: var(--type-lg);
+.soon__title {
+  margin: 0;
+  font: 700 var(--type-base) / 1.3 var(--font-sans-stack);
+  color: var(--text);
 }
 
-.stores__item {
+.soon__sub {
+  margin: 0;
+  font: 400 var(--type-sm) / 1.35 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+
+.soon__notify {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font: 700 var(--type-base) / 1.2 var(--font-sans-stack);
+  cursor: pointer;
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+
+.soon__notify:active {
+  transform: scale(0.97);
+}
+
+.soon__icon {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+/* List igre (H4). */
+.game-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.game-sheet__head-text {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
 }
 
-.stores__tile {
-  box-sizing: border-box;
-  display: flex;
+.game-sheet__meta {
+  font: 400 var(--type-base) / 1.3 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+
+.game-sheet__pair {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: 0.5rem;
+}
+
+.game-sheet__small {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  min-height: 3.5rem;
+  gap: 0.5rem;
+  min-height: 3rem;
   padding: 0 0.75rem;
-  border: 1px solid color-mix(in oklab, var(--text) 55%, transparent);
-  border-radius: var(--radius-md);
-  background-color: color-mix(in oklab, var(--surface) 80%, transparent);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: none;
   color: var(--text);
-  font: 600 var(--type-base) / 1.2 var(--font-sans-stack);
-  text-decoration: none;
+  font: 700 var(--type-base) / 1.2 var(--font-sans-stack);
+  cursor: pointer;
+  transition: transform var(--t-card-play) var(--ease-snap);
 }
 
-/* Nije dugme: prigušen rub i mastilo. */
-.stores__tile[data-unavailable="true"] {
-  border-color: color-mix(in oklab, var(--text-muted) 30%, transparent);
-  background-color: color-mix(in oklab, var(--surface) 45%, transparent);
-  color: var(--text-muted);
+.game-sheet__small:active {
+  transform: scale(0.98);
 }
 
-.stores__note {
-  font: 400 var(--type-sm) / 1.3 var(--font-sans-stack);
-  color: var(--text-muted);
+.game-sheet__icon {
+  width: 1.3rem;
+  height: 1.3rem;
+  color: var(--accent);
+}
+
+/* „Preuzmi aplikaciju" u Postavkama (samo web). */
+.settings__link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.settings__link-icon {
+  width: 1.3rem;
+  height: 1.3rem;
+  color: var(--accent);
 }
 
 /* ------------------------------------------------------------------ *
@@ -502,6 +654,15 @@
   width: 100%;
   margin-top: auto;
   padding-top: 1.25rem;
+}
+
+/* Na početnoj je red tih i tijesan: budžet visine ide igrama (SPEC_POCETNA §6). */
+.home__col > .home__legal {
+  padding-top: 0;
+}
+
+.home__col > .home__legal a {
+  min-height: 2.75rem;
 }
 
 .home__legal a {

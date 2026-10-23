@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { DEFAULT_QUICK_PLAY_PREFS, parseQuickPlayPrefs } from "./quickPlayPrefs";
+import { DEFAULT_QUICK_PLAY_PREFS, parseQuickPlayPrefs, quickPlayPrefsKey } from "./quickPlayPrefs";
+import { tableThemeKey } from "./tableTheme";
 
 describe("parseQuickPlayPrefs", () => {
   test("bez zapisa → 4 / 21, kako je brza igra radila prije izbora", () => {
@@ -35,5 +36,18 @@ describe("parseQuickPlayPrefs", () => {
       playerCount: 4,
       targetScore: 11,
     });
+  });
+});
+
+describe("ključevi po igri (SPEC_POCETNA §4)", () => {
+  test("Žandar zadržava zatečene ključe — niko ne gubi izbor", () => {
+    assert.equal(quickPlayPrefsKey(), "zandar:quickplay");
+    assert.equal(quickPlayPrefsKey("zandar"), "zandar:quickplay");
+    assert.equal(tableThemeKey("zandar"), "zandar:table");
+  });
+
+  test("druga igra ima svoj ključ", () => {
+    assert.equal(quickPlayPrefsKey("poker"), "kartaonica:quickplay:poker");
+    assert.equal(tableThemeKey("poker"), "kartaonica:table:poker");
   });
 });

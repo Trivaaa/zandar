@@ -33,6 +33,7 @@ import { saveAvatar, useMe } from "@/lib/profile";
 import { getPushId } from "@/lib/push";
 import { namePath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
+import { STORE_LINKS } from "@/lib/stores";
 import { useQueryParam } from "@/lib/useQuery";
 
 const legalSlot = (
@@ -154,6 +155,7 @@ export function ProfileScreen() {
         onRegister={entry.openRegister}
         onLogin={entry.openLogin}
         onBackToPlay={() => router.replace("/")}
+        onSettings={() => setSheet("settings")}
       />
     );
   }
@@ -186,7 +188,8 @@ export function ProfileScreen() {
                 }}
                 onClose={() => setSheet(null)}
                 feedbackSlot={<FeedbackToggles showPush />}
-                {...(isNative ? { legalSlot } : {})}
+                legalSlot={legalSlot}
+                storeUrl={isNative ? null : STORE_LINKS["google-play"]}
               />
             </div>
           </div>

@@ -1,31 +1,32 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
 
-import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { RulesModal } from "@/components/RulesModal";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
+import { GameSheet } from "@/components/home/GameSheet";
 import { QuickPlayNameSheet, QuickPlaySettingsSheet } from "@/components/home/QuickPlaySheets";
-import { SettingsSheet } from "@/components/home/SettingsSheet";
+import { SignupSheet } from "@/components/home/SignupSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { useBackHandler } from "@/lib/backHandlers";
 import { identityUi } from "@/lib/features";
+import { GAMES, homeLayout, type GameConfig } from "@/lib/games";
+import { setPinnedGame, useHomeHistory } from "@/lib/homePrefs";
 import { isNative } from "@/lib/platform";
-import { readPlayerName, savePlayerName, usePlayerName } from "@/lib/playerName";
+import { readPlayerName, savePlayerName } from "@/lib/playerName";
 import { fetchMe } from "@/lib/profile";
-import { saveQuickPlayPrefs, useQuickPlayPrefs } from "@/lib/quickPlayPrefs";
-import { namePath } from "@/lib/routes";
+import { readQuickPlayPrefs, saveQuickPlayPrefs, useQuickPlayPrefs, type QuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { sr } from "@/lib/sr";
 import { startQuickPlay } from "@/lib/startQuickPlay";
-import { saveTableTheme, useTableTheme } from "@/lib/tableTheme";
+import { readTableThemeRaw, saveTableTheme, useTableTheme } from "@/lib/tableTheme";
 import { track } from "@/lib/track";
 
-// Privatnost / uslovi / o nama. Na webu žive u footeru home-a (Play traži
-// javni URL); na Androidu suptilno u Postavkama, kao zadnja sekcija — footer
-// bi na malom ekranu bio treći red sitnog teksta ispod dvije glavne radnje,
-// a na telefonu do njega niko i ne dolazi bez skrolanja.
+// Privatnost / uslovi / o nama — na webu jedan tihi red na dnu početne (Google
+// OAuth provjera traži link na politiku sa početne). Na Androidu ga nema: tamo
+// su u Postavkama (Profil).
 const legalSlot = (
   <>
     <Link href="/privatnost">{sr.home.privacy}</Link>
@@ -34,27 +35,49 @@ const legalSlot = (
   </>
 );
 
+type Sheet =
+  | { kind: "name" }
+  | { kind: "setup" }
+  | { kind: "game"; game: GameConfig }
+  | { kind: "signup" }
+  | null;
+
+/** Izbor stola za start; bez njega važi zapamćen izbor te igre. */
+type Choice = { prefs: QuickPlayPrefs; tableTheme: TableTheme };
+
 export default function Home() {
   const router = useRouter();
-  const playerName = usePlayerName();
-  const prefs = useQuickPlayPrefs();
-  const tableTheme = useTableTheme();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const history = useHomeHistory();
+  const layout = useMemo(() => homeLayout(GAMES, history), [history]);
+  const main = layout.main;
+  const prefs = useQuickPlayPrefs(main.slug);
+  const tableTheme = useTableTheme(main.slug);
+  // „Sada" za oznaku NOVO — jednom po prikazu početne (render mora biti čist).
+  const [now] = useState(() => Date.now());
+
+  const [sheet, setSheet] = useState<Sheet>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [sheet, setSheet] = useState<"name" | "setup" | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playError, setPlayError] = useState<string | null>(null);
   // `playing` gasi dugme tek na sljedećem renderu; brz dupli tap stigne prije.
   const busy = useRef(false);
+  // Šta čeka na ime: igra i (opciono) izbor iz lista podešavanja.
+  const pending = useRef<{ game: GameConfig; choice?: Choice } | null>(null);
 
-  /** Pravo za sto sa zapamćenim izborom. `replace`: „nazad" sa traženja vodi na početnu. */
-  async function play(name: string) {
+  useBackHandler(rulesOpen, () => setRulesOpen(false));
+
+  /** Pravo za sto. `replace`: „nazad" sa traženja vodi na početnu, ne opet ovdje. */
+  async function play(name: string, game: GameConfig, choice?: Choice) {
     if (busy.current) return;
     busy.current = true;
     setPlayError(null);
     setPlaying(true);
+    const chosen = choice ?? {
+      prefs: readQuickPlayPrefs(game.slug),
+      tableTheme: parseTableTheme(readTableThemeRaw(game.slug)),
+    };
     try {
-      router.replace(await startQuickPlay(name, prefs, tableTheme));
+      router.replace(await startQuickPlay(name, chosen.prefs, chosen.tableTheme, game.slug));
     } catch {
       setPlayError(sr.quickSetup.error);
       setPlaying(false);
@@ -63,13 +86,14 @@ export default function Home() {
   }
 
   /**
-   * „Igraj Žandar": jedan dodir kad je ime poznato. Bez imena: nalog s
-   * nadimkom ide pod nadimkom (server ga ionako stavlja za sto), inače list
+   * Igraj (SPEC_POCETNA §4): jedan dodir kad je ime poznato. Bez imena: nalog
+   * s nadimkom ide pod nadimkom (server ga ionako stavlja za sto), inače list
    * sa imenom — samo taj put.
    */
-  async function onPlay() {
+  async function start(game: GameConfig, choice?: Choice) {
+    if (busy.current) return;
     const saved = readPlayerName();
-    if (saved) return play(saved);
+    if (saved) return play(saved, game, choice);
     if (identityUi) {
       setPlaying(true);
       const nickname = await fetchMe().then(
@@ -79,94 +103,105 @@ export default function Home() {
       setPlaying(false);
       if (nickname) {
         savePlayerName(nickname);
-        return play(nickname);
+        return play(nickname, game, choice);
       }
     }
+    pending.current = choice ? { game, choice } : { game };
     setPlayError(null);
-    setSheet("name");
-  }
-  // Fokus se vraća na ZUPČANIK, ne na `document.activeElement` zapamćen pri
-  // otvaranju: Safari (i programski klik) ne fokusira dugme na tap, pa bi
-  // zapamćen bio `body` i fokus bi se izgubio.
-  const settingsButton = useRef<HTMLButtonElement>(null);
-
-  function closeSettings() {
-    setSettingsOpen(false);
-    settingsButton.current?.focus();
+    setSheet({ kind: "name" });
   }
 
-  useBackHandler(settingsOpen, closeSettings);
-  useBackHandler(rulesOpen, () => setRulesOpen(false));
+  function saveChoice(choice: Choice) {
+    saveQuickPlayPrefs(choice.prefs, main.slug);
+    saveTableTheme(choice.tableTheme, main.slug);
+  }
+
+  const mainName = sr.games[main.slug].name;
+  const sheetOpen = sheet !== null;
 
   return (
     <>
       <HomeScreen
-        onPlay={() => void onPlay()}
-        playSummary={sr.quickSetup.summary(prefs.playerCount, prefs.targetScore, sr.tableTheme.names[tableTheme])}
-        onPlaySettings={() => setSheet("setup")}
+        layout={layout}
+        history={history}
+        now={now}
+        loading={playing && !sheetOpen}
+        {...(playError && !sheetOpen ? { error: playError } : {})}
+        setupSummary={sr.quickSetup.summary(prefs.playerCount, prefs.targetScore, sr.tableTheme.names[tableTheme])}
+        onPlay={() => void start(main)}
+        onSetup={() => setSheet({ kind: "setup" })}
         onFriends={() => router.push("/create")}
-        onOpenSettings={() => setSettingsOpen(true)}
-        settingsButtonRef={settingsButton}
-        loading={playing && sheet === null}
-        {...(playError && sheet === null ? { error: playError } : {})}
-        showStores={!isNative}
+        onOpenGame={(game) => setSheet({ kind: "game", game })}
+        onNotify={() => setSheet({ kind: "signup" })}
         onUpcomingViewed={() => track("upcoming_games_viewed")}
         {...(isNative ? {} : { legalSlot })}
         className={identityUi ? "screen--tabbed" : ""}
       />
       {identityUi ? <TabBar /> : null}
 
-      {/* Slojevi preko home-a. Omotač pravi stacking context IZNAD PWA banera
-          (`PwaManager`, z-60): na home-u baner stoji dole, tačno gdje je sheet, i
-          prekrivao je „Zatvori". `RulesModal` se ne dira — dijeli ga igra. */}
-      <div className="home-layer">
-        {settingsOpen ? (
-          <div className="sheet-scrim" onClick={closeSettings}>
-            <div className="sheet-scrim__inner" onClick={(e) => e.stopPropagation()}>
-              <SettingsSheet
-                playerName={playerName}
-                onChangeName={() => {
-                  setSettingsOpen(false);
-                  router.push(namePath("home"));
-                }}
-                onRules={() => {
-                  setSettingsOpen(false);
-                  setRulesOpen(true);
-                }}
-                onClose={closeSettings}
-                feedbackSlot={<FeedbackToggles showPush />}
-                {...(isNative ? { legalSlot } : {})}
-              />
-            </div>
-          </div>
-        ) : null}
-
-        <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
-      </div>
-
       {/* `Sheet` nosi svoj `.home-layer` i Android „nazad". */}
-      {sheet === "name" ? (
+      {sheet?.kind === "name" ? (
         <QuickPlayNameSheet
           loading={playing}
           {...(playError ? { error: playError } : {})}
-          onSubmit={(name) => void play(name)}
+          onSubmit={(name) => {
+            const next = pending.current ?? { game: main };
+            void play(name, next.game, next.choice);
+          }}
           onClose={() => {
             if (!busy.current) setSheet(null);
           }}
         />
       ) : null}
-      {sheet === "setup" ? (
+
+      {sheet?.kind === "setup" ? (
         <QuickPlaySettingsSheet
+          gameName={mainName}
           prefs={prefs}
           tableTheme={tableTheme}
-          onSave={(next, theme) => {
-            saveQuickPlayPrefs(next);
-            saveTableTheme(theme);
+          onPlay={(nextPrefs, theme) => {
+            const choice = { prefs: nextPrefs, tableTheme: theme };
+            saveChoice(choice);
+            setSheet(null);
+            void start(main, choice);
+          }}
+          onSave={(nextPrefs, theme) => {
+            saveChoice({ prefs: nextPrefs, tableTheme: theme });
+            setSheet(null);
+          }}
+        />
+      ) : null}
+
+      {sheet?.kind === "game" ? (
+        <GameSheet
+          game={sheet.game}
+          pinned={history.pinned === sheet.game.slug}
+          onPlay={() => {
+            const game = sheet.game;
+            setSheet(null);
+            void start(game);
+          }}
+          onFriends={() => router.push("/create")}
+          onRules={() => {
+            setSheet(null);
+            setRulesOpen(true);
+          }}
+          onTogglePin={() => {
+            // Samo jedna zakačena: novo kačenje zamjenjuje staro. List se
+            // zatvara, da igrač vidi igru gore kao glavnu karticu (H5).
+            setPinnedGame(history.pinned === sheet.game.slug ? null : sheet.game.slug);
             setSheet(null);
           }}
           onClose={() => setSheet(null)}
         />
       ) : null}
+
+      {sheet?.kind === "signup" ? <SignupSheet games={layout.upcoming} onClose={() => setSheet(null)} /> : null}
+
+      {/* `RulesModal` dijeli igra; omotač ga diže iznad PWA trake. */}
+      <div className="home-layer">
+        <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
+      </div>
     </>
   );
 }

@@ -16,7 +16,13 @@ export const QUICK_PLAY_COUNTS: readonly QuickPlayCount[] = [2, 4];
 export const QUICK_PLAY_TARGETS: readonly QuickPlayTarget[] = [11, 21];
 export const DEFAULT_QUICK_PLAY_PREFS: QuickPlayPrefs = { playerCount: 4, targetScore: 21 };
 
-const STORAGE_KEY = "zandar:quickplay";
+/**
+ * Izbor važi po igri (SPEC_POCETNA §4). Žandar zadržava zatečeni ključ
+ * `zandar:quickplay` — već je upisan na uređajima i niko ne gubi izbor.
+ */
+export function quickPlayPrefsKey(game: string = "zandar"): string {
+  return game === "zandar" ? "zandar:quickplay" : `kartaonica:quickplay:${game}`;
+}
 
 /**
  * Sirov zapis → izbor. Čista funkcija: sve što nije prepoznato (nema zapisa,
@@ -44,21 +50,21 @@ export function parseQuickPlayPrefs(raw: string | null | undefined): QuickPlayPr
  * jeste (parsiran objekat bi bio nov pri svakom čitanju i vrtio render u krug).
  * localStorage ume da BACI (WebView bez site data) — isti razlog kao `peekGuestId`.
  */
-export function readQuickPlayPrefsRaw(): string | null {
+export function readQuickPlayPrefsRaw(game: string = "zandar"): string | null {
   try {
-    return window.localStorage.getItem(STORAGE_KEY);
+    return window.localStorage.getItem(quickPlayPrefsKey(game));
   } catch {
     return null;
   }
 }
 
-export function readQuickPlayPrefs(): QuickPlayPrefs {
-  return parseQuickPlayPrefs(readQuickPlayPrefsRaw());
+export function readQuickPlayPrefs(game: string = "zandar"): QuickPlayPrefs {
+  return parseQuickPlayPrefs(readQuickPlayPrefsRaw(game));
 }
 
-export function saveQuickPlayPrefs(prefs: QuickPlayPrefs): void {
+export function saveQuickPlayPrefs(prefs: QuickPlayPrefs, game: string = "zandar"): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    window.localStorage.setItem(quickPlayPrefsKey(game), JSON.stringify(prefs));
   } catch {
     // bez pamćenja — sljedeći put se kreće od podrazumijevanog
   }
@@ -71,7 +77,7 @@ function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   // Druga kartica promijenila izbor.
   const onStorage = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY) listener();
+    if (e.key === null || e.key.endsWith("quickplay") || e.key.startsWith("kartaonica:quickplay:")) listener();
   };
   window.addEventListener("storage", onStorage);
   return () => {
@@ -85,7 +91,7 @@ function subscribe(listener: () => void): () => void {
  * parsira se u renderu; server snapshot je `null` → podrazumijevano, pa nema
  * hydration mismatch-a.
  */
-export function useQuickPlayPrefs(): QuickPlayPrefs {
-  const raw = useSyncExternalStore(subscribe, readQuickPlayPrefsRaw, () => null);
+export function useQuickPlayPrefs(game: string = "zandar"): QuickPlayPrefs {
+  const raw = useSyncExternalStore(subscribe, () => readQuickPlayPrefsRaw(game), () => null);
   return useMemo(() => parseQuickPlayPrefs(raw), [raw]);
 }

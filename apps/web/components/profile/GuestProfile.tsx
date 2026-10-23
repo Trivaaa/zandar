@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  ChevronRightIcon,
   DevicesIcon,
   FriendsIcon,
+  GearIcon,
   RetryIcon,
   StatsIcon,
   TagIcon,
@@ -19,6 +21,8 @@ export type GuestProfileProps = {
   onRegister: () => void;
   onLogin: () => void;
   onBackToPlay: () => void;
+  /** Postavke (SPEC_POCETNA §6, H6) — i gost ih otvara iz Profila. */
+  onSettings: () => void;
 };
 
 /**
@@ -32,6 +36,7 @@ export function GuestProfile({
   onRegister,
   onLogin,
   onBackToPlay,
+  onSettings,
 }: GuestProfileProps) {
   const shown = name ?? sr.profile.guestNoName;
   const letter = shown.charAt(0).toLocaleUpperCase("sr-Latn");
@@ -92,6 +97,14 @@ export function GuestProfile({
           {sr.profile.benefits.friends}
         </li>
       </ul>
+
+      <button type="button" className="profile__item" onClick={onSettings}>
+        <span className="profile__item-label">
+          <GearIcon className="profile__item-icon" />
+          {sr.profile.settings}
+        </span>
+        <ChevronRightIcon className="profile__item-chevron" />
+      </button>
 
       <div className="profile__actions">
         <button type="button" className="home__cta" onClick={onRegister}>

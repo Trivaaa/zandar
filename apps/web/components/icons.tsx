@@ -173,6 +173,44 @@ export function ChevronRightIcon({ className }: IconProps) {
   );
 }
 
+/** Zvijezda — zakačena igra. `filled` za oznaku „Zakačeno". */
+export function StarIcon({ className, filled = false }: IconProps & { filled?: boolean }) {
+  return (
+    <svg {...stroke} className={className} fill={filled ? "currentColor" : "none"}>
+      <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />
+    </svg>
+  );
+}
+
+/** Otvorena knjižica — pravila. */
+export function BookIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M5 4.5h11a2 2 0 0 1 2 2V20H7a2 2 0 0 1-2-2z" />
+      <path d="M5 18a2 2 0 0 1 2-2h11M9 8.5h5" />
+    </svg>
+  );
+}
+
+/** Strelica u ladicu — preuzimanje aplikacije. */
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />
+    </svg>
+  );
+}
+
+/** Olovka — izmjena podešavanja. */
+export function PencilIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M15.5 5.5l3 3L9 18H6v-3z" />
+      <path d="M13.5 7.5l3 3" />
+    </svg>
+  );
+}
+
 export function RetryIcon({ className }: IconProps) {
   return (
     <svg {...stroke} className={className}>

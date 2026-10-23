@@ -14,14 +14,14 @@ export function BrandMark({ className = "" }: { className?: string }) {
   );
 }
 
-/** Znak + ime + domen. Dijele ga home i teaser stranice. */
-export function BrandLockup({ className = "" }: { className?: string }) {
+/** Znak + ime (+ domen). Dijele ga home (bez domena, SPEC_POCETNA §2) i teaser stranice. */
+export function BrandLockup({ className = "", showDomain = true }: { className?: string; showDomain?: boolean }) {
   return (
     <div className={`brand ${className}`}>
       <BrandMark className="brand__mark" />
       <span className="brand__text">
         <span className="brand__name">{sr.home.brand}</span>
-        <span className="brand__domain">{sr.home.domain}</span>
+        {showDomain ? <span className="brand__domain">{sr.home.domain}</span> : null}
       </span>
     </div>
   );

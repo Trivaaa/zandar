@@ -5,6 +5,12 @@ import { CONSENT_TEXTS, CURRENT_CONSENT_TEXT_ID, type ProfileAvatar, type TableT
 
 import { pluralForm } from "./plural";
 
+/** „Poker", „Poker i Raub", „Poker, Remi i Raub". */
+function listJoin(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} i ${names[names.length - 1]}`;
+}
+
 export const sr = {
   // Zaglavlje stola. "Runda" je ono sto igrac broji za stolom; u kodu je to
   // `handNumber` (dijeljenje). Ne mijenjati jedno bez drugog.
@@ -124,8 +130,8 @@ export const sr = {
     // Red ispod dugmeta: šta će igrač dobiti, i ujedno ulaz u list.
     summary: (players: number, target: number, table: string) => `${players} igrača · do ${target} · ${table}`,
     summaryLabel: (summary: string) => `Podešavanja igre: ${summary}. Promijeni`,
-    settingsTitle: "Podešavanja igre",
-    save: "Sačuvaj",
+    settingsTitle: (game: string) => `Brza igra · ${game}`,
+    saveAndClose: "Sačuvaj i zatvori",
     cancel: "Odustani",
     nameTitle: "Kako da te zovemo?",
     nameSub: "Pod ovim imenom te vide za stolom. Promijeniti ga možeš u Postavkama.",
@@ -189,12 +195,23 @@ export const sr = {
     domain: "kartaonica.com",
     /* Ime igre kao rijec; velika slova daje CSS (text-transform), jer citac
        ekrana ume da speluje 'ZANDAR' slovo po slovo. */
-    game: "Žandar",
-    tagline: "Imaš vremena za jednu?",
-    play: "Igraj Žandar",
+    play: "Igraj",
     playLoading: "Tražim sto...",
-    friends: "Igraj s prijateljima",
-    friendsNote: "Vaše društvo. Vaš sto.",
+    friends: "S prijateljima",
+    /** „2 ili 4 igrača · ~10 min" */
+    meta: (players: string, minutes: number) => `${players} · ~${minutes} min`,
+    pinned: "Zakačeno",
+    more: "Još igara",
+    isNew: "Novo",
+    openGame: (name: string) => `${name} — više o igri`,
+    soon: (names: string[]) => `Uskoro: ${listJoin(names)}`,
+    soonSub: "Javimo ti kad stigne.",
+    notifyMe: "Javi mi",
+    // List igre (H4)
+    rules: "Pravila",
+    pin: "Zakači na vrh",
+    unpin: "Otkači",
+    close: "Zatvori",
     privacy: "Privatnost",
     terms: "Uslovi korišćenja",
     about: "O nama",
@@ -247,35 +264,36 @@ export const sr = {
     submit: "Nastavi",
     change: "Promijeni",
   },
-  /* Sekcija budućih igara na home-u. Kartica je ulaz u prijavu, ne u igru —
-     otud „U planu?" i zvono, a ne play ikona ili katanac. */
-  upcoming: {
-    title: "Šta ćemo sljedeće igrati?",
-    body: "Još nisu dostupne. Želiš obavještenje?",
-    tag: "U planu?",
-    cardLabel: (game: string) => `Obavještenje za ${game}`,
-  },
   /* Po igri. Ključ je slug iz `@zandar/shared-types` — nova igra = novi blok.
      Velika slova daje CSS (text-transform) — citac ekrana ume da speluje
      naslov napisan velikim slovima, slovo po slovo. */
   games: {
+    zandar: {
+      name: "Žandar",
+      players: "2 ili 4 igrača",
+      about: "Kafanska klasika: nosi karte sa stola, skupljaj poene, pazi na žandara.",
+    },
     poker: {
       name: "Poker",
+      players: "2–6 igrača",
       status: "Poker još nije dostupan.",
       body: "Razmišljamo o pokeru za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },
     remi: {
       name: "Remi",
+      players: "2–4 igrača",
       status: "Remi još nije dostupan.",
       body: "Razmišljamo o remiju za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },
     bela: {
       name: "Bela",
+      players: "2–4 igrača",
       status: "Bela još nije dostupna.",
       body: "Razmišljamo o beli za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },
     raub: {
       name: "Raub",
+      players: "2–4 igrača",
       status: "Raub još nije dostupan.",
       body: "Razmišljamo o raubu za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },
@@ -296,11 +314,16 @@ export const sr = {
     submit: "Prijavi se",
     submitNote: "Prijavama biramo koju igru pravimo sljedeću.",
     invalidEmail: "Provjeri e-adresu i pokušaj ponovo.",
-    missingConsent: "Označi saglasnost ako želiš obavještenje o ovoj igri.",
+    missingConsent: "Označi saglasnost ako želiš obavještenje.",
     sending: "Šaljemo prijavu…",
     error: "Prijava nije poslata. Pokušaj ponovo.",
     successTitle: "Prijava je stigla!",
     successBody: "Javićemo ti ako otvorimo prve stolove za ovu igru.",
+    // Jedna prijava za sve najavljene igre (red „Uskoro" na početnoj).
+    manyTitle: (names: string[]) => `Javi mi za ${listJoin(names)}`,
+    manyBody: "Ostavi e-adresu i javićemo ti kad otvorimo prve stolove.",
+    manySuccessBody: "Javićemo ti kad otvorimo prve stolove.",
+    backHome: "Nazad na početnu",
     backToGame: "Nazad na Žandar",
   },
   settings: {
@@ -308,16 +331,13 @@ export const sr = {
     close: "Zatvori",
     name: "Ime za stolom",
     noName: "Još nije upisano",
-    rules: "Kako se igra?",
+    rules: "Pravila igara",
     deleteData: "Brisanje podataka",
+    getApp: "Preuzmi aplikaciju",
   },
   /* Samo web. U APK-u se sekcija ne renderuje. Imena prodavnica su obična
      oznaka mjesta dok zvanični artwork ne stigne uz živ URL (`lib/stores.ts`). */
   stores: {
-    title: "Kartaonica na telefonu",
-    unavailable: "Još nije dostupno",
-    "app-store": "App Store",
-    "google-play": "Google Play",
     /* Traka na webu (Android): ponuda aplikacije. Tekst zvanične oznake je na
        samoj slici; `badgeAlt` je njen opis za čitač ekrana. */
     bannerText: "Igraj u aplikaciji",

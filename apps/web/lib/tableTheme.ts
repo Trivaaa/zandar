@@ -8,23 +8,26 @@
 import { useSyncExternalStore } from "react";
 import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
 
-const STORAGE_KEY = "zandar:table";
+/** Po igri, kao izbor stola; Žandar zadržava zatečeni `zandar:table` (dijeli ga i `/create`). */
+export function tableThemeKey(game: string = "zandar"): string {
+  return game === "zandar" ? "zandar:table" : `kartaonica:table:${game}`;
+}
 
 /**
  * Sirov zapis, za `useSyncExternalStore` (stabilan snapshot). localStorage ume
  * da BACI (WebView bez site data) — isti razlog kao `readQuickPlayPrefsRaw`.
  */
-export function readTableThemeRaw(): string | null {
+export function readTableThemeRaw(game: string = "zandar"): string | null {
   try {
-    return window.localStorage.getItem(STORAGE_KEY);
+    return window.localStorage.getItem(tableThemeKey(game));
   } catch {
     return null;
   }
 }
 
-export function saveTableTheme(theme: TableTheme): void {
+export function saveTableTheme(theme: TableTheme, game: string = "zandar"): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, theme);
+    window.localStorage.setItem(tableThemeKey(game), theme);
   } catch {
     // bez pamćenja — ekran sljedeći put kreće od podrazumijevane
   }
@@ -36,7 +39,7 @@ const listeners = new Set<() => void>();
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   const onStorage = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY) listener();
+    if (e.key === null || e.key === "zandar:table" || e.key.startsWith("kartaonica:table:")) listener();
   };
   window.addEventListener("storage", onStorage);
   return () => {
@@ -46,6 +49,6 @@ function subscribe(listener: () => void): () => void {
 }
 
 /** Zapamćena podloga kao React stanje (server snapshot → podrazumijevana). */
-export function useTableTheme(): TableTheme {
-  return parseTableTheme(useSyncExternalStore(subscribe, readTableThemeRaw, () => null));
+export function useTableTheme(game: string = "zandar"): TableTheme {
+  return parseTableTheme(useSyncExternalStore(subscribe, () => readTableThemeRaw(game), () => null));
 }

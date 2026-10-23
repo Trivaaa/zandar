@@ -88,7 +88,7 @@ export function TeaserScreen({ slug }: { slug: UpcomingGameSlug }) {
           <p className="teaser__text">{copy.body}</p>
         </section>
 
-        <SignupForm game={slug} onBackToGame={() => router.push("/")} />
+        <SignupForm games={[slug]} onBackToGame={() => router.push("/")} />
       </div>
 
       <footer className="home__legal teaser__legal">
