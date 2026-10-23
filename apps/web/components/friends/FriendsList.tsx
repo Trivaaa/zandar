@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { FriendsIcon, WarningIcon } from "@/components/icons";
+import { InviteSheet } from "@/components/friends/InviteSheet";
 import { Avatar } from "@/components/profile/Avatar";
 import { usePlayerInfo } from "@/components/profile/PlayerInfo";
 import {
@@ -48,8 +49,10 @@ export function FriendsList() {
       () => setLoad((cur) => (cur.status === "ready" ? cur : { status: "error" })),
     );
   }, []);
-  // Radnja iz tuđeg profila (npr. Ukloni) mijenja listu iza lista.
-  const info = usePlayerInfo(refresh);
+  // E2: list poziva; `undefined` = zatvoren, string = dodirnuti prijatelj.
+  const [inviting, setInviting] = useState<string | undefined>(undefined);
+  // Radnja iz tuđeg profila (npr. Ukloni) mijenja listu iza lista; F5 poziva.
+  const info = usePlayerInfo(refresh, (profile) => setInviting(profile.profileId));
 
   // Prvo učitavanje i svaka promjena broja zahtjeva sa kanala (D4).
   useEffect(refresh, [refresh, requestCount]);
@@ -181,15 +184,23 @@ export function FriendsList() {
         <section className="friends__section" aria-label={sr.friends.listTitle(load.friends.length)}>
           <h2 className="friends__section-title">{sr.friends.listTitle(load.friends.length)}</h2>
           {load.friends.map((entry) => (
-            <button
-              key={entry.profileId}
-              type="button"
-              className="friends__row friends__row--tap"
-              onClick={(e) => openProfile(entry, e.currentTarget)}
-            >
-              <Face entry={entry} />
-              <span className="friends__name">{entry.nickname}</span>
-            </button>
+            <div key={entry.profileId} className="friends__row">
+              <button
+                type="button"
+                className="friends__open"
+                onClick={(e) => openProfile(entry, e.currentTarget)}
+              >
+                <Face entry={entry} />
+                <span className="friends__name">{entry.nickname}</span>
+              </button>
+              <button
+                type="button"
+                className="friends__btn"
+                onClick={() => setInviting(entry.profileId)}
+              >
+                {sr.invite.open}
+              </button>
+            </div>
           ))}
         </section>
       ) : null}
@@ -199,6 +210,9 @@ export function FriendsList() {
         </p>
       ) : null}
       {info.layer}
+      {inviting !== undefined ? (
+        <InviteSheet preselect={inviting} onClose={() => setInviting(undefined)} />
+      ) : null}
     </div>
   );
 }

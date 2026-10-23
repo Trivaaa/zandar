@@ -26,6 +26,7 @@ import { readQuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import { GameScreen } from "@/components/GameScreen";
 import { usePlayerInfo } from "@/components/profile/PlayerInfo";
+import { InviteSheet } from "@/components/friends/InviteSheet";
 import { identityUi } from "@/lib/features";
 import type { ActiveReaction } from "@/lib/reactions";
 import type {
@@ -58,6 +59,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   // Dodir na igrača → tuđi profil / kartica gosta (SPEC_IDENTITET T1–T3).
   const playerInfo = usePlayerInfo();
   const onPlayerTap = identityUi ? playerInfo.open : undefined;
+  // E3 „Pozovi iz prijatelja" (host sa nalogom).
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -556,8 +559,13 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           )
         }
         onPlayerTap={onPlayerTap}
+        invites={room.invites}
+        onInviteFriends={
+          identityUi && isHost && me?.profileId && playersNeeded > 0 ? () => setInviteOpen(true) : undefined
+        }
       />
       {playerInfo.layer}
+      {inviteOpen ? <InviteSheet roomId={room.id} onClose={() => setInviteOpen(false)} /> : null}
     </div>
   );
 }

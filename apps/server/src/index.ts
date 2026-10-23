@@ -85,6 +85,14 @@ import { identityAdmin } from "./profile/cleanup";
 import { recordCompletedMatch } from "./profile/results";
 import { registerProfileRoutes } from "./profile/routes";
 import { registerFriendRoutes } from "./profile/friendRoutes";
+import {
+  addInvites,
+  inviteFor,
+  noticeOf,
+  publicInvites,
+  removeInvite,
+  type RoomInvite,
+} from "./profile/invites";
 import { accountIdentityFor, applyAccountIdentity } from "./profile/accountIdentity";
 import { toPublicPlayer } from "./publicPlayer";
 import { profileStore } from "./profile/store";
@@ -313,51 +321,71 @@ fastify.post<{ Body: CreateRoomBody }>(
         .send({ error: "playerCount mora biti 2, 3 ili 4" });
     }
 
-    const roomId = createRoomId();
-    const playerId = createPlayerId();
-    const sessionToken = createSessionToken();
-
-    const rulesConfig = createRulesConfig(playerCount);
-    rulesConfig.targetScore = targetScore;
-
-    const hostPlayer: Player = {
-      id: playerId,
-      displayName: displayName.trim(),
-      seatIndex: 0,
-      connectionStatus: "connected",
-      isHost: true,
-      consecutiveAutoPlays: 0,
-      ...identity,
-    };
-    if (playerCount === 4) {
-      hostPlayer.teamId = 0;
-    }
-    // Nalog sjeda pod nadimkom, sa avatarom (SPEC_IDENTITET §6.8).
-    applyAccountIdentity(hostPlayer, await accountIdentityFor(profileStore, identity.uid));
-
-    const room: LobbyRoom = {
-      id: roomId,
-      status: "waiting",
-      hostPlayerId: playerId,
-      players: [hostPlayer],
-      rulesConfig,
-      gameState: null,
-      sessionTokens: new Map([[playerId, hashToken(sessionToken)]]),
-      joinRequests: new Map(),
-      createdAt: Date.now(),
-      tableTheme: parseTableTheme(request.body.tableTheme),
-    };
-
-    storeRoom(room);
+    const { room, playerId, sessionToken } = await createPrivateRoom({
+      displayName,
+      playerCount,
+      targetScore,
+      tableTheme: request.body.tableTheme,
+      identity,
+    });
 
     return {
-      roomId,
+      roomId: room.id,
       playerId,
       playerSessionToken: sessionToken,
-      inviteUrl: `http://localhost:3000/room/${roomId}`,
+      inviteUrl: `http://localhost:3000/room/${room.id}`,
     };
   },
 );
+
+/**
+ * Privatna soba sa hostom — dijele je „Igraj s prijateljima" (`/api/rooms`) i
+ * poziv prijateljima (`/api/invites`). Nalog sjeda pod nadimkom (§6.8).
+ */
+async function createPrivateRoom(opts: {
+  displayName: string;
+  playerCount: 2 | 3 | 4;
+  targetScore: number;
+  tableTheme: unknown;
+  identity: Pick<Player, "guestId" | "platform" | "uid">;
+}): Promise<{ room: LobbyRoom; playerId: string; sessionToken: string }> {
+  const roomId = createRoomId();
+  const playerId = createPlayerId();
+  const sessionToken = createSessionToken();
+
+  const rulesConfig = createRulesConfig(opts.playerCount);
+  rulesConfig.targetScore = opts.targetScore;
+
+  const hostPlayer: Player = {
+    id: playerId,
+    displayName: opts.displayName.trim(),
+    seatIndex: 0,
+    connectionStatus: "connected",
+    isHost: true,
+    consecutiveAutoPlays: 0,
+    ...opts.identity,
+  };
+  if (opts.playerCount === 4) {
+    hostPlayer.teamId = 0;
+  }
+  applyAccountIdentity(hostPlayer, await accountIdentityFor(profileStore, opts.identity.uid));
+
+  const room: LobbyRoom = {
+    id: roomId,
+    status: "waiting",
+    hostPlayerId: playerId,
+    players: [hostPlayer],
+    rulesConfig,
+    gameState: null,
+    sessionTokens: new Map([[playerId, hashToken(sessionToken)]]),
+    joinRequests: new Map(),
+    createdAt: Date.now(),
+    tableTheme: parseTableTheme(opts.tableTheme),
+  };
+
+  storeRoom(room);
+  return { room, playerId, sessionToken };
+}
 
 fastify.get<{ Params: { roomId: string } }>(
   "/api/rooms/:roomId",
@@ -384,6 +412,8 @@ fastify.get<{ Params: { roomId: string } }>(
       botFill: room.botFill ?? false,
       // Sobe od prije izbora podloge polje nemaju → podrazumijevana.
       tableTheme: parseTableTheme(room.tableTheme),
+      // E3: pozvani koji još nisu sjeli — samo javno lice.
+      invites: publicInvites(room, Date.now()),
     };
   },
 );
@@ -580,40 +610,14 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
         .send({ error: `Zahtjev nije pending: ${req.status}` });
     }
 
-    // Ljudi imaju prioritet nad botovima: kad je bot-fill uključen, oslobodi
-    // bot-sjedišta da bi novi čovjek mogao da uđe (kasnije se opet popuni).
-    if (room.botFill) removeBotsFromRoom(room);
-
-    if (room.players.length >= room.rulesConfig.playerCount) {
-      if (room.botFill) fillSeatsWithBots(room); // vrati botove ako nije bilo mjesta
-      return reply.code(409).send({ error: "Soba je puna" });
-    }
-
-    const playerId = createPlayerId();
-    const sessionToken = createSessionToken();
-    const seatIndex = room.players.length;
-
-    const newPlayer: Player = {
-      id: playerId,
+    const admitted = await admitPlayer(room, {
       displayName: req.displayName,
-      seatIndex,
-      connectionStatus: "connected",
-      isHost: false,
-      consecutiveAutoPlays: 0,
       ...(req.guestId ? { guestId: req.guestId } : {}),
       ...(req.platform ? { platform: req.platform } : {}),
       ...(req.uid ? { uid: req.uid } : {}),
-    };
-    if (room.rulesConfig.playerCount === 4) {
-      newPlayer.teamId = seatIndex % 2;
-    }
-    applyAccountIdentity(newPlayer, await accountIdentityFor(profileStore, req.uid));
-
-    room.players.push(newPlayer);
-    room.sessionTokens.set(playerId, hashToken(sessionToken));
-
-    // Bot-fill ON → popuni preostala prazna mjesta nazad botovima (soba ostaje puna).
-    if (room.botFill) fillSeatsWithBots(room);
+    });
+    if (!admitted) return reply.code(409).send({ error: "Soba je puna" });
+    const { playerId, sessionToken } = admitted;
 
     req.status = "approved";
     req.playerId = playerId;
@@ -640,6 +644,211 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
     return { success: true };
   },
 );
+// ---- POZIVI PRIJATELJA (SPEC_IDENTITET tok e, Q1) ----
+
+/** Tihi tehnički limit (Q9): 100 poziva dnevno po nalogu. */
+const inviteLimiter = new SlidingWindowLimiter(100, 24 * 60 * 60 * 1000);
+setInterval(() => inviteLimiter.sweep(), 10 * 60_000).unref();
+/** Jedan poziv nosi najviše ovoliko prijatelja (sto ima 4 mjesta). */
+const MAX_INVITEES = 8;
+
+type ReplyLike = { code: (status: number) => { send: (body: unknown) => unknown } };
+
+/** Pozivi su samo između naloga sa nadimkom (prijatelji). */
+async function inviteMember(
+  request: { headers: { authorization?: string | undefined } },
+  reply: ReplyLike,
+): Promise<{ uid: string; nickname: string } | null> {
+  const user = await requireUser(request, reply);
+  if (!user) return null;
+  if (user.anonymous) {
+    reply.code(403).send({ error: "Potreban je nalog", code: "account_required" });
+    return null;
+  }
+  const profile = await profileStore.getProfile(user.uid);
+  if (!profile?.nickname) {
+    reply.code(403).send({ error: "Prvo izaberi nadimak", code: "nickname_required" });
+    return null;
+  }
+  return { uid: user.uid, nickname: profile.nickname };
+}
+
+/** Prijatelji iz javnih ID-eva; ko nije prijatelj ili je blokada — tiho preskočen. */
+async function invitableFriends(me: string, profileIds: unknown, now: number): Promise<RoomInvite[]> {
+  if (!Array.isArray(profileIds)) return [];
+  const out: RoomInvite[] = [];
+  for (const id of profileIds.slice(0, MAX_INVITEES)) {
+    if (typeof id !== "string") continue;
+    const uid = await profileStore.uidForNickname(id.toLowerCase());
+    if (!uid || uid === me || out.some((i) => i.uid === uid)) continue;
+    if (!(await profileStore.areFriends(me, uid))) continue;
+    if ((await profileStore.isBlocked(me, uid)) || (await profileStore.isBlocked(uid, me))) continue;
+    const p = await profileStore.getProfile(uid);
+    if (!p?.nickname || !p.nicknameKey) continue;
+    out.push({
+      uid,
+      profileId: p.nicknameKey,
+      nickname: p.nickname,
+      ...(p.avatar ? { avatar: p.avatar } : {}),
+      fromUid: me,
+      createdAt: now,
+    });
+  }
+  return out;
+}
+
+/** E4: poziv stiže na korisnički kanal pozvanog (push za van aplikacije: korak 11). */
+function sendInviteNotices(room: LobbyRoom, invites: RoomInvite[]): void {
+  const host = room.players.find((p) => p.isHost);
+  for (const invite of invites) {
+    io.to(`user:${invite.uid}`).emit("user:invite", noticeOf(room.id, room, invite, host?.displayName ?? ""));
+  }
+}
+
+/** Ponovna pretplata (povratak u aplikaciju): svi pozivi koji još važe. */
+function pushPendingInvites(uid: string): void {
+  const now = Date.now();
+  for (const room of getAllRooms()) {
+    const invite = inviteFor(room, uid, now);
+    if (invite) sendInviteNotices(room, [invite]);
+  }
+}
+
+type InviteBody = {
+  profileIds?: unknown;
+  playerCount?: unknown;
+  targetScore?: unknown;
+  tableTheme?: unknown;
+  guestId?: unknown;
+  platform?: unknown;
+};
+
+/** E2 → E3: nova privatna soba sa pozivima izabranim prijateljima. */
+fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
+  const me = await inviteMember(request, reply);
+  if (!me) return reply;
+  const body = request.body ?? {};
+  const playerCount = body.playerCount;
+  const targetScore = body.targetScore;
+  if (playerCount !== 2 && playerCount !== 3 && playerCount !== 4) {
+    return reply.code(400).send({ error: "playerCount mora biti 2, 3 ili 4" });
+  }
+  if (targetScore !== 11 && targetScore !== 21) {
+    return reply.code(400).send({ error: "targetScore mora biti 11 ili 21" });
+  }
+  const now = Date.now();
+  const invitees = await invitableFriends(me.uid, body.profileIds, now);
+  if (invitees.length === 0) return reply.code(400).send({ code: "no_friends" });
+  if (!inviteLimiter.tryHit(me.uid)) return reply.code(429).send({ code: "rate_limited" });
+
+  const { room, playerId, sessionToken } = await createPrivateRoom({
+    displayName: me.nickname,
+    playerCount,
+    targetScore,
+    tableTheme: body.tableTheme,
+    identity: { ...analyticsIdentity(body), uid: me.uid },
+  });
+  addInvites(room, invitees);
+  persistRoom(room);
+  sendInviteNotices(room, invitees);
+  return {
+    roomId: room.id,
+    playerId,
+    playerSessionToken: sessionToken,
+    inviteUrl: `http://localhost:3000/room/${room.id}`,
+  };
+});
+
+/** E3 „Pozovi iz prijatelja" — samo host sobe koja čeka. */
+fastify.post<{ Params: { roomId: string }; Body: { profileIds?: unknown } }>(
+  "/api/rooms/:roomId/invites",
+  async (request, reply) => {
+    const me = await inviteMember(request, reply);
+    if (!me) return reply;
+    const room = getRoom(request.params.roomId);
+    if (!room) return reply.code(404).send({ error: "Soba ne postoji" });
+    const host = room.players.find((p) => p.id === room.hostPlayerId);
+    if (host?.uid !== me.uid) return reply.code(403).send({ error: "Nisi host" });
+    if (room.status !== "waiting") return reply.code(409).send({ code: "not_waiting" });
+    const invitees = await invitableFriends(me.uid, request.body?.profileIds, Date.now());
+    if (invitees.length === 0) return reply.code(400).send({ code: "no_friends" });
+    if (!inviteLimiter.tryHit(me.uid)) return reply.code(429).send({ code: "rate_limited" });
+    addInvites(room, invitees);
+    persistRoom(room);
+    io.to(room.id).emit("room:update");
+    sendInviteNotices(room, invitees);
+    return { invited: invitees.length };
+  },
+);
+
+/** E5 Pridruži se — pravo u sobu, BEZ odobrenja hosta. Istekao poziv → 410 (F7). */
+fastify.post<{ Params: { roomId: string }; Body: { guestId?: unknown; platform?: unknown } }>(
+  "/api/invites/:roomId/accept",
+  async (request, reply) => {
+    const me = await inviteMember(request, reply);
+    if (!me) return reply;
+    const room = getRoom(request.params.roomId);
+    const invite = room ? inviteFor(room, me.uid, Date.now()) : null;
+    if (!room || !invite) return reply.code(410).send({ code: "expired" });
+    const admitted = await admitPlayer(room, {
+      displayName: me.nickname,
+      ...analyticsIdentity(request.body ?? {}),
+      uid: me.uid,
+    });
+    if (!admitted) return reply.code(410).send({ code: "expired" });
+    removeInvite(room, me.uid);
+    persistRoom(room);
+    io.to(room.id).emit("room:update");
+    return { roomId: room.id, playerId: admitted.playerId, sessionToken: admitted.sessionToken };
+  },
+);
+
+/**
+ * Sjedanje čovjeka u sobu koja čeka — odobren zahtjev (`/approve`) i
+ * prihvaćen poziv prijatelja (bez hosta). `null` = soba je puna.
+ * Pozivalac radi persist i `room:update`.
+ */
+async function admitPlayer(
+  room: LobbyRoom,
+  who: { displayName: string } & Pick<Player, "guestId" | "platform" | "uid">,
+): Promise<{ playerId: string; sessionToken: string } | null> {
+  // Ljudi imaju prioritet nad botovima: kad je bot-fill uključen, oslobodi
+  // bot-sjedišta da bi novi čovjek mogao da uđe (kasnije se opet popuni).
+  if (room.botFill) removeBotsFromRoom(room);
+
+  if (room.players.length >= room.rulesConfig.playerCount) {
+    if (room.botFill) fillSeatsWithBots(room); // vrati botove ako nije bilo mjesta
+    return null;
+  }
+
+  const playerId = createPlayerId();
+  const sessionToken = createSessionToken();
+  const seatIndex = room.players.length;
+
+  const newPlayer: Player = {
+    id: playerId,
+    displayName: who.displayName,
+    seatIndex,
+    connectionStatus: "connected",
+    isHost: false,
+    consecutiveAutoPlays: 0,
+    ...(who.guestId ? { guestId: who.guestId } : {}),
+    ...(who.platform ? { platform: who.platform } : {}),
+    ...(who.uid ? { uid: who.uid } : {}),
+  };
+  if (room.rulesConfig.playerCount === 4) {
+    newPlayer.teamId = seatIndex % 2;
+  }
+  applyAccountIdentity(newPlayer, await accountIdentityFor(profileStore, who.uid));
+
+  room.players.push(newPlayer);
+  room.sessionTokens.set(playerId, hashToken(sessionToken));
+
+  // Bot-fill ON → popuni preostala prazna mjesta nazad botovima (soba ostaje puna).
+  if (room.botFill) fillSeatsWithBots(room);
+  return { playerId, sessionToken };
+}
+
 type KickBody = {
   playerId: string;
   hostPlayerId: string;
@@ -1857,6 +2066,8 @@ io.on("connection", (socket) => {
       const verified =
         typeof payload?.idToken === "string" ? await idTokens.verify(payload.idToken) : null;
       if (!verified?.ok || verified.user.anonymous) {
+        // Odjava / gost: socket više ne sluša nijedan nalog (T3).
+        for (const r of socket.rooms) if (r.startsWith("user:")) void socket.leave(r);
         ack?.({ ok: false });
         return;
       }
@@ -1866,6 +2077,7 @@ io.on("connection", (socket) => {
       await socket.join(room);
       ack?.({ ok: true });
       void pushFriendCount(verified.user.uid);
+      pushPendingInvites(verified.user.uid);
     },
   );
 

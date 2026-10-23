@@ -43,6 +43,8 @@ export type RoomInfo = {
   slotsAvailable: number;
   /** Host bot-fill (C3): prazna mjesta popunjena botovima. */
   botFill: boolean;
+  /** E3: pozvani koji još nisu sjeli (stariji server ih ne šalje). */
+  invites?: { profileId: string; nickname: string; avatar: ProfileAvatar | null }[];
   /** Podloga stola. Opciono: server od prije izbora podloge je ne šalje. */
   tableTheme?: TableTheme;
 };

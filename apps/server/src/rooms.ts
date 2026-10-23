@@ -7,6 +7,7 @@ import type {
   TableTheme,
 } from "@zandar/shared-types";
 import { persistence } from "./persistence";
+import type { RoomInvite } from "./profile/invites";
 
 export type JoinRequestStatus =
   | "pending"
@@ -61,6 +62,11 @@ export type LobbyRoom = {
    * soba od prije izbora je nemaju; čita se kroz `parseTableTheme`.
    */
   tableTheme?: TableTheme;
+  /**
+   * Pozivi prijatelja (SPEC_IDENTITET tok e). Opciono — stari snapshot-i ga
+   * nemaju. `uid` pozvanog je server-only: klijent dobija `publicInvites`.
+   */
+  invites?: RoomInvite[];
 };
 
 const rooms = new Map<string, LobbyRoom>();

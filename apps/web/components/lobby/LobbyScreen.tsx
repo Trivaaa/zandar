@@ -46,6 +46,10 @@ export type LobbyScreenProps = {
   onBack: () => void;
   /** Ponuda obavještenja (`PushPrompt`) — roditelj je puni, ekran ostaje bez stanja. */
   noticeSlot?: ReactNode | undefined;
+  /** E3: pozvani prijatelji koji još nisu sjeli. */
+  invites?: { profileId: string; nickname: string; avatar: ProfileAvatar | null }[] | undefined;
+  /** E3 „Pozovi iz prijatelja" — samo host sa nalogom. */
+  onInviteFriends?: (() => void) | undefined;
   /** Dodir na red drugog igrača → tuđi profil ili kartica gosta (T2/T3). */
   onPlayerTap?: ((player: LobbyPlayer, anchor: DOMRect) => void) | undefined;
   className?: string | undefined;
@@ -79,6 +83,8 @@ export function LobbyScreen({
   noticeSlot,
   className = "",
   onPlayerTap,
+  invites = [],
+  onInviteFriends,
 }: LobbyScreenProps) {
   const seatsFilled = players.length;
   const seatsNeeded = Math.max(0, playerCount - seatsFilled);
@@ -115,6 +121,11 @@ export function LobbyScreen({
               {copied ? sr.lobby.copied : sr.lobby.copy}
             </button>
           </div>
+          {onInviteFriends ? (
+            <button type="button" className="lobby__invite-friends font-sans text-sm" onClick={onInviteFriends}>
+              {sr.invite.fromRoom}
+            </button>
+          ) : null}
         </div>
 
         {/* Odmah ispod linka: host ga upravo dijeli i sprema se da izađe. */}
@@ -198,7 +209,18 @@ export function LobbyScreen({
               </div>
             );
           })}
-          {emptySeatIndices.map((index) => (
+          {invites.map((invite) => (
+            <div key={`invite-${invite.profileId}`} className="lobby__seat" data-empty="true" data-invited="true">
+              <span className="lobby__seat-avatar font-display text-base" aria-hidden="true">
+                {invite.avatar ? <Avatar avatar={invite.avatar} /> : invite.nickname.slice(0, 1)}
+              </span>
+              <div className="lobby__seat-body">
+                <span className="lobby__seat-name font-sans text-base">{invite.nickname}</span>
+                <span className="lobby__seat-meta font-sans text-xs">{sr.invite.pending}</span>
+              </div>
+            </div>
+          ))}
+          {emptySeatIndices.slice(invites.length).map((index) => (
             <div
               key={`empty-${index}`}
               className="lobby__seat"

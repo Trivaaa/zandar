@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { InviteInbox } from "@/components/friends/InviteInbox";
 import { CardsIcon, FriendsIcon, PersonIcon } from "@/components/icons";
 import { sr } from "@/lib/sr";
 import { useFriendRequestCount } from "@/lib/userChannel";
@@ -30,6 +31,9 @@ export function TabBar() {
   // D4: broj zahtjeva koji čekaju, sa korisničkog kanala (0 za gosta).
   const friendRequests = useFriendRequestCount();
   return (
+    <>
+    {/* E4: poziv na partiju stiže na glavnim ekranima — tamo gdje je i traka. */}
+    <InviteInbox />
     <nav className="tabbar" aria-label={sr.nav.label}>
       {TABS.map(({ href, label, Icon }) => {
         const active = samePath(pathname, href);
@@ -56,5 +60,6 @@ export function TabBar() {
         );
       })}
     </nav>
+    </>
   );
 }

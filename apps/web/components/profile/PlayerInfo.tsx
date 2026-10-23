@@ -41,7 +41,11 @@ type Step =
  * Gost koji gleda profil nema radnje prijateljstva (prijatelji su za
  * naloge) ni blokadu — samo prijavu (§6.9, uvredljiv nadimak vidi i on).
  */
-export function usePlayerInfo(onChanged?: () => void): {
+export function usePlayerInfo(
+  onChanged?: () => void,
+  /** F5 „Pozovi na partiju" — samo gdje host može da pozove (lista prijatelja). */
+  onInvite?: (profile: PublicProfile) => void,
+): {
   open: (player: { displayName: string; profileId?: string | null }, anchor: DOMRect) => void;
   layer: ReactNode;
 } {
@@ -135,10 +139,15 @@ export function usePlayerInfo(onChanged?: () => void): {
         );
         break;
       case "friends":
-        // „Pozovi na partiju" stiže sa pozivima (korak 10).
         body = (
           <>
             <p className="other-profile__relation">{sr.otherProfile.areFriends}</p>
+            {onInvite
+              ? primary(sr.otherProfile.inviteToGame, () => {
+                  close();
+                  onInvite(profile);
+                })
+              : null}
             {secondary(sr.otherProfile.removeFriend, () => setStep({ kind: "remove", profile }))}
           </>
         );

@@ -546,10 +546,28 @@ export const sr = {
     acceptRequest: "Prihvati zahtjev",
     decline: "Odbij",
     areFriends: "Prijatelji ste",
+    inviteToGame: "Pozovi na partiju",
     removeFriend: "Ukloni iz prijatelja",
     removeConfirm: (name: string) => `Ukloniti ${name} iz prijatelja?`,
     removeBody: "Neće dobiti obavještenje. Kasnije možeš ponovo poslati zahtjev.",
     remove: "Ukloni",
+  },
+  /* Pozivi na partiju — tok e (SPEC_IDENTITET E1–E5, F7). */
+  invite: {
+    open: "Pozovi",
+    title: "Pozovi na partiju",
+    options: "Broj igrača · igra se do",
+    send: (n: number) => `Pošalji poziv (${n})`,
+    noFriends: "Još nemaš prijatelja koje možeš pozvati.",
+    fromRoom: "Pozovi iz prijatelja",
+    pending: "Poziv poslat · čeka se odgovor",
+    incomingTitle: (name: string) => `${name} te zove na partiju`,
+    incomingBody: (players: number, target: number) => `Žandar · ${players} igrača · do ${target}`,
+    join: "Pridruži se",
+    notNow: "Ne sada",
+    expiredTitle: "Poziv više ne važi",
+    expiredBody: "Partija je već počela ili je soba zatvorena.",
+    ok: "U redu",
   },
   /* Prijatelji (SPEC_IDENTITET §6.6). */
   friends: {
