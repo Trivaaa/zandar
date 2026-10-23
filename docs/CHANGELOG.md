@@ -695,11 +695,11 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 
 **Provjereno:** typecheck sva 4 paketa, game-core 167, server 153, web 64 testa; lint osnovica (5/2); `next build` i `build:mobile`. E2E na pravoj `/` protiv lokalnog servera (20 provjera): nema zupčanika/pločica/prodavnica, „Uskoro: Poker i Raub", V5 čuva i preko Escape-a, Javi mi upiše prijavu za `poker` i `raub` (dva fajla u `_signups`), V5 → Igraj bez imena → list za ime → `/matching` (sto 4P po izboru), drugi put jedan dodir, Profil gosta → Postavke (Preuzmi aplikaciju, Pravila igara, pravni red), `/igraj` → `/`. H4/H5 na harnessu: dugmad, mete ≥44 px, kačenje mijenja glavnu, novo kačenje zamjenjuje staro. **Nije provjereno:** ništa na uređaju (Android nazad na listovima, rupa kamere — emulirana visinom), APK bez pravnog reda (grana `isNative` se ne izvršava van Capacitora), da `upcoming_games_viewed` stvarno ode (PostHog šalje samo produkcija — provjeren samo isti `useSeenOnce` put), tok sa nalogom, prijava na staging serveru. Tekst saglasnosti kaže „u ovu igru" i kad se prijava odnosi na dvije — verzionisan je u `shared-types` (novi id) i čeka pravni pregled, pa nije diran.
 
-## 94. izgled pravac A+ — koraci 1–3 (2026-10-23, `feat/home-v5`)
+## 95. izgled pravac A+ — koraci 1–3 (2026-10-23, `feat/home-v5`)
 
 **Po `docs/Specs/SPEC_IZGLED_APLUS.md`** (tabla „Pravac A+ · Kafanski sto, čitljivo" na platnu „Kartaonica · identitet"). Paleta i fontovi su ostali isti — svaka boja sa table je već bila token; A+ mijenja veličine, kontrast sekundarnog teksta i donju traku. Samo CSS, nijedan TSX.
 
-**Korak 1 (ušao u #93):** `--text-soft` / `--text-faint` (krem 85 % / 75 % umjesto zelenkaste muted), `--accent-line`, utility `text-soft` / `text-faint`; pozadina `.screen.home, .screen.profile` u `funnel.css`.
+**Korak 1 (ušao u #94):** `--text-soft` / `--text-faint` (krem 85 % / 75 % umjesto zelenkaste muted), `--accent-line`, utility `text-soft` / `text-faint`; pozadina `.screen.home, .screen.profile` u `funnel.css`.
 
 **Korak 2 — dugmad:** `.home__cta` 56 → 66 px, 23 px slova, „debljina" (inset donja ivica) i sjena; `.home__friends` 56 → 64 px, obrub 2 px mesing, 20 px slova. Jedno pravilo — isto dugme na početnoj, u listovima, nalogu, prijateljima i zahtjevu za ulazak. Brend 21 px.
 
