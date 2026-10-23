@@ -111,9 +111,11 @@ Najvidljivija promjena: aktivna stavka je **puna mesing pločica**, ne samo mesi
 
 Bedž (`.tabbar__badge`) na aktivnoj pločici: zamijeniti boje (`--accent-contrast` pozadina, `--accent` tekst), inače nestaje u mesingu. Fokus prsten aktivne stavke: `--text`, ne `--accent`.
 
-Pazi: visina trake je dio budžeta visine početne (SPEC_POCETNA §2 — bez skrolovanja na 360×740). +8 px ovdje treba provjeriti mjerenjem na H1–H3.
+Pazi: visina trake je dio budžeta visine početne (SPEC_POCETNA §2 — bez skrolovanja na 360×740). Krupnija dugmad (+18 px) i traka (+8 px) plaća **gustina 3** kartice igre: ilustracija `clamp(2.25rem, 5dvh, 5rem)` i tješnji razmaci u kartici; dugmad ostaju pune visine. Izmjereno (changelog 94): sav sadržaj iznad trake u 12/12 slučajeva.
 
 ### 3.7 Kartica identiteta — `.profile__card`
+
+*Važi za karticu gosta.* Moj profil sa nalogom zadržava centrirani raspored sa table `UI_MojProfil` (avatar 120 px iznad imena) — od A+ uzima samo tipografiju imena i podnaslova.
 
 Red: avatar 96px + nadimak (Archivo Black 1.625rem / 26, `--card-face`) + podnaslov („12 završenih partija", 400 1.0625rem / 17, `--text-soft`). Kartica: padding 14, radijus 14, pozadina `--card-back` 70 %, `box-shadow: inset 0 0 0 1px var(--accent-line)`.
 
@@ -128,7 +130,7 @@ Red: avatar 96px + nadimak (Archivo Black 1.625rem / 26, `--card-face`) + podnas
 | pozadina | `--surface-raised` 85 % |
 | labela („Nadimak") | 400 0.875rem (14), `--text-faint` |
 | vrijednost („Zvonko") | 600 1.125rem (18), `--text` |
-| akcija desno („Promijeni ›") | 700 1.0625rem (17), `--turn-active`, strelica 20px |
+| akcija desno („Promijeni ›") | 700 1.0625rem (17), `--turn-active`, strelica 20px — *u kodu bez strelice, zadržano podvlačenje* (dugme nema ikonu u JSX-u; bez podvlačenja ne bi izgledalo kao akcija) |
 | red sa ikonom (Postavke, Odjavi se) | ikona 24px lijevo, tekst kao vrijednost, strelica 22px desno |
 
 Cijeli red je jedno dugme / link (`<button>` ili `<a>`), ne div.

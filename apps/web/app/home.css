@@ -76,7 +76,7 @@
 }
 
 .brand__name {
-  font: 400 var(--type-xl) / 1.1 var(--font-display-stack);
+  font: 400 1.3125rem / 1.1 var(--font-display-stack);
   color: var(--text);
 }
 
@@ -167,7 +167,6 @@
   justify-content: center;
   gap: 0.6rem;
   width: 100%;
-  min-height: 3.5rem;
   padding: 0 1rem;
   border-radius: var(--radius-lg);
   cursor: pointer;
@@ -176,11 +175,19 @@
     opacity var(--t-card-play) var(--ease-out-soft);
 }
 
+/* Pravac A+ (SPEC_IZGLED_APLUS §3.1–3.2): krupnija dugmad. Dijele ih početna,
+   listovi, nalog i prijatelji — jedno pravilo, isti izgled svuda. */
 .home__cta {
+  min-height: 4.125rem;
   border: 0;
   background-color: var(--accent);
   color: var(--accent-contrast);
-  font: 700 var(--type-xl) / 1.2 var(--font-sans-stack);
+  font: 700 1.4375rem / 1.2 var(--font-sans-stack);
+  /* Donja ivica „debljine" + sjena ispod: dugme stoji na stolu. Statična,
+     ne animira se. */
+  box-shadow:
+    inset 0 -3px 0 color-mix(in oklab, var(--accent-contrast) 25%, transparent),
+    0 6px 16px color-mix(in oklab, black 35%, transparent);
 }
 
 /* Mesing prsten fokusa se ne vidi na mesing dugmetu. */
@@ -199,15 +206,16 @@
 }
 
 .home__cta-arrow {
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .home__friends {
-  border: 1.5px solid color-mix(in oklab, var(--text) 55%, transparent);
-  background-color: color-mix(in oklab, var(--surface) 50%, transparent);
+  min-height: 4rem;
+  border: 2px solid var(--accent);
+  background-color: color-mix(in oklab, var(--surface) 60%, transparent);
   color: var(--text);
-  font: 700 var(--type-lg) / 1.2 var(--font-sans-stack);
+  font: 700 var(--type-xl) / 1.2 var(--font-sans-stack);
 }
 
 .home__friends-icon {
@@ -300,8 +308,20 @@
   --art-h: clamp(3.25rem, 7dvh, 6rem);
 }
 
+/* Gustina 3 plaća krupnija dugmad i višu traku pravca A+ (+26 px): niža
+   ilustracija i tješnji razmaci u kartici, dugmad ostaju pune visine. */
 .game-card[data-density="3"] {
-  --art-h: clamp(3rem, 6dvh, 5rem);
+  --art-h: clamp(2.25rem, 5dvh, 5rem);
+  gap: 0.2rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.game-card[data-density="3"] .game-card__head {
+  margin-top: 0.15rem;
+}
+
+.game-card[data-density="3"] .game-card__actions {
+  margin-top: 0.25rem;
 }
 
 .game-card__art {
@@ -804,10 +824,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  min-height: 3.5rem;
-  padding: 0.35rem 0.35rem 0.35rem 0.9rem;
-  border-radius: var(--radius-md);
-  background-color: var(--surface-raised);
+  /* Red liste pravca A+ (SPEC_IZGLED_APLUS §3.8) — dijele ga profil i Postavke. */
+  min-height: 4rem;
+  padding: 0.375rem 0.375rem 0.375rem 0.875rem;
+  border-radius: 0.75rem;
+  background-color: color-mix(in oklab, var(--surface-raised) 85%, transparent);
 }
 
 .settings__name {
@@ -818,11 +839,11 @@
 
 .settings__label {
   font: 400 var(--type-sm) / 1.3 var(--font-sans-stack);
-  color: var(--text-muted);
+  color: var(--text-faint);
 }
 
 .settings__value {
-  font: 600 var(--type-base) / 1.3 var(--font-sans-stack);
+  font: 600 var(--type-lg) / 1.3 var(--font-sans-stack);
   color: var(--text);
   overflow-wrap: anywhere;
 }
@@ -834,8 +855,8 @@
   padding-inline: 0.6rem;
   border: 0;
   background: none;
-  color: var(--accent);
-  font: 600 var(--type-base) / 1 var(--font-sans-stack);
+  color: var(--turn-active);
+  font: 700 1.0625rem / 1 var(--font-sans-stack);
   text-decoration: underline;
   text-underline-offset: 0.2em;
   cursor: pointer;
