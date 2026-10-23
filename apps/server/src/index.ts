@@ -81,6 +81,12 @@ import {
 } from "./push/messages";
 import { notifyDevices, notifyUser } from "./push/notify";
 import { parseQuickPlayConfig } from "./quickplay";
+import {
+  guarded,
+  parsePlayCardPayload,
+  parseReactionType,
+  parseSubscribePayload,
+} from "./socketGuard";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
 import { identityAdmin } from "./profile/cleanup";
@@ -1365,25 +1371,6 @@ const io = new SocketIOServer(fastify.server, {
   },
 });
 
-type SubscribePayload = {
-  roomId: string;
-  playerId: string;
-  sessionToken: string;
-  /** Push uređaj koji gleda ovo sjedište (PRD §51); dolazi sa mreže, pa `unknown`. */
-  pushId?: unknown;
-  /** Firebase ID token (nalog); stari klijenti ga ne šalju. */
-  idToken?: unknown;
-};
-
-type PlayCardPayload = {
-  cardId: string;
-  selectedCaptureCardIds: string[];
-  clientMoveId: string;
-  clientKnownStateVersion: number;
-};
-
-type ReactionPayload = { type: string };
-
 const lastReactionAt = new Map<string, number>();
 
 // ---- TURN TIMERS ----
@@ -2084,9 +2071,9 @@ io.on("connection", (socket) => {
   // pri svakom spajanju). Samo nalog — gost nema prijatelje.
   socket.on(
     "user:subscribe",
-    async (payload: { idToken?: unknown }, ack?: (res: { ok: boolean }) => void) => {
-      const verified =
-        typeof payload?.idToken === "string" ? await idTokens.verify(payload.idToken) : null;
+    guarded("user:subscribe", fastify.log, async (payload, ack) => {
+      const idToken = (payload as { idToken?: unknown } | null | undefined)?.idToken;
+      const verified = typeof idToken === "string" ? await idTokens.verify(idToken) : null;
       if (!verified?.ok || verified.user.anonymous) {
         // Odjava / gost: socket više ne sluša nijedan nalog (T3).
         for (const r of socket.rooms) if (r.startsWith("user:")) void socket.leave(r);
@@ -2100,15 +2087,17 @@ io.on("connection", (socket) => {
       ack?.({ ok: true });
       void pushFriendCount(verified.user.uid);
       pushPendingInvites(verified.user.uid);
-    },
+    }),
   );
 
   socket.on(
     "room:subscribe",
-    async (
-      payload: SubscribePayload,
-      ack?: (res: { ok: boolean; error?: string }) => void,
-    ) => {
+    guarded("room:subscribe", fastify.log, async (raw, ack) => {
+      const payload = parseSubscribePayload(raw);
+      if (!payload) {
+        ack({ ok: false, error: "INVALID_PAYLOAD" });
+        return;
+      }
       const { roomId, playerId, sessionToken } = payload;
 
       const room = getRoom(roomId);
@@ -2220,19 +2209,21 @@ io.on("connection", (socket) => {
           }
         }
       }
-    },
+    }),
   );
 
   socket.on(
     "game:playCard",
-    async (
-      payload: PlayCardPayload,
-      ack?: (res: { ok: boolean; error?: string }) => void,
-    ) => {
+    guarded("game:playCard", fastify.log, async (raw, ack) => {
       const playerId = socket.data.playerId;
       const roomId = socket.data.roomId;
       if (typeof playerId !== "string" || typeof roomId !== "string") {
         ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+      const payload = parsePlayCardPayload(raw);
+      if (!payload) {
+        ack({ ok: false, error: "INVALID_PAYLOAD" });
         return;
       }
 
@@ -2274,15 +2265,12 @@ io.on("connection", (socket) => {
         ack?.({ ok: false, error: message });
         fastify.log.warn(`✗ Move rejected: ${message}`);
       }
-    },
+    }),
   );
 
   socket.on(
     "game:nextHand",
-    async (
-      _payload: unknown,
-      ack?: (res: { ok: boolean; error?: string }) => void,
-    ) => {
+    guarded("game:nextHand", fastify.log, async (_payload, ack) => {
       const playerId = socket.data.playerId;
       const roomId = socket.data.roomId;
       if (typeof playerId !== "string" || typeof roomId !== "string") {
@@ -2331,15 +2319,12 @@ io.on("connection", (socket) => {
       fastify.log.info(
         `→ Next hand started in room ${roomId} (hand #${newState.handNumber}, dealer ${newDealerId})`,
       );
-    },
+    }),
   );
 
   socket.on(
     "game:rematch",
-    async (
-      _payload: unknown,
-      ack?: (res: { ok: boolean; error?: string }) => void,
-    ) => {
+    guarded("game:rematch", fastify.log, async (_payload, ack) => {
       const playerId = socket.data.playerId;
       const roomId = socket.data.roomId;
       if (typeof playerId !== "string" || typeof roomId !== "string") {
@@ -2384,15 +2369,12 @@ io.on("connection", (socket) => {
       await broadcastGameState(roomId);
       ack?.({ ok: true });
       fastify.log.info(`→ Rematch started in room ${roomId}`);
-    },
+    }),
   );
 
   socket.on(
     "game:react",
-    (
-      payload: ReactionPayload,
-      ack?: (res: { ok: boolean; error?: string }) => void,
-    ) => {
+    guarded("game:react", fastify.log, (raw, ack) => {
       const playerId = socket.data.playerId;
       const roomId = socket.data.roomId;
       if (typeof playerId !== "string" || typeof roomId !== "string") {
@@ -2400,10 +2382,8 @@ io.on("connection", (socket) => {
         return;
       }
 
-      if (
-        !payload.type ||
-        !(VALID_REACTIONS as readonly string[]).includes(payload.type)
-      ) {
+      const type = parseReactionType(raw);
+      if (!type || !(VALID_REACTIONS as readonly string[]).includes(type)) {
         ack?.({ ok: false, error: "INVALID_REACTION" });
         return;
       }
@@ -2418,12 +2398,12 @@ io.on("connection", (socket) => {
 
       io.to(roomId).emit("game:reaction", {
         playerId,
-        type: payload.type,
+        type,
         timestamp: now,
       });
 
       ack?.({ ok: true });
-    },
+    }),
   );
 
   // ---- PREKID: "Sačekaj još" (§32.3) ----
@@ -2431,10 +2411,7 @@ io.on("connection", (socket) => {
   // ne mora biti host da bi to rekao stolu.
   socket.on(
     "game:waitMore",
-    async (
-      _payload: unknown,
-      ack?: (res: { ok: boolean; error?: string }) => void,
-    ) => {
+    guarded("game:waitMore", fastify.log, async (_payload, ack) => {
       const playerId = socket.data.playerId;
       const roomId = socket.data.roomId;
       if (typeof playerId !== "string" || typeof roomId !== "string") {
@@ -2454,23 +2431,20 @@ io.on("connection", (socket) => {
       await enterPause(roomId); // resetuje rok na pun PAUSE_MS
       ack?.({ ok: true });
       fastify.log.info(`⏸ Room ${roomId}: ${playerId} traži još vremena`);
-    },
+    }),
   );
 
   // ---- PREKID: glasanje (§32.4) ----
   socket.on(
     "game:abandonVote",
-    async (
-      payload: { vote?: unknown },
-      ack?: (res: { ok: boolean; error?: string }) => void,
-    ) => {
+    guarded("game:abandonVote", fastify.log, async (payload, ack) => {
       const playerId = socket.data.playerId;
       const roomId = socket.data.roomId;
       if (typeof playerId !== "string" || typeof roomId !== "string") {
         ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
         return;
       }
-      const vote = payload?.vote;
+      const vote = (payload as { vote?: unknown } | null | undefined)?.vote;
       if (vote !== "wait" && vote !== "end") {
         ack?.({ ok: false, error: "INVALID_VOTE" });
         return;
@@ -2500,7 +2474,7 @@ io.on("connection", (socket) => {
       } else {
         await broadcastGameState(roomId); // tally se vidi odmah
       }
-    },
+    }),
   );
 
   socket.on("disconnect", (reason) => {
