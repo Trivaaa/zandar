@@ -51,7 +51,7 @@
 | **Gost** | Igrač bez naloga. Tehnički: Firebase anonimni nalog. Ima privremeni nadimak (današnje „ime za stolom"), nema avatar, nema prijatelje. |
 | **Nalog** | Gost koji je povezao Google ili e-mail i lozinku. Isti `uid` kao gost, pa **partije odigrane kao gost prelaze na nalog**. |
 | **Nadimak** | Jedinstven u cijeloj aplikaciji. 3–16 znakova: slova (uključujući č, ć, ž, š, đ), brojevi, `_` i `.`, bez razmaka. Poređenje jedinstvenosti bez obzira na velika/mala slova. Mijenja se najviše jednom u 30 dana. U UI se zove **nadimak**. **Igrač s nalogom sjeda za sto pod nadimkom** („Pod ovim imenom te vide za stolom."). |
-| **Avatar** | Jedan od 10 ponuđenih (A1–A10). Svi igrači vide svih 10 (pol igrača ne znamo, ništa se ne filtrira). Set: stilizovane životinje, čitljive u krugu od 40 px (crta se u fazi 2). |
+| **Avatar** | Jedan od 10 ponuđenih (A1–A10). Svi igrači vide svih 10 (pol igrača ne znamo, ništa se ne filtrira). Set: stilizovane životinje, čitljive u krugu od 40 px. Id-jevi u kodu, redom A1–A10: `lisica`, `sova`, `jez`, `medvjed`, `zec`, `macka`, `jelen`, `pijetao`, `zaba`, `ovan` (crteži u `apps/web/public/avatars/`). |
 | **Broj završenih partija** | Broj partija koje je igrač odigrao do kraja (`match_ended` s `end_reason: completed`). Prikazuje se na profilu. |
 | **Prijatelj** | Obostrana veza: nastaje kad drugi igrač prihvati zahtjev. Samo između dva naloga. |
 

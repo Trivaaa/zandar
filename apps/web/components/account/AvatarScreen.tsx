@@ -14,7 +14,7 @@ import { sr } from "@/lib/sr";
 function avatarFromUid(uid: string): ProfileAvatar {
   let h = 0;
   for (let i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) >>> 0;
-  return PROFILE_AVATARS[h % PROFILE_AVATARS.length] ?? "a1";
+  return PROFILE_AVATARS[h % PROFILE_AVATARS.length] ?? PROFILE_AVATARS[0];
 }
 
 /**
@@ -63,21 +63,21 @@ export function AvatarScreen() {
       onBack={() => router.replace("/nalog/nadimak")}
     >
       <div className="acct__avatar-preview">
-        {chosen ? <Avatar avatar={chosen} className="avatar--xl" /> : <span className="avatar avatar--xl" />}
+        {chosen ? <Avatar id={chosen} size={120} /> : <span className="avatar avatar--120" />}
         <span className="acct__avatar-name">{nickname}</span>
       </div>
       <div className="acct__avatar-grid" role="radiogroup" aria-label={sr.account.avatarTitle}>
-        {PROFILE_AVATARS.map((a, i) => (
+        {PROFILE_AVATARS.map((a) => (
           <button
             key={a}
             type="button"
             role="radio"
             aria-checked={chosen === a}
-            aria-label={sr.account.avatarLabel(i + 1)}
+            aria-label={sr.account.avatarNames[a]}
             className="acct__avatar-option"
             onClick={() => setChosen(a)}
           >
-            <Avatar avatar={a} />
+            <Avatar id={a} />
           </button>
         ))}
       </div>

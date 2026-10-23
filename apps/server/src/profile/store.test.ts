@@ -69,9 +69,9 @@ async function nicknameContract(store: ProfileStore) {
   assert.deepEqual(await store.setNickname("u2", "marko", "marko", after), { ok: true });
   assert.equal(await store.nicknameAvailability("marko", "u1", after), "taken");
 
-  await store.setAvatar("u2", "a7", after);
+  await store.setAvatar("u2", "jelen", after);
   const p2 = await store.getProfile("u2");
-  assert.equal(p2?.avatar, "a7");
+  assert.equal(p2?.avatar, "jelen");
   assert.equal(p2?.nickname, "marko");
 }
 

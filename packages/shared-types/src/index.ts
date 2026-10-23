@@ -738,11 +738,24 @@ export function suggestNicknameFromGuestName(name: string): NicknameSuggestion {
 }
 
 // ====================================================
-// AVATAR NALOGA (SPEC_IDENTITET §3) — A1–A10, svi igrači vide svih 10.
+// AVATAR NALOGA (SPEC_IDENTITET §3) — 10 životinja, svi igrači vide svih 10.
+// Id je stabilan string (ide u Firestore i `PublicPlayer`) i ime crteža u
+// `apps/web/public/avatars/<id>.svg`. Redoslijed = redoslijed u mreži izbora.
 // Nije isto što i avatari botova u game-core: bot se prikazuje kao gost (slovo).
 // ====================================================
 
-export const PROFILE_AVATARS = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10"] as const;
+export const PROFILE_AVATARS = [
+  "lisica",
+  "sova",
+  "jez",
+  "medvjed",
+  "zec",
+  "macka",
+  "jelen",
+  "pijetao",
+  "zaba",
+  "ovan",
+] as const;
 export type ProfileAvatar = (typeof PROFILE_AVATARS)[number];
 
 export function parseProfileAvatar(value: unknown): ProfileAvatar | null {

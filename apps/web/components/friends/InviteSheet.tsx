@@ -135,7 +135,7 @@ export function InviteSheet({
                 onChange={() => toggle(f.profileId)}
               />
               {f.avatar ? (
-                <Avatar avatar={f.avatar} />
+                <Avatar id={f.avatar} />
               ) : (
                 <span className="friends__letter" aria-hidden="true">
                   {f.nickname.charAt(0).toLocaleUpperCase("sr-Latn")}

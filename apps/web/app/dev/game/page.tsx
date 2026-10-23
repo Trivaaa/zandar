@@ -213,6 +213,8 @@ function rosterFor(playerCount: 2 | 3 | 4, longName: string | null) {
     isHost: i === 0,
     ...(playerCount === 4 ? { teamId: i % 2 } : {}),
     connectionStatus: "connected" as const,
+    // Ti i drugi protivnik imaju nalog (crtež), ostali su gosti (slovo).
+    avatar: i === 0 ? ("lisica" as const) : i === 2 ? ("sova" as const) : null,
   }));
 }
 

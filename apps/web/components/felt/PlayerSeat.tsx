@@ -127,7 +127,7 @@ export function PlayerSeat({
             <span className="seat__count">{wholeSeconds}</span>
           ) : player.avatar ? (
             // Nalog: avatar UNUTAR prstena (tim i potez ostaju na prstenu).
-            <Avatar avatar={player.avatar} />
+            <Avatar id={player.avatar} />
           ) : (
             initial(player.displayName)
           )}

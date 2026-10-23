@@ -192,7 +192,7 @@ export function LobbyScreen({
                   />
                 ) : null}
                 <span className="lobby__seat-avatar font-display text-base" aria-hidden="true">
-                  {player.avatar ? <Avatar avatar={player.avatar} /> : player.displayName.slice(0, 1)}
+                  {player.avatar ? <Avatar id={player.avatar} /> : player.displayName.slice(0, 1)}
                 </span>
                 <div className="lobby__seat-body">
                   <span className="lobby__seat-name font-sans text-base">
@@ -212,7 +212,7 @@ export function LobbyScreen({
           {invites.map((invite) => (
             <div key={`invite-${invite.profileId}`} className="lobby__seat" data-empty="true" data-invited="true">
               <span className="lobby__seat-avatar font-display text-base" aria-hidden="true">
-                {invite.avatar ? <Avatar avatar={invite.avatar} /> : invite.nickname.slice(0, 1)}
+                {invite.avatar ? <Avatar id={invite.avatar} /> : invite.nickname.slice(0, 1)}
               </span>
               <div className="lobby__seat-body">
                 <span className="lobby__seat-name font-sans text-base">{invite.nickname}</span>

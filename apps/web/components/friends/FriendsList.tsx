@@ -24,7 +24,7 @@ type Load =
 
 function Face({ entry }: { entry: FriendEntry }) {
   return entry.avatar ? (
-    <Avatar avatar={entry.avatar} />
+    <Avatar id={entry.avatar} />
   ) : (
     <span className="friends__letter" aria-hidden="true">
       {entry.nickname.charAt(0).toLocaleUpperCase("sr-Latn")}

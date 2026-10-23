@@ -22,17 +22,17 @@ export function AvatarSheet({
   return (
     <Sheet title={sr.profile.changeAvatarTitle} closeLabel={sr.account.cancel} onClose={onClose}>
       <div className="acct__avatar-grid" role="radiogroup" aria-label={sr.profile.changeAvatarTitle}>
-        {PROFILE_AVATARS.map((a, i) => (
+        {PROFILE_AVATARS.map((a) => (
           <button
             key={a}
             type="button"
             role="radio"
             aria-checked={chosen === a}
-            aria-label={sr.account.avatarLabel(i + 1)}
+            aria-label={sr.account.avatarNames[a]}
             className="acct__avatar-option"
             onClick={() => setChosen(a)}
           >
-            <Avatar avatar={a} />
+            <Avatar id={a} />
           </button>
         ))}
       </div>

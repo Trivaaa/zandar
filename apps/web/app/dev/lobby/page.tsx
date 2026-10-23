@@ -19,9 +19,9 @@ import {
  */
 
 const ROSTER: LobbyPlayer[] = [
-  { id: "me", displayName: "Igor", seatIndex: 0, isHost: true, teamId: 0 },
+  { id: "me", displayName: "Igor", seatIndex: 0, isHost: true, teamId: 0, avatar: "medvjed" },
   { id: "p1", displayName: "Milica", seatIndex: 1, isHost: false, teamId: 1 },
-  { id: "p2", displayName: "Svjetlana Vukašinović", seatIndex: 2, isHost: false, teamId: 0 },
+  { id: "p2", displayName: "Svjetlana Vukašinović", seatIndex: 2, isHost: false, teamId: 0, avatar: "zaba" },
 ];
 
 const REQUESTS = [

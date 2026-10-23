@@ -90,10 +90,14 @@ test("K7: ime gosta → prijedlog nadimka", () => {
   }
 });
 
-test("avatar naloga: samo a1–a10", () => {
+test("avatar naloga: samo 10 id-jeva sa liste", () => {
   assert.equal(PROFILE_AVATARS.length, 10);
-  assert.equal(parseProfileAvatar("a4"), "a4");
-  for (const bad of ["a0", "a11", "A4", "", null, 4]) assert.equal(parseProfileAvatar(bad), null);
+  for (const a of PROFILE_AVATARS) assert.equal(parseProfileAvatar(a), a);
+  assert.equal(parseProfileAvatar("sova"), "sova");
+  // Stari id-jevi (a1–a10), krivo slovo, dijakritika i putanja ne prolaze.
+  for (const bad of ["a1", "a4", "Sova", "jež", "../sova", "sova.svg", "", null, 4]) {
+    assert.equal(parseProfileAvatar(bad), null);
+  }
 });
 
 test("razloženi dijakritik se sastavlja prije provjere", () => {

@@ -61,7 +61,7 @@ export function AccountProfile(props: AccountProfileProps) {
 
       <div className="profile__hero">
         {avatar ? (
-          <Avatar avatar={avatar} className="avatar--xl" />
+          <Avatar id={avatar} size={120} />
         ) : (
           <span className="profile__letter profile__letter--xl" aria-hidden="true">
             {nickname.charAt(0).toLocaleUpperCase("sr-Latn")}
@@ -92,7 +92,7 @@ export function AccountProfile(props: AccountProfileProps) {
           <span className="settings__name">
             <span className="settings__label">{sr.profile.avatarRow}</span>
             <span className="settings__value profile__row-avatar">
-              {avatar ? <Avatar avatar={avatar} className="avatar--sm" /> : "—"}
+              {avatar ? <Avatar id={avatar} size={40} /> : "—"}
             </span>
           </span>
           <button type="button" className="settings__change" onClick={props.onChangeAvatar}>

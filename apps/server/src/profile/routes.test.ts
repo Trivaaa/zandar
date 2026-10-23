@@ -149,11 +149,11 @@ test("avatar: samo a1–a10, gost ne može", async () => {
   const { app, as } = setup();
   const put = (who: string, avatar: unknown) =>
     app.inject({ method: "PUT", url: "/api/me/avatar", headers: as(who), payload: { avatar } });
-  assert.equal((await put("anon:g1", "a1")).statusCode, 403);
-  assert.equal((await put("user:u1", "a11")).statusCode, 400);
-  const ok = await put("user:u1", "a4");
+  assert.equal((await put("anon:g1", "lisica")).statusCode, 403);
+  assert.equal((await put("user:u1", "a1")).statusCode, 400);
+  const ok = await put("user:u1", "medvjed");
   assert.equal(ok.statusCode, 200);
-  assert.equal((ok.json() as { avatar: string }).avatar, "a4");
+  assert.equal((ok.json() as { avatar: string }).avatar, "medvjed");
 });
 
 test("T6 abandon: gost se briše (204), nalog ne može da obriše sebe ovom rutom (403)", async () => {
@@ -191,7 +191,7 @@ test("tok c: brisanje naloga traži nalog i prijavu iz zadnjih 5 minuta", async 
 test("tuđi profil: samo javno lice; nepoznat, napušten nadimak i gost → 404", async () => {
   const { app, as, store, setNick, advance } = setup();
   await setNick("user:u1", "Marko");
-  await store.setAvatar("u1", "a3");
+  await store.setAvatar("u1", "jez");
   await store.recordCompletedMatch("m1", "u1");
   const get = (who: string, id: string) => app.inject({ method: "GET", url: `/api/profiles/${id}`, headers: as(who) });
 
@@ -200,7 +200,7 @@ test("tuđi profil: samo javno lice; nepoznat, napušten nadimak i gost → 404"
   assert.deepEqual(res.json(), {
     profileId: "marko",
     nickname: "Marko",
-    avatar: "a3",
+    avatar: "jez",
     completedMatches: 1,
     relation: "none",
   });

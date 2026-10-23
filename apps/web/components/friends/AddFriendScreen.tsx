@@ -98,7 +98,7 @@ export function AddFriendScreen() {
             {current.rows.map((row) => (
               <li key={row.profileId} className="friends__row">
                 {row.avatar ? (
-                  <Avatar avatar={row.avatar} />
+                  <Avatar id={row.avatar} />
                 ) : (
                   <span className="friends__letter" aria-hidden="true">
                     {row.nickname.charAt(0).toLocaleUpperCase("sr-Latn")}

@@ -46,7 +46,7 @@ export function OtherProfileSheet({
         {load.status === "ready" ? (
           <>
             {load.profile.avatar ? (
-              <Avatar avatar={load.profile.avatar} className="avatar--xl" />
+              <Avatar id={load.profile.avatar} size={120} />
             ) : (
               <span className="profile__letter profile__letter--xl" aria-hidden="true">
                 {load.profile.nickname.charAt(0).toLocaleUpperCase("sr-Latn")}

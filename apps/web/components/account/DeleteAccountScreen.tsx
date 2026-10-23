@@ -191,7 +191,7 @@ export function DeleteAccountScreen() {
     <AccountShell step={3} title={sr.deleteAccount.finalTitle} onBack={toProfile}>
       <div className="profile__card">
         {me.status === "ready" && me.me.avatar ? (
-          <Avatar avatar={me.me.avatar} className="avatar--lg" />
+          <Avatar id={me.me.avatar} size={64} />
         ) : (
           <span className="profile__letter" aria-hidden="true">
             {nickname.charAt(0).toLocaleUpperCase("sr-Latn")}

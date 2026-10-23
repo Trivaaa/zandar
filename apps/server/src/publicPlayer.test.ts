@@ -33,7 +33,7 @@ test("javni igrač: tačno whitelist polja — nikad uid, guestId, isBot, botPro
 
 test("gost i bot izgledaju ISTO: avatar i profileId su null — i bot kojem bi neko upisao profil", () => {
   const guest = toPublicPlayer(base);
-  const bot = toPublicPlayer({ ...base, isBot: true, profileId: "marko", avatar: "a4" });
+  const bot = toPublicPlayer({ ...base, isBot: true, profileId: "marko", avatar: "medvjed" });
   assert.equal(guest.avatar, null);
   assert.equal(guest.profileId, null);
   assert.deepEqual(bot, guest);
@@ -42,13 +42,13 @@ test("gost i bot izgledaju ISTO: avatar i profileId su null — i bot kojem bi n
 test("nalog: nadimak, avatar i javni ID iz profila", async () => {
   const store = createMemoryProfileStore();
   await store.setNickname("u1", "Zvonko_Novi", "zvonko_novi");
-  await store.setAvatar("u1", "a6");
+  await store.setAvatar("u1", "macka");
   const player: Player = { ...base, displayName: "upisano ime", uid: "u1" };
   applyAccountIdentity(player, await accountIdentityFor(store, "u1"));
   assert.deepEqual(toPublicPlayer(player), {
     ...toPublicPlayer(base),
     displayName: "Zvonko_Novi",
-    avatar: "a6",
+    avatar: "macka",
     profileId: "zvonko_novi",
   });
 });
@@ -68,7 +68,7 @@ test("identitet naloga: gost, nalog bez nadimka, greška i spor odgovor → sjed
 
 test("bot se nikad ne dira", () => {
   const bot: Player = { ...base, isBot: true };
-  applyAccountIdentity(bot, { displayName: "Neko", profileId: "neko", avatar: "a1" });
+  applyAccountIdentity(bot, { displayName: "Neko", profileId: "neko", avatar: "lisica" });
   assert.equal(bot.displayName, "Marko");
   assert.equal(bot.profileId, undefined);
 });

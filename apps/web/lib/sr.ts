@@ -1,7 +1,7 @@
 // Serbo-Croatian (ijekavica), sentence case, plain verbs.
 // Single source for every visible string. No component hardcodes copy.
 
-import { CONSENT_TEXTS, CURRENT_CONSENT_TEXT_ID, type TableTheme } from "@zandar/shared-types";
+import { CONSENT_TEXTS, CURRENT_CONSENT_TEXT_ID, type ProfileAvatar, type TableTheme } from "@zandar/shared-types";
 
 import { pluralForm } from "./plural";
 
@@ -485,7 +485,20 @@ export const sr = {
     // A6
     avatarTitle: "Izaberi avatar",
     avatarSub: "Vidi se za stolom, pored nadimka.",
-    avatarLabel: (n: number) => `Avatar ${n}`,
+    // Pristupačan naziv crteža. `satisfies`: novi avatar u PROFILE_AVATARS bez
+    // naziva ovdje ne prolazi typecheck.
+    avatarNames: {
+      lisica: "Lisica",
+      sova: "Sova",
+      jez: "Jež",
+      medvjed: "Medvjed",
+      zec: "Zec",
+      macka: "Mačka",
+      jelen: "Jelen",
+      pijetao: "Pijetao",
+      zaba: "Žaba",
+      ovan: "Ovan",
+    } satisfies Record<ProfileAvatar, string>,
     done: "Gotovo",
     // A7 / A8
     verifyTitle: "Provjeri e-mail",
