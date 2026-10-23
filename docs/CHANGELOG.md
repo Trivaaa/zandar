@@ -709,4 +709,4 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 
 **Posljedica:** na 360×701 profil gosta skroluje 61 px, a Moj profil 19 px („Obriši nalog" je ispod pregiba) — profil nema pravilo bez skrolovanja; manji hero avatar bi tražio izmjenu `size={120}` u `AccountProfile`.
 
-**Provjereno:** typecheck, lint = osnovica (5/2), web 64 testa, snimci okom (početna H1/H3, profil gosta, Moj profil kroz privremenu dev stranicu — obrisana). **Nije provjereno:** `next build`/`build:mobile`, ništa na uređaju. **Korak 4 (sto)** čeka odluku traka poteza vs. pilula tajmera (spec §3.10).
+**Provjereno:** typecheck, lint = osnovica (5/2), web 64 testa, snimci okom (početna H1/H3, profil gosta, Moj profil kroz privremenu dev stranicu — obrisana). **Nije provjereno:** `next build`/`build:mobile`, ništa na uređaju. **Korak 4 (sto) se ne radi** — odluka vlasnika: sto ostaje kakav jeste, pilula tajmera iznad avatara ostaje (spec §3.10).

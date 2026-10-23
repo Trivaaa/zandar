@@ -152,7 +152,7 @@ Felt slike (`TABLE_THEMES`) i raspored sjedišta se **ne mijenjaju** — gradije
 | Igrač na potezu | prsten `inset 0 0 0 3px var(--turn-active)` + sjaj `0 0 18px 6px` `--turn-active` 55 % |
 | **Traka poteza** (novo) | između mog sjedišta i ruke, centrirana; visina 2.875rem (46), pilula, pozadina `--accent`, tekst `--accent-contrast` 700 1.1875rem (19) „Ti si na potezu", desno broj sekundi 700 1.25rem; sjenka `0 6px 16px rgb(0 0 0 / .35)` |
 
-**Otvoreno pitanje — traka poteza vs. pilula tajmera.** Danas tajmer je pilula iznad avatara onoga ko je na potezu (CLAUDE.md, „Timer = pilula iznad avatara"). Tabla A+ pokazuje traku samo za tebe. Prijedlog: kad si **ti** na potezu, traka zamjenjuje pilulu iznad tvog avatara (broj sekundi je u traci, boja trake ide zeleno → narandžasto → crveno kao pilula danas); kad je na potezu neko drugi, ostaje pilula iznad njegovog avatara. Traka zauzima visinu, pa ide uz mjerenje budžeta `--stage-*`. **Treba odluka vlasnika prije koraka 4.**
+**Odluka vlasnika 2026-10-23: sto ostaje kakav jeste.** Ni traka poteza ni ostale izmjene iz ove tabele se ne rade — pilula tajmera iznad avatara (CLAUDE.md, „Timer = pilula iznad avatara") ostaje jedini indikator poteza. Tabela je zapis pravca, ne zadatak.
 
 ## 4. Redoslijed implementacije
 
@@ -161,7 +161,7 @@ Svaki korak je zaseban commit i ne lomi ostale ekrane.
 1. **Tokeni + pozadina** — §2.2, §2.3 (`globals.css`, `funnel.css`, `home.css`, `profile.css`).
 2. **Dugmad i početna** — §3.1–3.5 (`home.css`, `HomeHero`, `GameCard`, `GameSheet`, `QuickPlaySheets`). Isti stil dugmadi i u listovima („Igraj" u sheetu igre i u V5).
 3. **Donja traka + profil** — §3.6–3.9 (`profile.css`, `TabBar`, `ProfileScreen`, `AccountProfile`, `GuestProfile`, `SettingsSheet`, prijatelji). Ekrani iza `identityUi` dobijaju isto.
-4. **Sto** — §3.10 (`felt.css`, `GameScreen`, `TurnTimer`), poslije odluke iz §3.10.
+4. ~~**Sto** — §3.10~~ — ne radi se (odluka vlasnika, §3.10).
 
 Ručni CSS ostaje u `layer(components)`; JSX ne nosi konkurentne `text-*`/`bg-*` utility klase na elementima čiju boju drži CSS.
 
