@@ -21,11 +21,22 @@ export type Me = {
 
 const API_BASE = resolveApiBase();
 
+/**
+ * Zadnji poznati profil u ovoj sesiji — povratak na tab ga pokaže odmah, a
+ * svjež odgovor ga zamijeni. Prijava i odjava ga brišu (`lib/account.ts`).
+ */
+let cachedMe: Me | null = null;
+
+export function forgetMe(): void {
+  cachedMe = null;
+}
+
 /** Baca kad nema prijave (Firebase nedostupan) ili server ne odgovori. */
 export async function fetchMe(): Promise<Me> {
   const res = await authed("/api/me");
   if (!res.ok) throw new Error(`me_${res.status}`);
-  return (await res.json()) as Me;
+  cachedMe = (await res.json()) as Me;
+  return cachedMe;
 }
 
 export async function authed(path: string, init: RequestInit = {}): Promise<Response> {
@@ -142,7 +153,9 @@ export type MeState =
 
 /** Profil za ekran — učitavanje, greška (sa ponovnim pokušajem) ili podaci. */
 export function useMe(): MeState & { retry: () => void; update: (me: Me) => void } {
-  const [state, setState] = useState<MeState>({ status: "loading" });
+  const [state, setState] = useState<MeState>(() =>
+    cachedMe ? { status: "ready", me: cachedMe } : { status: "loading" },
+  );
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -161,12 +174,16 @@ export function useMe(): MeState & { retry: () => void; update: (me: Me) => void
   }, [attempt]);
 
   const retry = useCallback(() => {
+    cachedMe = null;
     setState({ status: "loading" });
     setAttempt((n) => n + 1);
   }, []);
 
   /** Svjež profil iz odgovora izmjene (PUT vraća isto što i GET /api/me). */
-  const update = useCallback((me: Me) => setState({ status: "ready", me }), []);
+  const update = useCallback((me: Me) => {
+    cachedMe = me;
+    setState({ status: "ready", me });
+  }, []);
 
   return { ...state, retry, update };
 }

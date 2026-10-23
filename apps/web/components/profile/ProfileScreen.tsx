@@ -20,6 +20,7 @@ import { GuestProfile } from "@/components/profile/GuestProfile";
 import { AvatarSheet, LogoutSheet } from "@/components/profile/ProfileSheets";
 import { RulesModal } from "@/components/RulesModal";
 import {
+  currentAccount,
   refreshAccount,
   resendVerification,
   signOutToGuest,
@@ -53,7 +54,8 @@ export function ProfileScreen() {
   const name = usePlayerName();
   const me = useMe();
   const verifyParam = useQueryParam("potvrda") === "1";
-  const [account, setAccount] = useState<AccountInfo | null>(null);
+  // `undefined` = Firebase još nije pročitao sesiju (ne znamo ni da li je gost).
+  const [account, setAccount] = useState<AccountInfo | null | undefined>(undefined);
   // Google prijava na postojeći nalog ostaje na ovom ekranu — profil se osvježi.
   const entry = useAccountEntry(() => {
     me.retry();
@@ -68,7 +70,10 @@ export function ProfileScreen() {
 
   // Firebase lokalno zna da li je ovo nalog prije nego što server odgovori —
   // nalog dok čeka vidi svoj skeleton (P7), ne ekran gosta.
-  const isAccount = me.status === "ready" ? !me.me.anonymous : account !== null && !account.anonymous;
+  const isAccount = me.status === "ready" ? !me.me.anonymous : account != null && !account.anonymous;
+  // Dok ni server ni Firebase nisu odgovorili, ekran gosta bi bljesnuo i
+  // prijavljenom igraču — zato neutralni skeleton.
+  const unknown = me.status !== "ready" && account === undefined;
 
   useEffect(() => {
     if (me.status === "ready" && !me.me.anonymous && !me.me.nickname) router.replace("/nalog/nadimak");
@@ -77,6 +82,8 @@ export function ProfileScreen() {
   // Potvrda e-maila se desi van aplikacije (link u pošti) — osvježi po povratku.
   useEffect(() => {
     const refresh = () => void refreshAccount().then(setAccount);
+    // Lokalna sesija stiže bez mreže; `refreshAccount` čeka `user.reload()`.
+    void currentAccount().then((a) => setAccount((prev) => (prev === undefined ? a : prev)));
     refresh();
     document.addEventListener("visibilitychange", refresh);
     return () => document.removeEventListener("visibilitychange", refresh);
@@ -142,7 +149,7 @@ export function ProfileScreen() {
     );
   } else if (isAccount && me.status === "error") {
     body = <AccountProfileError onRetry={me.retry} />;
-  } else if (isAccount) {
+  } else if (isAccount || unknown) {
     body = <AccountProfileSkeleton />;
   } else {
     body = (

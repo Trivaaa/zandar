@@ -4,6 +4,7 @@ import { AccountError, accountErrorCode } from "@/lib/accountErrors";
 import { ensureSignedIn, getAuthInstance, resetSignIn } from "@/lib/auth";
 import { FIREBASE_CONFIG } from "@/lib/firebaseConfig";
 import { isNative } from "@/lib/platform";
+import { forgetMe } from "@/lib/profile";
 
 /**
  * Radnje naloga koje igrač sam pokreće (SPEC_IDENTITET tok a, b, §6.3, §6.7).
@@ -96,6 +97,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
     const { signInWithEmailAndPassword } = await import("@firebase/auth");
     const { user } = await signInWithEmailAndPassword(auth, email.trim(), password);
     resetSignIn();
+    forgetMe();
     return infoOf(user);
   } catch (err) {
     rethrow(err);
@@ -260,6 +262,7 @@ export async function signInWithGoogleCredential(credential: OAuthCredential): P
     const { signInWithCredential } = await import("@firebase/auth");
     const { user } = await signInWithCredential(auth, credential);
     resetSignIn();
+    forgetMe();
     return infoOf(user);
   } catch (err) {
     rethrow(err);
@@ -295,6 +298,7 @@ export async function continueAsNewGuest(): Promise<void> {
     // obrisan nalog ionako više ne važi
   }
   resetSignIn();
+  forgetMe();
   await ensureSignedIn();
 }
 
@@ -308,6 +312,7 @@ export async function signOutToGuest(): Promise<void> {
     const { signOut } = await import("@firebase/auth");
     await signOut(auth);
     resetSignIn();
+    forgetMe();
     await ensureSignedIn();
   } catch (err) {
     rethrow(err);
