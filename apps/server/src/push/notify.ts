@@ -33,6 +33,15 @@ function firstDelivery(key: string, now: number): boolean {
  * `dedupeKey` imenuje događaj (`join_request:<requestId>`); isti događaj istom
  * uređaju ide jednom, i kad ga handler pozove dvaput.
  */
+/**
+ * Poruka svim uređajima naloga (SPEC_IDENTITET §8) — prijatelji i pozivi.
+ * Uređaj se veže za nalog samo iz provjerenog tokena, pa gost i bot (bez
+ * uređaja pod svojim uid-om) nikad ništa ne dobiju.
+ */
+export function notifyUser(uid: string, msg: PushMessage | null, dedupeKey: string): void {
+  notifyDevices(deviceStore.hashesForUid(uid), msg, dedupeKey);
+}
+
 export function notifyDevices(
   idHashes: readonly string[],
   msg: PushMessage | null,

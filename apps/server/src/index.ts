@@ -72,12 +72,14 @@ import {
 import { deviceStore, startDeviceSweeper } from "./push/devices";
 import { fcm } from "./push/fcm";
 import {
+  buildFriendRequestPush,
   buildGameStartedPush,
+  buildInvitePush,
   buildJoinApprovedPush,
   buildJoinRequestPush,
   gameStartRecipients,
 } from "./push/messages";
-import { notifyDevices } from "./push/notify";
+import { notifyDevices, notifyUser } from "./push/notify";
 import { parseQuickPlayConfig } from "./quickplay";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
@@ -228,6 +230,13 @@ registerFriendRoutes(fastify, {
   store: profileStore,
   requireUser,
   onFriendsChanged: (uids) => uids.forEach((uid) => void pushFriendCount(uid)),
+  // §8: push za novi zahtjev; ponovljen zahtjev istom igraču u istoj minuti se ignoriše.
+  onRequestSent: (from, toUid) =>
+    notifyUser(
+      toUid,
+      buildFriendRequestPush({ fromNickname: from.nickname }),
+      `friend_request:${from.uid}:${toUid}:${Math.floor(Date.now() / 60_000)}`,
+    ),
 });
 
 /**
@@ -697,11 +706,24 @@ async function invitableFriends(me: string, profileIds: unknown, now: number): P
   return out;
 }
 
-/** E4: poziv stiže na korisnički kanal pozvanog (push za van aplikacije: korak 11). */
-function sendInviteNotices(room: LobbyRoom, invites: RoomInvite[]): void {
+/**
+ * E4: poziv stiže na korisnički kanal pozvanog; uz `push` i kao obavještenje
+ * van aplikacije (§8) — samo kad je poziv NOV, ne pri ponovnoj pretplati.
+ * U prvom planu push ne pravi buku (NativePush), list E4 dolazi kanalom.
+ */
+function sendInviteNotices(room: LobbyRoom, invites: RoomInvite[], push = false): void {
   const host = room.players.find((p) => p.isHost);
+  const now = Date.now();
   for (const invite of invites) {
-    io.to(`user:${invite.uid}`).emit("user:invite", noticeOf(room.id, room, invite, host?.displayName ?? ""));
+    const notice = noticeOf(room.id, room, invite, host?.displayName ?? "");
+    io.to(`user:${invite.uid}`).emit("user:invite", notice);
+    if (push) {
+      notifyUser(
+        invite.uid,
+        buildInvitePush({ ...notice, now }),
+        `invite:${room.id}:${invite.uid}:${invite.createdAt}`,
+      );
+    }
   }
 }
 
@@ -750,7 +772,7 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
   });
   addInvites(room, invitees);
   persistRoom(room);
-  sendInviteNotices(room, invitees);
+  sendInviteNotices(room, invitees, true);
   return {
     roomId: room.id,
     playerId,
@@ -776,7 +798,7 @@ fastify.post<{ Params: { roomId: string }; Body: { profileIds?: unknown } }>(
     addInvites(room, invitees);
     persistRoom(room);
     io.to(room.id).emit("room:update");
-    sendInviteNotices(room, invitees);
+    sendInviteNotices(room, invitees, true);
     return { invited: invitees.length };
   },
 );

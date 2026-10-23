@@ -3,8 +3,10 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import { acceptInvite } from "@/lib/invites";
 import {
   capturePush,
+  FRIENDS_CHANNEL_ID,
   pushEnabled,
   pushPermission,
   pushRegistrationPending,
@@ -13,6 +15,7 @@ import {
 } from "@/lib/push";
 import { ROOM_ID, roomPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
+import { dismissInvite, markInviteExpired } from "@/lib/userChannel";
 
 /**
  * Push u native shell-u (PRD §51): kanal, osvježen token i tap → soba.
@@ -50,6 +53,15 @@ export function NativePush() {
         visibility: 1,
         vibration: true,
       }).catch(() => {});
+      // Zaseban kanal, da se zahtjevi mogu isključiti nezavisno od stola (§8).
+      await PushNotifications.createChannel({
+        id: FRIENDS_CHANNEL_ID,
+        name: sr.push.friendsChannelName,
+        description: sr.push.friendsChannelDescription,
+        importance: 3,
+        visibility: 1,
+        vibration: true,
+      }).catch(() => {});
 
       const handle = await PushNotifications.addListener(
         "pushNotificationActionPerformed",
@@ -59,6 +71,24 @@ export function NativePush() {
             type: typeof data?.type === "string" ? data.type : "unknown",
           });
           const roomId = data?.roomId;
+          // §8: zahtjev → tab Prijatelji (sekcija zahtjeva je na vrhu).
+          if (data?.type === "friend_request") {
+            router.push("/prijatelji");
+            return;
+          }
+          // §8: poziv → pravo u sobu, kao Pridruži se; istekao → F7 na početnoj.
+          if (data?.type === "invite" && typeof roomId === "string" && ROOM_ID.test(roomId)) {
+            void acceptInvite(roomId).then((result) => {
+              if (result === "ok") {
+                dismissInvite(roomId);
+                router.push(roomPath(roomId));
+              } else {
+                markInviteExpired();
+                router.push("/");
+              }
+            });
+            return;
+          }
           if (typeof roomId === "string" && ROOM_ID.test(roomId)) {
             router.push(roomPath(roomId));
           }

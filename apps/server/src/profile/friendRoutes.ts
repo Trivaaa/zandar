@@ -38,6 +38,8 @@ export function registerFriendRoutes(
     requireUser: RequireUser;
     /** Promijenio se broj zahtjeva ovih igrača — javi im (korisnički kanal). */
     onFriendsChanged?: (uids: string[]) => void;
+    /** Novi zahtjev je UPISAN (ne tiho odbijen zbog blokade) — push primaocu (§8). */
+    onRequestSent?: (from: { uid: string; nickname: string }, toUid: string) => void;
     now?: () => number;
   },
 ): void {
@@ -62,7 +64,7 @@ export function registerFriendRoutes(
       reply.code(403).send({ error: "Prvo izaberi nadimak", code: "nickname_required" });
       return null;
     }
-    return user;
+    return { ...user, nickname: profile.nickname };
   }
 
   async function entryOf(uid: string): Promise<FriendEntry | null> {
@@ -144,6 +146,10 @@ export function registerFriendRoutes(
       }
       const relation = await sendRequest(store, me.uid, to, now());
       if (relation === "outgoing" || relation === "friends") changed(to, me.uid);
+      // Blokirani dobija isti odgovor „outgoing", ali zahtjev nije upisan — bez push-a.
+      if (relation === "outgoing" && (await store.hasRequest(me.uid, to))) {
+        deps.onRequestSent?.({ uid: me.uid, nickname: me.nickname }, to);
+      }
       return { relation };
     } catch (err) {
       return failed(reply, err, "POST /api/friend-requests");

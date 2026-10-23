@@ -11,7 +11,7 @@ import {
   parseServiceAccount,
   type ServiceAccount,
 } from "./fcm";
-import { buildGameStartedPush, buildJoinRequestPush } from "./messages";
+import { buildFriendRequestPush, buildGameStartedPush, buildJoinRequestPush } from "./messages";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", {
   modulusLength: 2048,
@@ -162,4 +162,10 @@ test("bez ključa nema mreže", async () => {
   assert.equal(sender.enabled, false);
   assert.equal(await sender.send("a", buildGameStartedPush({ roomId: "r1" })), "disabled");
   assert.equal(calls.length, 0);
+});
+
+test("payload bez sobe (zahtjev za prijateljstvo): `data` nosi samo vrstu", () => {
+  const payload = buildFcmPayload("tok", buildFriendRequestPush({ fromNickname: "Ana" }));
+  assert.deepEqual(payload.message.data, { type: "friend_request" });
+  assert.equal(payload.message.android.notification.channel_id, "prijatelji");
 });

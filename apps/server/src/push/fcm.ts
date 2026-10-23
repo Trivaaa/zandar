@@ -34,7 +34,7 @@ export function buildFcmPayload(token: string, msg: PushMessage) {
       token,
       notification: { title: msg.title, body: msg.body },
       // FCM `data` prima samo stringove.
-      data: { type: msg.data.type, roomId: msg.data.roomId },
+      data: { type: msg.data.type, ...(msg.data.roomId ? { roomId: msg.data.roomId } : {}) },
       android: {
         // HIGH budi telefon iz Doze — sve u katalogu je vremenski osjetljivo.
         priority: "HIGH",

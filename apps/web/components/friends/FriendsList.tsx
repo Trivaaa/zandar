@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { FriendsIcon, WarningIcon } from "@/components/icons";
 import { InviteSheet } from "@/components/friends/InviteSheet";
+import { PushPrompt } from "@/components/push/PushPrompt";
 import { Avatar } from "@/components/profile/Avatar";
 import { usePlayerInfo } from "@/components/profile/PlayerInfo";
 import {
@@ -80,6 +81,9 @@ export function FriendsList() {
     }
   }
 
+  // §8: blagi upit za obavještenja kad prvi put otvori Prijatelje sa nalogom.
+  const prompt = <PushPrompt context="friends" />;
+
   const header = (
     <div className="friends__head">
       <h1 className="profile__title">{sr.friends.title}</h1>
@@ -90,11 +94,17 @@ export function FriendsList() {
       ) : null}
     </div>
   );
+  const top = (
+    <>
+      {header}
+      {prompt}
+    </>
+  );
 
   if (load.status === "loading") {
     return (
       <div className="profile__col" aria-busy="true" aria-label={sr.friends.loading}>
-        {header}
+        {top}
         {[0, 1, 2, 3].map((i) => (
           <span key={i} className="skeleton profile__skel-row" />
         ))}
@@ -105,7 +115,7 @@ export function FriendsList() {
   if (load.status === "error") {
     return (
       <div className="profile__col">
-        {header}
+        {top}
         <div className="profile__empty" role="alert">
           <span className="profile__empty-icon" aria-hidden="true">
             <WarningIcon className="profile__empty-svg" />
@@ -130,7 +140,7 @@ export function FriendsList() {
   if (load.friends.length === 0 && load.incoming.length === 0) {
     return (
       <div className="profile__col">
-        {header}
+        {top}
         <div className="profile__empty">
           <span className="profile__empty-icon" aria-hidden="true">
             <FriendsIcon className="profile__empty-svg" />
@@ -152,7 +162,7 @@ export function FriendsList() {
 
   return (
     <div className="profile__col">
-      {header}
+      {top}
       {load.incoming.length > 0 ? (
         <section className="friends__section" aria-label={sr.friends.requestsTitle(load.incoming.length)}>
           <h2 className="friends__section-title">{sr.friends.requestsTitle(load.incoming.length)}</h2>

@@ -85,3 +85,30 @@ test("povuci i odbij", async () => {
   assert.deepEqual((await call("POST", "/api/friend-requests/marko/decline", "user:u3")).json(), { relation: "none" });
   assert.deepEqual((await call("GET", "/api/friends", "user:u3")).json().incoming, []);
 });
+
+test("§8 push za zahtjev: samo kad je zahtjev upisan — tiho odbijen (blokada) ne šalje", async () => {
+  const store = createMemoryProfileStore();
+  await store.setNickname("u1", "Marko", "marko");
+  await store.setNickname("u2", "Ana", "ana");
+  const sent: { from: string; to: string }[] = [];
+  const app = Fastify();
+  registerFriendRoutes(app, {
+    store,
+    requireUser: fakeRequireUser,
+    onRequestSent: (from, to) => sent.push({ from: from.nickname, to }),
+  });
+  const send = (who: string, profileId: string) =>
+    app.inject({ method: "POST", url: "/api/friend-requests", headers: { authorization: `Bearer ${who}` }, payload: { profileId } });
+
+  await send("user:u1", "ana");
+  assert.deepEqual(sent, [{ from: "Marko", to: "u2" }]);
+
+  await store.setBlock("u2", "u1", false);
+  await store.setRequest("u1", "u2", false);
+  await store.setBlock("u2", "u1", true);
+  await send("user:u1", "ana");
+  assert.equal(sent.length, 1, "blokirani ne pravi buku kod blokatora");
+
+  await send("user:u2", "marko");
+  assert.equal(sent.length, 1, "blokator ne može slati zahtjev blokiranom (relation blocked)");
+});

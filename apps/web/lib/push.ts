@@ -22,6 +22,8 @@ export const pushEnabled = isNative && process.env.NEXT_PUBLIC_PUSH === "1";
 
 /** Android kanal — isti id šalje server (`apps/server/src/push/messages.ts`). */
 export const TABLE_CHANNEL_ID = "sto";
+/** Zahtjevi za prijateljstvo — isti id kao `FRIENDS_CHANNEL_ID` na serveru. */
+export const FRIENDS_CHANNEL_ID = "prijatelji";
 
 /**
  * Emituje se kad uređaj dobije `pushId`. Soba (`room:subscribe`) i zahtjev za

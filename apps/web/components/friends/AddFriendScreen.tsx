@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AccountShell } from "@/components/account/AccountShell";
 import { Field } from "@/components/account/Field";
 import { Avatar } from "@/components/profile/Avatar";
+import { PushPrompt } from "@/components/push/PushPrompt";
 import {
   acceptFriendRequest,
   searchPlayers,
@@ -122,6 +123,8 @@ export function AddFriendScreen() {
             ))}
           </ul>
         ) : null}
+        {/* §8: poslije prvog poslatog zahtjeva — „javi mi kad prihvati". */}
+        {current?.rows?.some((r) => r.relation === "outgoing") ? <PushPrompt context="friends" /> : null}
         <p className="acct__error" data-empty={!error} role="status">
           {error ?? ""}
         </p>

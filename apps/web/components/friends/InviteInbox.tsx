@@ -7,7 +7,12 @@ import { Sheet } from "@/components/sheet/Sheet";
 import { acceptInvite } from "@/lib/invites";
 import { roomPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
-import { dismissInvite, useIncomingInvites } from "@/lib/userChannel";
+import {
+  clearExpiredInvite,
+  dismissInvite,
+  useExpiredInvite,
+  useIncomingInvites,
+} from "@/lib/userChannel";
 
 /**
  * E4 — poziv dok je igrač u aplikaciji, na glavnim ekranima (gdje je donja
@@ -19,12 +24,22 @@ export function InviteInbox() {
   const router = useRouter();
   const invites = useIncomingInvites();
   const [busy, setBusy] = useState(false);
-  const [expired, setExpired] = useState(false);
+  const [expiredHere, setExpired] = useState(false);
+  // F7 i iz push-a (tap na poziv koji je u međuvremenu istekao, NativePush).
+  const expiredFromPush = useExpiredInvite();
+  const expired = expiredHere || expiredFromPush;
   const [error, setError] = useState<string | null>(null);
 
   if (expired) {
     return (
-      <Sheet title={sr.invite.expiredTitle} closeLabel={sr.invite.ok} onClose={() => setExpired(false)}>
+      <Sheet
+        title={sr.invite.expiredTitle}
+        closeLabel={sr.invite.ok}
+        onClose={() => {
+          setExpired(false);
+          clearExpiredInvite();
+        }}
+      >
         <p className="sheet__note">{sr.invite.expiredBody}</p>
       </Sheet>
     );

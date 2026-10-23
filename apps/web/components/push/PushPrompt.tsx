@@ -13,7 +13,7 @@ import {
 import { sr } from "@/lib/sr";
 
 /** Koga i šta čeka: host kucanje, gost odobrenje, igrač u lobiju početak. */
-export type PushPromptContext = "host" | "guest" | "waiting";
+export type PushPromptContext = "host" | "guest" | "waiting" | "friends";
 
 /**
  * Ponuda obavještenja u trenutku kad igrač nešto čeka (PRD §51).

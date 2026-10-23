@@ -2,13 +2,16 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  FRIENDS_CHANNEL_ID,
+  MIN_USEFUL_TTL_MS,
+  TABLE_CHANNEL_ID,
+  buildFriendRequestPush,
   buildGameStartedPush,
+  buildInvitePush,
   buildJoinApprovedPush,
   buildJoinRequestPush,
   cleanName,
   gameStartRecipients,
-  MIN_USEFUL_TTL_MS,
-  TABLE_CHANNEL_ID,
   withinMinutes,
 } from "./messages";
 
@@ -125,5 +128,33 @@ test("soba iz starog snapshota (bez pushIds) nema primaoce", () => {
   assert.deepEqual(
     gameStartRecipients({ hostPlayerId: "h", players: [{ id: "h" }, { id: "g1" }] }),
     [],
+  );
+});
+
+test("zahtjev za prijateljstvo: kanal Prijatelji, bez sobe, tap otvara Prijatelje", () => {
+  const msg = buildFriendRequestPush({ fromNickname: "Zvonko" });
+  assert.equal(msg.title, "Zvonko želi da budete prijatelji");
+  assert.equal(msg.body, "Otvori Prijatelje da prihvatiš.");
+  assert.equal(msg.channelId, FRIENDS_CHANNEL_ID);
+  assert.deepEqual(msg.data, { type: "friend_request" });
+});
+
+test("poziv: tekst iz speca, kanal stola, TTL = ostatak roka; istekao se ne šalje", () => {
+  const msg = buildInvitePush({
+    roomId: "abc123",
+    fromNickname: "Zvonko",
+    playerCount: 4,
+    targetScore: 21,
+    expiresAt: 1_000 + 25 * 60_000,
+    now: 1_000,
+  });
+  assert.equal(msg?.title, "Zvonko te zove na partiju");
+  assert.equal(msg?.body, "Žandar · 4 igrača · do 21. Dodirni da sjedneš za sto.");
+  assert.equal(msg?.ttlMs, 25 * 60_000);
+  assert.equal(msg?.channelId, TABLE_CHANNEL_ID);
+  assert.deepEqual(msg?.data, { type: "invite", roomId: "abc123" });
+  assert.equal(
+    buildInvitePush({ roomId: "abc123", fromNickname: "Z", playerCount: 2, targetScore: 11, expiresAt: 5_000, now: 0 }),
+    null,
   );
 });

@@ -233,6 +233,11 @@ export function createDeviceStore(
       return true;
     },
 
+    /** Svi uređaji na kojima je nalog prijavljen (SPEC_IDENTITET §8). */
+    hashesForUid(uid: string): string[] {
+      return [...devices.values()].filter((rec) => rec.uid === uid).map((rec) => rec.idHash);
+    },
+
     /** Brisanje naloga: nijedan uređaj više ne prima obavještenja tog naloga. */
     unbindUid(uid: string): number {
       let n = 0;

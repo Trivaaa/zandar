@@ -68,6 +68,26 @@ function start(): void {
   if (socket.connected) void subscribe();
 }
 
+let expiredInvite = false;
+
+/** F7 iz push-a: tap na poziv koji više ne važi — list prikazuje glavni ekran. */
+export function markInviteExpired(): void {
+  expiredInvite = true;
+  notify();
+}
+
+export function clearExpiredInvite(): void {
+  expiredInvite = false;
+  notify();
+}
+
+const readExpired = () => expiredInvite;
+
+/** F7 čeka da ga glavni ekran prikaže. */
+export function useExpiredInvite(): boolean {
+  return useChannel(readExpired);
+}
+
 /** Poziv je obrađen (Pridruži se / Ne sada / istekao) — skloni ga. */
 export function dismissInvite(roomId: string): void {
   dismissed.add(roomId);
