@@ -980,3 +980,21 @@
   color: var(--text);
   overflow-wrap: anywhere;
 }
+
+/* §6.9 — odnos „Blokiran" i razlozi prijave. */
+.other-profile__relation {
+  margin: 0;
+  text-align: center;
+  font: 600 var(--type-sm) / 1.3 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.report__reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.report__reason {
+  padding-inline: 0.15rem;
+}

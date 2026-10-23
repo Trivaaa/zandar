@@ -520,6 +520,24 @@ export const sr = {
     title: "Profil igrača",
     close: "Zatvori",
     loadError: "Profil se nije učitao.",
+    // §6.9 Blokiraj i prijavi
+    blockOrReport: "Blokiraj ili prijavi",
+    block: "Blokiraj",
+    report: "Prijavi nadimak ili ponašanje",
+    blockConfirm: (name: string) => `Blokirati ${name}?`,
+    blockBody:
+      "Više vam se neće slati zahtjevi ni pozivi, a prijateljstvo se prekida. Neće dobiti obavještenje.",
+    blocked: "Blokiran",
+    unblock: "Odblokiraj",
+    reportTitle: (name: string) => `Prijavi ${name}`,
+    reasons: {
+      nickname: "Uvredljiv nadimak",
+      impersonation: "Lažno predstavljanje",
+      harassment: "Uznemiravanje",
+      other: "Drugo",
+    },
+    sendReport: "Pošalji prijavu",
+    reportThanks: "Hvala. Pogledaćemo prijavu.",
   },
   /* Prijatelji (SPEC_IDENTITET §6.6). */
   friends: {

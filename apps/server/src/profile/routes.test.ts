@@ -214,6 +214,43 @@ test("tuđi profil: samo javno lice; nepoznat, napušten nadimak i gost → 404"
   assert.equal((await get("user:u2", "zvonko")).statusCode, 200);
 });
 
+test("§6.9 blokada: samo nalog, ne sebe, odnos „blocked\" u profilu, odblokiranje", async () => {
+  const { app, as, setNick } = setup();
+  await setNick("user:u1", "Marko");
+  await setNick("user:u2", "Ana");
+  const block = (who: string, id: string, method: "POST" | "DELETE" = "POST") =>
+    app.inject({ method, url: `/api/blocks/${id}`, headers: as(who) });
+  const relation = async (who: string, id: string) =>
+    ((await app.inject({ method: "GET", url: `/api/profiles/${id}`, headers: as(who) })).json() as { relation: string }).relation;
+
+  assert.equal((await block("anon:g1", "marko")).statusCode, 403);
+  assert.equal((await block("user:u1", "marko")).statusCode, 400, "ne sebe");
+  assert.equal((await block("user:u1", "nepostoji")).statusCode, 404);
+  assert.equal((await block("user:u2", "marko")).statusCode, 204);
+  assert.equal(await relation("user:u2", "marko"), "blocked");
+  assert.equal(await relation("user:u1", "ana"), "none", "blokirani ne saznaje ništa");
+  assert.equal((await block("user:u2", "marko", "DELETE")).statusCode, 204);
+  assert.equal(await relation("user:u2", "marko"), "none");
+});
+
+test("§6.9 prijava: i gost; razlog sa spiska; ne sebe; 10 dnevno", async () => {
+  const reports: unknown[] = [];
+  const store = createMemoryProfileStore();
+  const spy: ProfileStore = { ...store, addReport: async (r) => void reports.push(r) };
+  const { app, as, setNick } = setup(spy);
+  await setNick("user:u1", "Marko");
+  const report = (who: string, body: object) =>
+    app.inject({ method: "POST", url: "/api/reports", headers: as(who), payload: body });
+
+  assert.equal((await report("anon:g1", { profileId: "marko", reason: "nickname" })).statusCode, 204);
+  assert.deepEqual(reports[0], { reporterUid: "g1", reportedUid: "u1", nickname: "Marko", reason: "nickname", at: 1_000_000_000 });
+  assert.equal((await report("anon:g1", { profileId: "marko", reason: "spam" })).statusCode, 400);
+  assert.equal((await report("user:u1", { profileId: "marko", reason: "other" })).statusCode, 400, "ne sebe");
+  for (let i = 0; i < 9; i++) await report("anon:g2", { profileId: "marko", reason: "harassment" });
+  assert.equal((await report("anon:g2", { profileId: "marko", reason: "harassment" })).statusCode, 204);
+  assert.equal((await report("anon:g2", { profileId: "marko", reason: "harassment" })).statusCode, 429);
+});
+
 test("previše provjera u minuti → 429", async () => {
   const { check } = setup();
   for (let i = 0; i < 60; i++) assert.equal((await check("user:u1", `abc${i}`)).statusCode, 200);

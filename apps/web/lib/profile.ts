@@ -97,6 +97,23 @@ export async function fetchPublicProfile(profileId: string): Promise<PublicProfi
   return (await res.json()) as PublicProfile;
 }
 
+/** §6.9 Blokiraj (`true`) / Odblokiraj (`false`). Baca na neuspjeh. */
+export async function setBlocked(profileId: string, blocked: boolean): Promise<void> {
+  const res = await authed(`/api/blocks/${encodeURIComponent(profileId)}`, {
+    method: blocked ? "POST" : "DELETE",
+  });
+  if (res.status !== 204) throw new Error(`block_${res.status}`);
+}
+
+export const REPORT_REASONS = ["nickname", "impersonation", "harassment", "other"] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+/** §6.9 Prijava igrača. Baca na neuspjeh. */
+export async function reportPlayer(profileId: string, reason: ReportReason): Promise<void> {
+  const res = await authed("/api/reports", { method: "POST", body: JSON.stringify({ profileId, reason }) });
+  if (res.status !== 204) throw new Error(`report_${res.status}`);
+}
+
 /** Tok c (C4). `recent_login` = prijava starija od 5 minuta → nazad na C3. */
 export async function deleteMyAccount(): Promise<"ok" | "recent_login" | "error"> {
   try {

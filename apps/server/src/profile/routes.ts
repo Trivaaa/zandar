@@ -7,7 +7,7 @@ import type { IdentityAdmin } from "../google/identityToolkit";
 import { abandonGuest, deleteAccount } from "./cleanup";
 import { SlidingWindowLimiter } from "../rateLimit";
 import { evaluateNickname } from "./nickname";
-import type { ProfileStore } from "./store";
+import { REPORT_REASONS, type ProfileStore, type ReportReason } from "./store";
 
 /**
  * Rute profila (SPEC_IDENTITET §6.2, §6.4, §7). Sve traže Firebase token;
@@ -21,6 +21,9 @@ type RequireUser = (
 
 /** C3/C6: brisanje traži prijavu iz zadnjih 5 minuta (kao Firebase za osjetljive radnje). */
 export const RECENT_LOGIN_MS = 5 * 60 * 1000;
+
+/** Prijave: pregled je ručni, pa ih jedan igrač ne smije zatrpati. */
+const REPORTS_PER_DAY = 10;
 
 /** Provjera dok igrač kuca (0,5 s debounce) — 60 u minuti je daleko iznad ruke. */
 const NICKNAME_LIMIT_PER_MINUTE = 60;
@@ -40,7 +43,18 @@ export function registerProfileRoutes(
   const { store, requireUser } = deps;
   const now = deps.now ?? Date.now;
   const nicknameLimiter = new SlidingWindowLimiter(NICKNAME_LIMIT_PER_MINUTE, 60_000);
-  setInterval(() => nicknameLimiter.sweep(), 5 * 60_000).unref();
+  const reportLimiter = new SlidingWindowLimiter(REPORTS_PER_DAY, 24 * 60 * 60 * 1000);
+  setInterval(() => {
+    nicknameLimiter.sweep();
+    reportLimiter.sweep();
+  }, 5 * 60_000).unref();
+
+  /** Vlasnik javnog ID-a (ključ nadimka), ili `null` kad profila nema. */
+  async function targetOf(profileId: string): Promise<{ uid: string; nickname: string } | null> {
+    const uid = await store.uidForNickname(profileId.toLowerCase());
+    const profile = uid ? await store.getProfile(uid) : null;
+    return uid && profile?.nickname ? { uid, nickname: profile.nickname } : null;
+  }
 
   async function me(user: AuthUser) {
     const profile = await store.getProfile(user.uid);
@@ -185,10 +199,68 @@ export function registerProfileRoutes(
         nickname: profile.nickname,
         avatar: profile.avatar ?? null,
         completedMatches: profile.completedMatches,
-        relation: uid === user.uid ? "self" : "none",
+        relation:
+          uid === user.uid ? "self" : (await store.isBlocked(user.uid, uid)) ? "blocked" : "none",
       };
     } catch (err) {
       return storeUnavailable(reply, err, "GET /api/profiles/:id");
+    }
+  });
+
+  /**
+   * §6.9 Blokiraj / Odblokiraj — samo nalog (blokada štiti od zahtjeva i
+   * poziva, a njih imaju samo nalozi). Tiho: drugi igrač ne saznaje ništa.
+   */
+  for (const method of ["POST", "DELETE"] as const) {
+    app.route<{ Params: { profileId: string } }>({
+      method,
+      url: "/api/blocks/:profileId",
+      handler: async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        if (accountRequired(user, reply)) return reply;
+        try {
+          const target = await targetOf(request.params.profileId);
+          if (!target) return reply.code(404).send({ code: "not_found" });
+          if (target.uid === user.uid) return reply.code(400).send({ code: "self" });
+          await store.setBlock(user.uid, target.uid, method === "POST", now());
+          return reply.code(204).send();
+        } catch (err) {
+          return storeUnavailable(reply, err, `${method} /api/blocks`);
+        }
+      },
+    });
+  }
+
+  /**
+   * §6.9 Prijava igrača — svako prijavljen (i gost: uvredljiv nadimak vidi i
+   * on). Upis + upozorenje u logu servera; pregled je ručni (preimenovanje
+   * nadimka ili suspenzija), V1 nema admin ekran.
+   */
+  app.post<{ Body: { profileId?: unknown; reason?: unknown } }>("/api/reports", async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return reply;
+    const reason = REPORT_REASONS.find((r) => r === request.body?.reason);
+    const profileId = typeof request.body?.profileId === "string" ? request.body.profileId : null;
+    if (!reason || !profileId) return reply.code(400).send({ code: "invalid" });
+    if (!reportLimiter.tryHit(user.uid)) {
+      return reply.code(429).send({ error: "Previše prijava", code: "rate_limited" });
+    }
+    try {
+      const target = await targetOf(profileId);
+      if (!target) return reply.code(404).send({ code: "not_found" });
+      if (target.uid === user.uid) return reply.code(400).send({ code: "self" });
+      await store.addReport({
+        reporterUid: user.uid,
+        reportedUid: target.uid,
+        nickname: target.nickname,
+        reason: reason as ReportReason,
+        at: now(),
+      });
+      app.log.warn(`🚩 Prijava igrača: „${target.nickname}" (${reason}) — pregledati ručno`);
+      return reply.code(204).send();
+    } catch (err) {
+      return storeUnavailable(reply, err, "POST /api/reports");
     }
   });
 

@@ -4,6 +4,8 @@ import {
   type ProfileAvatar,
 } from "@zandar/shared-types";
 
+import { randomUUID } from "node:crypto";
+
 import {
   createFirestore,
   docId,
@@ -85,6 +87,23 @@ export type ProfileStore = {
    * rezervisan 30 dana (Q2 — zaštita od lažnog predstavljanja).
    */
   deleteAccount(uid: string, now?: number): Promise<void>;
+  /** §6.9: blokada `fromUid` → `toUid` (jednosmjerna zabilješka; posljedice čitaju oba smjera). */
+  setBlock(fromUid: string, toUid: string, blocked: boolean, now?: number): Promise<void>;
+  isBlocked(fromUid: string, toUid: string): Promise<boolean>;
+  /** §6.9: prijava igrača — pregled je ručni (V1 nema admin ekran). */
+  addReport(report: StoredReport): Promise<void>;
+};
+
+export const REPORT_REASONS = ["nickname", "impersonation", "harassment", "other"] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export type StoredReport = {
+  reporterUid: string;
+  reportedUid: string;
+  /** Nadimak u trenutku prijave — kasnija promjena ne briše dokaz. */
+  nickname: string;
+  reason: ReportReason;
+  at: number;
 };
 
 type NicknameRecord = { uid: string; nickname: string; releasedAt?: number };
@@ -129,6 +148,8 @@ export function createMemoryProfileStore(): ProfileStore {
   const nicknames = new Map<string, NicknameRecord>();
   /** `matchId__uid` → uid */
   const results = new Map<string, string>();
+  const blocks = new Set<string>();
+  const reports: StoredReport[] = [];
 
   const profileOf = (uid: string): StoredProfile => profiles.get(uid) ?? { completedMatches: 0 };
 
@@ -182,7 +203,22 @@ export function createMemoryProfileStore(): ProfileStore {
       const key = profiles.get(uid)?.nicknameKey;
       const rec = key ? nicknames.get(key) : undefined;
       if (key && rec?.uid === uid) nicknames.set(key, { ...rec, releasedAt: now });
+      for (const b of blocks) {
+        const [from, to] = b.split("|");
+        if (from === uid || to === uid) blocks.delete(b);
+      }
       await this.deleteUserData(uid);
+    },
+    // `|` ne postoji u Firebase uid-u — ključ se ne može dvosmisleno raspasti.
+    async setBlock(fromUid, toUid, blocked) {
+      if (blocked) blocks.add(`${fromUid}|${toUid}`);
+      else blocks.delete(`${fromUid}|${toUid}`);
+    },
+    async isBlocked(fromUid, toUid) {
+      return blocks.has(`${fromUid}|${toUid}`);
+    },
+    async addReport(report) {
+      reports.push({ ...report });
     },
   };
 }
@@ -343,7 +379,31 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
           ]);
         }
       }
+      // Blokade u oba smjera nestaju sa nalogom.
+      for (const field of ["from", "to"]) {
+        for (;;) {
+          const paths = await db.findPaths("blocks", field, uid, 400);
+          if (paths.length === 0) break;
+          await db.commit(paths.map((path) => ({ kind: "delete" as const, path })));
+        }
+      }
       await this.deleteUserData(uid);
+    },
+    async setBlock(fromUid, toUid, blocked, now = Date.now()) {
+      const path = `blocks/${docId(fromUid, toUid)}`;
+      await db.commit([
+        blocked
+          ? { kind: "set", path, fields: { from: fromUid, to: toUid, at: now } }
+          : { kind: "delete", path },
+      ]);
+    },
+    async isBlocked(fromUid, toUid) {
+      return (await db.get(`blocks/${docId(fromUid, toUid)}`)) !== null;
+    },
+    async addReport(report) {
+      await db.commit([
+        { kind: "set", path: `reports/${randomUUID()}`, fields: { ...report }, exists: false },
+      ]);
     },
   };
 }

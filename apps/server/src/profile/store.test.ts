@@ -98,6 +98,33 @@ async function deleteAccountContract(store: ProfileStore) {
   assert.equal(await store.nicknameAvailability("marko", "u2", t0 + 1 + NICKNAME_RESERVATION_MS), "free");
 }
 
+async function blockContract(store: ProfileStore) {
+  assert.equal(await store.isBlocked("a", "b"), false);
+  await store.setBlock("a", "b", true);
+  assert.equal(await store.isBlocked("a", "b"), true);
+  assert.equal(await store.isBlocked("b", "a"), false, "zabilješka je jednosmjerna");
+  await store.setBlock("c", "a", true);
+  await store.deleteAccount("a");
+  assert.equal(await store.isBlocked("a", "b"), false, "brisanje naloga briše njegove blokade");
+  assert.equal(await store.isBlocked("c", "a"), false, "i blokade prema njemu");
+  await store.setBlock("x", "y", true);
+  await store.setBlock("x", "y", false);
+  assert.equal(await store.isBlocked("x", "y"), false);
+}
+
+test("memorija: blokade — jednosmjerne, odblokiranje, nestaju sa nalogom", async () => {
+  await blockContract(createMemoryProfileStore());
+});
+
+test("Firestore: blokade — isti ugovor; prijava je novi dokument", async () => {
+  const fake = fakeFirestore();
+  const store = createFirestoreProfileStore(createFirestore("p", tokens, fake.impl));
+  await blockContract(store);
+  await store.addReport({ reporterUid: "r", reportedUid: "t", nickname: "Marko", reason: "nickname", at: 1 });
+  const reports = [...fake.docs.keys()].filter((k) => k.includes("/reports/"));
+  assert.equal(reports.length, 1);
+});
+
 test("memorija: brisanje naloga — podaci nestaju, nadimak rezervisan 30 dana", async () => {
   await deleteAccountContract(createMemoryProfileStore());
 });
