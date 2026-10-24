@@ -1,0 +1,59 @@
+/* Referentni CSS sa Claude Design platna (Početna v3 · A). Klase su za maketu, ne za kod: prevedi na tokene i postojeće komponente. */
+
+/* ===== v3 ===== */
+.ph:has(.v3){background:#120d09}
+.ph:has(.v3) .scr{padding:0;gap:0}
+.ph:has(.v3) .tabs{height:64px;background:#100b08;box-shadow:inset 0 1px 0 rgba(201,162,39,.22)}
+.ph:has(.v3) .tab{opacity:1;color:rgba(242,239,230,.62);font-size:13px}
+.ph:has(.v3) .tab.on{background:none;margin:0;color:#e0b93a;font-weight:700}
+.ph:has(.v3) .tab.on::before{display:block;background:#e0b93a;left:34%;right:34%}
+.v3{position:relative;flex:1;display:flex;flex-direction:column;gap:10px;padding:10px 16px 14px;
+ background:linear-gradient(180deg,rgba(18,13,9,.55),rgba(18,13,9,.85) 70%),url(img/wood.webp) center/cover}
+.v3 .brand{display:flex;align-items:center;gap:8px;height:30px;font:400 15px/1 'Archivo Black',system-ui,sans-serif;color:rgba(247,243,232,.85);letter-spacing:.02em}
+.v3 .brand .logo{width:24px;height:24px;transform:rotate(-8deg)}
+/* hero A: sto u kafani */
+.heroA{position:relative;flex:none;border-radius:26px;overflow:hidden;background:url(img/felt-bg.webp) center 30%/cover;
+ box-shadow:0 0 0 3px #3a2414,0 0 0 5px rgba(201,162,39,.55),0 14px 30px rgba(0,0,0,.6)}
+.heroA::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 70% 55% at 50% 38%,rgba(255,230,160,.16),transparent 70%),linear-gradient(180deg,transparent 45%,rgba(8,20,16,.75));pointer-events:none}
+.fan{position:absolute;left:50%;top:var(--ft,22px);width:0;height:0;z-index:1}
+.fan img{position:absolute;bottom:auto;width:var(--cw,82px);border-radius:6px;box-shadow:0 8px 16px rgba(0,0,0,.5);transform-origin:50% 120%}
+.htxt{position:absolute;left:18px;right:18px;bottom:14px;z-index:2;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.htxt h2{margin:0;font:400 38px/1 'Archivo Black',system-ui,sans-serif;color:#f7f3e8;text-transform:uppercase;text-shadow:0 2px 0 #0b1f1a,0 6px 18px rgba(0,0,0,.6)}
+.htxt p{margin:4px 0 0;font:400 14px/1.2 'IBM Plex Sans',system-ui,sans-serif;color:rgba(242,239,230,.85)}
+.pinb{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px;border-radius:999px;background:rgba(16,30,27,.75);color:#e0b93a;font:700 12px/1 'IBM Plex Sans',sans-serif}
+/* hero B: karta kao naslovnica (bez okvira, do ivica) */
+.heroB{position:relative;flex:none;margin:-10px -16px 0;overflow:hidden;background:url(img/felt-bg.webp) center 35%/cover}
+.heroB::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 62% 40%,rgba(255,230,160,.18),transparent 70%),linear-gradient(180deg,rgba(18,13,9,.35),transparent 25%,transparent 55%,#120d09 98%);pointer-events:none}
+.heroB .brand{position:absolute;left:16px;top:10px;z-index:3}
+.big{position:absolute;z-index:1;border-radius:9px;box-shadow:0 14px 28px rgba(0,0,0,.6)}
+.htxtB{position:absolute;left:16px;bottom:10px;z-index:2}
+.htxtB h2{margin:0;font:400 44px/0.95 'Archivo Black',system-ui,sans-serif;color:#f7f3e8;text-transform:uppercase;text-shadow:0 3px 0 #0b1f1a,0 8px 20px rgba(0,0,0,.7)}
+.htxtB p{margin:6px 0 0;font:400 14px/1.2 'IBM Plex Sans',sans-serif;color:rgba(242,239,230,.85)}
+/* radnje */
+.play{position:relative;flex:none;display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;border:0;border-radius:14px;
+ background:linear-gradient(180deg,#d8b234,#c9a227 60%,#b8921d);color:#16221f;font:700 20px/1 'IBM Plex Sans',system-ui,sans-serif;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -3px 0 rgba(22,34,31,.25),0 8px 18px rgba(0,0,0,.45)}
+.acts{display:flex;gap:8px;flex:none}
+.setl{position:relative;flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 10px;border:0;border-radius:12px;
+ background:rgba(242,239,230,.08);color:rgba(242,239,230,.9);font:600 14px/1 'IBM Plex Sans',system-ui,sans-serif;white-space:nowrap}
+.setl svg{width:16px;height:16px;color:#e0b93a;flex:none}
+.frd{position:relative;flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 10px;border:0;border-radius:12px;
+ background:rgba(242,239,230,.08);color:#f7f3e8;font:700 15px/1 'IBM Plex Sans',system-ui,sans-serif;white-space:nowrap}
+.frd svg{width:20px;height:20px;color:#e0b93a}
+.lbl3{margin:4px 0 -2px;font:700 12px/1 'IBM Plex Sans',system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:rgba(224,185,58,.85)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:none}
+.tile{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;padding:10px 12px;border:0;border-radius:16px;text-align:left;color:#f7f3e8;
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 8px 18px rgba(0,0,0,.45)}
+.tile.poker{background:radial-gradient(ellipse 90% 80% at 80% 10%,#7a2a20,#3e1611 70%)}
+.tile.raub{background:radial-gradient(ellipse 90% 80% at 80% 10%,#2a5276,#14283c 70%)}
+.tile.zandar{background:radial-gradient(ellipse 90% 80% at 80% 10%,#2c6152,#10302a 70%)}
+.tile .mc{position:absolute;right:6px;top:8px;width:84px;height:58px}
+.tile .mc img{position:absolute;width:38px;border-radius:4px;box-shadow:0 4px 10px rgba(0,0,0,.5);transform-origin:50% 120%}
+.tile b{position:relative;z-index:1;font:400 20px/1 'Archivo Black',system-ui,sans-serif;text-transform:uppercase}
+.tile span.m{position:relative;z-index:1;font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:rgba(242,239,230,.8)}
+.tile .nw{position:absolute;left:10px;top:10px;z-index:1;padding:3px 7px;border-radius:999px;background:#e4714a;color:#16221f;font:700 10px/1 'IBM Plex Sans',sans-serif;letter-spacing:.06em}
+.tile.soon{filter:saturate(.55);}
+.tile.soon .mc img{opacity:.55}
+.tile .bell{position:absolute;right:6px;bottom:6px;z-index:2;display:grid;place-items:center;width:44px;height:44px;border-radius:999px;background:rgba(16,11,8,.55);color:#e0b93a}
+.tile .bell svg{width:20px;height:20px}
+.shot{position:absolute;inset:0;background:url(img/staging-home.png) top center/360px auto no-repeat}

@@ -1,6 +1,6 @@
 "use client";
 
-import { LetterCard, gameMeta } from "@/components/home/GameRow";
+import { LetterCard, gameMeta } from "@/components/home/GameTile";
 import { ArrowRightIcon, BookIcon, FriendsIcon, StarIcon } from "@/components/icons";
 import { Sheet } from "@/components/sheet/Sheet";
 import type { GameConfig } from "@/lib/games";

@@ -130,6 +130,10 @@ export const sr = {
     // Red ispod dugmeta: šta će igrač dobiti, i ujedno ulaz u list.
     summary: (players: number, target: number, table: string) => `${players} igrača · do ${target} · ${table}`,
     summaryLabel: (summary: string) => `Podešavanja igre: ${summary}. Promijeni`,
+    // Kratak oblik na početnoj v3 („2 · 11 · Drvo ✎"); čitač ekrana dobija pun.
+    summaryShort: (players: number, target: number, table: string) => `${players} · ${target} · ${table}`,
+    summaryLabelFull: (players: number, target: number, table: string) =>
+      `${players} igrača, do ${target}, sto ${table}, promijeni`,
     settingsTitle: (game: string) => `Brza igra · ${game}`,
     saveAndClose: "Sačuvaj i zatvori",
     cancel: "Odustani",
@@ -204,9 +208,9 @@ export const sr = {
     more: "Još igara",
     isNew: "Novo",
     openGame: (name: string) => `${name} — više o igri`,
-    soon: (names: string[]) => `Uskoro: ${listJoin(names)}`,
-    soonSub: "Javimo ti kad stigne.",
-    notifyMe: "Javi mi",
+    /* Velika slova daje CSS, kao i za ime igre. */
+    soonTitle: "Uskoro · dodirni zvono da ti javimo",
+    notifyFor: (name: string) => `Javi mi kad stigne ${name}`,
     // List igre (H4)
     rules: "Pravila",
     pin: "Zakači na vrh",

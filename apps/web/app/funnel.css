@@ -36,7 +36,6 @@
 /* Pozadina pravca A+ (SPEC_IZGLED_APLUS §2.3) — svjetlija felt zelena gore,
    tamna podloga dolje. Zajednička za ekrane van stola sa donjom navigacijom;
    boja ispod (`--felt`) ostaje za trenutak prije nego se gradijent iscrta. */
-.screen.home,
 .screen.profile {
   background-image: radial-gradient(
     ellipse 110% 70% at 50% 30%,

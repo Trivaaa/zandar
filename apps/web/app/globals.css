@@ -69,6 +69,18 @@
      predmet na stolu, ne kao rupa kroz koju se vidi sto. */
   --card-back:      #10302a;
 
+  /* Početna v3 „Kafanski sto" (SPEC_POCETNA_V3 §4). Tamno drvo: pozadina iza
+     teksture i donja traka; okvir stola. */
+  --wood-ink:       #120d09;
+  --wood-rim:       #3a2414;
+  /* Boja igre — par za gradijent pločice; ključ je `tint` u lib/games.ts. */
+  --game-poker-1:   #7a2a20;
+  --game-poker-2:   #3e1611;
+  --game-raub-1:    #2a5276;
+  --game-raub-2:    #14283c;
+  --game-zandar-1:  #2c6152;
+  --game-zandar-2:  #10302a;
+
   /* Radijus */
   --radius-sm:      0.25rem;
   --radius-md:      0.5rem;
@@ -133,6 +145,8 @@
      trajanja (0.55s / 0.77s) — ovo je tokenizacija, ne promjena tempa. */
   --t-capture-flash: 550ms;
   --t-jack-sweep:    770ms;
+  /* Lepeza na stolu početne „diše" ±1° (SPEC_POCETNA_V3 §5). */
+  --t-fan-breathe:   6400ms;
 
   /* Easing */
   --ease-card:     cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -373,6 +387,7 @@
     --t-capture-flash: 1ms;
     --t-jack-sweep:    1ms;
     --t-turn-pulse:   0s;
+    --t-fan-breathe:  0s;
   }
 
   .animate-seat-pop,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { preload } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
@@ -46,6 +47,9 @@ type Sheet =
 type Choice = { prefs: QuickPlayPrefs; tableTheme: TableTheme };
 
 export default function Home() {
+  // Teksture početne v3 — rano, da drvo i sukno ne dođu poslije rasporeda.
+  preload("/home-wood.webp", { as: "image" });
+  preload("/felt-bg.webp", { as: "image" });
   const router = useRouter();
   const history = useHomeHistory();
   const layout = useMemo(() => homeLayout(GAMES, history), [history]);
@@ -127,7 +131,8 @@ export default function Home() {
         now={now}
         loading={playing && !sheetOpen}
         {...(playError && !sheetOpen ? { error: playError } : {})}
-        setupSummary={sr.quickSetup.summary(prefs.playerCount, prefs.targetScore, sr.tableTheme.names[tableTheme])}
+        setupShort={sr.quickSetup.summaryShort(prefs.playerCount, prefs.targetScore, sr.tableTheme.names[tableTheme])}
+        setupLabel={sr.quickSetup.summaryLabelFull(prefs.playerCount, prefs.targetScore, sr.tableTheme.names[tableTheme])}
         // Igraj prvo pokazuje izbor (2 ili 4 igrača, do 11 ili 21, sto) sa
         // zadnjim izborom označenim — odluka vlasnika 2026-10-23, mimo prvobitnog
         // SPEC_POCETNA §4 („bez forme"). „Igraj" u listu kreće za sto.

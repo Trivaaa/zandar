@@ -77,7 +77,13 @@ export type GameConfig = {
   heroCards: readonly CardFace[] | null;
   /** Ima li igra list pravila (`RulesModal`). */
   hasRules: boolean;
+  /** Boja igre (SPEC_POCETNA_V3 §4) — ključ za `--game-<tint>-1/2`, ne heks. */
+  tint: GameTint;
+  /** Dvije prave karte na pločici igre (i na stolu, kad igra nema `heroCards`). */
+  tileCards: readonly [CardFace, CardFace];
 };
+
+export type GameTint = "zandar" | "poker" | "raub";
 
 export const GAMES: readonly GameConfig[] = [
   {
@@ -89,6 +95,11 @@ export const GAMES: readonly GameConfig[] = [
     releasedAt: "2026-05-01",
     heroCards: HOME_HERO_CARDS,
     hasRules: true,
+    tint: "zandar",
+    tileCards: [
+      { rank: "J", suit: "spades" },
+      { rank: "Q", suit: "hearts" },
+    ],
   },
   {
     slug: "poker",
@@ -105,6 +116,11 @@ export const GAMES: readonly GameConfig[] = [
       { rank: "A", suit: "spades" },
     ],
     hasRules: false,
+    tint: "poker",
+    tileCards: [
+      { rank: "A", suit: "spades" },
+      { rank: "K", suit: "spades" },
+    ],
   },
   {
     slug: "raub",
@@ -115,6 +131,11 @@ export const GAMES: readonly GameConfig[] = [
     releasedAt: null,
     heroCards: null,
     hasRules: false,
+    tint: "raub",
+    tileCards: [
+      { rank: "7", suit: "clubs" },
+      { rank: "A", suit: "diamonds" },
+    ],
   },
 ];
 

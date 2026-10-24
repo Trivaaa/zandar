@@ -4,11 +4,11 @@ import type { ReactNode } from "react";
 
 import { BrandLockup } from "@/components/brand/BrandLockup";
 import { GameCard } from "@/components/home/GameCard";
-import { GameRow } from "@/components/home/GameRow";
-import { UpcomingRow } from "@/components/home/UpcomingRow";
+import { GameTile, UpcomingTile } from "@/components/home/GameTile";
 import { isNewGame, type GameConfig, type HomeHistory, type HomeLayout } from "@/lib/games";
 import { isStaging } from "@/lib/platform";
 import { sr } from "@/lib/sr";
+import { useSeenOnce } from "@/lib/useSeenOnce";
 
 export type HomeScreenProps = {
   layout: HomeLayout;
@@ -17,8 +17,10 @@ export type HomeScreenProps = {
   now: number;
   loading: boolean;
   error?: string | undefined;
-  /** Zapamćen izbor stola glavne igre („4 igrača · do 21 · Klasik"). */
-  setupSummary: string;
+  /** Kratak zapamćen izbor stola glavne igre („4 · 21 · Klasik"). */
+  setupShort: string;
+  /** Isti izbor punim riječima, za čitač ekrana. */
+  setupLabel: string;
   onPlay: () => void;
   onSetup: () => void;
   onFriends: () => void;
@@ -33,9 +35,10 @@ export type HomeScreenProps = {
 };
 
 /**
- * Početna (SPEC_POCETNA): zaglavlje, kartica glavne igre, „Još igara",
- * „Uskoro". Raspored H1/H2/H3 zavisi SAMO od `layout` (konfiguracija igara +
- * lokalna istorija). Prezentacija: bez skladišta i bez rutiranja.
+ * Početna v3 „Kafanski sto" (SPEC_POCETNA_V3): marka, glavna igra kao sto,
+ * pa pločice — „Još igara" (žive) i „Uskoro" (najavljene). Raspored zavisi
+ * SAMO od `layout` (konfiguracija igara + lokalna istorija). Prezentacija:
+ * bez skladišta i bez rutiranja.
  */
 export function HomeScreen({
   layout,
@@ -43,7 +46,8 @@ export function HomeScreen({
   now,
   loading,
   error,
-  setupSummary,
+  setupShort,
+  setupLabel,
   onPlay,
   onSetup,
   onFriends,
@@ -53,37 +57,39 @@ export function HomeScreen({
   legalSlot,
   className = "",
 }: HomeScreenProps) {
-  const count = 1 + layout.more.length + (layout.upcoming.length > 0 ? 1 : 0);
-  const density = Math.min(3, count) as 1 | 2 | 3;
+  // Sto je niži samo kad ima „Još igara" (A3); pločice „Uskoro" su niže i
+  // staju ispod punog stola (A1).
+  const compact = layout.more.length > 0;
   return (
     <main className={`screen home ${className}`}>
       <header className="home__top">
-        <BrandLockup showDomain={false} />
+        <BrandLockup showDomain={false} className="brand--home" />
         {isStaging ? <span className="home__env">STAGING</span> : null}
       </header>
 
-      <div className="home__col">
+      <div className="home__col" data-sections={Number(layout.more.length > 0) + Number(layout.upcoming.length > 0)}>
         <GameCard
           game={layout.main}
           pinned={history.pinned === layout.main.slug}
-          density={density}
+          compact={compact}
           loading={loading}
           error={error}
-          setupSummary={setupSummary}
+          setupShort={setupShort}
+          setupLabel={setupLabel}
           onPlay={onPlay}
           onSetup={onSetup}
           onFriends={onFriends}
         />
 
         {layout.more.length > 0 ? (
-          <section className="home__more" aria-labelledby="more-title">
-            <h2 id="more-title" className="home__more-title">
+          <section className="home__section" aria-labelledby="more-title">
+            <h2 id="more-title" className="home__section-title">
               {sr.home.more}
             </h2>
-            <ul className="home__more-list">
+            <ul className="home-tiles">
               {layout.more.map((game) => (
                 <li key={game.slug}>
-                  <GameRow game={game} isNew={isNewGame(game, history, now)} onOpen={() => onOpenGame(game)} />
+                  <GameTile game={game} isNew={isNewGame(game, history, now)} onOpen={() => onOpenGame(game)} />
                 </li>
               ))}
             </ul>
@@ -91,11 +97,41 @@ export function HomeScreen({
         ) : null}
 
         {layout.upcoming.length > 0 ? (
-          <UpcomingRow games={layout.upcoming} onNotify={onNotify} onViewed={onUpcomingViewed} />
+          <UpcomingSection games={layout.upcoming} onNotify={onNotify} onViewed={onUpcomingViewed} />
         ) : null}
 
         {legalSlot ? <footer className="home__legal">{legalSlot}</footer> : null}
       </div>
     </main>
+  );
+}
+
+/**
+ * „Uskoro": pločica po najavljenoj igri. `onViewed` se zove JEDNOM, tek kad
+ * je sekcija stvarno u vidnom polju (`useSeenOnce`) — isti događaj kao ranije.
+ */
+function UpcomingSection({
+  games,
+  onNotify,
+  onViewed,
+}: {
+  games: readonly GameConfig[];
+  onNotify: () => void;
+  onViewed?: (() => void) | undefined;
+}) {
+  const ref = useSeenOnce<HTMLElement>(onViewed);
+  return (
+    <section ref={ref} className="home__section" aria-labelledby="soon-title">
+      <h2 id="soon-title" className="home__section-title">
+        {sr.home.soonTitle}
+      </h2>
+      <ul className="home-tiles">
+        {games.map((game) => (
+          <li key={game.slug}>
+            <UpcomingTile game={game} onNotify={onNotify} />
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

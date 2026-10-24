@@ -78,3 +78,15 @@ describe("isNewGame (NOVO)", () => {
     assert.equal(isNewGame({ ...poker, releasedAt: null }, NONE, released), false);
   });
 });
+
+describe("izgled igre (SPEC_POCETNA_V3 §4)", () => {
+  test("svaka igra ima svoju boju i dvije karte za pločicu", () => {
+    const tints = GAMES.map((g) => g.tint);
+    assert.equal(new Set(tints).size, GAMES.length, "dvije igre dijele boju");
+    for (const g of GAMES) assert.equal(g.tileCards.length, 2, g.slug);
+  });
+
+  test("glavna igra bez motiva crta karte pločice, nikad prazan sto", () => {
+    for (const g of GAMES) assert.ok((g.heroCards ?? g.tileCards).length >= 2, g.slug);
+  });
+});

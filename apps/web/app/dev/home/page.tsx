@@ -15,6 +15,8 @@ import { useQueryParam } from "@/lib/useQuery";
  * okviru `/dev/funnel`). Konfiguracija se bira u URL-u, bez izmjene `GAMES`:
  *   ?live=1|2|3   koliko igara je živo (Žandar, pa Poker, pa Raub) — H1/H2/H3
  *   &pin=poker    zakačena igra — H5
+ *   &last=poker   zadnja igrana igra (bez nje niko nije igrao ništa)
+ *   &err=1        greška traženja stola (stoji na mjestu mete)
  *   &web=0        bez pravnog reda (kao APK)
  * Dodir na red igre otvara pravi list igre (H4); Zakači/Otkači mijenja glavnu.
  */
@@ -28,6 +30,8 @@ export default function DevHomePage() {
   const pin = pinOverride === undefined ? pinParam : pinOverride;
   const [open, setOpen] = useState<GameConfig | null>(null);
   const web = useQueryParam("web") !== "0";
+  const last = useQueryParam("last");
+  const err = useQueryParam("err") === "1";
 
   const { layout, history } = useMemo(() => {
     const order: GameSlug[] = ["zandar", "poker", "raub"];
@@ -36,10 +40,10 @@ export default function DevHomePage() {
     );
     const h: HomeHistory = {
       pinned: games.some((g) => g.slug === pin && g.status === "live") ? (pin as GameSlug) : null,
-      played: live >= 3 ? { poker: NOW - 1 } : {},
+      played: last && games.some((g) => g.slug === last) ? { [last]: NOW - 1 } : {},
     };
     return { layout: homeLayout(games, h), history: h };
-  }, [live, pin]);
+  }, [live, pin, last]);
 
   return (
     <>
@@ -48,7 +52,9 @@ export default function DevHomePage() {
         history={history}
         now={NOW}
         loading={false}
-        setupSummary={sr.quickSetup.summary(4, 21, sr.tableTheme.names.classic)}
+        {...(err ? { error: sr.quickSetup.error } : {})}
+        setupShort={sr.quickSetup.summaryShort(2, 11, sr.tableTheme.names.wood)}
+        setupLabel={sr.quickSetup.summaryLabelFull(2, 11, sr.tableTheme.names.wood)}
         onPlay={() => undefined}
         onSetup={() => undefined}
         onFriends={() => undefined}
