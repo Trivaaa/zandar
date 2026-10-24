@@ -920,6 +920,15 @@
   background-color: color-mix(in oklab, black 60%, transparent);
 }
 
+/* Visina lista preko scrima: `.gamemenu` ima `min(80dvh, 100%)`, ali omotač
+   ovdje nema zadatu visinu, pa se `100%` ne razrješava i granica otpada —
+   dug list (Postavke sa „Brza igra") je rastao preko ekrana, a vrh (naslov)
+   je odlazio iznad ivice. Granica u visini ekrana, nikad ispod rupe kamere;
+   višak skroluje `.gamemenu__scroll`. */
+.sheet-scrim .gamemenu {
+  max-height: min(var(--gamemenu-max-h), calc(100dvh - var(--safe-top)));
+}
+
 .sheet-scrim__inner {
   display: flex;
   justify-content: center;

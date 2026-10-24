@@ -747,9 +747,19 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Ponašanje — svjesna promjena (vlasnik):** Igraj kreće ODMAH sa zapamćenim izborom (prvi put 4 · 21 · Klasik — `DEFAULT_QUICK_PLAY_PREFS` i prva tema u `TABLE_THEMES`); list izbora prije partije iz #96 je uklonjen, kao i `QuickPlaySettingsSheet`. Izbor je u **Postavke → „Brza igra"** (`SettingsSheet`, `TableSetupFields`, čuva se odmah, bez dugmeta). Produkcija bez Profila (`identityUi` ugašen) tako nema gdje mijenjati izbor brze igre — prihvaćeno, nestaje sa puštanjem naloga; „Napravi sto" i dalje nudi sve.
 
 **Zamke:**
-- **Tokeni `--felt-1/2/3` ruše `@import "./felt.css"` u produkcijskom buildu** — `next build` ispisuje `Can't resolve './felt.css' in apps/web` (build prolazi, ali poruka je nova). Izolovano bisekcijom (čist `main` 0 poruka → bez CSS izmjena 0 → bez `globals.css` 0 → preimenovanje u `--sukno-*` 0). Tokeni sa prefiksom `--felt-` se ne koriste.
+- **`Can't resolve './felt.css'` u `next build`** — poruka (build prolazi) se pojavila poslije ove izmjene, a nestala kad su tokeni preimenovani `--felt-*` → `--sukno-*`. **Ispravka (#99): uzrok nije dokazan** — poruka se kasnije pojavila i sa `--sukno-*` na prvom buildu poslije izmjene CSS-a, a tri builda zaredom bez izmjena su čista. Izgleda kao povremena pojava pri prvom buildu poslije izmjene CSS-a, ne kao posljedica imena tokena. `--sukno-*` ostaje (ne miješa se sa `--felt`).
 - **Dva brza dodira u „Brza igra" gazila su jedan drugog:** handler je spajao novu vrijednost sa `prefs` iz zadnjeg rendera, pa je „11" odmah poslije „2" vratio 4 igrača. Uhvaćeno CDP klikovima; sad se spaja sa svježim `readQuickPlayPrefs()`.
 
 **Mjereno (CDP, `/dev/home` + prava `/`, 360×740 i 390×844, web i APK):** 0 skrola, ništa van ekrana, sve mete ≥44 px; sto tačno 258 / 186 px na 740, sa obje sekcije (Poker živ + Raub uskoro) 144 px. Kontrast: marka 11.8, naslov sekcije 7.5, pravni red 10.8, meta na stolu 10.1, greška 5.0, traka 7.1 / 10.4. Postavke: izbor 4·21·Klasik → 2·11·Drvo upisan u `zandar:quickplay` / `zandar:table`, ostaje poslije ponovnog otvaranja; Igraj na `/` šalje `/api/quickplay` sa `playerCount 2, targetScore 11, tableTheme wood`, bez dijaloga.
 
 **Provjereno:** typecheck, web 66 testova, lint osnovica (5/2), `next build` i `build:mobile` bez grešaka. **Nije provjereno na uređaju.**
+
+## 99. Igraj opet otvara izbor stola; dug list ostaje u ekranu (2026-10-24, `feat/home-k1`)
+
+**Povod (vlasnik, na S10e):** (1) Postavke su bile „polupane" — vrh lista (naslov, „Brza igra") je bio iznad ivice ekrana; (2) „kad se igra sa igračima, korisnik bira 11 ili 21 i 2 ili 4 igrača" — izbor mora biti pri ruci, ne samo u Postavkama.
+
+**List preko ekrana:** `.gamemenu` ima `max-height: min(80dvh, 100%)`, ali omotač `.sheet-scrim__inner` nema zadatu visinu, pa se `100%` ne razrješava i granica otpada. Dok su Postavke bile kratke, nije se vidjelo; sa sekcijom „Brza igra" list je narastao na ~885 px, a scrim ga poravnava dolje, pa je vrh otišao iznad ekrana i unutrašnji skrol se nikad nije uključio. Popravka u `home.css`: `.sheet-scrim .gamemenu { max-height: min(var(--gamemenu-max-h), calc(100dvh - var(--safe-top))) }` — važi za svaki list preko scrima. Izmjereno na produkcijskom buildu: 360×740 list 148→740, naslov na 168, Zatvori na 726, sredina skroluje; 360×640 isto. **Moj propust u #98:** isti prekinuti vrh se vidio i na snimku iz Chromea, a pročitan je kao „skrolovano dolje".
+
+**Igraj otvara izbor:** vraćen list iz #96 (`QuickPlaySettingsSheet`, „Brza igra · Žandar": 2/4, 11/21, sto, zadnji izbor označen, „Igraj" kreće, „Sačuvaj i zatvori" čuva) — preuzet iz istorije (`e710166`), ne pisan ponovo. Izgled K1 ostaje (dva dugmeta ispod stola, bez reda podešavanja); sekcija u Postavkama ostaje i mijenja isti izbor.
+
+**Zamka — posuđeni dev server:** `next dev` druge sesije (3107) je prestao da prima izmjene (servirani CSS zamrznut i poslije `touch`), pa je provjera rađena na `next build` + `next start` (3008). Za CSS izmjene ne vjerovati tom serveru bez provjere da serviran CSS sadrži novo pravilo.

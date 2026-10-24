@@ -3,12 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { parseTableTheme } from "@zandar/shared-types";
+import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
 
 import { RulesModal } from "@/components/RulesModal";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { GameSheet } from "@/components/home/GameSheet";
-import { QuickPlayNameSheet } from "@/components/home/QuickPlaySheets";
+import { QuickPlayNameSheet, QuickPlaySettingsSheet } from "@/components/home/QuickPlaySheets";
 import { SignupSheet } from "@/components/home/SignupSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { useBackHandler } from "@/lib/backHandlers";
@@ -18,10 +18,10 @@ import { setPinnedGame, useHomeHistory } from "@/lib/homePrefs";
 import { isNative } from "@/lib/platform";
 import { readPlayerName, savePlayerName } from "@/lib/playerName";
 import { fetchMe } from "@/lib/profile";
-import { readQuickPlayPrefs } from "@/lib/quickPlayPrefs";
+import { readQuickPlayPrefs, saveQuickPlayPrefs, useQuickPlayPrefs, type QuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { sr } from "@/lib/sr";
 import { startQuickPlay } from "@/lib/startQuickPlay";
-import { readTableThemeRaw } from "@/lib/tableTheme";
+import { readTableThemeRaw, saveTableTheme, useTableTheme } from "@/lib/tableTheme";
 import { track } from "@/lib/track";
 
 // Privatnost / uslovi / o nama — na webu jedan tihi red na dnu početne (Google
@@ -37,15 +37,21 @@ const legalSlot = (
 
 type Sheet =
   | { kind: "name" }
+  | { kind: "setup" }
   | { kind: "game"; game: GameConfig }
   | { kind: "signup" }
   | null;
+
+/** Izbor stola za start; bez njega važi zapamćen izbor te igre. */
+type Choice = { prefs: QuickPlayPrefs; tableTheme: TableTheme };
 
 export default function Home() {
   const router = useRouter();
   const history = useHomeHistory();
   const layout = useMemo(() => homeLayout(GAMES, history), [history]);
   const main = layout.main;
+  const prefs = useQuickPlayPrefs(main.slug);
+  const tableTheme = useTableTheme(main.slug);
   // „Sada" za oznaku NOVO — jednom po prikazu početne (render mora biti čist).
   const [now] = useState(() => Date.now());
 
@@ -55,24 +61,23 @@ export default function Home() {
   const [playError, setPlayError] = useState<string | null>(null);
   // `playing` gasi dugme tek na sljedećem renderu; brz dupli tap stigne prije.
   const busy = useRef(false);
-  // Šta čeka na ime: igra koju je igrač pokrenuo.
-  const pending = useRef<GameConfig | null>(null);
+  // Šta čeka na ime: igra i (opciono) izbor iz lista podešavanja.
+  const pending = useRef<{ game: GameConfig; choice?: Choice } | null>(null);
 
   useBackHandler(rulesOpen, () => setRulesOpen(false));
 
-  /**
-   * Pravo za sto sa zapamćenim izborom te igre (Postavke → Brza igra; prvi put
-   * 4 · 21 · Klasik). `replace`: „nazad" sa traženja vodi na početnu.
-   */
-  async function play(name: string, game: GameConfig) {
+  /** Pravo za sto. `replace`: „nazad" sa traženja vodi na početnu, ne opet ovdje. */
+  async function play(name: string, game: GameConfig, choice?: Choice) {
     if (busy.current) return;
     busy.current = true;
     setPlayError(null);
     setPlaying(true);
-    const prefs = readQuickPlayPrefs(game.slug);
-    const tableTheme = parseTableTheme(readTableThemeRaw(game.slug));
+    const chosen = choice ?? {
+      prefs: readQuickPlayPrefs(game.slug),
+      tableTheme: parseTableTheme(readTableThemeRaw(game.slug)),
+    };
     try {
-      router.replace(await startQuickPlay(name, prefs, tableTheme, game.slug));
+      router.replace(await startQuickPlay(name, chosen.prefs, chosen.tableTheme, game.slug));
     } catch {
       setPlayError(sr.quickSetup.error);
       setPlaying(false);
@@ -81,13 +86,14 @@ export default function Home() {
   }
 
   /**
-   * Start partije (Igraj ili list igre): odmah za sto kad je ime poznato. Bez imena: nalog s nadimkom ide pod nadimkom (server ga
+   * Start partije (iz lista podešavanja ili lista igre): odmah za sto kad je
+   * ime poznato. Bez imena: nalog s nadimkom ide pod nadimkom (server ga
    * ionako stavlja za sto), inače list sa imenom — samo taj put.
    */
-  async function start(game: GameConfig) {
+  async function start(game: GameConfig, choice?: Choice) {
     if (busy.current) return;
     const saved = readPlayerName();
-    if (saved) return play(saved, game);
+    if (saved) return play(saved, game, choice);
     if (identityUi) {
       setPlaying(true);
       const nickname = await fetchMe().then(
@@ -97,14 +103,20 @@ export default function Home() {
       setPlaying(false);
       if (nickname) {
         savePlayerName(nickname);
-        return play(nickname, game);
+        return play(nickname, game, choice);
       }
     }
-    pending.current = game;
+    pending.current = choice ? { game, choice } : { game };
     setPlayError(null);
     setSheet({ kind: "name" });
   }
 
+  function saveChoice(choice: Choice) {
+    saveQuickPlayPrefs(choice.prefs, main.slug);
+    saveTableTheme(choice.tableTheme, main.slug);
+  }
+
+  const mainName = sr.games[main.slug].name;
   const sheetOpen = sheet !== null;
 
   return (
@@ -115,10 +127,11 @@ export default function Home() {
         now={now}
         loading={playing && !sheetOpen}
         {...(playError && !sheetOpen ? { error: playError } : {})}
-        // Igraj kreće odmah, sa zapamćenim izborom — izbor (2/4, 11/21, sto) je
-        // u Postavkama → Brza igra (K1, odluka vlasnika 2026-10-24; zamjenjuje
-        // list izbora prije partije iz changeloga 96).
-        onPlay={() => void start(main)}
+        // Igraj prvo pokazuje izbor (2 ili 4 igrača, do 11 ili 21, sto) sa
+        // zadnjim izborom označenim; „Igraj" u listu kreće za sto. Odluka
+        // vlasnika (#96, potvrđena 2026-10-24 poslije K1). Isti izbor se
+        // mijenja i u Postavke → Brza igra.
+        onPlay={() => setSheet({ kind: "setup" })}
         onCreate={() => router.push("/create")}
         onOpenGame={(game) => setSheet({ kind: "game", game })}
         onNotify={() => setSheet({ kind: "signup" })}
@@ -134,10 +147,29 @@ export default function Home() {
           loading={playing}
           {...(playError ? { error: playError } : {})}
           onSubmit={(name) => {
-            void play(name, pending.current ?? main);
+            const next = pending.current ?? { game: main };
+            void play(name, next.game, next.choice);
           }}
           onClose={() => {
             if (!busy.current) setSheet(null);
+          }}
+        />
+      ) : null}
+
+      {sheet?.kind === "setup" ? (
+        <QuickPlaySettingsSheet
+          gameName={mainName}
+          prefs={prefs}
+          tableTheme={tableTheme}
+          onPlay={(nextPrefs, theme) => {
+            const choice = { prefs: nextPrefs, tableTheme: theme };
+            saveChoice(choice);
+            setSheet(null);
+            void start(main, choice);
+          }}
+          onSave={(nextPrefs, theme) => {
+            saveChoice({ prefs: nextPrefs, tableTheme: theme });
+            setSheet(null);
           }}
         />
       ) : null}

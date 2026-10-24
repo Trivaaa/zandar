@@ -122,11 +122,13 @@ export const sr = {
     label: "Izgled stola",
     names: { classic: "Klasik", wood: "Drvo", cloth: "Kafana" } satisfies Record<TableTheme, string>,
   },
-  /* Igraj sa početne: jedan dodir do stola. Izbor stola se mijenja u
-     Postavkama → Brza igra, ime se pita samo prvi put. */
+  /* Igraj sa početne: list sa izborom stola (zadnji izbor označen), pa za
+     sto. Isti izbor je i u Postavkama → Brza igra; ime se pita samo prvi put. */
   quickSetup: {
     players: "Broj igrača",
     target: "Igra se do",
+    settingsTitle: (game: string) => `Brza igra · ${game}`,
+    saveAndClose: "Sačuvaj i zatvori",
     cancel: "Odustani",
     nameTitle: "Kako da te zovemo?",
     nameSub: "Pod ovim imenom te vide za stolom. Promijeniti ga možeš u Postavkama.",

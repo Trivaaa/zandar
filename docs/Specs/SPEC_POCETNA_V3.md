@@ -30,7 +30,7 @@ Odozgo:
    - Zakačena igra: pilula „Zakačeno" dolje desno na stolu.
    - **Na stolu nema podešavanja.**
    - Visina: **258 px** kad je jedna igra, **186 px** kad ima „Još igara"; na nižem ekranu sto se smanjuje (dugmad i pločice nikad).
-3. **Igraj** — jedina glasna radnja, 60 px, radius 14 px, mesingani gradijent; lijevo „**Igraj**" 20 px 700 i ispod „protiv drugih igrača" 12 px 600 (75 %), desno strelica. Kreće **odmah** za sto sa zapamćenim izborom brze igre (§5).
+3. **Igraj** — jedina glasna radnja, 60 px, radius 14 px, mesingani gradijent; lijevo „**Igraj**" 20 px 700 i ispod „protiv drugih igrača" 12 px 600 (75 %), desno strelica. Otvara **izbor stola** (§5), pa za sto.
 4. **Napravi sto** — druga radnja, 56 px, radius 14 px, pozadina `--card-face` 4 %, unutrašnji obrub `--turn-active` 55 %; lijevo ikona prijatelja (`--turn-active`), pa „**Napravi sto**" 17 px 700 i „i pozovi prijatelje" 12 px (75 %). Vodi na `/create`.
 5. **Naslov sekcije** — „USKORO · DODIRNI ZVONO DA TI JAVIMO" ili „JOŠ IGARA": 12 px 700, razmak slova .12em, `--turn-active` 85 %.
 6. **Pločice igara** — dvije u redu (grid 1fr 1fr, razmak 10 px), radius 16 px:
@@ -53,15 +53,14 @@ Odozgo:
 ```
 
 - Boja igre ide u `lib/games.ts` kao ključ (`tint: "poker"`), ne kao heks u komponenti.
-- **Ne `--felt-1/2/3`:** ime sa prefiksom `--felt-` u `globals.css` ruši razrješavanje `@import "./felt.css"` u produkcijskom buildu (`Can't resolve './felt.css'`). Zato `--sukno-*`.
+- Sukno se zove `--sukno-*`, ne `--felt-*`: ne miješa se sa postojećim `--felt` (pozadina igre) i `felt.css`.
 
 ## 5. Brza igra — izbor stola
 
-- **Igraj kreće odmah**, bez lista prije partije, sa zadnjim sačuvanim izborom: broj igrača (2 / 4), do koliko se igra (11 / 21), izgled stola. Prvi put: **4 · 21 · Klasik**.
-- Izbor se mijenja u **Postavke → „Brza igra"** (`SettingsSheet`, otvara se iz Profila): ista polja kao na `/create`, svaka promjena se čuva odmah.
+- **Igraj otvara list „Brza igra · Žandar"**: broj igrača (2 / 4), do koliko se igra (11 / 21), izgled stola — zadnji izbor je označen (prvi put **4 · 21 · Klasik**). „Igraj" u listu sačuva izbor i kreće za sto; „Sačuvaj i zatvori" (i zatvaranje) samo čuva. Odluka vlasnika 2026-10-24, poslije K1: izbor mora biti pri ruci kad se igra protiv drugih igrača.
+- Isti izbor se mijenja i u **Postavke → „Brza igra"** (`SettingsSheet`, otvara se iz Profila): ista polja, svaka promjena se čuva odmah.
 - Ime se i dalje traži samo prvi put (list sa imenom), nalog sa nadimkom ide pod nadimkom.
-- Produkcija dok je `identityUi` ugašen nema Profil, pa ni ovu sekciju: tamo Igraj ide sa 4 · 21 · Klasik (ili ranije sačuvanim izborom), a „Napravi sto" nudi sve izbore. Svjesna odluka vlasnika (2026-10-24).
-- Zamjenjuje list izbora prije partije (changelog 96) i red podešavanja na početnoj.
+- Na stolu i na početnoj nema reda podešavanja — izbor živi u listu iza Igraj.
 
 ## 6. Šta se ne mijenja
 
@@ -76,5 +75,6 @@ Odozgo:
 - [x] Nema novih heks boja van tokena iz §4.
 - [x] Tekst ima kontrast ≥4.5:1 (marka 11.8, naslov sekcije 7.5, pravni red 10.8, meta na stolu 10.1, greška 5.0, traka 7.1 / 10.4).
 - [x] Donja navigacija izgleda isto na Igraj, Prijatelji i Profil.
-- [x] Igraj kreće sa izborom iz Postavki → Brza igra, bez lista.
+- [x] Igraj otvara izbor (2/4, 11/21, sto) sa zadnjim izborom označenim; isti izbor u Postavkama → Brza igra.
+- [x] Dug list (Postavke) ostaje u ekranu: naslov gore, Zatvori dolje, sredina skroluje.
 - [ ] Provjereno na uređaju.
