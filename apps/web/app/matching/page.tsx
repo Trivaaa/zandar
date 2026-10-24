@@ -22,7 +22,8 @@ function MatchingFromQuery() {
     );
   }
 
-  return <MatchingScreen roomId={roomId} />;
+  // `key`: druga soba = svjež ekran (isto kao RoomScreen, QA B10).
+  return <MatchingScreen key={roomId} roomId={roomId} />;
 }
 
 export default function MatchingQueryPage() {

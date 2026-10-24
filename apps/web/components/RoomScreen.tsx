@@ -214,6 +214,9 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       setRefreshTrigger((n) => n + 1);
     }
     function handleGameState(state: GameStateWithDeadline) {
+      // Singleton socket: stanje druge sobe (stari server još nije napustio
+      // prethodnu socket sobu, B10) ne smije se nacrtati pod ovom rutom.
+      if (state.roomId !== roomId) return;
       assertNoBotLeak(state.players); // dev straža (DS §7.1, C4)
       setGameState(state);
     }

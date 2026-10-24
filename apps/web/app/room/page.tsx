@@ -26,7 +26,10 @@ function RoomFromQuery() {
     );
   }
 
-  return <RoomScreen roomId={roomId} />;
+  // `key`: prelazak u drugu sobu (`/room?id=A` → `?id=B`) je ista ruta, pa bi
+  // React zadržao instancu sa stanjem stare sobe — nova soba je crtala kraj
+  // stare partije, a pretplata išla sa tokenom stare sobe (QA 2026-10-24 / B10).
+  return <RoomScreen key={roomId} roomId={roomId} />;
 }
 
 export default function RoomQueryPage() {

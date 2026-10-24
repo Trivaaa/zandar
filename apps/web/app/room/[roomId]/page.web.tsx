@@ -11,5 +11,6 @@ import { RoomScreen } from "@/components/RoomScreen";
  */
 export default function RoomPathPage() {
   const params = useParams<{ roomId: string }>();
-  return <RoomScreen roomId={params.roomId} />;
+  // `key`: druga soba = svjež RoomScreen (vidi app/room/page.tsx).
+  return <RoomScreen key={params.roomId} roomId={params.roomId} />;
 }

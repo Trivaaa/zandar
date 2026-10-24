@@ -786,3 +786,20 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Ostaje (nije kod):** prebaciti Railway servise u evropski region — najveći dobitak za svaki zahtjev, ali je migracija volumena (podaci produkcije), pa ide zasebno i sa odlukom vlasnika.
 
 **Provjereno:** web 66 testova, server 170, typecheck oba, lint osnovica (5/2), lokalni server vraća `access-control-max-age: 600`, staging server isto poslije deploya (~105 s).
+
+## 101. Prelazak iz sobe u sobu više ne miješa stanje (QA 2026-10-24 / B10) (2026-10-24, `fix/b10-room-switch`)
+
+**Povod (QA na S10e, staging APK):** poslije brze igre (soba A) igrač otvori pozivnicu za sobu B i tapne push „Ulazak je odobren" → URL je B, a ekran pokazuje kraj partije iz A sa aktivnim „Revanš / Izađi". Usred partije B Android nazad → URL je A, a prikazana je partija B sa igračem kao protivnikom gore, bez njegove ruke; auto-play igra za njega. Konzola: `Subscribe failed: INVALID_TOKEN`.
+
+**Uzrok — dva sloja:**
+- Klijent: `/room?id=A` → `?id=B` je ista ruta, pa React zadrži istu instancu `RoomScreen` sa `room`, `gameState`, `session` stare sobe. Prvi `room:subscribe` za B ode sa `roomId` B i tokenom A (`INVALID_TOKEN`), a ekran crta staro stanje dok B ne pošalje svoje.
+- Server: `room:subscribe` je radio samo `join(B)` — singleton socket je ostajao i u socket.io sobi A, a `socket.data.playerId` je prepisan na igrača iz B. `broadcastGameState(A)` je zato slao stanje A tom socketu, izgrađeno za pogrešnog gledaoca (igrač nije nađen → nacrtan kao protivnik, bez ruke).
+
+**Izmjene:**
+- `key={roomId}` na `RoomScreen` (`app/room/page.tsx`, `app/room/[roomId]/page.web.tsx`) i `MatchingScreen` (isti obrazac, `stage`/`revealed` bi prešli u sljedeću sobu) — druga soba je svjež ekran.
+- `RoomScreen.handleGameState` odbacuje stanje čiji `roomId` nije soba sa ekrana (odbrana i dok stari server ne napusti sobu).
+- Server: `seatToLeave` (`apps/server/src/roomSwitch.ts`, čista funkcija + 5 testova) — pretplata na drugu sobu/sjedište napušta staru socket.io sobu i zove `handlePlayerDisconnect` za staro sjedište. Ponovna pretplata na isto sjedište (reconnect, prvi plan, push dozvola) ne radi ništa novo.
+
+**Posljedica koju treba znati:** igrač koji iz partije u toku pređe u drugu sobu (ili se Android nazad vrati na prethodnu sobu) sada je za stari sto **odsutan** — „Ponovno povezivanje" → pauza/glasanje, umjesto da server misli da je tu i čeka ga 30 s po potezu. To djelimično pokriva B1/B11 za taj put; izlazak na početnu (`router.push("/")`) i dalje ne javlja ništa (B1 ostaje otvoren).
+
+**Provjereno:** server 175 testova, web 66, typecheck oba, lint osnovica (5/2). E2E u headless Chromeu protiv lokalnog servera i produkcijskog web builda: A u brzoj igri X → navigacija unutar aplikacije na sobu Y (`router.push`, bez reload-a) → kucanje, odobrenje → A vidi **lobi Y** („Igor (ti)", „Čeka se da host pokrene igru"); host pokrene → `history.back()` → ruta X prikazuje **partiju X sa A dolje i 4 karte u ruci**; host Y vidi „Igor — Ponovno povezivanje"; osvježavanje u X vraća isto stanje; u logu servera 0 × `INVALID_TOKEN`. **Nije provjereno na uređaju** (treba novi staging APK: push → soba, Android nazad).

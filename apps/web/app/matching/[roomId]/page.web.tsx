@@ -6,5 +6,5 @@ import { MatchingScreen } from "@/components/MatchingScreen";
 /** `/matching/:roomId` — path ruta, samo web build (vidi `room/[roomId]/page.web.tsx`). */
 export default function MatchingPathPage() {
   const params = useParams<{ roomId: string }>();
-  return <MatchingScreen roomId={params.roomId} />;
+  return <MatchingScreen key={params.roomId} roomId={params.roomId} />;
 }

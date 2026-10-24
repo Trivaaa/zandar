@@ -87,6 +87,7 @@ import {
   parseReactionType,
   parseSubscribePayload,
 } from "./socketGuard";
+import { seatToLeave } from "./roomSwitch";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
 import { identityAdmin } from "./profile/cleanup";
@@ -2114,10 +2115,24 @@ io.on("connection", (socket) => {
         return;
       }
 
+      // Prelazak iz druge sobe (B10): bez ovoga socket ostaje i u staroj
+      // socket.io sobi i dobija njeno stanje izgrađeno za pogrešnog gledaoca.
+      const left = seatToLeave(socket.data, { roomId, playerId });
+      if (left && left.roomId !== roomId) void socket.leave(left.roomId);
+
       socket.join(roomId);
       socket.data.roomId = roomId;
       socket.data.playerId = playerId;
       socket.data.guestId = socket.handshake.auth.guestId ?? null;
+
+      // Staro sjedište je ostalo bez ovog socketa — isti tok kao prekid veze
+      // (grace → pauza/glasanje), pa ostatak stola vidi da je igrač otišao.
+      // `handlePlayerDisconnect` sam provjeri da li sjedište ima drugi socket.
+      if (left) {
+        handlePlayerDisconnect(left.roomId, left.playerId).catch((err) =>
+          fastify.log.error(`Room switch disconnect error: ${err}`),
+        );
+      }
 
       // Push (PRD §51): uređaj koji gleda ovo sjedište. Dozvola se često daje
       // TEK u lobiju, pa klijent ponovi subscribe čim dobije pushId. Upis samo
