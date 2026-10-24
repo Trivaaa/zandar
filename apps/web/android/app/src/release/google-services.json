@@ -12,7 +12,36 @@
           "package_name": "com.kartaonica.zandar"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "652209876577-gkp7p1k1n6gm4lpqkb462glbdn7qg3l7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kartaonica.zandar",
+            "certificate_hash": "ccb4372d45dedf3201959524cbf398e037e40e05"
+          }
+        },
+        {
+          "client_id": "652209876577-nbuef9mt1i22c1i42la02k5ur0b407mp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kartaonica.zandar",
+            "certificate_hash": "b048942e7ab8cade32e6a07b3a132a2fe7b50427"
+          }
+        },
+        {
+          "client_id": "652209876577-rafep0g3261fpvf7inlj0svldgtp8u0u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kartaonica.zandar",
+            "certificate_hash": "b22d77f22c182030dd21ff00da3687cc475ded0f"
+          }
+        },
+        {
+          "client_id": "652209876577-cl8oc42c9go5r2culbv8o66t8dgm44p7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCUD2y7FtZCHjhzywlcLJdW-Fouk1Om6OU"
@@ -20,7 +49,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "652209876577-cl8oc42c9go5r2culbv8o66t8dgm44p7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
