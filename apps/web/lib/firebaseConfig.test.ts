@@ -17,5 +17,7 @@ test("staging i lokalni dev idu na staging projekat", () => {
 
 test("produkcija nikad ne dobija staging projekat", () => {
   const config = firebaseConfigFor("production");
-  assert.ok(config === null || config.projectId === "kartaonica---production");
+  assert.equal(config?.projectId, "kartaonica---production");
+  assert.match(config?.appId ?? "", /^1:652209876577:web:/);
+  assert.equal(config?.authDomain, "kartaonica---production.firebaseapp.com");
 });

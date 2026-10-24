@@ -6,9 +6,10 @@
  * projektu koje se mogu razići. Pristup podacima ne čuva `apiKey`, nego provjera
  * ID tokena na serveru.
  *
- * `null` = nalog isključen: aplikacija radi kao prije, bez tokena. Produkcija je
- * `null` dok se produkcijski Firebase projekat ne podesi (Auth provajderi, web
- * aplikacija) — staging token na produkcijskom serveru bi ionako bio odbijen.
+ * `null` = nalog isključen: aplikacija radi kao prije, bez tokena, i bez UI-a
+ * naloga (`identityUi` u `lib/features.ts`). Produkcijska vrijednost je ujedno
+ * prekidač izdanja 1.2.0 — ne smije stići na `production` granu prije nego što
+ * su u projektu podešeni Auth provajderi, ovlašćeni domeni i Firestore.
  */
 export type FirebaseWebConfig = {
   apiKey: string;
@@ -24,7 +25,12 @@ const STAGING: FirebaseWebConfig = {
   appId: "1:228917580477:web:9c0b13e24e866523299dd4",
 };
 
-const PRODUCTION: FirebaseWebConfig | null = null;
+const PRODUCTION: FirebaseWebConfig | null = {
+  apiKey: "AIzaSyDBcPVrhzS9NBAH8vdrqxgRHxfLeKviYVM",
+  authDomain: "kartaonica---production.firebaseapp.com",
+  projectId: "kartaonica---production",
+  appId: "1:652209876577:web:ca56def7f7a6d6af6dc420",
+};
 
 /** Lokalni dev ide na staging projekat — produkcijski nalozi ostaju samo pravi igrači. */
 export function firebaseConfigFor(appEnv: string | undefined): FirebaseWebConfig | null {
