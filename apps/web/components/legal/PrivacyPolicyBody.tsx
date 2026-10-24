@@ -23,7 +23,7 @@ import {
  */
 // Tekst o nalogu (SPEC_IDENTITET T8) važi tek kad nalog postoji — iza istog
 // prekidača kao i sam UI, da politika nikad ne opisuje nešto čega nema.
-export const PRIVACY_UPDATED = identityUi ? "22. oktobar 2026." : "14. septembar 2026.";
+export const PRIVACY_UPDATED = identityUi ? "24. oktobar 2026." : "14. septembar 2026.";
 
 export function PrivacyPolicyBody() {
   return (
@@ -183,11 +183,19 @@ export function PrivacyPolicyBody() {
             na serverskoj strani i zaglavlja zahtjeva.
           </li>
           {identityUi ? (
-            <li>
-              <strong>Google Firebase Authentication i Cloud Firestore</strong>{" "}
-              — prijava gosta i naloga (e-mail, lozinka, identifikator) i čuvanje
-              profila: nadimak, avatar i broj završenih partija.
-            </li>
+            <>
+              <li>
+                <strong>Google Firebase Authentication</strong> (Sjedinjene
+                Američke Države) — prijava gosta i naloga: e-mail, lozinka i
+                identifikator naloga.
+              </li>
+              <li>
+                <strong>Google Cloud Firestore</strong> (Evropska unija) — čuvanje
+                profila: nadimak, avatar, broj završenih partija, prijatelji i
+                zahtjevi za prijateljstvo, igrači koje si blokirao i prijave
+                igrača koje si poslao.
+              </li>
+            </>
           ) : null}
           <li>
             <strong>Google Firebase Cloud Messaging</strong> (Sjedinjene
