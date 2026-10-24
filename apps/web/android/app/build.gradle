@@ -17,8 +17,8 @@ android {
         applicationId "com.kartaonica.zandar"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.1.0"
+        versionCode 3
+        versionName "1.2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // Domen čije pozivnice (/room/<id>) otvaraju aplikaciju — App Links
         // intent-filter u AndroidManifest-u. Staging ga nadjačava niže.
