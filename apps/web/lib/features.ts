@@ -1,8 +1,11 @@
+import { FIREBASE_CONFIG } from "@/lib/firebaseConfig";
+
 /**
- * Nalog, profil i prijatelji (SPEC_IDENTITET) se grade korak po korak na
- * `main`-u, a `main` mora ostati spreman za produkciju u svakom trenutku.
- * Zato je novi UI vidljiv na stagingu i u dev-u, a u produkciji tek kad
- * izdanje R2 (registracija + brisanje naloga) bude kompletno — tada se ovaj
- * red mijenja u `true`.
+ * Nalog, profil i prijatelji (SPEC_IDENTITET). UI postoji tačno onda kad
+ * postoji Firebase projekat za ovo okruženje — bez njega `auth.ts` nema
+ * prijavu i ekrani naloga bi bili mrtva dugmad. Staging i dev ga uvijek imaju;
+ * produkcija ga dobija upisom `PRODUCTION` u `firebaseConfig.ts` (izdanje
+ * 1.2.0), i tek tada se UI naloga pali i tamo. Do tada je `main` spreman za
+ * produkciju bez naloga.
  */
-export const identityUi = process.env.NEXT_PUBLIC_APP_ENV !== "production";
+export const identityUi = FIREBASE_CONFIG !== null;
