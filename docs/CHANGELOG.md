@@ -763,3 +763,26 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Igraj otvara izbor:** vraćen list iz #96 (`QuickPlaySettingsSheet`, „Brza igra · Žandar": 2/4, 11/21, sto, zadnji izbor označen, „Igraj" kreće, „Sačuvaj i zatvori" čuva) — preuzet iz istorije (`e710166`), ne pisan ponovo. Izgled K1 ostaje (dva dugmeta ispod stola, bez reda podešavanja); sekcija u Postavkama ostaje i mijenja isti izbor.
 
 **Zamka — posuđeni dev server:** `next dev` druge sesije (3107) je prestao da prima izmjene (servirani CSS zamrznut i poslije `touch`), pa je provjera rađena na `next build` + `next start` (3008). Za CSS izmjene ne vjerovati tom serveru bez provjere da serviran CSS sadrži novo pravilo.
+
+## 100. Prijatelji za ~50 ms umjesto 1.9 s; tabovi bez sistemskih boja linka (2026-10-24, `feat/home-k1` → `main`)
+
+**Povod (vlasnik, S10e):** Prijatelji se dugo učitavaju; ikonice taba „mijenjaju boje" (ljubičasta, kratko crvena na dodir).
+
+**Kako je mjereno:** staging APK na S10e, WebView devtools preko `adb forward tcp:9444 localabstract:webview_devtools_remote_<pid>` (staging build ima uključeno otklanjanje grešaka u WebView-u). Mreža iz CDP-a, a vrijeme do sadržaja **unutar aplikacije** (`requestAnimationFrame` od klika do prvog okvira sa praznim stanjem/listom) — prozivka spolja preko Wi-Fi-ja (~250 ms po pitanju) je pokazivala lažnih 1.2 s.
+
+**Prije:** prvi ulazak 1.9 s. `/api/me` poslan DVA puta istovremeno (`useMe` na ekranu + drugi pozivalac), `/api/friends` tek kad se `/api/me` vrati, i ispred svakog zahtjeva preflight `OPTIONS` (~130 ms). Server po zahtjevu ~800–900 ms: Railway je u `iad` (SAD), Firestore u `eur3` (Evropa), igrač u BiH — svaki Firestore poziv prelazi Atlantik, a `/api/friends` ih ima dva zaredom.
+
+**Izmjene (sve „sigurne", bez promjene oblika podataka):**
+- `fetchMe` dijeli zahtjev u letu; `forgetMe` povećava brojač sesije, pa odgovor stare sesije ne puni keš poslije odjave/prijave.
+- Lista prijatelja keširana u memoriji po `uid`-u (`peekFriends`); `FriendsList` kreće od nje, svjež odgovor je zamijeni.
+- `TabBar` 1.2 s poslije prikaza tiho učita profil i listu (`prefetchFriends`) — jednom po sesiji, SAMO za postojeći nalog sa nadimkom: čeka `authStateReady`, gost i bez sesije ne šalje ništa (`authed` bi inače napravio anonimni nalog svakom posjetiocu).
+- Server: `@fastify/cors` `maxAge: 600` — preflight se pamti 10 min.
+- Tabovi: neaktivna boja je puni token `--nav-ink` (#9f9b94 = krem 62 % na `--nav-bg`, bez `color-mix`) i ista je za `:link`/`:visited`/`:hover`/`:active`/`:focus`; aktivan tab isto za sva stanja.
+
+**Poslije (isti telefon, staging):** nema `OPTIONS`, jedan `/api/me`, `/api/friends` paralelno; ulazak u Prijatelji **64 / 47 / 48 ms**, skelet se nijednom ne pojavi. Bez tihog učitavanja (dodir u prvih 1.2 s) ostaje ~1 s — jedan krug do servera.
+
+**Tab boje — nije reprodukovano:** na trenutnom staging APK-u, i stvarnim dodirima i snimkom u trenutku dodira, neaktivni tabovi ostaju sivi. Ljubičasta/crvena su sistemske boje posjećenog/dodirnutog linka; popravka ih isključuje za svako stanje bez obzira na uzrok. **Provjeriti okom** kad se ponovi.
+
+**Ostaje (nije kod):** prebaciti Railway servise u evropski region — najveći dobitak za svaki zahtjev, ali je migracija volumena (podaci produkcije), pa ide zasebno i sa odlukom vlasnika.
+
+**Provjereno:** web 66 testova, server 170, typecheck oba, lint osnovica (5/2), lokalni server vraća `access-control-max-age: 600`, staging server isto poslije deploya (~105 s).
