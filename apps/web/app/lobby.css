@@ -263,9 +263,15 @@
   transition: opacity var(--t-card-play) var(--ease-out-soft);
 }
 
-.create__back:hover,
 .create__back:focus-visible {
   opacity: 0.75;
+}
+
+/* Samo pravi pokazivač — na dodir bi :hover ostao „zalijepljen" (B13). */
+@media (hover: hover) {
+  .create__back:hover {
+    opacity: 0.75;
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -636,9 +642,15 @@
   transition: opacity var(--t-card-play) var(--ease-out-soft);
 }
 
-.lobby__back:hover,
 .lobby__back:focus-visible {
   opacity: 0.75;
+}
+
+/* Samo pravi pokazivač — na dodir bi :hover ostao „zalijepljen" (B13). */
+@media (hover: hover) {
+  .lobby__back:hover {
+    opacity: 0.75;
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -891,7 +903,13 @@
   transition: opacity var(--t-card-play) var(--ease-out-soft);
 }
 
-.pushprompt__dismiss:hover,
 .pushprompt__dismiss:focus-visible {
   opacity: 0.75;
+}
+
+/* Samo pravi pokazivač — na dodir bi :hover ostao „zalijepljen" (B13). */
+@media (hover: hover) {
+  .pushprompt__dismiss:hover {
+    opacity: 0.75;
+  }
 }

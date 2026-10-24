@@ -229,19 +229,17 @@
 @utility mb-safe-bottom { margin-bottom:  var(--safe-bottom); }
 
 /* =====================================================
-   HOVER — Tailwind v4 default: hover: je već omotan u
-   @media (hover: hover), pa se ne "lijepi" na touchu.
-   Za svaki slučaj eksplicitno blokiramo na pure-touch:
-   ===================================================== */
+   HOVER — Tailwind v4 `hover:` je već omotan u @media (hover: hover), pa se
+   ne „lijepi" na dodir. Ručno pisan `:hover` u slojevima ide u isti media
+   query (vidi lobby.css).
 
-@media (hover: none) {
-  a:hover,
-  button:hover {
-    background-color: revert;
-    color: revert;
-    opacity: revert;
-  }
-}
+   Ovdje je bio NESLOJEVIT blok `@media (hover: none) { a:hover, button:hover
+   { color/background-color/opacity: revert } }` — QA 2026-10-24 / B13. WebView
+   ostavi `:hover` na dodirnutom elementu, neslojevit CSS pobijedi svaki
+   `@layer`, a `revert` vraća na pregledačevu boju linka: aktivan tab je postajao
+   ljubičast/plav (`rgb(0,0,238)`, changelog 100 „nije reprodukovano"), a
+   dugmad su gubila pozadinu. Ne vraćati.
+   ===================================================== */
 
 /* =====================================================
    BASE
