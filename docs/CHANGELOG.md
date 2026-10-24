@@ -787,7 +787,7 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 
 **Provjereno:** web 66 testova, server 170, typecheck oba, lint osnovica (5/2), lokalni server vraća `access-control-max-age: 600`, staging server isto poslije deploya (~105 s).
 
-## 101. Prelazak iz sobe u sobu više ne miješa stanje (QA 2026-10-24 / B10) (2026-10-24, `fix/b10-room-switch`)
+## 101. Prelazak iz sobe u sobu više ne miješa stanje (QA 2026-10-24 / B10) (2026-10-24, `764f5c7` → `main`)
 
 **Povod (QA na S10e, staging APK):** poslije brze igre (soba A) igrač otvori pozivnicu za sobu B i tapne push „Ulazak je odobren" → URL je B, a ekran pokazuje kraj partije iz A sa aktivnim „Revanš / Izađi". Usred partije B Android nazad → URL je A, a prikazana je partija B sa igračem kao protivnikom gore, bez njegove ruke; auto-play igra za njega. Konzola: `Subscribe failed: INVALID_TOKEN`.
 
@@ -803,3 +803,34 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Posljedica koju treba znati:** igrač koji iz partije u toku pređe u drugu sobu (ili se Android nazad vrati na prethodnu sobu) sada je za stari sto **odsutan** — „Ponovno povezivanje" → pauza/glasanje, umjesto da server misli da je tu i čeka ga 30 s po potezu. To djelimično pokriva B1/B11 za taj put; izlazak na početnu (`router.push("/")`) i dalje ne javlja ništa (B1 ostaje otvoren).
 
 **Provjereno:** server 175 testova, web 66, typecheck oba, lint osnovica (5/2). E2E u headless Chromeu protiv lokalnog servera i produkcijskog web builda: A u brzoj igri X → navigacija unutar aplikacije na sobu Y (`router.push`, bez reload-a) → kucanje, odobrenje → A vidi **lobi Y** („Igor (ti)", „Čeka se da host pokrene igru"); host pokrene → `history.back()` → ruta X prikazuje **partiju X sa A dolje i 4 karte u ruci**; host Y vidi „Igor — Ponovno povezivanje"; osvježavanje u X vraća isto stanje; u logu servera 0 × `INVALID_TOKEN`. **Nije provjereno na uređaju** (treba novi staging APK: push → soba, Android nazad).
+
+## 102. Namjeran izlazak iz partije: potvrda, Android nazad i sto odmah zna (QA 2026-10-24 / B1, B11) (2026-10-24, `e0424ac` → `main`)
+
+**Povod (QA, web + S10e):** „Izađi na početnu" je radio samo `router.push("/")` — socket je ostajao u sobi, server je igrača vodio kao prisutnog, a ostali su na svaki njegov potez čekali puni sat (30 s) do auto-playa, bez ikakve poruke (B1). Na Androidu je nazad usred partije tiho izvodio iz nje (`NativeShell` → `router.back()`), a otvoren ☰ meni (i Pravila) nazad nije zatvarao nego izbacivao na početnu, jer `GameScreen` nije prijavljivao slojeve u `lib/backHandlers.ts` (B11).
+
+**Odluke vlasnika:** namjeran izlazak = **odmah pauza + glasanje** (bez 30 s grace perioda pukle veze); ostali vide „{ime} više nije za stolom". Potvrda „Napusti partiju?" **samo dok partija traje** (igra, rezultat ruke, pauza, glasanje) — na kraju meča izlaz ide odmah.
+
+**Server:**
+- Novi socket događaj `room:leave`: napušta socket.io sobu, briše `socket.data` (pa `disconnect` i B10 prelazak nemaju šta dalje), gasi grace tajmer, označi igrača `reconnecting` + `left: true` i radi po čistoj odluci `afterLeave` (`pause.ts`, 6 testova): `playing` → pauza; `hand_finished` → **nova ruka pa pauza** (sljedeću ruku pokreće samo host — kad on ode, sto bi zaglavio na rezultatu, a `resumeFromPause` vraća u `playing`); pauza/glasanje → samo javi; nema više ljudi → raspusti; lobi/kraj meča → ništa.
+- `startNextHand(room)` izdvojen iz `game:nextHand` bez promjene ponašanja.
+- `Player.left?` / `PublicPlayer.left?` (opciono — stari snapshoti i klijenti rade); `toPublicPlayer` ga šalje samo kad je `true`. Povratak preko linka (`room:subscribe`) ga briše.
+
+**Klijent:**
+- `RoomScreen.handleLeave`: `room:leave` (čeka ack najviše 1,5 s — izlaz ne zaglavi bez mreže), pa početna.
+- `GameScreen`: `requestLeave` — svi ulazi u izlaz (meni, pauza, rezultat) idu kroz njega; dok partija traje otvara `LeaveTableSheet` (po uzoru na `LogoutSheet`, „Napusti" / „Ostani").
+- Android nazad: sto prijavljuje bazni handler na mount (najdublji u steku → pita za izlazak), meni i pravila prijavljuju svoj kad su otvoreni (zatvaraju se prvi), potvrda (`Sheet`) zatvara samu sebe.
+- `PauseAbandonOverlay` (`waitingLeft`) i `PlayerSeat` razlikuju izlazak od pukle veze: „{ime} više nije za stolom" / „Nije za stolom". Tekstovi rodno neutralni.
+
+**Provjereno:** server 182 testa, web 66, typecheck oba, lint osnovica (5/2). E2E u headless Chromeu (lokalni server + produkcijski web build, dva igrača): potvrda se pojavi, „Ostani" je zatvara; „Napusti" → igrač na `/`, host **odmah** vidi pauzu „Igor više nije za stolom" i sjedište „Nije za stolom" (log `left … (pause)`); povratak preko linka → `reconnected` + `resumed`, oznaka nestaje; host izađe na rezultatu ruke → `Next hand started` + pauza, gost nije zaglavio („Vesna više nije za stolom", Runda 2); brza igra sa botovima → izlazak → `Match abandoned`. **Nije provjereno:** Android nazad na uređaju (stek se na webu ne čita — treba novi staging APK), izlaz bez potvrde na kraju meča (provjereno kodom, `matchLive`).
+
+**Back u pregledaču (web):** `useBrowserBackGuard` (`lib/backHandlers.ts`) dok partija traje stavi iznad sobe „čuvar" unos istorije sa istim URL-om (bez `__NA` — Next-ov patch `pushState` kopira svoje stanje, pa `popstate` ostaje na istoj stranici). Back skine čuvara, hook ga vrati i otvori istu potvrdu; „Napusti" ide kroz `room:leave`, a `router.replace("/")` zamijeni čuvara. U aplikaciji isključen (`isNative`) — tamo nazad ide kroz stek. Kad partija završi, čuvar ostaje: prvi Back poslije kraja meča ostaje na stolu (svjesno — skidanje bi bio asinhron `history.back()` usred Next navigacije). Back sa početne poslije izlaska vraća za sto i partija nastavlja (isto kao povratak preko linka). **Provjereno E2E:** Back → potvrda (URL i sto ostaju), „Ostani", ponovo Back → potvrda, „Napusti" → `/`, server `left … (pause)`, protivnik „Igor više nije za stolom".
+
+## 103. Ljubičast tab — pravi uzrok i popravka (QA 2026-10-24 / B13) (2026-10-24, `efa2ba6` → `main`)
+
+**Povod:** vlasnik je na S10e vidio ljubičast/crven tab (changelog 100 — „nije reprodukovano"). QA je na staging APK-u izmjerio aktivan tab `color: rgb(0,0,238)` iako pravilo `.tabbar__tab[aria-current=page]` važi (debljina 700 jeste primijenjena).
+
+**Uzrok (CDP `CSS.getMatchedStylesForNode`):** u `globals.css` neslojevit „hover guard" — `@media (hover: none) { a:hover, button:hover { color: revert; background-color: revert; opacity: revert } }`. WebView ostavi `:hover` na posljednjem dodirnutom elementu; neslojevit CSS pobjeđuje svaki `@layer`, a `revert` vraća na pregledačev stil — boju linka (`-webkit-link`, plava/ljubičasta) i pozadinu dugmeta. Zato se javljalo povremeno (samo dok `:hover` „zapne") i zato ga popravka iz changeloga 100 (eksplicitne boje za `:link/:visited/:hover/:active` u slojevima) nije mogla nadjačati.
+
+**Izmjene:** blok obrisan (komentar na njegovom mjestu objašnjava zašto se ne vraća) — Tailwind v4 `hover:` je ionako u `@media (hover: hover)`. Jedina ručno pisana `:hover` pravila van tog media query-ja koja mijenjaju izgled (`.create__back`, `.lobby__back`, `.pushprompt__dismiss` — prozirnost 0,75) prebačena u `@media (hover: hover)`; `:focus-visible` ostaje svuda. Tabovi na `:hover` daju istu boju kao bez njega, pa ne trebaju izmjenu.
+
+**Provjereno (CDP, `Emulation.setEmulatedMedia` hover:none/pointer:coarse + `CSS.forcePseudoState` hover):** prije — aktivan i neaktivan tab pod hoverom `rgb(0,0,238)`; poslije — `rgb(224,185,58)` / `rgb(159,155,148)`, isto kao bez hovera. Sva dugmad i linkovi na `/` i `/create` (12 + 12): 0 mijenja boju, pozadinu ili prozirnost pod hoverom. **Nije provjereno na uređaju** (treba novi staging APK).
