@@ -37,10 +37,10 @@
   padding-bottom: var(--safe-bottom);
   padding-inline: var(--safe-left) var(--safe-right);
   transform: translateX(-50%);
-  /* Tamno drvo, kao pozadina početne. */
-  background-color: var(--wood-ink);
-  /* Tanka mesing linija gore; sjena unutra ne dodaje visinu. */
-  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--accent) 22%, transparent);
+  /* Dno početne, malo tamnije (K1). */
+  background-color: var(--nav-bg);
+  /* Tanka krem linija gore; sjena unutra ne dodaje visinu. */
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--card-face) 8%, transparent);
 }
 
 .tabbar__tab {

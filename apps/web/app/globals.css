@@ -69,10 +69,17 @@
      predmet na stolu, ne kao rupa kroz koju se vidi sto. */
   --card-back:      #10302a;
 
-  /* Početna v3 „Kafanski sto" (SPEC_POCETNA_V3 §4). Tamno drvo: pozadina iza
-     teksture i donja traka; okvir stola. */
-  --wood-ink:       #120d09;
-  --wood-rim:       #3a2414;
+  /* Početna v3 · K1 „Tamno toplo" (SPEC_POCETNA_V3 §4, tabla UI_PocetnaV3b).
+     Pozadina ekrana: jedna topla tamna boja s blagim prelazom odozgo nadolje. */
+  --bg-top:         #1b1713;
+  --bg-mid:         #14110e;
+  --bg-bottom:      #100d0b;
+  /* Sto glavne igre: čisto sukno, bez slike — centar, sredina, ivica. */
+  --sukno-1:        #2f6b59;
+  --sukno-2:        #1d4a3e;
+  --sukno-3:        #14352c;
+  /* Donja navigacija: dno ekrana, malo tamnije. */
+  --nav-bg:         #0f0c0a;
   /* Boja igre — par za gradijent pločice; ključ je `tint` u lib/games.ts. */
   --game-poker-1:   #7a2a20;
   --game-poker-2:   #3e1611;

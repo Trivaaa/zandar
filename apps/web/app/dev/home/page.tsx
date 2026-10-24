@@ -53,11 +53,8 @@ export default function DevHomePage() {
         now={NOW}
         loading={false}
         {...(err ? { error: sr.quickSetup.error } : {})}
-        setupShort={sr.quickSetup.summaryShort(2, 11, sr.tableTheme.names.wood)}
-        setupLabel={sr.quickSetup.summaryLabelFull(2, 11, sr.tableTheme.names.wood)}
         onPlay={() => undefined}
-        onSetup={() => undefined}
-        onFriends={() => undefined}
+        onCreate={() => undefined}
         onOpenGame={setOpen}
         onNotify={() => undefined}
         {...(web

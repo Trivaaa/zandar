@@ -4,7 +4,7 @@ import { useMemo, useSyncExternalStore } from "react";
  * Izbor za „Igraj Žandar" — veličina stola i cilj partije.
  *
  * Pamti se zadnji izbor: „Igraj Žandar" na početnoj kreće pravo s njim, a
- * mijenja se u listu podešavanja ispod dugmeta.
+ * mijenja se u Postavkama → Brza igra (K1, SPEC_POCETNA_V3).
  * Podrazumijevano je 4 / 21: tako je brza igra radila dok izbora nije bilo.
  * Sto za 3 se ovdje ne nudi — ostaje kod „Igraj s prijateljima".
  */

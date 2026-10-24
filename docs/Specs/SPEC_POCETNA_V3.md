@@ -1,21 +1,21 @@
-# SPEC — Početna v3 · A „Kafanski sto"
+# SPEC — Početna v3 · K1 „Tamno toplo"
 
-> Dopuna `SPEC_POCETNA.md`: **tok, radnje i logika ostaju isti** (Igraj = odmah za sto, red podešavanja + sheet, lista igara iz `lib/games.ts`, zakačena igra, Uskoro/Javi mi, postavke u Profilu). Mijenja se **izgled** početne.
-> Slike: `docs/Specs/pocetna-v3/` — `00` je današnji staging, `A1` jedna igra (danas), `A3` tri igre (kad stignu Poker i Raub).
-> Referentne vrijednosti: `docs/Specs/pocetna-v3/referenca-dizajna.css` (CSS makete — prevedi na tokene i komponente, ne kopiraj klase).
+> Izvor istine za izgled: tabla **„UI · Početna v3 — čista pozadina"** (`project/UI_PocetnaV3b.dc.html`, varijanta **K1**) na Claude Design platnu „Kartaonica · identitet" (https://claude.ai/artifact/1DkTrJNEv2148shhQUC3de). Gdje se ovaj tekst i tabla razilaze, važi tabla.
+> Dopuna `SPEC_POCETNA.md`: lista igara iz `lib/games.ts`, zakačena igra, list igre, Uskoro/Javi mi i postavke u Profilu ostaju isti.
+> Prva verzija ovog speca (v3 · A, drvo i slika sukna) je u istoriji gita; slike `docs/Specs/pocetna-v3/` (`A1`, `A3`) i `referenca-dizajna.css` opisuju TU verziju — raspored pločica i dalje važi, materijali ne.
 > Gdje se ovo kosi sa `SPEC_IZGLED_APLUS.md`, **važi ova specifikacija**, ali samo za početnu i donju navigaciju.
 
 ## 1. Zašto
 
-Staging početna je „velika i jednobrazna": sve je isti zeleni ton, svaka stvar je kutija sa istim mesinganim obrubom, ilustracija je tanka traka, a donja trećina ekrana je prazna. v3 uvodi **tri materijala** (drvo, sukno, karte), **jednu glasnu radnju** i **svoju boju po igri**.
+Staging početna je bila „velika i jednobrazna": sve isti zeleni ton, svaka stvar kutija sa istim mesinganim obrubom, tanka ilustracija i prazna donja trećina. v3 uvodi **sto kao glavnu igru**, **jednu glasnu radnju** i **svoju boju po igri**. K1 je najmirnija varijanta: pozadina je jedna topla tamna boja, sto je čisto sukno, a detalj nose samo karte i pločice.
 
-## 2. Materijali (svi već postoje u `public/`)
+## 2. Materijali
 
-| Šta | Asset | Kako |
-|---|---|---|
-| Pozadina ekrana | `tables/wood.webp` | `cover`, preko nje gradijent `rgba(18,13,9,.55)` → `rgba(18,13,9,.85)` (70 %) da tekst ostane čitljiv |
-| Kartica igre (sto) | `felt-bg.webp` | `cover`, pozicija `center 30%` |
-| Karte u lepezi i na pločicama | `cards/*.webp` | prave karte, ne crtež |
+| Šta | Kako |
+|---|---|
+| Pozadina ekrana | bez slike: gradijent odozgo nadolje `--bg-top` → `--bg-mid` (55 %) → `--bg-bottom` |
+| Sto glavne igre | bez slike i bez drvenog oboda: radijalni gradijent `ellipse 85% 75% at 50% 35%`, `--sukno-1` → `--sukno-2` (55 %) → `--sukno-3` |
+| Karte u lepezi i na pločicama | `public/cards/*.webp` — prave karte, ne crtež |
 
 ## 3. Raspored (360×740, bez skrolovanja)
 
@@ -23,47 +23,58 @@ Odozgo:
 
 1. **Marka** — mali logo (24 px, rotiran −8°) + „Kartaonica" 15 px Archivo Black, `--card-face` 85 %. Visina 30 px. Nema zupčanika.
 2. **Sto igre** (glavna igra)
-   - radius 26 px; okvir: `0 0 0 3px` tamno drvo (`#3a2414`) + `0 0 0 5px` `--accent` 55 % + sjena `0 14px 30px rgba(0,0,0,.6)`.
-   - unutra: toplo svjetlo (radijalni gradijent `rgba(255,230,160,.16)`) i tamnjenje dna (`→ rgba(8,20,16,.75)`).
-   - **lepeza 3 prave karte** (Žandar: J♠ Q♥ K♦), širina karte 84 px (A1) / 66 px (A3), rotacija ±16°, sjena.
-   - naslov igre dolje lijevo: 38 px Archivo Black, velika slova, `--card-face`, sjena; ispod meta 14 px („2 ili 4 igrača · ~10 min").
-   - Zakačena igra: mala pilula „Zakačeno" dolje desno na stolu.
-   - Visina: **≈268 px** kad je jedna igra, **≈196 px** kad ima „Još igara".
-3. **Igraj** — jedina glasna radnja: 56 px, radius 14 px, mesingani gradijent (`--accent` svjetliji gore, tamniji dolje), tekst 20 px 700 `--accent-contrast`, strelica.
-4. **Red tihih radnji** — dva dugmeta jedno do drugog, po 44 px, radius 12 px, pozadina `--card-face` 8 %, bez obruba:
-   - lijevo **S prijateljima** (ikona `--turn-active`, tekst 15 px 700);
-   - desno **podešavanja** u kratkom obliku „2 · 11 · Drvo ✎" (14 px 600). `aria-label` nosi puni tekst („2 igrača, do 11, sto Drvo, promijeni").
+   - radius 26 px; tanak mesingan obrub `0 0 0 1.5px` `--accent` 55 % + sjena `0 16px 34px` crno 55 %.
+   - unutra samo tamnije dno: `transparent 50%` → `--surface` 55 %.
+   - **lepeza 3 prave karte** (Žandar: J♠ Q♥ K♦), širina karte **84 px** (jedna igra) / **64 px** (ima „Još igara"), rotacija ±16°, sjena; lepeza blago „diše" ±1° (isključeno uz `prefers-reduced-motion`).
+   - naslov igre dolje lijevo: 38 px Archivo Black, velika slova, `--card-face`, sjena; ispod meta 14 px („2 ili 4 igrača · ~10 min"). Greška traženja stola stoji na mjestu mete.
+   - Zakačena igra: pilula „Zakačeno" dolje desno na stolu.
+   - **Na stolu nema podešavanja.**
+   - Visina: **258 px** kad je jedna igra, **186 px** kad ima „Još igara"; na nižem ekranu sto se smanjuje (dugmad i pločice nikad).
+3. **Igraj** — jedina glasna radnja, 60 px, radius 14 px, mesingani gradijent; lijevo „**Igraj**" 20 px 700 i ispod „protiv drugih igrača" 12 px 600 (75 %), desno strelica. Kreće **odmah** za sto sa zapamćenim izborom brze igre (§5).
+4. **Napravi sto** — druga radnja, 56 px, radius 14 px, pozadina `--card-face` 4 %, unutrašnji obrub `--turn-active` 55 %; lijevo ikona prijatelja (`--turn-active`), pa „**Napravi sto**" 17 px 700 i „i pozovi prijatelje" 12 px (75 %). Vodi na `/create`.
 5. **Naslov sekcije** — „USKORO · DODIRNI ZVONO DA TI JAVIMO" ili „JOŠ IGARA": 12 px 700, razmak slova .12em, `--turn-active` 85 %.
 6. **Pločice igara** — dvije u redu (grid 1fr 1fr, razmak 10 px), radius 16 px:
    - svaka igra ima svoju boju: **Poker** bordo, **Raub** tamnoplava, **Žandar** sukno (kad nije glavna);
    - gore desno 2 male prave karte (38 px), dolje lijevo ime (20 px Archivo Black, velika slova) i meta (12 px);
    - **NOVO**: pilula gore lijevo, `--danger-signal` pozadina;
-   - **Uskoro**: ista pločica, zasićenost 55 %, karte 55 % providne, bez mete; dolje desno okruglo dugme sa zvonom 44 px = Javi mi.
+   - **Uskoro**: ista pločica, zasićenost 55 %, karte 55 % providne, bez mete; dolje desno zvono 44 px. Cijela pločica je „Javi mi" (jedna prijava za sve najavljene).
    - Visina 112 px (dostupne) / 96 px (uskoro). Od 4. igre novi red i skrol liste ispod stola.
-7. **Donja navigacija** — 64 px, pozadina tamno drvo (`#100b08`), gornja linija `--accent` 22 %. Neaktivan tab `--card-face` 62 %. **Aktivan tab: samo mesingan tekst i ikona + crtica gore** (bez pilule iz A+).
+7. **Donja navigacija** — 64 px, pozadina `--nav-bg`, gornja linija `--card-face` 8 %. Neaktivan tab `--card-face` 62 %, 13 px. **Aktivan tab: samo mesingan tekst i ikona (`--turn-active`) + crtica gore**, bez pilule.
 
-## 4. Novi tokeni
+## 4. Tokeni
 
 ```
---wood-ink:     #120d09;  /* tamno drvo: pozadina iza teksture, traka */
---wood-rim:     #3a2414;  /* okvir stola */
+--bg-top:    #1b1713;   --bg-mid: #14110e;   --bg-bottom: #100d0b;   /* pozadina ekrana */
+--sukno-1:   #2f6b59;   --sukno-2: #1d4a3e;  --sukno-3:   #14352c;   /* sto: centar, sredina, ivica */
+--nav-bg:    #0f0c0a;                                                 /* donja navigacija */
 --game-poker-1: #7a2a20;  --game-poker-2: #3e1611;   /* iz --card-ink-red, tamnije */
 --game-raub-1:  #2a5276;  --game-raub-2:  #14283c;   /* iz --team-a, tamnije */
 --game-zandar-1:#2c6152;  --game-zandar-2:#10302a;   /* sukno */
 ```
-Boja igre ide u `lib/games.ts` kao ključ (`tint: "poker"`), ne kao heks u komponenti.
 
-## 5. Šta se ne mijenja
+- Boja igre ide u `lib/games.ts` kao ključ (`tint: "poker"`), ne kao heks u komponenti.
+- **Ne `--felt-1/2/3`:** ime sa prefiksom `--felt-` u `globals.css` ruši razrješavanje `@import "./felt.css"` u produkcijskom buildu (`Can't resolve './felt.css'`). Zato `--sukno-*`.
 
-- Ponašanje svih dugmadi, sheet podešavanja, sheet igre, Zakači, Javi mi, analitika.
-- Mete ≥44 px; animacije samo transform/opacity (lepeza može blago „disati" ±1°, isključeno uz `prefers-reduced-motion`).
+## 5. Brza igra — izbor stola
+
+- **Igraj kreće odmah**, bez lista prije partije, sa zadnjim sačuvanim izborom: broj igrača (2 / 4), do koliko se igra (11 / 21), izgled stola. Prvi put: **4 · 21 · Klasik**.
+- Izbor se mijenja u **Postavke → „Brza igra"** (`SettingsSheet`, otvara se iz Profila): ista polja kao na `/create`, svaka promjena se čuva odmah.
+- Ime se i dalje traži samo prvi put (list sa imenom), nalog sa nadimkom ide pod nadimkom.
+- Produkcija dok je `identityUi` ugašen nema Profil, pa ni ovu sekciju: tamo Igraj ide sa 4 · 21 · Klasik (ili ranije sačuvanim izborom), a „Napravi sto" nudi sve izbore. Svjesna odluka vlasnika (2026-10-24).
+- Zamjenjuje list izbora prije partije (changelog 96) i red podešavanja na početnoj.
+
+## 6. Šta se ne mijenja
+
+- List igre, Zakači, Javi mi, analitika (`upcoming_games_viewed`), `homeLayout`.
+- Mete ≥44 px; animacije samo transform/opacity.
 - Web zadržava tihi red „Privatnost · Uslovi · O nama" na dnu (Google), APK ne.
 
-## 6. Kriteriji prihvatanja
+## 7. Kriteriji prihvatanja
 
-- [ ] Snimak na 360×740 odgovara slici `A1`, a sa `poker` i `raub` kao live u `lib/games.ts` odgovara slici `A3`.
-- [ ] Ništa ne izlazi iz ekrana i nema skrola na 360×740 i 390×844 (1, 2 i 3 igre).
-- [ ] Nema novih heks boja van tokena iz §4.
-- [ ] Teksture se učitavaju bez skoka rasporeda (rezervisana visina; `wood.webp` i `felt-bg.webp` mogu `preload` na početnoj).
-- [ ] Tekst na drvetu ima kontrast ≥4.5:1.
-- [ ] Donja navigacija izgleda isto na Igraj, Prijatelji i Profil.
+- [x] Snimak na 360×740 odgovara tabli K1 sa jednom i sa tri igre.
+- [x] Ništa ne izlazi iz ekrana i nema skrola na 360×740 i 390×844 (1, 2 i 3 igre, web i APK).
+- [x] Nema novih heks boja van tokena iz §4.
+- [x] Tekst ima kontrast ≥4.5:1 (marka 11.8, naslov sekcije 7.5, pravni red 10.8, meta na stolu 10.1, greška 5.0, traka 7.1 / 10.4).
+- [x] Donja navigacija izgleda isto na Igraj, Prijatelji i Profil.
+- [x] Igraj kreće sa izborom iz Postavki → Brza igra, bez lista.
+- [ ] Provjereno na uređaju.

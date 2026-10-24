@@ -737,3 +737,19 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Zamke:** dev server druge sesije (3107) je posuđen; na 3000 je drugi projekat. Snimci sakrivaju Next dev oznaku i PWA traku „Instaliraj Žandar" (van ove izmjene, inače pokriva traku).
 
 **Provjereno:** typecheck, web 66 testova (+2: boja i karte pločice za svaku igru), lint osnovica (5/2), `next build` i `build:mobile`, nove heks vrijednosti samo §4 tokeni. **Nije provjereno na uređaju.**
+
+## 98. početna v3 · K1 „Tamno toplo" — čista pozadina, Igraj bez lista, izbor u Postavkama (2026-10-24, `feat/home-k1`)
+
+**Izvor:** tabla „UI · Početna v3 — čista pozadina" (`UI_PocetnaV3b`, varijanta K1) na Claude Design platnu „Kartaonica · identitet" — pročitana direktno sa platna (Artifact tool), bez izvoza u folder. `SPEC_POCETNA_V3.md` prepisan na K1 i upućuje na tablu kao izvor istine.
+
+**Izgled:** pozadina bez slike — gradijent `--bg-top` → `--bg-mid` → `--bg-bottom`; sto bez `felt-bg.webp` i bez drvenog oboda — radijalni gradijent `--sukno-1/2/3`, obrub mesing 55 % 1.5 px i sjena, samo tamnije dno (toplo svjetlo uklonjeno). Sto 258 / 186 px, karte 84 / 64 px (kao na tabli). Ispod stola dva dugmeta jedno ispod drugog: **Igraj · protiv drugih igrača** (60 px, mesing) i **Napravi sto · i pozovi prijatelje** (56 px, tamno sa mesinganim obrubom, ikona prijatelja → `/create`). Red „S prijateljima" + „2 · 11 · Drvo ✎" i pilula podešavanja su uklonjeni. Donja traka `--nav-bg`, linija krem 8 %. `--wood-ink`, `--wood-rim` i `public/home-wood.webp` obrisani; preload tekstura sa početne uklonjen.
+
+**Ponašanje — svjesna promjena (vlasnik):** Igraj kreće ODMAH sa zapamćenim izborom (prvi put 4 · 21 · Klasik — `DEFAULT_QUICK_PLAY_PREFS` i prva tema u `TABLE_THEMES`); list izbora prije partije iz #96 je uklonjen, kao i `QuickPlaySettingsSheet`. Izbor je u **Postavke → „Brza igra"** (`SettingsSheet`, `TableSetupFields`, čuva se odmah, bez dugmeta). Produkcija bez Profila (`identityUi` ugašen) tako nema gdje mijenjati izbor brze igre — prihvaćeno, nestaje sa puštanjem naloga; „Napravi sto" i dalje nudi sve.
+
+**Zamke:**
+- **Tokeni `--felt-1/2/3` ruše `@import "./felt.css"` u produkcijskom buildu** — `next build` ispisuje `Can't resolve './felt.css' in apps/web` (build prolazi, ali poruka je nova). Izolovano bisekcijom (čist `main` 0 poruka → bez CSS izmjena 0 → bez `globals.css` 0 → preimenovanje u `--sukno-*` 0). Tokeni sa prefiksom `--felt-` se ne koriste.
+- **Dva brza dodira u „Brza igra" gazila su jedan drugog:** handler je spajao novu vrijednost sa `prefs` iz zadnjeg rendera, pa je „11" odmah poslije „2" vratio 4 igrača. Uhvaćeno CDP klikovima; sad se spaja sa svježim `readQuickPlayPrefs()`.
+
+**Mjereno (CDP, `/dev/home` + prava `/`, 360×740 i 390×844, web i APK):** 0 skrola, ništa van ekrana, sve mete ≥44 px; sto tačno 258 / 186 px na 740, sa obje sekcije (Poker živ + Raub uskoro) 144 px. Kontrast: marka 11.8, naslov sekcije 7.5, pravni red 10.8, meta na stolu 10.1, greška 5.0, traka 7.1 / 10.4. Postavke: izbor 4·21·Klasik → 2·11·Drvo upisan u `zandar:quickplay` / `zandar:table`, ostaje poslije ponovnog otvaranja; Igraj na `/` šalje `/api/quickplay` sa `playerCount 2, targetScore 11, tableTheme wood`, bez dijaloga.
+
+**Provjereno:** typecheck, web 66 testova, lint osnovica (5/2), `next build` i `build:mobile` bez grešaka. **Nije provjereno na uređaju.**

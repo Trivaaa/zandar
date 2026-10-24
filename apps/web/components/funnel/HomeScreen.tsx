@@ -17,13 +17,10 @@ export type HomeScreenProps = {
   now: number;
   loading: boolean;
   error?: string | undefined;
-  /** Kratak zapamćen izbor stola glavne igre („4 · 21 · Klasik"). */
-  setupShort: string;
-  /** Isti izbor punim riječima, za čitač ekrana. */
-  setupLabel: string;
+  /** Brza igra sa zapamćenim izborom (Postavke → Brza igra). */
   onPlay: () => void;
-  onSetup: () => void;
-  onFriends: () => void;
+  /** Napravi sto i pozovi prijatelje (`/create`). */
+  onCreate: () => void;
   onOpenGame: (game: GameConfig) => void;
   onNotify: () => void;
   /** Prikaz reda „Uskoro" (analitika). Zove se jednom po prikazu. */
@@ -35,7 +32,7 @@ export type HomeScreenProps = {
 };
 
 /**
- * Početna v3 „Kafanski sto" (SPEC_POCETNA_V3): marka, glavna igra kao sto,
+ * Početna v3 · K1 (SPEC_POCETNA_V3): marka, glavna igra kao sto,
  * pa pločice — „Još igara" (žive) i „Uskoro" (najavljene). Raspored zavisi
  * SAMO od `layout` (konfiguracija igara + lokalna istorija). Prezentacija:
  * bez skladišta i bez rutiranja.
@@ -46,11 +43,8 @@ export function HomeScreen({
   now,
   loading,
   error,
-  setupShort,
-  setupLabel,
   onPlay,
-  onSetup,
-  onFriends,
+  onCreate,
   onOpenGame,
   onNotify,
   onUpcomingViewed,
@@ -74,11 +68,8 @@ export function HomeScreen({
           compact={compact}
           loading={loading}
           error={error}
-          setupShort={setupShort}
-          setupLabel={setupLabel}
           onPlay={onPlay}
-          onSetup={onSetup}
-          onFriends={onFriends}
+          onCreate={onCreate}
         />
 
         {layout.more.length > 0 ? (

@@ -122,20 +122,11 @@ export const sr = {
     label: "Izgled stola",
     names: { classic: "Klasik", wood: "Drvo", cloth: "Kafana" } satisfies Record<TableTheme, string>,
   },
-  /* „Igraj Žandar" sa početne: jedan dodir do stola. Izbor stola se mijenja u
-     listu ispod dugmeta, ime se pita samo prvi put. */
+  /* Igraj sa početne: jedan dodir do stola. Izbor stola se mijenja u
+     Postavkama → Brza igra, ime se pita samo prvi put. */
   quickSetup: {
     players: "Broj igrača",
     target: "Igra se do",
-    // Red ispod dugmeta: šta će igrač dobiti, i ujedno ulaz u list.
-    summary: (players: number, target: number, table: string) => `${players} igrača · do ${target} · ${table}`,
-    summaryLabel: (summary: string) => `Podešavanja igre: ${summary}. Promijeni`,
-    // Kratak oblik na početnoj v3 („2 · 11 · Drvo ✎"); čitač ekrana dobija pun.
-    summaryShort: (players: number, target: number, table: string) => `${players} · ${target} · ${table}`,
-    summaryLabelFull: (players: number, target: number, table: string) =>
-      `${players} igrača, do ${target}, sto ${table}, promijeni`,
-    settingsTitle: (game: string) => `Brza igra · ${game}`,
-    saveAndClose: "Sačuvaj i zatvori",
     cancel: "Odustani",
     nameTitle: "Kako da te zovemo?",
     nameSub: "Pod ovim imenom te vide za stolom. Promijeniti ga možeš u Postavkama.",
@@ -200,8 +191,11 @@ export const sr = {
     /* Ime igre kao rijec; velika slova daje CSS (text-transform), jer citac
        ekrana ume da speluje 'ZANDAR' slovo po slovo. */
     play: "Igraj",
+    playSub: "protiv drugih igrača",
     playLoading: "Tražim sto...",
     friends: "S prijateljima",
+    create: "Napravi sto",
+    createSub: "i pozovi prijatelje",
     /** „2 ili 4 igrača · ~10 min" */
     meta: (players: string, minutes: number) => `${players} · ~${minutes} min`,
     pinned: "Zakačeno",
@@ -338,6 +332,8 @@ export const sr = {
     rules: "Pravila igara",
     deleteData: "Brisanje podataka",
     getApp: "Preuzmi aplikaciju",
+    quickPlay: "Brza igra",
+    quickPlayNote: "Igraj na početnoj kreće s ovim izborom.",
   },
   /* Samo web. U APK-u se sekcija ne renderuje. Imena prodavnica su obična
      oznaka mjesta dok zvanični artwork ne stigne uz živ URL (`lib/stores.ts`). */
