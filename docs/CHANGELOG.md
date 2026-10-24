@@ -834,3 +834,26 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Izmjene:** blok obrisan (komentar na njegovom mjestu objašnjava zašto se ne vraća) — Tailwind v4 `hover:` je ionako u `@media (hover: hover)`. Jedina ručno pisana `:hover` pravila van tog media query-ja koja mijenjaju izgled (`.create__back`, `.lobby__back`, `.pushprompt__dismiss` — prozirnost 0,75) prebačena u `@media (hover: hover)`; `:focus-visible` ostaje svuda. Tabovi na `:hover` daju istu boju kao bez njega, pa ne trebaju izmjenu.
 
 **Provjereno (CDP, `Emulation.setEmulatedMedia` hover:none/pointer:coarse + `CSS.forcePseudoState` hover):** prije — aktivan i neaktivan tab pod hoverom `rgb(0,0,238)`; poslije — `rgb(224,185,58)` / `rgb(159,155,148)`, isto kao bez hovera. Sva dugmad i linkovi na `/` i `/create` (12 + 12): 0 mijenja boju, pozadinu ili prozirnost pod hoverom. **Nije provjereno na uređaju** (treba novi staging APK).
+
+## 104. Izdanje 1.2.0 — nalog i prijatelji u produkciji (2026-10-24, `573a8a7`…`befe383` → `main` → `production`)
+
+**Povod:** vlasnik sprema 1.2.0 za Play — prva verzija sa nalogom, profilom i prijateljima (SPEC_IDENTITET). Sve je bilo na `main`-u, ali iza prekidača i bez produkcijskog Firebasea.
+
+**Izmjene u kodu (grana `release/1.2.0`, worktree `zandar-release`):**
+- `identityUi = FIREBASE_CONFIG !== null` umjesto provjere imena okruženja. Prekidač „na tvrdo" bi produkciji dao ekrane prijave bez Firebase projekta iza njih (`auth.ts` vraća `null` → mrtva dugmad); ovako je upis produkcijske konfiguracije jedini prekidač izdanja, a `main` je do tog commita i dalje bio spreman za produkciju bez naloga.
+- `firebaseConfig.PRODUCTION` = nova web aplikacija „Kartaonica Web" (`1:652209876577:web:ca56…`), napravljena Firebase CLI-jem. Test sada traži tačno produkcijski projekat.
+- `src/release/` i `src/debug/google-services.json` ponovo preuzeti — sad nose Android OAuth klijent za tri ključa i web klijent (`client_type 3`); ranije `oauth_client: []`, pa bi Google prijava u produkcijskoj aplikaciji pala.
+- Politika privatnosti: Authentication (SAD) i Firestore (EU, `eur3`) razdvojeni; Firestore red sada nabraja i blokiranja i prijave igrača, koje server čuva (`blocks/`, `reports/`), a politika ih nije pominjala. Datum 24. oktobar 2026.
+- `versionCode 3`, `versionName "1.2.0"`.
+
+**Firebase `kartaonica---production` (konzola, vlasnik + CLI):** Authentication sa Anonymous, Email/Password i Google; ovlašćen domen `kartaonica.com` (`www` preusmjerava, ne treba); Firestore `(default)`, Standard, `eur3`, production mode; e-mail šabloni (potvrda adrese, reset lozinke — jedina dva koja aplikacija šalje) na ijekavici u oba projekta, bez `%DISPLAY_NAME%` (nadimak nije u Firebase-u, bio bi prazan); Public-facing name „Kartaonica" (vidi se na Google ekranu za prijavu). SHA-1/SHA-256 dodati `apps:android:sha:create`: upload ključ (`b22d77…`), Play app-signing (`b04894…` — SHA-1 nije bio nigdje zapisan, pročitan `apksigner verify --print-certs` sa `base.apk` instalacije 1.1.0 sa Play-a, `adb pull`) i lokalni debug (`ccb437…`, jer je `apk:prod` debug build).
+
+**Provjereno:** tsc web + server, web 66/66, server 182/182, game-core 167/167, lint = osnovica; `next build` za production i staging sa probom ruta (`/profil`, `/prijatelji`, `/nalog/*`: 404 bez konfiguracije, 200 sa njom). Na produkciji poslije objave API tok 13/13: gost → `accounts:signUp` sa `idToken` (isti `uid`) → nadimak (zauzet za drugog igrača i malim slovima) → avatar → **dokument `profiles/<uid>` pročitan direktno iz Firestorea** (vlasnički token firebase-tools prijave — dokaz da server ne radi iz memorije, bez gledanja Railway loga) → `DELETE /api/me` 204 → nema ga u Auth-u ni u Firestoreu. Rezervacija nadimka (`nicknames/<key>` sa `releasedAt`) ostaje 30 dana, po dizajnu i po politici. AAB iz čistog `zandar-apk` na `befe383`: potpisan upload ključem, manifest `1.2.0`, resursi i web bundle gađaju samo produkcijski Firebase i `zandar-test.up.railway.app`, `capacitor.config.json` bez `server.url`, `FirebaseAuthentication` prisutan.
+
+**Zamke:**
+- Novi Firebase projekti imaju zaštitu od nabrajanja e-mailova: REST `accounts:update` sa e-mailom na anonimnom nalogu → `OPERATION_NOT_ALLOWED: Please verify the new email…`. Prvi API test je zbog toga pao (greška testa, ne aplikacije); JS SDK `linkWithCredential` ide kroz `accounts:signUp` + `idToken`.
+- Windows PowerShell 5.1 nema `&&` — komande za vlasnikov terminal pisati sa `; if ($?) { … }`.
+- Dva „izmijenjena" gradle fajla u `zandar-apk` poslije `cap sync` bili su samo LF/CRLF (`git diff` prazan) — bezbjedno odbaciti.
+- `firebase` CLI nije globalno instaliran; radi `npx -y firebase-tools@14` (prijava je u `~/.config/configstore/firebase-tools.json`).
+
+**Nije provjereno:** Google prijava u produkcijskoj aplikaciji (tek sa instalacije sa Play-a — app-signing ključ ne postoji lokalno); javni profil na produkciji (na stagingu jeste).
