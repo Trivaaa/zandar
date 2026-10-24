@@ -151,7 +151,7 @@ export function PlayerSeat({
               Boja stanja zivi u felt.css (.seat__status), ne u utility klasi. */}
           {player.connectionStatus !== "connected" ? (
             <span className="seat__status font-sans text-sm">
-              {statusLabel[player.connectionStatus]}
+              {player.left ? sr.connection.left : statusLabel[player.connectionStatus]}
             </span>
           ) : null}
 

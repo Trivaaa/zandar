@@ -25,6 +25,13 @@ export const sr = {
     leave: "Izađi na početnu",
     close: "Zatvori",
   },
+  // Potvrda izlaska dok partija traje (QA B1/B11).
+  leaveTable: {
+    title: "Napusti partiju?",
+    body: "Ostali za stolom će odmah vidjeti da te nema i mogu prekinuti partiju. Vratiti se možeš preko linka stola.",
+    confirm: "Napusti",
+    stay: "Ostani",
+  },
   turn: {
     you: "Ti si na potezu",
     other: (name: string) => `${name} je na potezu`,
@@ -61,6 +68,7 @@ export const sr = {
   connection: {
     connected: "Na vezi",
     reconnecting: "Ponovno povezivanje",
+    left: "Nije za stolom",
     abandoned: "Napustio igru",
   },
   suits: {
@@ -242,6 +250,7 @@ export const sr = {
   },
   pause: {
     waitingFor: (name: string) => `${name} se ponovo povezuje`,
+    left: (name: string) => `${name} više nije za stolom`,
     unknownPlayer: "Igrač",
     body: "Igra je pauzirana dok se igrač ne vrati. Sačekaj ili pokreni glasanje o prekidu.",
     seconds: (n: number) => `${n} s`,

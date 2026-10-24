@@ -44,6 +44,7 @@ import {
 } from "./rooms";
 import { buildPrivateGameStateView } from "./gameStateView";
 import {
+  afterLeave,
   connectedHumans,
   hasReconnectingHuman,
   nextPhaseAfterGrace,
@@ -2025,6 +2026,38 @@ async function enterAbandoned(roomId: string): Promise<void> {
   fastify.log.info(`⚠ Match abandoned in room ${roomId}`);
 }
 
+/**
+ * Nova ruka poslije `hand_finished`: dijeli sljedeći do dealera, zadržava
+ * rezultat meča. Zove je host (`game:nextHand`) i izlazak igrača (B1 — kad host
+ * ode, sto inače ostaje na rezultatu ruke). Ne šalje stanje; to radi pozivalac.
+ */
+function startNextHand(room: NonNullable<ReturnType<typeof getRoom>>): void {
+  const oldState = room.gameState;
+  if (!oldState) return;
+  const oldDealerIdx = oldState.players.findIndex(
+    (p) => p.id === oldState.dealerPlayerId,
+  );
+  const newDealerIdx = (oldDealerIdx + 1) % oldState.players.length;
+  const newDealerId = oldState.players[newDealerIdx]!.id;
+
+  const newState = createInitialGameState({
+    roomId: oldState.roomId,
+    matchId: oldState.matchId,
+    players: oldState.players,
+    dealerPlayerId: newDealerId,
+    rulesConfig: oldState.rulesConfig,
+  });
+
+  newState.matchScore = { ...oldState.matchScore };
+  newState.handNumber = oldState.handNumber + 1;
+  newState.handScores = [...oldState.handScores];
+
+  room.gameState = newState;
+  fastify.log.info(
+    `→ Next hand started in room ${oldState.roomId} (hand #${newState.handNumber}, dealer ${newDealerId})`,
+  );
+}
+
 async function resumeFromPause(roomId: string): Promise<void> {
   const room = getRoom(roomId);
   if (!room?.gameState) return;
@@ -2193,6 +2226,7 @@ io.on("connection", (socket) => {
         const player = room.gameState.players.find((p) => p.id === playerId);
         if (player && player.connectionStatus === "reconnecting") {
           player.connectionStatus = "connected";
+          delete player.left; // vratio se preko linka poslije „Napusti partiju"
           fastify.log.info(`✓ Player ${playerId} reconnected`);
           // broadcast će ići za nekoliko linija dole
 
@@ -2311,33 +2345,66 @@ io.on("connection", (socket) => {
         return;
       }
 
-      const oldState = room.gameState;
-      const oldDealerIdx = oldState.players.findIndex(
-        (p) => p.id === oldState.dealerPlayerId,
-      );
-      const newDealerIdx =
-        (oldDealerIdx + 1) % oldState.players.length;
-      const newDealerId = oldState.players[newDealerIdx]!.id;
-
-      const newState = createInitialGameState({
-        roomId: oldState.roomId,
-        matchId: oldState.matchId,
-        players: oldState.players,
-        dealerPlayerId: newDealerId,
-        rulesConfig: oldState.rulesConfig,
-      });
-
-      newState.matchScore = { ...oldState.matchScore };
-      newState.handNumber = oldState.handNumber + 1;
-      newState.handScores = [...oldState.handScores];
-
-      room.gameState = newState;
-
+      startNextHand(room);
       await broadcastGameState(roomId);
       ack?.({ ok: true });
-      fastify.log.info(
-        `→ Next hand started in room ${roomId} (hand #${newState.handNumber}, dealer ${newDealerId})`,
-      );
+    }),
+  );
+
+  // ---- NAMJERAN IZLAZAK (QA B1) ----
+  // „Napusti partiju" (meni, prekid, Android nazad). Ranije je klijent samo
+  // otišao na početnu: socket je ostajao u sobi, server je igrača vodio kao
+  // prisutnog, a ostali su na svaki njegov potez čekali puni sat. Sad sto
+  // odmah zna: bez grace perioda ide pauza i glasanje (PRD §32).
+  socket.on(
+    "room:leave",
+    guarded("room:leave", fastify.log, async (_payload, ack) => {
+      const playerId = socket.data.playerId;
+      const roomId = socket.data.roomId;
+      if (typeof playerId !== "string" || typeof roomId !== "string") {
+        ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+
+      // Socket više ne gleda ovo sjedište — `disconnect` i prelazak u drugu
+      // sobu (B10) poslije ovoga nemaju šta da rade.
+      void socket.leave(roomId);
+      delete socket.data.roomId;
+      delete socket.data.playerId;
+      const graceTimer = disconnectTimers.get(playerId);
+      if (graceTimer) {
+        clearTimeout(graceTimer);
+        disconnectTimers.delete(playerId);
+      }
+
+      const room = getRoom(roomId);
+      const gs = room?.gameState;
+      const player = gs?.players.find((p) => p.id === playerId);
+      if (!room || !gs || !player || player.connectionStatus === "abandoned") {
+        ack?.({ ok: true });
+        return;
+      }
+
+      const outcome = afterLeave({
+        phase: gs.phase,
+        players: gs.players.map((p) =>
+          p.id === playerId ? { ...p, connectionStatus: "reconnecting" } : p,
+        ),
+      });
+      if (outcome !== "ignore") {
+        player.connectionStatus = "reconnecting";
+        player.left = true;
+      }
+
+      if (outcome === "abandon") await enterAbandoned(roomId);
+      else if (outcome === "pause") await enterPause(roomId);
+      else if (outcome === "next_hand_then_pause") {
+        startNextHand(room);
+        await enterPause(roomId);
+      } else if (outcome === "mark_only") await broadcastGameState(roomId);
+
+      ack?.({ ok: true });
+      fastify.log.info(`🚪 Player ${playerId} left room ${roomId} (${outcome})`);
     }),
   );
 

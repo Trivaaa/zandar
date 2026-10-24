@@ -72,3 +72,9 @@ test("bot se nikad ne dira", () => {
   assert.equal(bot.displayName, "Marko");
   assert.equal(bot.profileId, undefined);
 });
+
+test("napustio sto: `left` ide samo kad je true (QA B1)", () => {
+  assert.equal(toPublicPlayer(base).left, undefined);
+  assert.equal("left" in toPublicPlayer({ ...base, left: false }), false);
+  assert.equal(toPublicPlayer({ ...base, connectionStatus: "reconnecting", left: true }).left, true);
+});

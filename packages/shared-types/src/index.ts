@@ -65,6 +65,8 @@ export type PublicPlayer = {
   avatar?: ProfileAvatar | null;
   /** Javni ID za tuđi profil (ključ nadimka). `null` za gosta i bota, isto. */
   profileId?: string | null;
+  /** Namjerno napustio sto (vidi `Player.left`). Šalje se samo kad je `true`. */
+  left?: boolean;
 };
 
 /**
@@ -105,6 +107,12 @@ export type Player = {
    */
   avatar?: ProfileAvatar;
   profileId?: string;
+  /**
+   * Igrač je potvrdio „Napusti partiju" (QA B1). Uz `connectionStatus:
+   * "reconnecting"` — razlikuje namjeran izlazak od pukle veze, pa sto kaže
+   * „više nije za stolom". Briše se kad se vrati. Opciono: stari snapshoti.
+   */
+  left?: boolean;
 };
 
 // ====================================================

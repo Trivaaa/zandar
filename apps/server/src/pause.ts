@@ -78,3 +78,40 @@ export function hasReconnectingHuman(
     (p) => p.connectionStatus === "reconnecting",
   );
 }
+
+/**
+ * Šta poslije namjernog izlaska (QA B1 — „Napusti partiju"). Igrač koji izlazi
+ * je već označen (`reconnecting` + `left`), pa `connectedHumans` broji samo one
+ * koji ostaju. Za razliku od pukle veze nema grace perioda: ostali odmah dobiju
+ * pauzu i glasanje.
+ *
+ * - `pause`               — partija teče → pauza za ostale.
+ * - `next_hand_then_pause` — ruka je gotova, a sljedeću pokreće samo host; ako je
+ *                            otišao host, sto bi zaglavio na rezultatu. A
+ *                            `resumeFromPause` vraća u `playing`, pa pauza mora
+ *                            krenuti iz nove ruke.
+ * - `mark_only`           — sto već stoji (pauza/glasanje) → samo javi stolu.
+ * - `abandon`             — nema više nijednog čovjeka za stolom.
+ * - `ignore`              — partija ne traje (lobi, kraj meča, raspušten sto).
+ */
+export type LeaveOutcome =
+  | "pause"
+  | "next_hand_then_pause"
+  | "mark_only"
+  | "abandon"
+  | "ignore";
+
+export function afterLeave(
+  gs: Pick<GameState, "phase" | "players">,
+): LeaveOutcome {
+  const live =
+    gs.phase === "playing" ||
+    gs.phase === "hand_finished" ||
+    gs.phase === "paused_for_reconnect" ||
+    gs.phase === "abandon_vote";
+  if (!live) return "ignore";
+  if (nextPhaseAfterGrace(gs) === "abandoned") return "abandon";
+  if (gs.phase === "playing") return "pause";
+  if (gs.phase === "hand_finished") return "next_hand_then_pause";
+  return "mark_only";
+}

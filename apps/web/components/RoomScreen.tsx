@@ -380,6 +380,24 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   }
 
   /** "Sačekaj još" — resetuje rok pauze na serveru (§32.3). */
+  /**
+   * Izlazak sa stola (QA B1): serveru javi da igrač odlazi, pa ostali odmah
+   * dobiju pauzu i glasanje, umjesto da čekaju puni sat na svaki njegov potez.
+   * Ne čeka mrežu duže od 1,5 s — izlaz ne smije zaglaviti bez veze.
+   */
+  async function handleLeave(): Promise<void> {
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, 1500);
+      getSocket().emit("room:leave", {}, () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+    // `replace`: na webu je iznad sobe čuvar za Back (useBrowserBackGuard) —
+    // izlaz ga zamijeni, pa Back sa početne ne vodi u isti sto dva puta.
+    router.replace("/");
+  }
+
   async function handleWaitMore(): Promise<void> {
     await emitAction("game:waitMore", {});
   }
@@ -479,7 +497,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           onNextHand={handleNextHand}
           onRematch={handleRematch}
           onReact={handleReact}
-          onLeave={() => router.push("/")}
+          onLeave={() => void handleLeave()}
           onFindNewTable={handleFindNewTable}
           onWaitMore={handleWaitMore}
           onAbandonVote={handleAbandonVote}

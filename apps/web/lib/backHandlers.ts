@@ -23,6 +23,49 @@ export function runBackHandler(): boolean {
   return true;
 }
 
+/**
+ * Back u pregledaču (web) dok partija traje (QA B1/B11, web strana).
+ *
+ * Android nazad ide kroz stek iznad; pregledač ga ne čita, pa je Back tiho
+ * izvodio igrača iz partije — bez potvrde i bez `room:leave`, a socket je
+ * ostajao u sobi. Ovdje se iznad trenutnog unosa istorije stavi „čuvar" sa
+ * ISTIM URL-om: Back skine čuvara (Next ostaje na istoj stranici), mi ga vratimo
+ * i pitamo `onBack`. U aplikaciji se ne koristi (`enabled = false`) — tamo nazad
+ * već ide kroz `useBackHandler`.
+ *
+ * Kad `active` padne (kraj meča) čuvar ostaje u istoriji: prvi sljedeći Back
+ * ostaje na stolu, drugi izlazi. Skidanje bi tražilo `history.back()`, koji je
+ * asinhron i tukao bi se sa Next navigacijom koja upravo teče.
+ */
+const GUARD_KEY = "__zandarBackGuard";
+
+export function useBrowserBackGuard(
+  enabled: boolean,
+  active: boolean,
+  onBack: () => void,
+): void {
+  const latest = useRef(onBack);
+  useEffect(() => {
+    latest.current = onBack;
+  });
+
+  useEffect(() => {
+    if (!enabled || !active) return;
+    const arm = () => {
+      // Bez `__NA`: Next-ov patch kopira svoje interno stanje u novi unos.
+      window.history.pushState({ [GUARD_KEY]: true }, "", window.location.href);
+    };
+    if (!window.history.state?.[GUARD_KEY]) arm();
+    const onPop = (e: PopStateEvent) => {
+      if (e.state?.[GUARD_KEY]) return; // Forward na čuvara — ništa.
+      arm();
+      latest.current();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [enabled, active]);
+}
+
 export function useBackHandler(active: boolean, onBack: () => void): void {
   const latest = useRef(onBack);
   useEffect(() => {

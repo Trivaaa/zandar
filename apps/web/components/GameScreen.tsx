@@ -21,6 +21,9 @@ import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
 import { RoundEndOverlay } from "@/components/overlay/RoundEndOverlay";
 import { Toast } from "@/components/overlay/Toast";
 import { RulesModal } from "@/components/RulesModal";
+import { LeaveTableSheet } from "@/components/overlay/LeaveTableSheet";
+import { useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
+import { isNative } from "@/lib/platform";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { SeatCaption } from "@/components/felt/SeatCaption";
 import { DeckPile } from "@/components/felt/DeckPile";
@@ -124,6 +127,7 @@ export function GameScreen({
   // Meni i razrada rezultata su prezentacijski; otvorenost drži ekran.
   const [menuOpen, setMenuOpen] = useState(false);
   const [scoreOpen, setScoreOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
 
   useEffect(() => {
     if (!error) return;
@@ -298,6 +302,32 @@ export function GameScreen({
   const pauseTotalMs = state.phase === "abandon_vote" ? 60_000 : 120_000;
   const pauseSeconds = useCountdown(state.pauseEndsAt, pauseTotalMs / 1000);
   const waiting = state.players.find((p) => p.connectionStatus !== "connected");
+
+  // Izlazak dok partija traje traži potvrdu (QA B1/B11); na kraju meča i
+  // poslije raspuštenog stola nema šta da se izgubi, pa ide odmah.
+  const matchLive =
+    state.phase === "playing" ||
+    state.phase === "hand_finished" ||
+    state.phase === "paused_for_reconnect" ||
+    state.phase === "abandon_vote";
+  const requestLeave = onLeave
+    ? () => {
+        setMenuOpen(false);
+        if (matchLive) setLeaveOpen(true);
+        else onLeave();
+      }
+    : undefined;
+
+  // Android nazad (`lib/backHandlers.ts`): najmlađi sloj se zatvara prvi.
+  // Sto se prijavljuje na mount, pa je najdublji — tek kad nema otvorenog
+  // menija/pravila/potvrde, nazad pita za izlazak, umjesto da `NativeShell`
+  // uradi `router.back()` i tiho izvede igrača iz partije. Potvrdu (`Sheet`)
+  // zatvara njen vlastiti handler.
+  useBackHandler(true, () => requestLeave?.());
+  useBackHandler(menuOpen, () => setMenuOpen(false));
+  useBackHandler(rulesOpen, () => setRulesOpen(false));
+  // Isto za Back u pregledaču (web); u aplikaciji to radi stek iznad.
+  useBrowserBackGuard(!isNative, matchLive && !!onLeave, () => requestLeave?.());
 
   async function play(cardId: string, captureIds: string[]) {
     if (busy) return;
@@ -693,7 +723,7 @@ export function GameScreen({
                 setMenuOpen(false);
                 setRulesOpen(true);
               }}
-              {...(onLeave ? { onLeave } : {})}
+              {...(requestLeave ? { onLeave: requestLeave } : {})}
               onClose={() => setMenuOpen(false)}
             />
           </div>
@@ -714,6 +744,7 @@ export function GameScreen({
             phase={state.phase}
             players={state.players}
             waitingForName={waiting?.displayName}
+            waitingLeft={waiting?.left === true}
             myPlayerId={state.myPlayerId}
             {...(state.pauseEndsAt !== undefined
               ? { remainingMs: pauseSeconds * 1000, totalMs: pauseTotalMs }
@@ -723,7 +754,7 @@ export function GameScreen({
             {...(onAbandonVote
               ? { onVote: (v: AbandonVote) => void runAction(() => onAbandonVote(v)) }
               : {})}
-            onLeave={onLeave}
+            onLeave={requestLeave}
           />
         </div>
       )}
@@ -744,7 +775,7 @@ export function GameScreen({
             onNextHand={() => void runAction(onNextHand)}
             onRematch={() => void runAction(onRematch)}
             {...(onFindNewTable ? { onFindNewTable } : {})}
-            {...(onLeave ? { onLeave } : {})}
+            {...(requestLeave ? { onLeave: requestLeave } : {})}
           />
         </div>
       )}
@@ -758,6 +789,16 @@ export function GameScreen({
       />
 
       <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
+
+      {leaveOpen && onLeave && (
+        <LeaveTableSheet
+          onConfirm={() => {
+            setLeaveOpen(false);
+            onLeave();
+          }}
+          onClose={() => setLeaveOpen(false)}
+        />
+      )}
     </div>
     </div>
   );

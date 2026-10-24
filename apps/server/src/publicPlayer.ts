@@ -19,5 +19,7 @@ export function toPublicPlayer(p: Player): PublicPlayer {
     connectionStatus: p.connectionStatus,
     avatar: account ? (p.avatar ?? null) : null,
     profileId: account ? (p.profileId as string) : null,
+    // Bot nikad ne izlazi, pa ključ ne razlikuje bota od čovjeka.
+    ...(p.left === true ? { left: true } : {}),
   };
 }

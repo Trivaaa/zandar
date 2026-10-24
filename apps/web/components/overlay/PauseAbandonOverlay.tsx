@@ -6,6 +6,8 @@ import { sr } from "@/lib/sr";
 export type PauseAbandonOverlayProps = {
   phase: GamePhase;
   waitingForName?: string | undefined;
+  /** Igrač na kojeg se čeka je namjerno napustio sto (QA B1), ne izgubio vezu. */
+  waitingLeft?: boolean | undefined;
   /** Parent owns the clock. Nothing here measures elapsed time. */
   remainingMs?: number | undefined;
   totalMs?: number | undefined;
@@ -30,6 +32,7 @@ export type PauseAbandonOverlayProps = {
 export function PauseAbandonOverlay({
   phase,
   waitingForName,
+  waitingLeft = false,
   remainingMs,
   totalMs = 120_000,
   abandonVotes,
@@ -49,7 +52,9 @@ export function PauseAbandonOverlay({
       <div className={`pause ${className}`} data-phase={phase} role="status">
         <div className="pause__row">
           <p className="pause__title font-sans text-base">
-            {sr.pause.waitingFor(waitingForName ?? sr.pause.unknownPlayer)}
+            {(waitingLeft ? sr.pause.left : sr.pause.waitingFor)(
+              waitingForName ?? sr.pause.unknownPlayer,
+            )}
           </p>
           {seconds !== undefined ? (
             <span className="pause__clock font-display text-num-sm">{sr.pause.seconds(seconds)}</span>
