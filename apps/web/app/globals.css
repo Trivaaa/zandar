@@ -80,6 +80,10 @@
   --sukno-3:        #14352c;
   /* Donja navigacija: dno ekrana, malo tamnije. */
   --nav-bg:         #0f0c0a;
+  /* Neaktivan tab: krem 62 % na --nav-bg, izračunat u PUNU boju. Namjerno
+     bez color-mix/providnosti — link mora imati istu boju u svakom stanju
+     (posjećen, dodir), da ne procuri sistemska ljubičasta/crvena linka. */
+  --nav-ink:        #9f9b94;
   /* Boja igre — par za gradijent pločice; ključ je `tint` u lib/games.ts. */
   --game-poker-1:   #7a2a20;
   --game-poker-2:   #3e1611;

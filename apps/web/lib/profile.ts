@@ -26,17 +26,44 @@ const API_BASE = resolveApiBase();
  * svjež odgovor ga zamijeni. Prijava i odjava ga brišu (`lib/account.ts`).
  */
 let cachedMe: Me | null = null;
+/** Zahtjev u letu — istovremeni pozivi (ekran + traka) dijele jedan. */
+let meInFlight: Promise<Me> | null = null;
+/** Raste sa svakom prijavom/odjavom: odgovor stare sesije ne puni keš. */
+let session = 0;
 
 export function forgetMe(): void {
   cachedMe = null;
+  meInFlight = null;
+  session += 1;
+}
+
+/** Zadnji poznati profil u ovoj sesiji, bez mreže (`null` dok ga nema). */
+export function peekMe(): Me | null {
+  return cachedMe;
 }
 
 /** Baca kad nema prijave (Firebase nedostupan) ili server ne odgovori. */
-export async function fetchMe(): Promise<Me> {
-  const res = await authed("/api/me");
-  if (!res.ok) throw new Error(`me_${res.status}`);
-  cachedMe = (await res.json()) as Me;
-  return cachedMe;
+export function fetchMe(): Promise<Me> {
+  if (meInFlight) return meInFlight;
+  const started = session;
+  const request = (async () => {
+    const res = await authed("/api/me");
+    if (!res.ok) throw new Error(`me_${res.status}`);
+    const me = (await res.json()) as Me;
+    if (session === started) cachedMe = me;
+    return me;
+  })();
+  meInFlight = request;
+  // Gotov zahtjev (i neuspjeh) više se ne dijeli: sljedeći poziv ide na mrežu.
+  void request.then(
+    () => {
+      if (meInFlight === request) meInFlight = null;
+    },
+    () => {
+      if (meInFlight === request) meInFlight = null;
+    },
+  );
+  return request;
 }
 
 export async function authed(path: string, init: RequestInit = {}): Promise<Response> {

@@ -166,6 +166,10 @@ await fastify.register(cors, {
   // Podrazumijevano je GET,HEAD,POST — profil mijenja nadimak/avatar sa PUT, a
   // brisanje naloga je DELETE. Bez ovoga pregledač pada već na preflight-u.
   methods: ["GET", "HEAD", "POST", "PUT", "DELETE"],
+  // Svaki zahtjev sa `Authorization` zaglavljem ide prvo kroz preflight
+  // (OPTIONS) — sa telefona je to ~130 ms po zahtjevu. Pregledač ga sad pamti
+  // 10 minuta (Chromium/WebView ionako ograničava na 2 h).
+  maxAge: 600,
 });
 
 // ---- HEALTH ----

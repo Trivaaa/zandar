@@ -52,14 +52,29 @@
   justify-content: center;
   gap: 0.2rem;
   min-height: var(--tabbar-h);
-  color: color-mix(in oklab, var(--card-face) 62%, transparent);
+  color: var(--nav-ink);
   font: 400 0.8125rem / 1.1 var(--font-sans-stack);
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
 
 /* Aktivna stavka: samo mesingan tekst i ikona + crtica gore (bez pilule). */
-.tabbar__tab[aria-current="page"] {
+/* Tab je link: pregledač ima svoje boje za posjećen i dodirnut link
+   (ljubičasta, crvena). Svako stanje dobija istu boju, eksplicitno. */
+.tabbar__tab:link,
+.tabbar__tab:visited,
+.tabbar__tab:hover,
+.tabbar__tab:active,
+.tabbar__tab:focus {
+  color: var(--nav-ink);
+}
+
+.tabbar__tab[aria-current="page"],
+.tabbar__tab[aria-current="page"]:link,
+.tabbar__tab[aria-current="page"]:visited,
+.tabbar__tab[aria-current="page"]:hover,
+.tabbar__tab[aria-current="page"]:active,
+.tabbar__tab[aria-current="page"]:focus {
   color: var(--turn-active);
   font-weight: 700;
 }

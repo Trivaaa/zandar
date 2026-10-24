@@ -12,6 +12,7 @@ import {
   acceptFriendRequest,
   declineFriendRequest,
   fetchFriends,
+  peekFriends,
   type FriendEntry,
 } from "@/lib/friends";
 import { sr } from "@/lib/sr";
@@ -40,7 +41,12 @@ function Face({ entry }: { entry: FriendEntry }) {
 export function FriendsList() {
   const router = useRouter();
   const requestCount = useFriendRequestCount();
-  const [load, setLoad] = useState<Load>({ status: "loading" });
+  // Zadnja lista iz ove sesije (ili tihog učitavanja sa trake) odmah; svjež
+  // odgovor je zamijeni.
+  const [load, setLoad] = useState<Load>(() => {
+    const cached = peekFriends();
+    return cached ? { status: "ready", ...cached } : { status: "loading" };
+  });
   const [toast, setToast] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 

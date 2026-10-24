@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { InviteInbox } from "@/components/friends/InviteInbox";
 import { CardsIcon, FriendsIcon, PersonIcon } from "@/components/icons";
+import { prefetchFriends } from "@/lib/friends";
 import { sr } from "@/lib/sr";
 import { useFriendRequestCount } from "@/lib/userChannel";
 
@@ -30,6 +32,13 @@ export function TabBar() {
   const pathname = usePathname() ?? "/";
   // D4: broj zahtjeva koji čekaju, sa korisničkog kanala (0 za gosta).
   const friendRequests = useFriendRequestCount();
+  // Tiho unaprijed: profil i lista prijatelja (samo postojeći nalog, jednom po
+  // sesiji), da prvi ulazak u Prijatelji ne čeka dva puta mrežu. Sa malim
+  // odmakom, da ne otima mrežu sadržaju ekrana koji se upravo učitava.
+  useEffect(() => {
+    const timer = window.setTimeout(() => void prefetchFriends(), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
   return (
     <>
     {/* E4: poziv na partiju stiže na glavnim ekranima — tamo gdje je i traka. */}
