@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { getCaptureOptions, type GameEvent } from "@zandar/game-core";
 import type {
   AbandonVote,
@@ -39,6 +39,7 @@ import { useTableBeat } from "@/lib/useTableBeat";
 import { dealFromDeck } from "@/lib/flyAnimation";
 import { prefersReducedMotion } from "@/lib/motion";
 import { useCountdown } from "@/lib/useCountdown";
+import { decideHandTap, resolveQueuedPlay } from "@/lib/handTap";
 import type { ActiveReaction } from "@/lib/reactions";
 
 /**
@@ -120,6 +121,8 @@ export function GameScreen({
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSelectedCardId ?? null,
   );
+  // Drugi dodir koji je stigao dok sto animira prethodni potez (QA P6).
+  const [queuedPlayId, setQueuedPlayId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState(false);
@@ -257,7 +260,17 @@ export function GameScreen({
   // Dok beat traje sto crta ZADRŽANI raspored, a `getCaptureOptions` računa po
   // pravom `state.table` — ponuditi potez nad zastarjelim stolom znači pustiti
   // igrača da bira grupu koje više nema. Sto zato ne prima dodir dok karte lete.
+  // Ruka prima: izbor karte ne zavisi od stola, a drugi dodir čeka u redu
+  // (`queuedPlayId`) dok se sto ne smiri (QA P6, `lib/handTap.ts`).
   const tableBusy = beat.phase !== "idle";
+  if (
+    queuedPlayId !== null &&
+    (!myTurn || !state.myHand.some((c) => c.id === queuedPlayId))
+  ) {
+    // Pri renderu, kao otkazivanje dijeljenja gore: red bez poteza ili bez
+    // karte nema šta da izvrši. Guard sprečava petlju.
+    setQueuedPlayId(null);
+  }
   const isHandOver = state.phase === "hand_finished";
   const isMatchOver = state.phase === "match_finished";
   /*
@@ -275,10 +288,11 @@ export function GameScreen({
     endSfxRef.current = null;
   }, [showResult]);
 
-  const selectedCard =
-    myTurn && !tableBusy
-      ? (state.myHand.find((c) => c.id === selectedId) ?? null)
-      : null;
+  const selectedCard = myTurn
+    ? (state.myHand.find((c) => c.id === selectedId) ?? null)
+    : null;
+  // Opcije na stolu tek kad se sto smiri — do tada je nacrtan stari raspored.
+  const tableCard = tableBusy ? null : selectedCard;
 
   const interrupted =
     state.phase === "paused_for_reconnect" ||
@@ -344,23 +358,46 @@ export function GameScreen({
   }
 
   function handleCapture(option: CaptureOption) {
-    if (selectedCard) void play(selectedCard.id, option.cardIds);
+    if (tableCard) void play(tableCard.id, option.cardIds);
   }
   function handleTrail() {
-    if (selectedCard) void play(selectedCard.id, []);
+    if (tableCard) void play(tableCard.id, []);
   }
   // Prvi tap: selekcija/lift. Drugi tap iste karte: izvrši ako je jednoznačno
   // (trail bez capture-a / jedan capture). Više opcija → tapni grupu na stolu.
+  // Dok sto animira, drugi tap čeka u redu i izvršava se kad se smiri.
   function handleSelect(card: CardType) {
-    if (!myTurn || busy || tableBusy) return;
-    if (selectedId === card.id) {
-      const opts = getCaptureOptions(card, state.table);
-      if (opts.length === 0) return void play(card.id, []);
-      if (opts.length === 1) return void play(card.id, opts[0]!.cardIds);
-      return; // multi-capture: izbor grupe je na stolu
+    const tap = decideHandTap({
+      card,
+      selectedId,
+      myTurn,
+      busy,
+      tableBusy,
+      table: state.table,
+    });
+    if (tap.kind === "select") {
+      setSelectedId(tap.cardId);
+      setQueuedPlayId(null);
+    } else if (tap.kind === "queue") {
+      setQueuedPlayId(tap.cardId);
+    } else if (tap.kind === "play") {
+      void play(tap.cardId, tap.captureIds);
     }
-    setSelectedId(card.id);
   }
+
+  // Zapamćen drugi dodir se izvršava nad PRAVIM stolom čim beat završi.
+  const runQueuedPlay = useEffectEvent((cardId: string) => {
+    setQueuedPlayId(null);
+    const next = resolveQueuedPlay(cardId, state.myHand, state.table);
+    if (next.kind === "play") void play(next.cardId, next.captureIds);
+    // "choose": karta ostaje podignuta, traka traži izbor grupe na stolu.
+  });
+  useEffect(() => {
+    if (queuedPlayId === null || tableBusy) return;
+    // Callback, ne tijelo efekta: setState u tijelu = kaskadni render (lint).
+    const t = setTimeout(() => runQueuedPlay(queuedPlayId), 0);
+    return () => clearTimeout(t);
+  }, [queuedPlayId, tableBusy]);
 
   async function runAction(fn: () => Promise<void>) {
     setPendingAction(true);
@@ -383,14 +420,14 @@ export function GameScreen({
     : null;
 
   // TableSurface je prezentacijska — opcije računa roditelj, kroz game-core.
-  const tableOptions: CaptureOption[] = selectedCard
-    ? getCaptureOptions(selectedCard, state.table)
+  const tableOptions: CaptureOption[] = tableCard
+    ? getCaptureOptions(tableCard, state.table)
     : [];
-  const canTrail = !!selectedCard && tableOptions.length === 0;
+  const canTrail = !!tableCard && tableOptions.length === 0;
   // Force-capture: kad kupljenje postoji, trail je odbijen — igrač MORA dobiti
   // objašnjenje, inače tapne sto i ništa se ne desi bez razloga.
   // canTrail i forceCaptureBlocked su dvije polovine iste odluke.
-  const forceCaptureBlocked = !!selectedCard && tableOptions.length > 0;
+  const forceCaptureBlocked = !!tableCard && tableOptions.length > 0;
 
   // Uputstvo igraču ima JEDAN kanal — traku iznad ruke. Ranije su ove tri
   // rečenice rasle unutar play-zone, pa je izbor karte u ruci mijenjao visinu

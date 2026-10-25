@@ -206,7 +206,7 @@ When a feature slice is completed or scope changes: move items between Done / Pa
 
 ## Changelog
 
-Istorija urađenog (šta, zašto, mjerenja, zamke) je u **`docs/CHANGELOG.md`** — 105 unosa, hronološki. Prije izmjene u nekoj oblasti pretraži ga (`Grep`) po imenu fajla ili komponente: većina zamki je već jednom plaćena. Novi unos ide TAMO, na kraj; ovdje ostaju samo tabele stanja gore i spisak ispod.
+Istorija urađenog (šta, zašto, mjerenja, zamke) je u **`docs/CHANGELOG.md`** — 106 unosa, hronološki. Prije izmjene u nekoj oblasti pretraži ga (`Grep`) po imenu fajla ili komponente: većina zamki je već jednom plaćena. Novi unos ide TAMO, na kraj; ovdje ostaju samo tabele stanja gore i spisak ispod.
 
 ## Zamke koje se ponavljaju
 
