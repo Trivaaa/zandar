@@ -565,6 +565,8 @@ export type AnalyticsEvents = {
   play_requested: { mode: MatchMode };
   teaser_opened: { game: string };
   upcoming_games_viewed: NoProps;
+  /** Gost je postao nalog (isti `uid`). Prijava na postojeći nalog NIJE ovo. */
+  account_registered: { method: "password" | "google" };
   // — server —
   match_started: {
     mode: MatchMode;
@@ -604,7 +606,8 @@ export type ClientAnalyticsEvent =
   | "first_open"
   | "play_requested"
   | "teaser_opened"
-  | "upcoming_games_viewed";
+  | "upcoming_games_viewed"
+  | "account_registered";
 
 export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;
 

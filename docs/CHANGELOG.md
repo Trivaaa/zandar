@@ -857,3 +857,11 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 - `firebase` CLI nije globalno instaliran; radi `npx -y firebase-tools@14` (prijava je u `~/.config/configstore/firebase-tools.json`).
 
 **Nije provjereno:** Google prijava u produkcijskoj aplikaciji (tek sa instalacije sa Play-a — app-signing ključ ne postoji lokalno); javni profil na produkciji (na stagingu jeste).
+
+## 105. Broj registrovanih korisnika u PostHogu (2026-10-25, `feat/analytics-registration`)
+
+**Povod:** vlasnik je tražio broj registrovanih korisnika u PostHogu. Nije postojao nijedan signal: nema događaja registracije ni `identify`, a `signup_succeeded` je prijava e-mailom za buduće igre, ne nalog.
+
+**Izmjene:** novi klijentski događaj `account_registered { method: "password" | "google" }` (shared-types `AnalyticsEvents` + `ClientAnalyticsEvent`) i `recordAccount()` u `lib/track.ts`, koji uz to postavlja osobinu osobe `registered=true`. Pozivi u `lib/account.ts`: `registerWithEmail` i obje `linked` grane `continueWithGoogle` (web popup i native) šalju događaj; `signInWithEmail` i `signInWithGoogleCredential` (postojeći nalog, novi uređaj) samo osobinu — inače bi ista registracija bila brojana dvaput. Šalje klijent, jer povezivanje gosta sa nalogom radi Firebase JS SDK i server taj trenutak ne vidi; `distinct_id` ostaje guest ID, pa registracija ulazi u isti lijevak kao `first_open`. KPI recepti u `docs/analytics.md`.
+
+**Provjereno:** web testovi 70/70 (+4 za `recordAccount`, uključujući fail-closed na stagingu), tsc web + server, lint = osnovica. **Nije provjereno uživo** — lokalno i staging ne šalju u PostHog; prvi pravi događaj tek sa kartaonica.com (APK tek sa sljedećim izdanjem, `versionCode 4`). Registracije prije ovoga (1.2.0, od 24.10.) postoje samo u Firebase Auth konzoli; bez backfill-a.

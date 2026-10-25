@@ -5,6 +5,7 @@ import { ensureSignedIn, getAuthInstance, resetSignIn } from "@/lib/auth";
 import { FIREBASE_CONFIG } from "@/lib/firebaseConfig";
 import { isNative } from "@/lib/platform";
 import { forgetMe } from "@/lib/profile";
+import { recordAccount } from "@/lib/track";
 
 /**
  * Radnje naloga koje igrač sam pokreće (SPEC_IDENTITET tok a, b, §6.3, §6.7).
@@ -80,6 +81,7 @@ export async function registerWithEmail(email: string, password: string): Promis
     await sendEmailVerification(linked).catch(() => undefined);
     // Novi token nosi `email` i provider — server odmah vidi nalog, ne gosta.
     await linked.getIdToken(true);
+    recordAccount("password");
     return infoOf(linked);
   } catch (err) {
     rethrow(err);
@@ -98,6 +100,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
     const { user } = await signInWithEmailAndPassword(auth, email.trim(), password);
     resetSignIn();
     forgetMe();
+    recordAccount(null);
     return infoOf(user);
   } catch (err) {
     rethrow(err);
@@ -227,6 +230,7 @@ export async function continueWithGoogle(): Promise<GoogleOutcome> {
       try {
         const { user: linked } = await fa.linkWithCredential(user, credential);
         await linked.getIdToken(true);
+        recordAccount("google");
         return { kind: "linked", account: infoOf(linked) };
       } catch (err) {
         if (EXISTING_ACCOUNT_CODES.has(String((err as { code?: unknown })?.code))) {
@@ -242,6 +246,7 @@ export async function continueWithGoogle(): Promise<GoogleOutcome> {
         fa.browserPopupRedirectResolver,
       );
       await linked.getIdToken(true);
+      recordAccount("google");
       return { kind: "linked", account: infoOf(linked) };
     } catch (err) {
       if (EXISTING_ACCOUNT_CODES.has(String((err as { code?: unknown })?.code))) {
@@ -263,6 +268,7 @@ export async function signInWithGoogleCredential(credential: OAuthCredential): P
     const { user } = await signInWithCredential(auth, credential);
     resetSignIn();
     forgetMe();
+    recordAccount(null);
     return infoOf(user);
   } catch (err) {
     rethrow(err);

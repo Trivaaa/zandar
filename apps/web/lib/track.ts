@@ -94,6 +94,22 @@ export function recordFirstOpen(hadGuestId: boolean): void {
 }
 
 /**
+ * Igrač ima nalog: osobina osobe `registered=true` (filter „aktivni
+ * registrovani"), a uz `method` i događaj `account_registered` — samo kad je
+ * gost upravo POSTAO nalog. Prijava na postojeći nalog (`null`) daje samo
+ * osobinu, inače bi novi uređaj brojao istu registraciju dvaput.
+ */
+export function recordAccount(method: AnalyticsEvents["account_registered"]["method"] | null): void {
+  if (!isAnalyticsEnabled() || typeof window === "undefined") return;
+  try {
+    posthog.setPersonProperties({ registered: true });
+  } catch {
+    // analitika nikad ne smije da obori ekran
+  }
+  if (method) track("account_registered", { method });
+}
+
+/**
  * `?tester=1` / `?tester=0` — osobina osobe, ne događaja, pa PostHog-ov filter
  * internih korisnika skida i istoriju prije označavanja.
  */

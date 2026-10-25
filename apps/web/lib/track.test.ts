@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, mock, test } from "node:test";
 
 import posthog from "posthog-js";
 
-import { recordFirstOpen, track } from "./track";
+import { recordAccount, recordFirstOpen, track } from "./track";
 
 /**
  * Gate analitike: PostHog dobija događaje SAMO u produkcijskom buildu.
@@ -52,6 +52,39 @@ describe("track", () => {
       setAppEnv(value);
       track("play_requested", { mode: "quick_play" });
       assert.equal(capture.mock.callCount(), 0);
+    });
+  }
+});
+
+describe("recordAccount", () => {
+  test("registracija → osobina + account_registered", () => {
+    const capture = mock.method(posthog, "capture", () => undefined);
+    const setProps = mock.method(posthog, "setPersonProperties", () => undefined);
+    setAppEnv("production");
+    recordAccount("google");
+    assert.deepEqual(setProps.mock.calls[0]!.arguments[0], { registered: true });
+    assert.equal(capture.mock.callCount(), 1);
+    assert.equal(capture.mock.calls[0]!.arguments[0], "account_registered");
+    assert.deepEqual(capture.mock.calls[0]!.arguments[1], { method: "google" });
+  });
+
+  test("prijava na postojeći nalog → samo osobina, bez događaja", () => {
+    const capture = mock.method(posthog, "capture", () => undefined);
+    const setProps = mock.method(posthog, "setPersonProperties", () => undefined);
+    setAppEnv("production");
+    recordAccount(null);
+    assert.equal(setProps.mock.callCount(), 1);
+    assert.equal(capture.mock.callCount(), 0);
+  });
+
+  for (const value of ["staging", undefined]) {
+    test(`NEXT_PUBLIC_APP_ENV=${JSON.stringify(value)} → ništa`, () => {
+      const capture = mock.method(posthog, "capture", () => undefined);
+      const setProps = mock.method(posthog, "setPersonProperties", () => undefined);
+      setAppEnv(value);
+      recordAccount("password");
+      assert.equal(capture.mock.callCount(), 0);
+      assert.equal(setProps.mock.callCount(), 0);
     });
   }
 });

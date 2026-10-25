@@ -89,6 +89,13 @@ skida). U PostHogu: *Filter out internal and test users* → `is_tester = true`.
 | `signup_succeeded` | server | Samo nova prijava (ponovljena ne). | `game`, `platform` |
 | `teaser_opened` | klijent | Otvorena stranica buduće igre. | `game` |
 | `upcoming_games_viewed` | klijent | Sekcija budućih igara ušla u ekran. | — |
+| `account_registered` | klijent | Gost je postao nalog (isti `uid`): e-mail registracija ili povezivanje Googlea (`lib/account.ts`). Prijava na postojeći nalog NE šalje događaj. | `method` (`password` \| `google`) |
+
+Osobina osobe `registered=true` (`recordAccount` u `lib/track.ts`) postavlja se
+uz `account_registered` i na svaku prijavu na postojeći nalog (novi uređaj).
+Ne briše se na odjavu ni brisanje naloga — znači „ikad imao nalog na ovom uređaju".
+Registracije prije ovog događaja (1.2.0, od 24.10.2026.) postoje samo u Firebase
+Auth konzoli; bez backfill-a.
 
 - `mode`: `quick_play` (javni sto) \| `private_room`.
 - `end_reason`: `completed` (meč odigran do cilja) \| `abandoned` (prekid —
@@ -113,6 +120,9 @@ Uklonjeni (ostaju u istoriji PostHoga, bez backfill-a): `game_started`,
 | Udio igre sa prijateljima | `match_started` gdje `mode=private_room` i `human_count ≥ 2` |
 | Win rate novih igrača | `is_winner` u prva 3 meča igrača |
 | Lijevak | `first_open` → `play_requested` → `match_started` → `match_ended{completed}` |
+| Nove registracije | Trends → `account_registered` → Total count (Line po danu; „Cumulative" za ukupno; breakdown `method` / `platform`) |
+| Aktivni registrovani | Trends → `match_started` → Unique users, filter osobe `registered = true` |
+| Konverzija u nalog | Funnel `first_open` → `account_registered` |
 
 Orijentiri (casual kartaške igre, zapisani PRIJE podataka): D1 30–35%, D7
 12–15%, D30 ~5%, aktivacija 50–60%, završetak ≥70%, DAU/MAU 15–20%. Sedmična
