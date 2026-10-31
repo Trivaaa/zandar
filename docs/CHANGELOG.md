@@ -889,3 +889,11 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Provjereno:** web 92/92 (+11, `lib/share.test.ts`), tsc, lint = osnovica. E2E u headless Chromeu (CDP, 390×844, lokalni server + `next dev`, podmetnuti `navigator.share`/clipboard, `/api/me` i `/api/friends` presretnuti za F6) 15/15: tačan tekst poruke, odustajanje ne kopira, bez dijeljenja „✓ Kopirano", F5 i F6 sa obje radnje. Snimci uporedivi sa tablom. Staging APK se gradi, `capacitor.plugins.json` sadrži `SharePlugin`.
 
 **Nije provjereno:** sistemski meni na telefonu i kartica u Viberu/WhatsAppu (P1-4) — `adb` nije bio povezan; sto pun (dugme nestaje) nije gađan E2E, uslov je `playersNeeded > 0`; „Registruj se" iz F5 samo otvara postojeći meni. **Zamka:** novi nativni plugin stiže u aplikaciju tek sa AAB-om (1.2.1, `versionCode 4`); APK nosi svoj web, pa stara 1.2.0 ostaje dosljedna. Baner „Instaliraj Žandar" na mobilnom webu prekriva naslov lobija i red sa linkom — zatečeno, srodno B4.
+
+## 108. Objava P1 i P6, paket 1.2.1 (2026-10-31, `9c25591` → `main` → `production`)
+
+**Šta:** `production` pomjeren fast-forwardom na `9c25591` (P6, P1, verzija). Samo web: serverski kod nije mijenjan. AAB 1.2.1 (`versionCode 4`) izgrađen iz čistog `zandar-apk` worktree-a.
+
+**Provjereno:** u paketu `versionName` 1.2.1, `versionCode` 4, `@capacitor/share`, bez `server.url`, produkcijski API i Firebase, bez staging adresa, potpis upload ključem (`EA:71:38…`, isti u `assetlinks.json`). Na kartaonica.com `/room/<id>` servira kod sa `lobby__share`; `/health` = `production`.
+
+**Nije provjereno:** paket nije pokretan na uređaju (`adb` prazan); sistemski meni i kartica u Viberu/WhatsAppu (P1-4) i dalje nisu viđeni na telefonu.
