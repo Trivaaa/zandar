@@ -65,12 +65,13 @@ import {
 } from "./analytics";
 import { SlidingWindowLimiter } from "./rateLimit";
 import {
+  isAdmin,
   listSignups,
+  registerSignupListRoute,
   removeSignupsForEmail,
   saveSignup,
   signupsToCsv,
   sweepExpiredSignups,
-  tokenMatches,
 } from "./signups";
 import { deviceStore, startDeviceSweeper } from "./push/devices";
 import { fcm } from "./push/fcm";
@@ -1322,20 +1323,9 @@ fastify.post<{ Body: SignupBody | null }>("/api/signups", async (request, reply)
   return { created };
 });
 
-/**
- * Izvoz prijava za ručnu analizu: `curl -H "Authorization: Bearer $ADMIN_TOKEN"`.
- *
- * Token u ZAGLAVLJU, ne u `?token=`: Fastify loguje URL svakog zahtjeva, pa bi
- * query token završio u Railway logovima. Bez `ADMIN_TOKEN`-a, ili sa pogrešnim
- * tokenom, odgovor je ISTI 404 kao za nepostojeću rutu — endpoint se ne odaje.
- */
-function isAdmin(authorization: string | undefined): boolean {
-  const expected = process.env.ADMIN_TOKEN;
-  const header = authorization ?? "";
-  const given = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
-  return Boolean(expected && given && tokenMatches(given, expected));
-}
+registerSignupListRoute(fastify);
 
+/** Izvoz prijava za ručnu analizu: `curl -H "Authorization: Bearer $ADMIN_TOKEN"`. */
 fastify.get("/api/signups/export", async (request, reply) => {
   if (!isAdmin(request.headers.authorization)) {
     return reply.callNotFound();

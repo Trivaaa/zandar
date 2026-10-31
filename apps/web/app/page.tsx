@@ -134,7 +134,10 @@ export default function Home() {
         onPlay={() => setSheet({ kind: "setup" })}
         onCreate={() => router.push("/create")}
         onOpenGame={(game) => setSheet({ kind: "game", game })}
-        onNotify={() => setSheet({ kind: "signup" })}
+        onNotify={(game) => {
+          track("upcoming_game_tapped", { game: game.slug });
+          setSheet({ kind: "signup" });
+        }}
         onUpcomingViewed={() => track("upcoming_games_viewed")}
         {...(isNative ? {} : { legalSlot })}
         className={identityUi ? "screen--tabbed" : ""}

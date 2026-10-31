@@ -965,3 +965,15 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Šta:** `invite_shared` i `invite_opened` na klijentu (`lib/track.ts`, jer samo on zna za meni i otvaranje), `join_requested` i `join_approved` na serveru (`analytics.ts`, jer samo server zna da je zahtjev prošao). `room_id` spaja hosta i gosta, koji su različite osobe. `wait_ms` pokazuje stiže li host na vrijeme u roku od 2 minuta.
 
 **Zamka:** praćenje `invite_opened` je namjerno u zasebnom efektu; sa `seatsLeft` u efektu koji čita zapamćen zahtjev, promjena broja mjesta bi vratila gosta na formu.
+
+## 113. Dodir na najavljenu igru i pregled prijava (2026-10-31, `feat/signups-admin`)
+
+Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
+
+**Događaj `upcoming_game_tapped` (`game`):** dodir na pločicu najavljene igre na početnoj. Postojeći `teaser_opened` je sa stranice `/igre/<igra>`, a pločica na nju ne vodi, pa se dodir nije mjerio. Jedna prijava važi za SVE najavljene igre (SPEC_POCETNA §7), pa ni `signup_succeeded` ni pregled prijava ne govore koja igra zanima igrača; to govori samo ovaj događaj.
+
+**Pregled `/admin/prijave`:** vlasnik zalijepi `ADMIN_TOKEN` i vidi jedan red po adresi, igre i datum, uz CSV preko postojećeg izvoza. Server: `GET /api/signups`, isti 404 bez ispravnog tokena; `isAdmin` je prešao u `signups.ts` da bi ruta mogla kroz `fastify.inject`. `page.web.tsx` drži stranicu van APK-a; `noindex`; token živi samo u stanju stranice; `ph-no-capture` na cijeloj stranici; `/admin` je u `NON_APP_PATHS`, da vlasnik ne postane `first_open`. Brisanje iz pregleda nije rađeno.
+
+**Provjera:** server 191, web 119, typecheck, lint = osnovica, `next build`, `build:mobile` (bez `out/admin`). E2E u Chromeu sa pravim serverom, produkcijskim buildom i presretnutim PostHogom: dva dodira daju dva događaja, pogrešan token ne daje adrese, jedna adresa sa dvije igre je jedan red, CSV radi, adresa i token nisu ni u URL-u, storage-u ni u dekodiranim zahtjevima analitike. Jedan prazan `/e/` zahtjev nije dekodiran. **Snimak sesije nije testiran** (presretnuti config ga ne pali), a u pravom PostHogu događaj nije gledan.
+
+**Zamka za testove analitike:** PostHog u `HeadlessChrome` ne šalje NIŠTA (filter botova), pa „adresa nije u analitici" tada prolazi uprazno. Provjera mora prvo vidjeti da događaji stižu; test ide sa običnim user-agentom.

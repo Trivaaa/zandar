@@ -90,6 +90,7 @@ skida). U PostHogu: *Filter out internal and test users* → `is_tester = true`.
 | `signup_succeeded` | server | Samo nova prijava (ponovljena ne). | `game`, `platform` |
 | `teaser_opened` | klijent | Otvorena stranica buduće igre. | `game` |
 | `upcoming_games_viewed` | klijent | Sekcija budućih igara ušla u ekran. | — |
+| `upcoming_game_tapped` | klijent | Dodir na pločicu najavljene igre na početnoj (`HomeScreen`). Mjeri interes po igri, jer jedna prijava važi za SVE najavljene igre, pa `signup_succeeded` to ne govori. | `game` |
 | `account_registered` | klijent | Gost je postao nalog (isti `uid`): e-mail registracija ili povezivanje Googlea (`lib/account.ts`). Prijava na postojeći nalog NE šalje događaj. | `method` (`password` \| `google`) |
 | `invite_shared` | klijent | Host poslao link kroz sistemski meni ili ga kopirao (`lib/track.ts`). Zatvoren meni NE šalje događaj. Na Androidu znači da je izabrana aplikacija, ne da je poruka stigla. | `room_id`, `method` (`share` | `copy`) |
 | `invite_opened` | klijent | Gost otvorio link sobe u kojoj nema sjedište; jednom po sobi u sesiji pregledača. Ne kad već ima zapamćen zahtjev, ni kad soba ne postoji. | `room_id`, `seats_left` |

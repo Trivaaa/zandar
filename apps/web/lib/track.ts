@@ -55,7 +55,7 @@ export function track<E extends ClientAnalyticsEvent>(event: E, ...args: PropsAr
 const FIRST_OPEN_KEY = "kartaonica_first_open";
 
 /** Stranice koje nisu igra — otvaranje politike privatnosti nije prvo otvaranje aplikacije. */
-const NON_APP_PATHS = ["/privatnost", "/privacy", "/uslovi", "/delete-account", "/o-nama", "/dev"];
+const NON_APP_PATHS = ["/privatnost", "/privacy", "/uslovi", "/delete-account", "/o-nama", "/dev", "/admin"];
 
 /**
  * `first_open` — jednom po guest ID-u. Poziva se PRIJE nego što PostHog napravi

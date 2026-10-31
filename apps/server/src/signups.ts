@@ -2,7 +2,8 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { link, mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import { CONSENT_TEXTS, type ConsentTextId, type UpcomingGameSlug } from "@zandar/shared-types";
+import type { FastifyInstance } from "fastify";
+import { CONSENT_TEXTS, type ConsentTextId, type SignupListResponse, type UpcomingGameSlug } from "@zandar/shared-types";
 
 /**
  * Prijave za obavještenje o budućim igrama — jedan JSON fajl po (e-adresa, igra).
@@ -138,6 +139,32 @@ export async function removeSignupsForEmail(
  * CSV za ručnu analizu. Svako polje u navodnicima; vrijednost koja počinje sa
  * `= + - @` dobija apostrof, da je tabelarni program ne izvrši kao formulu.
  */
+/**
+ * Ruta za vlasnika, zahtjev nosi `ADMIN_TOKEN`.
+ *
+ * Token u ZAGLAVLJU, ne u `?token=`: Fastify loguje URL svakog zahtjeva, pa bi
+ * query token završio u Railway logovima. Bez `ADMIN_TOKEN`-a, ili sa pogrešnim
+ * tokenom, odgovor je ISTI 404 kao za nepostojeću rutu — endpoint se ne odaje.
+ */
+export function isAdmin(authorization: string | undefined): boolean {
+  const expected = process.env.ADMIN_TOKEN;
+  const header = authorization ?? "";
+  const given = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
+  return Boolean(expected && given && tokenMatches(given, expected));
+}
+
+/** Pregled prijava za `/admin/prijave`. Izlaze samo polja koja pregled crta. */
+export function registerSignupListRoute(app: FastifyInstance, dir: () => string = signupsDir): void {
+  app.get("/api/signups", async (request, reply) => {
+    if (!isAdmin(request.headers.authorization)) {
+      return reply.callNotFound();
+    }
+    const signups = (await listSignups(dir())).map(({ game, email, createdAt }) => ({ game, email, createdAt }));
+    const body: SignupListResponse = { signups };
+    return reply.header("cache-control", "no-store").send(body);
+  });
+}
+
 export function signupsToCsv(records: readonly SignupRecord[]): string {
   const cell = (value: string) => {
     const safe = /^[=+@-]/.test(value) ? `'${value}` : value;

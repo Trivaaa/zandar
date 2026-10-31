@@ -2,6 +2,7 @@ import { getGuestId } from "@/lib/guestId";
 import {
   CURRENT_CONSENT_TEXT_ID,
   type ProfileAvatar,
+  type SignupListResponse,
   type SignupRequest,
   type SignupResponse,
   type TableTheme,
@@ -363,4 +364,24 @@ export async function submitSignup(input: {
     throw new Error(err.error || "Greška");
   }
   return res.json();
+}
+
+/** Odgovor pregleda: 404 je i pogrešan token (ruta se ne odaje), pa `null` znači „nije prihvaćeno". */
+export async function fetchSignups(token: string): Promise<SignupListResponse | null> {
+  const res = await fetch(`${API_BASE}/api/signups`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Greška");
+  return res.json();
+}
+
+export async function fetchSignupsCsv(token: string): Promise<Blob> {
+  const res = await fetch(`${API_BASE}/api/signups/export`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Greška");
+  return res.blob();
 }
