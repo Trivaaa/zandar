@@ -29,6 +29,7 @@ import { usePlayerInfo } from "@/components/profile/PlayerInfo";
 import { RoomInviteSheet } from "@/components/friends/InviteGuestSheet";
 import { shareInvite } from "@/lib/share";
 import { sr } from "@/lib/sr";
+import { recordInviteShared } from "@/lib/track";
 import { identityUi } from "@/lib/features";
 import type { ActiveReaction } from "@/lib/reactions";
 import type {
@@ -446,6 +447,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     // Capacitoru je origin `https://localhost` (androidScheme), pa radi — ali
     // odbijanje ne smije srušiti handler.
     void navigator.clipboard?.writeText(inviteUrl).catch(() => {});
+    recordInviteShared(roomId, "copied");
     flashCopied();
   }
 
@@ -464,6 +466,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       text: sr.share.msg(host, room.playerCount, missing, inviteUrl),
       url: inviteUrl,
     });
+    recordInviteShared(roomId, outcome);
     if (outcome === "copied") flashCopied();
   }
 

@@ -573,7 +573,15 @@ export type AnalyticsEvents = {
   upcoming_games_viewed: NoProps;
   /** Gost je postao nalog (isti `uid`). Prijava na postojeći nalog NIJE ovo. */
   account_registered: { method: "password" | "google" };
+  /** Host je poslao link: sistemski meni (`share`) ili kopiranje (`copy`). Odustajanje nije ovo. */
+  invite_shared: { room_id: string; method: "share" | "copy" };
+  /** Gost otvorio link sobe u kojoj nema sjedište. Jednom po sobi u sesiji pregledača. */
+  invite_opened: { room_id: string; seats_left: number };
   // — server —
+  /** Zahtjev za ulazak je primljen (lijevak pozivnice). Odbijen na serveru (sto pun) nije ovo. */
+  join_requested: { room_id: string; platform?: AnalyticsPlatform };
+  /** Host odobrio ulazak. `wait_ms` = koliko je gost čekao; rok zahtjeva je 2 min. */
+  join_approved: { room_id: string; wait_ms: number; platform?: AnalyticsPlatform };
   match_started: {
     mode: MatchMode;
     match_id: string;
@@ -613,7 +621,9 @@ export type ClientAnalyticsEvent =
   | "play_requested"
   | "teaser_opened"
   | "upcoming_games_viewed"
-  | "account_registered";
+  | "account_registered"
+  | "invite_shared"
+  | "invite_opened";
 
 export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;
 

@@ -110,6 +110,32 @@ export function recordAccount(method: AnalyticsEvents["account_registered"]["met
 }
 
 /**
+ * `invite_shared`: link je stvarno poslat ili kopiran. `shareInvite` vraća
+ * `cancelled` kad igrač zatvori meni — to nije poslata pozivnica.
+ */
+export function recordInviteShared(roomId: string, outcome: "shared" | "copied" | "cancelled"): void {
+  if (outcome === "cancelled") return;
+  track("invite_shared", { room_id: roomId, method: outcome === "shared" ? "share" : "copy" });
+}
+
+/**
+ * `invite_opened`: jednom po sobi u sesiji pregledača — osvježavanje ekrana
+ * pozivnice nije novo otvaranje. Bez `sessionStorage`-a radije duplikat nego
+ * izgubljeno otvaranje, jer je ovo prvi korak lijevka.
+ */
+export function recordInviteOpened(roomId: string, seatsLeft: number): void {
+  if (!isAnalyticsEnabled() || typeof window === "undefined") return;
+  const key = `kartaonica_invite_opened:${roomId}`;
+  try {
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+  } catch {
+    // WebView bez site data — događaj ipak ide
+  }
+  track("invite_opened", { room_id: roomId, seats_left: seatsLeft });
+}
+
+/**
  * `?tester=1` / `?tester=0` — osobina osobe, ne događaja, pa PostHog-ov filter
  * internih korisnika skida i istoriju prije označavanja.
  */

@@ -5,6 +5,8 @@ import type { Player } from "@zandar/shared-types";
 
 import {
   isRematch,
+  joinApprovedEvent,
+  joinRequestedEvent,
   matchEndedEvents,
   matchStartedEvents,
   parsePlatform,
@@ -33,6 +35,40 @@ function match(players: Player[], extra: Partial<{ matchId: string; matchScore: 
     ...extra,
   };
 }
+
+describe("lijevak pozivnice", () => {
+  const req = { createdAt: 1_000, guestId: "g-gost", platform: "web" as const };
+
+  test("join_requested ide gostu, sa sobom i platformom", () => {
+    assert.deepEqual(joinRequestedEvent("sto1", req), {
+      distinctId: "g-gost",
+      event: "join_requested",
+      properties: { room_id: "sto1", platform: "web" },
+    });
+  });
+
+  test("join_approved nosi koliko je gost čekao", () => {
+    assert.deepEqual(joinApprovedEvent("sto1", req, 46_000), {
+      distinctId: "g-gost",
+      event: "join_approved",
+      properties: { room_id: "sto1", wait_ms: 45_000, platform: "web" },
+    });
+  });
+
+  test("sat servera unazad ne daje negativno čekanje", () => {
+    assert.equal(joinApprovedEvent("sto1", req, 500)!.properties.wait_ms, 0);
+  });
+
+  test("bez guestId-a (stari klijent) nema događaja", () => {
+    assert.equal(joinRequestedEvent("sto1", { createdAt: 1 }), null);
+    assert.equal(joinApprovedEvent("sto1", { createdAt: 1 }, 2), null);
+  });
+
+  test("bez platforme polje izostaje", () => {
+    const event = joinRequestedEvent("sto1", { createdAt: 1, guestId: "g" });
+    assert.deepEqual(event!.properties, { room_id: "sto1" });
+  });
+});
 
 const quickPlayTable = [
   player("me", 0, { guestId: "g-me", platform: "android" }),

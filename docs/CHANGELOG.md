@@ -923,3 +923,11 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Provjereno:** game-core 178 (+11), server 186 (+4), web 115 (+23), typecheck, lint = osnovica, `next build` i `build:mobile`. Prava ruka protiv botova na lokalnom serveru (headless Chrome, 360×740): vijest 1,92 s, protivnička bez vibracije, ukupni broj se mijenja tek na kraju (1 : 4, isto kao overlay), overlay poslije vijesti, dodir na kartu zatvara panel i bira kartu. Rubni slučajevi kroz `/dev/game` 26/26: obje karte, J sweep, 2P, igrač iz tima 1, reduced-motion (1526 ms, bez animacije i linije). Izmjereno na 360×740 i 390×844: zaglavlje 56 px kao i prije, traka 44 px, lepeza partnera 9 px ispod trake, bez sudara dugmadi sa rukom i sa najdužom rečenicom u `TurnBanner`-u.
 
 **Nije provjereno:** ništa na uređaju (vibracija je presretnuta u pregledaču, Android nazad nije gađan, zvuk nije slušan). Čitač ekrana nije pokretan; `aria-live` je provjeren samo po sadržaju. 3P traka je gledana samo na mocku; na 360 px sa +1 kod oba dugo ime u 2P ostaje na prvom slovu („B…").
+
+## 112. Lijevak pozivnice u analitici (2026-10-31, `feat/invite-analytics`)
+
+**Povod:** „Pošalji pozivnicu" (changelog 107) je objavljena bez mjerenja: `play_requested` nosi samo `mode`, pa se nije vidjelo šalje li iko link ni gdje gost odustaje.
+
+**Šta:** `invite_shared` i `invite_opened` na klijentu (`lib/track.ts`, jer samo on zna za meni i otvaranje), `join_requested` i `join_approved` na serveru (`analytics.ts`, jer samo server zna da je zahtjev prošao). `room_id` spaja hosta i gosta, koji su različite osobe. `wait_ms` pokazuje stiže li host na vrijeme u roku od 2 minuta.
+
+**Zamka:** praćenje `invite_opened` je namjerno u zasebnom efektu; sa `seatsLeft` u efektu koji čita zapamćen zahtjev, promjena broja mjesta bi vratila gosta na formu.

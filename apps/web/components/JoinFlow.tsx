@@ -18,6 +18,7 @@ import {
   clearJoinPending,
 } from "@/lib/session";
 import { savePlayerName, usePlayerName } from "@/lib/playerName";
+import { recordInviteOpened } from "@/lib/track";
 import {
   JoinRequestScreen,
   type JoinRequestPhase,
@@ -58,6 +59,8 @@ export function JoinFlow({
     if (approvedTimer.current) clearTimeout(approvedTimer.current);
   }, []);
 
+  const seatsLeft = Math.max(0, room.playerCount - room.players.length);
+
   // Load pending state from localStorage on mount.
   //
   // Lokalno istekao rok NIJE razlog da se zahtjev odbaci: gost se najčešće
@@ -77,6 +80,12 @@ export function JoinFlow({
       setState({ kind: "form" });
     }
   }, [roomId]);
+
+  // Zasebno od efekta iznad: promjena broja mjesta ne smije vratiti gosta na formu.
+  // Zapamćen zahtjev znači da je gost ovdje već bio — to nije novo otvaranje.
+  useEffect(() => {
+    if (!getJoinPending(roomId)) recordInviteOpened(roomId, seatsLeft);
+  }, [roomId, seatsLeft]);
 
   // Countdown timer for pending state. Samo PRIKAZ — sat ne proglašava istek.
   // U pozadini tajmeri stoje, pa bi na povratku lokalni sat "istekao" prije

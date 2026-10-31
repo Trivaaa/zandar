@@ -92,6 +92,43 @@ export function trackedHumans<P extends PlayerLike>(
   );
 }
 
+type JoinRequestLike = {
+  createdAt: number;
+  guestId?: string | undefined;
+  platform?: AnalyticsPlatform | undefined;
+};
+
+/** Primljen zahtjev za ulazak. Stari klijent bez guestId-a nema kome da se pripiše. */
+export function joinRequestedEvent(
+  roomId: string,
+  req: JoinRequestLike,
+): Capture<"join_requested"> | null {
+  if (!req.guestId) return null;
+  return {
+    distinctId: req.guestId,
+    event: "join_requested",
+    properties: { room_id: roomId, ...(req.platform ? { platform: req.platform } : {}) },
+  };
+}
+
+/** Odobren ulazak; ide GOSTU, da lijevak ostane na jednoj osobi. */
+export function joinApprovedEvent(
+  roomId: string,
+  req: JoinRequestLike,
+  now: number,
+): Capture<"join_approved"> | null {
+  if (!req.guestId) return null;
+  return {
+    distinctId: req.guestId,
+    event: "join_approved",
+    properties: {
+      room_id: roomId,
+      wait_ms: Math.max(0, now - req.createdAt),
+      ...(req.platform ? { platform: req.platform } : {}),
+    },
+  };
+}
+
 /** Jedan `match_started` po čovjeku. */
 export function matchStartedEvents(
   gs: MatchLike,
