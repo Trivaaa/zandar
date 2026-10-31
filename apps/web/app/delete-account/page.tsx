@@ -140,8 +140,8 @@ export default function DeleteAccountPage() {
       <LegalSection title="Mjerenje reklama (Meta)">
         <p>
           Ako si u Android aplikaciji dozvolio mjerenje reklama, povlačiš ga
-          sam: <strong>Profil → Postavke → Mjerenje reklama</strong>. Time
-          prestaje slanje događaja. Već poslane podatke čuva Meta i ne možemo ih
+          sam: <strong>Profil → Postavke → Mjerenje reklama</strong>. Aplikacija se tada
+          ponovo pokrene i slanje prestaje. Već poslane podatke čuva Meta i ne možemo ih
           obrisati za tebe, pa se za njih obraćaš Meti. Reklamni identifikator
           možeš promijeniti ili obrisati u podešavanjima telefona.
         </p>

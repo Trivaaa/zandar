@@ -909,3 +909,13 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Provjereno (emulator, lažan token):** tabela u `docs/analytics.md`; staging: pozivnica na hladan start bez prompta preko sobe, partija do prvog poteza, Nazad = odbijanje. Merged manifest bez providera i ADSERVICES, `AD_ID` prisutan.
 
 **Nije provjereno:** prijem u Events Manageru (Client Token nije stigao), S10e (wireless debugging ugašen), Google prijava i push u ovoj verziji, instalacija sa Play-a.
+
+## 110. Meta: jedan zahtjev za instalaciju, povlačenje ponovo pokreće aplikaciju (2026-10-31, `feat/meta-app-events`)
+
+**Dva zahtjeva za instalaciju:** SDK sam zove `activateApp` čim učita postavke (`FetchedAppSettingsManager` → `AutomaticAnalyticsLogger.logActivateAppEvent`), a oznaku „poslano" upisuje tek poslije uspješnog odgovora, pa je naš dodatni poziv mogao poslati drugi zahtjev. Uklonjen; pokretanje je sad samo `sdkInitialize`.
+
+**Povlačenje:** `EXPLICIT_ONLY` zaustavlja događaje, ali SDK i dalje dohvata `mobile_sdk_gk`, a javnog gašenja nema. Povlačenje sad pokreće aplikaciju ponovo (launch intent + `exit`, izbor upisan `commit`-om). Red je samo u Postavkama, nikad za stolom. Time su otpali `EXPLICIT_ONLY`, `setAdvertiserIDCollectionEnabled` i grana za ponovnu dozvolu u istom procesu.
+
+**Token:** `META_CLIENT_TOKEN` u `android/local.properties`, kroz `resValue`; release bez njega pada, jer bi inače tiho izašao paket bez događaja.
+
+**Zamka:** `facebook-android-sdk-current.zip` sa Metinog sajta je 4.42.0 iz 2019 (bez `AD_ID`, Support Library), ne koristiti.

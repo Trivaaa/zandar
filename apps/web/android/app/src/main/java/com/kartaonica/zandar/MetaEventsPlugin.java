@@ -2,6 +2,7 @@ package com.kartaonica.zandar;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
 import com.facebook.FacebookSdk;
@@ -21,9 +22,9 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  * zaustavlja: blokira tek odgovor na zahtjev). Ovaj fajl je zato JEDINO mjesto
  * koje pokreće SDK. Neuspjeh se samo zapiše: bez mjerenja igra radi isto.
  *
- * Povlačenje: EXPLICIT_ONLY zaustavlja slanje događaja do kraja procesa, ali SDK
- * koji već radi može još dohvatati svoje postavke. Od sljedećeg pokretanja se više
- * ne diže. Izmjereno ponašanje i ograničenja: docs/analytics.md.
+ * SDK koji radi nema javni način gašenja (i sa ugašenim logovanjem dohvata svoje
+ * postavke), pa povlačenje saglasnosti ponovo pokreće aplikaciju: novi proces SDK
+ * više ne diže. Izmjereno ponašanje i ograničenja: docs/analytics.md.
  */
 @CapacitorPlugin(name = "MetaEvents")
 public class MetaEventsPlugin extends Plugin {
@@ -50,13 +51,18 @@ public class MetaEventsPlugin extends Plugin {
     @PluginMethod
     public void setConsent(PluginCall call) {
         boolean granted = Boolean.TRUE.equals(call.getBoolean("granted", false));
+        // commit, ne apply: poslije povlačenja proces odmah završava.
         getContext()
             .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_CONSENT, granted ? GRANTED : DENIED)
-            .apply();
-        if (granted) grant();
-        else withdraw();
+            .commit();
+        if (granted) {
+            grant();
+        } else if (FacebookSdk.isInitialized()) {
+            restartApp();
+            return;
+        }
         call.resolve(status());
     }
 
@@ -72,28 +78,25 @@ public class MetaEventsPlugin extends Plugin {
 
     private void grant() {
         Context context = getContext();
+        if (!start(context)) return;
         try {
-            // Aktivnost je već prošla resume, pa tracker ovo otvaranje ne vidi. SDK
-            // koji već radi (povlačenje pa ponovo dozvola) ga je već vidio.
-            boolean firstStart = !FacebookSdk.isInitialized();
-            if (start(context) && firstStart) {
-                AppEventsLogger
-                    .newLogger(context.getApplicationContext())
-                    .logEvent(AppEventsConstants.EVENT_NAME_ACTIVATED_APP);
-            }
+            // Aktivnost je već prošla resume, pa tracker ovo otvaranje ne vidi.
+            AppEventsLogger
+                .newLogger(context.getApplicationContext())
+                .logEvent(AppEventsConstants.EVENT_NAME_ACTIVATED_APP);
         } catch (Exception e) {
             Log.w(TAG, "Prvo otvaranje nije zapisano", e);
         }
     }
 
-    private static void withdraw() {
-        if (!FacebookSdk.isInitialized()) return;
-        try {
-            AppEventsLogger.setFlushBehavior(AppEventsLogger.FlushBehavior.EXPLICIT_ONLY);
-            FacebookSdk.setAdvertiserIDCollectionEnabled(false);
-        } catch (Exception e) {
-            Log.w(TAG, "Povlačenje saglasnosti", e);
+    private void restartApp() {
+        Context context = getContext();
+        Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+        if (launch != null) {
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            context.startActivity(launch);
         }
+        Runtime.getRuntime().exit(0);
     }
 
     // sdkInitialize je zastario jer ga inače zove provider koji smo izbacili.
@@ -101,12 +104,8 @@ public class MetaEventsPlugin extends Plugin {
     private static boolean start(Context context) {
         if (!PRODUCTION_PACKAGE.equals(context.getPackageName())) return false;
         try {
-            Application application = (Application) context.getApplicationContext();
-            FacebookSdk.sdkInitialize(application);
-            FacebookSdk.setAdvertiserIDCollectionEnabled(true);
-            AppEventsLogger.setFlushBehavior(AppEventsLogger.FlushBehavior.AUTO);
-            // Šalje instalaciju (jednom, sa ponovnim pokušajem na sljedećem pokretanju).
-            AppEventsLogger.activateApp(application);
+            // Instalaciju i tracker pokreće sam SDK, čim učita postavke.
+            FacebookSdk.sdkInitialize((Application) context.getApplicationContext());
             return true;
         } catch (Exception e) {
             Log.w(TAG, "Pokretanje SDK-a", e);

@@ -274,12 +274,10 @@ export function PrivacyPolicyBody() {
           </li>
           <li>
             <strong>Podatke za mjerenje reklama</strong> čuva Meta, prema svojim
-            pravilima. Povlačenjem saglasnosti prestaje slanje događaja, ali se
-            već poslani podaci time ne brišu. Dok ne zatvoriš aplikaciju, Metin
-            SDK može još preuzeti svoja podešavanja s Metinog servera, bez
-            događaja i bez reklamnog identifikatora; od sljedećeg pokretanja ne
-            radi uopšte. Događaji nastali do zatvaranja aplikacije ostaju na
-            telefonu i šalju se samo ako kasnije ponovo dozvoliš mjerenje.
+            pravilima. Kad povučeš saglasnost, aplikacija se ponovo pokrene i Metin
+            SDK više ne radi. Već poslani podaci se time ne brišu. Događaji koji
+            su ranije ostali neposlani (npr. bez mreže) ostaju na telefonu i
+            šalju se samo ako kasnije ponovo dozvoliš mjerenje.
           </li>
         </ul>
       </LegalSection>

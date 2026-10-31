@@ -136,15 +136,22 @@ Timezone projekta: `Europe/Sarajevo`, ne mijenja se.
 Svrha: mjerenje Meta App Install kampanja. Šalje se samo instalacija i otvaranje;
 nema `setUserID`, ručnih događaja o igri ni prosljeđivanja iz PostHoga. Kod:
 `MetaEventsPlugin.java`, `components/MetaConsent.tsx`, `facebook-core` 19.0.0.
+Stari `facebook-android-sdk-current.zip` sa Metinog sajta je 4.42.0 iz 2019: ne koristiti.
 
 - **Saglasnost:** prompt jednom na `/`, nikad preko sobe; Nazad i dodir van lista
   znače „Ne dozvoli". Izbor se mijenja u Profil → Postavke → Mjerenje reklama.
+- **Token:** `META_CLIENT_TOKEN` u `android/local.properties` (nije u repou).
+  `bundleRelease`/`assembleRelease` bez njega padaju.
 - **Okruženja:** SDK se pokreće samo pod paketom `com.kartaonica.zandar`. Staging
   ima isti prompt i čuva izbor, ali ne šalje ništa. Dev petlja (`dev:android`) je
   na produkcijskom paketu: tester koji dozvoli šalje prave događaje.
 - **Pokretanje:** `FacebookInitProvider` je izbačen iz manifesta, pa prije
-  saglasnosti SDK kod ne radi. `sdkInitialize` je javan, ali `@Deprecated`:
-  provjeriti pri svakoj nadogradnji SDK-a.
+  saglasnosti SDK kod ne radi. Pokreće ga samo `sdkInitialize`, koji je javan, ali
+  `@Deprecated`: provjeriti pri svakoj nadogradnji. Instalaciju šalje sam SDK kad
+  učita postavke; dodatni `activateApp` bi dao dva zahtjeva za instalaciju.
+- **Povlačenje ponovo pokreće aplikaciju.** SDK koji radi nema javni način gašenja:
+  sa ugašenim logovanjem i `EXPLICIT_ONLY` i dalje je dohvatao `mobile_sdk_gk`.
+  Novi proces ga više ne diže.
 - **Automatsko logovanje u Events Manageru mora ostati uključeno**, inače SDK ne
   šalje ništa bez obzira na kod.
 
@@ -154,26 +161,20 @@ lažan Client Token — Meta je zahtjeve odbila, pa ovo NIJE dokaz prijema):
 | Scenario | Rezultat |
 |---|---|
 | Svjež start bez odgovora, odbijanje, odbijanje + restart | 0 konekcija ka Meti |
-| Dozvola | `MOBILE_APP_INSTALL`, 1 `fb_mobile_activate_app` |
+| Dozvola | 1 `MOBILE_APP_INSTALL`, 1 `fb_mobile_activate_app` |
 | Pozadina 10 s i povratak, hladan start < 60 s | nema novog otvaranja |
 | Pozadina 75 s i povratak, hladan start poslije 75 s | po 1 otvaranje |
-| Povlačenje, 40 s | nema zahtjeva |
-| Povlačenje, pozadina 75 s, povratak (isti proces) | nema slanja događaja; `mobile_sdk_gk` se još dohvata |
-| Povlačenje + restart | 0 konekcija ka Meti |
-| Ponovna dozvola | sačuvani događaji iz perioda povlačenja se šalju |
+| Povlačenje, 60 s, pa pozadina 65 s i povratak | novi proces, 0 konekcija ka Meti, 0 SDK logova |
+| Ponovna dozvola | događaji kreću ponovo |
 
-**Ograničenja povlačenja:** `EXPLICIT_ONLY` ne gasi SDK koji već radi. Do kraja
-procesa događaji i dalje nastaju lokalno, a SDK može dohvatati postavke (Metin
-server vidi IP; u URL-u nema reklamnog identifikatora). Sačuvani događaji se šalju
-samo ako igrač ponovo dozvoli; javnog API-ja za njihovo brisanje nema. Već poslano
-ostaje kod Mete.
+Lažan token ne upisuje „instalacija poslana", pa se zahtjev ponavlja pri svakom
+pokretanju; sa pravim tokenom ide jednom.
 
-**Provjeriti sa pravim tokenom (Events Manager → Test Events):**
-- Ručno prvo otvaranje nosi `_ui:"unknown"`, `_inBackground:"1"` i nema `_session_id`,
-  za razliku od automatskog. Da li ga Meta priznaje vidi se samo u Events Manageru.
-  Ako ne, ukloniti ga: prvo otvaranje se onda broji pri sljedećem otvaranju.
-- U jednom pokretanju viđena su dva `MOBILE_APP_INSTALL` zahtjeva, a jedini pozivalac
-  u SDK-u je jedan `activateApp`. Uzrok nije utvrđen. Mora se pojaviti tačno jedna
-  instalacija.
-- Učestalost `mobile_sdk_gk`: lažan token daje grešku, pa se dohvata pri svakom
-  događaju; po kodu SDK-a keš inače traje sat vremena.
+**Ograničenja povlačenja:** već poslano ostaje kod Mete. Događaji koji su ranije
+ostali neposlani (npr. bez mreže) ostaju na telefonu i šalju se samo ako igrač
+ponovo dozvoli; javnog API-ja za njihovo brisanje nema.
+
+**Provjeriti sa pravim tokenom (Events Manager → Test Events):** ručno prvo otvaranje
+nosi `_ui:"unknown"`, `_inBackground:"1"` i nema `_session_id`, za razliku od
+automatskog. Da li ga Meta priznaje vidi se samo tamo. Ako ne, ukloniti ga: prvo
+otvaranje se onda broji pri sljedećem otvaranju.
