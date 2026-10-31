@@ -5,6 +5,15 @@ import { CONSENT_TEXTS, CURRENT_CONSENT_TEXT_ID, type ProfileAvatar, type TableT
 
 import { pluralForm } from "./plural";
 
+/** Broj mjesta koja fale, riječima — poruka se čita kao rečenica, ne kao brojač. */
+const MISSING_WORDS = ["", "jedan", "dva", "tri"] as const;
+
+/** „fali još jedan" / „fale još dva" / „fale još tri". */
+function missingPhrase(n: number): string {
+  const word = MISSING_WORDS[n] ?? String(n);
+  return n === 1 ? `fali još ${word}` : `fale još ${word}`;
+}
+
 /** „Poker", „Poker i Raub", „Poker, Remi i Raub". */
 function listJoin(names: string[]): string {
   if (names.length <= 1) return names[0] ?? "";
@@ -160,6 +169,7 @@ export const sr = {
     invite: "Pozovi prijatelje:",
     copy: "Kopiraj",
     copied: "✓ Kopirano",
+    share: "Pošalji pozivnicu",
     requests: (n: number) => `Zahtjevi za ulazak (${n})`,
     approve: "Odobri",
     reject: "Odbij",
@@ -617,8 +627,11 @@ export const sr = {
     title: "Pozovi na partiju",
     options: "Broj igrača · igra se do",
     send: (n: number) => `Pošalji poziv (${n})`,
-    noFriends: "Još nemaš prijatelja koje možeš pozvati.",
     fromRoom: "Pozovi iz prijatelja",
+    // F5/F6 (tabla P1): „Pozovi iz prijatelja" bez prijatelja nikad ne vodi u prazno.
+    linkInstead: "Pošalji pozivnicu linkom",
+    emptyLink: "Do tada im pošalji link.",
+    close: "Zatvori",
     pending: "Poziv poslat · čeka se odgovor",
     incomingTitle: (name: string) => `${name} te zove na partiju`,
     incomingBody: (players: number, target: number) => `Žandar · ${players} igrača · do ${target}`,
@@ -658,5 +671,13 @@ export const sr = {
     loading: "Učitavam prijatelje",
     loadError: "Prijatelji se nisu učitali.",
     loadErrorBody: "Provjeri internet vezu i pokušaj ponovo.",
+  },
+  /* „Pošalji pozivnicu" (QA P1) — tabla „Pozivnica — tekstovi", share.msg.a. */
+  share: {
+    title: "Pozivnica za Žandar",
+    msg: (host: string, players: number, missing: number, link: string) =>
+      `${host} te zove na partiju Žandara 🃏 Igramo ${
+        players === 2 ? "jedan na jedan" : "dva na dva"
+      }, ${missingPhrase(missing)}. Ništa ne instaliraš, samo otvori: ${link}`,
   },
 } as const;

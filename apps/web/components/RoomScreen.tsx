@@ -26,7 +26,9 @@ import { readQuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import { GameScreen } from "@/components/GameScreen";
 import { usePlayerInfo } from "@/components/profile/PlayerInfo";
-import { InviteSheet } from "@/components/friends/InviteSheet";
+import { RoomInviteSheet } from "@/components/friends/InviteGuestSheet";
+import { shareInvite } from "@/lib/share";
+import { sr } from "@/lib/sr";
 import { identityUi } from "@/lib/features";
 import type { ActiveReaction } from "@/lib/reactions";
 import type {
@@ -444,8 +446,25 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     // Capacitoru je origin `https://localhost` (androidScheme), pa radi — ali
     // odbijanje ne smije srušiti handler.
     void navigator.clipboard?.writeText(inviteUrl).catch(() => {});
+    flashCopied();
+  }
+
+  function flashCopied() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  // P1: sistemski meni za dijeljenje; bez njega link ide u clipboard (P1-3).
+  async function shareInviteLink() {
+    if (!room) return;
+    const host = room.players.find((p) => p.isHost)?.displayName ?? "";
+    const missing = Math.max(0, room.playerCount - room.players.length);
+    const outcome = await shareInvite({
+      title: sr.share.title,
+      text: sr.share.msg(host, room.playerCount, missing, inviteUrl),
+      url: inviteUrl,
+    });
+    if (outcome === "copied") flashCopied();
   }
 
   if (error) {
@@ -559,6 +578,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
         inviteUrl={inviteUrl}
         copied={copied}
         onCopyInvite={copyInviteLink}
+        onShareInvite={playersNeeded > 0 ? () => void shareInviteLink() : undefined}
         joinRequests={
           isHost
             ? pendingRequests.map((r) => ({ id: r.id, displayName: r.displayName }))
@@ -582,11 +602,19 @@ export function RoomScreen({ roomId }: { roomId: string }) {
         onPlayerTap={onPlayerTap}
         invites={room.invites}
         onInviteFriends={
-          identityUi && isHost && me?.profileId && playersNeeded > 0 ? () => setInviteOpen(true) : undefined
+          // F5/F6: i gost-host i nalog bez prijatelja vide dugme; list im
+          // nudi nalog / dodavanje prijatelja ili link (RoomInviteSheet).
+          identityUi && isHost && playersNeeded > 0 ? () => setInviteOpen(true) : undefined
         }
       />
       {playerInfo.layer}
-      {inviteOpen ? <InviteSheet roomId={room.id} onClose={() => setInviteOpen(false)} /> : null}
+      {inviteOpen ? (
+        <RoomInviteSheet
+          roomId={room.id}
+          onShareLink={() => void shareInviteLink()}
+          onClose={() => setInviteOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

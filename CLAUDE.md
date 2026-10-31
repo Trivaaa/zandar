@@ -206,7 +206,7 @@ When a feature slice is completed or scope changes: move items between Done / Pa
 
 ## Changelog
 
-Istorija urađenog (šta, zašto, mjerenja, zamke) je u **`docs/CHANGELOG.md`** — 106 unosa, hronološki. Prije izmjene u nekoj oblasti pretraži ga (`Grep`) po imenu fajla ili komponente: većina zamki je već jednom plaćena. Novi unos ide TAMO, na kraj; ovdje ostaju samo tabele stanja gore i spisak ispod.
+Istorija urađenog (šta, zašto, mjerenja, zamke) je u **`docs/CHANGELOG.md`** — 107 unosa, hronološki. Prije izmjene u nekoj oblasti pretraži ga (`Grep`) po imenu fajla ili komponente: većina zamki je već jednom plaćena. Novi unos ide TAMO, na kraj; ovdje ostaju samo tabele stanja gore i spisak ispod.
 
 ## Zamke koje se ponavljaju
 
@@ -223,7 +223,7 @@ Sažetak iz changeloga — pravila koja su već koštala; detalji i mjerenja su 
 - **Server:** promjena oblika snapshota mora tolerisati stari oblik (deploy = restart = hidracija). Stari klijenti (Play 1.0.0) šalju `/api/quickplay` sa 4/21 ili bez cilja. Fastify ≥5.12 gasi brojčani `trustProxy` — koristi se `trustFirstHop`.
 - **Zavisnosti:** tranzitivne se osvježavaju sa `pnpm -r update --depth Infinity <paket>`, ne `overrides`-ima; `pnpm audit --prod` treba da ostane na 0.
 - **Lint osnovica:** `pnpm exec eslint --ignore-pattern "out-*/**" .` u `apps/web` → 5 grešaka, 2 upozorenja (zatečene). Goli `eslint` visi na ostacima builda.
-- **Izdanje za Play:** paket se gradi iz čistog worktree-a `C:\Users\User\projects\zandar-apk` (`pnpm --filter web aab:prod`), nikad iz foldera u kojem radi druga sesija. 1.2.0 = `versionCode 3`; sljedeći je 4.
+- **Izdanje za Play:** paket se gradi iz čistog worktree-a `C:\Users\User\projects\zandar-apk` (`pnpm --filter web aab:prod`), nikad iz foldera u kojem radi druga sesija. 1.2.0 = `versionCode 3`; sljedeći je 4 (1.2.1 nosi `@capacitor/share` — „Pošalji pozivnicu" stiže u aplikaciju tek njime, na webu odmah).
 - **CORS:** `@fastify/cors` podrazumijevano pušta samo `GET,HEAD,POST` — nova ruta sa drugim metodom pada na preflight-u pregledača, a `fastify.inject` testovi to NE vide. `methods` u `index.ts` sad nosi `PUT` i `DELETE`.
 - **`next dev` (Next 16) upisuje `apps/web/AGENTS.md` i `CLAUDE.md`** — brisati, ne komitovati. Lint (`react-hooks`) odbija `setState` sinhrono u efektu: vrijednost izvodi u renderu, URL parametar kroz `lib/useQuery.ts`.
 - **Paralelne sesije:** prije commita/builda u glavnom folderu provjeri `git status` i granu — tuđ nekomitovan rad se već nalazio u radnom stablu.

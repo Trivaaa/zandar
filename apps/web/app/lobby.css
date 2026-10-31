@@ -369,6 +369,35 @@
   outline-offset: 1px;
 }
 
+/* P1 „Pošalji pozivnicu" — glavno dugme bloka, isti oblik kao „Pokreni igru".
+   Dok sto nije pun, Pokreni je ugašeno, a kad se napuni ovo nestaje — na
+   ekranu je uvijek jedno istaknuto dugme. Veličina slova dolazi iz JSX-a. */
+.lobby__share {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--lobby-cta-h);
+  margin-top: 0.2rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--t-card-play) var(--ease-snap),
+    opacity var(--t-card-play) var(--ease-out-soft);
+}
+
+.lobby__share:active {
+  transform: scale(0.98);
+}
+
+.lobby__share:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
 /* Join requests */
 .lobby__requests {
   display: flex;

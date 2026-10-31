@@ -33,6 +33,8 @@ export type LobbyScreenProps = {
   inviteUrl: string;
   copied: boolean;
   onCopyInvite: () => void;
+  /** P1 „Pošalji pozivnicu" — sistemski meni za dijeljenje; nema ga kad je sto pun. */
+  onShareInvite?: (() => void) | undefined;
   joinRequests: { id: string; displayName: string }[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
@@ -69,6 +71,7 @@ export function LobbyScreen({
   inviteUrl,
   copied,
   onCopyInvite,
+  onShareInvite,
   joinRequests,
   onApprove,
   onReject,
@@ -121,6 +124,13 @@ export function LobbyScreen({
               {copied ? sr.lobby.copied : sr.lobby.copy}
             </button>
           </div>
+          {/* P1: glavno dugme bloka — Viber/WhatsApp jednim dodirom.
+              Kopiraj ostaje u redu sa linkom kao rezerva. */}
+          {onShareInvite ? (
+            <button type="button" className="lobby__share font-sans text-base" onClick={onShareInvite}>
+              {sr.lobby.share}
+            </button>
+          ) : null}
           {onInviteFriends ? (
             <button type="button" className="lobby__invite-friends font-sans text-sm" onClick={onInviteFriends}>
               {sr.invite.fromRoom}

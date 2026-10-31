@@ -42,10 +42,13 @@ function savePrefs(prefs: Prefs): void {
 export function InviteSheet({
   preselect,
   roomId,
+  onShareLink,
   onClose,
 }: {
   preselect?: string | undefined;
   roomId?: string | undefined;
+  /** F6 (tabla P1): iz lobija, nalog bez prijatelja dobija i dijeljenje linka. */
+  onShareLink?: (() => void) | undefined;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -107,7 +110,12 @@ export function InviteSheet({
   );
 
   return (
-    <Sheet title={sr.invite.title} closeLabel={sr.account.cancel} onClose={onClose}>
+    <Sheet
+      title={sr.invite.title}
+      // F6: bez prijatelja nema šta da se otkaže — „Zatvori", kao na tabli P1.
+      closeLabel={friends?.length === 0 ? sr.invite.close : sr.account.cancel}
+      onClose={onClose}
+    >
       {roomId ? null : (
         <div className="invite__options">
           <span className="invite__label">{sr.invite.options}</span>
@@ -123,7 +131,38 @@ export function InviteSheet({
       {friends === null ? (
         <span className="skeleton profile__skel-row" />
       ) : friends.length === 0 ? (
-        <p className="sheet__note sheet__note--muted">{sr.invite.noFriends}</p>
+        // F6: bez prijatelja list ne vodi u prazno — dodaj nekoga ili pošalji link.
+        <>
+          <p className="sheet__note">
+            <strong>{sr.friends.emptyTitle}</strong>
+          </p>
+          <p className="sheet__note sheet__note--muted">
+            {sr.friends.emptyBody}
+            {onShareLink ? ` ${sr.invite.emptyLink}` : ""}
+          </p>
+          <button
+            type="button"
+            className="home__cta sheet__btn"
+            onClick={() => {
+              onClose();
+              router.push("/prijatelji/dodaj");
+            }}
+          >
+            {sr.friends.addFriend}
+          </button>
+          {onShareLink ? (
+            <button
+              type="button"
+              className="home__friends sheet__btn"
+              onClick={() => {
+                onClose();
+                onShareLink();
+              }}
+            >
+              {sr.invite.linkInstead}
+            </button>
+          ) : null}
+        </>
       ) : (
         <div className="invite__list">
           {friends.map((f) => (
@@ -146,15 +185,17 @@ export function InviteSheet({
           ))}
         </div>
       )}
-      <button
-        type="button"
-        className="home__cta sheet__btn"
-        disabled={chosen.size === 0 || busy}
-        aria-busy={busy}
-        onClick={() => void send()}
-      >
-        {sr.invite.send(chosen.size)}
-      </button>
+      {friends?.length === 0 ? null : (
+        <button
+          type="button"
+          className="home__cta sheet__btn"
+          disabled={chosen.size === 0 || busy}
+          aria-busy={busy}
+          onClick={() => void send()}
+        >
+          {sr.invite.send(chosen.size)}
+        </button>
+      )}
       {error ? (
         <p className="acct__error" role="status">
           {error}
