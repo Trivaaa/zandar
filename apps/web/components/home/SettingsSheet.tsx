@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { DownloadIcon } from "@/components/icons";
+import { MetaConsentRow } from "@/components/MetaConsent";
 import { TableSetupFields } from "@/components/lobby/TableSetupFields";
 import {
   QUICK_PLAY_COUNTS,
@@ -89,6 +90,8 @@ export function SettingsSheet({
         </div>
 
         {feedbackSlot ? <div className="settings__feedback">{feedbackSlot}</div> : null}
+
+        <MetaConsentRow />
 
         {storeUrl ? (
           <a

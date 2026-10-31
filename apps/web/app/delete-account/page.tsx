@@ -32,7 +32,7 @@ export default function DeleteAccountPage() {
   return (
     <LegalPage
       title={identityUi ? "Brisanje naloga i podataka" : "Brisanje podataka"}
-      updated={identityUi ? "22. oktobar 2026." : "14. septembar 2026."}
+      updated="31. oktobar 2026."
     >
       <p>
         Ova stranica se odnosi na <strong>{BRAND}</strong> i igru Žandar
@@ -134,6 +134,16 @@ export default function DeleteAccountPage() {
           I bez zahtjeva prijavu brišemo kad pošaljemo obavještenje o toj igri
           ili odlučimo da je ne pravimo — a najkasnije{" "}
           <strong>24 mjeseca</strong> od prijave.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Mjerenje reklama (Meta)">
+        <p>
+          Ako si u Android aplikaciji dozvolio mjerenje reklama, povlačiš ga
+          sam: <strong>Profil → Postavke → Mjerenje reklama</strong>. Time
+          prestaje dalje slanje. Već poslane podatke čuva Meta i ne možemo ih
+          obrisati za tebe, pa se za njih obraćaš Meti. Reklamni identifikator
+          možeš promijeniti ili obrisati u podešavanjima telefona.
         </p>
       </LegalSection>
 

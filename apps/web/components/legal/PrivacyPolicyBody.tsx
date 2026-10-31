@@ -23,7 +23,7 @@ import {
  */
 // Tekst o nalogu (SPEC_IDENTITET T8) važi tek kad nalog postoji — iza istog
 // prekidača kao i sam UI, da politika nikad ne opisuje nešto čega nema.
-export const PRIVACY_UPDATED = identityUi ? "24. oktobar 2026." : "14. septembar 2026.";
+export const PRIVACY_UPDATED = "31. oktobar 2026.";
 
 export function PrivacyPolicyBody() {
   return (
@@ -122,6 +122,13 @@ export function PrivacyPolicyBody() {
             taj telefon.
           </li>
           <li>
+            <strong>Podaci za mjerenje reklama</strong> — samo u Android
+            aplikaciji i samo ako to dozvoliš. Meta dobija podatak da je
+            aplikacija instalirana i otvorena, reklamni identifikator telefona,
+            podatke o uređaju i aplikaciji i IP adresu. Ne šaljemo joj nadimak,
+            e-mail, ID uređaja ni bilo šta o tvojim partijama.
+          </li>
+          <li>
             <strong>Tehnički podaci</strong> koje šalje svaki uređaj: IP adresa,
             tip uređaja i pregledača, verzija aplikacije. IP adresa se pojavljuje
             u zapisnicima našeg servera i kod servisa navedenih ispod.
@@ -148,17 +155,23 @@ export function PrivacyPolicyBody() {
             <strong>Da razumijemo kako se igra koristi</strong> — koliko partija
             se odigra, gdje ljudi odustaju, koliko se čeka na sto.
           </li>
+          <li>
+            <strong>Da znamo koje reklame dovode nove igrače</strong> — igru
+            reklamiramo na Metinim mrežama (Facebook, Instagram). Ovo radimo samo
+            uz tvoju saglasnost u aplikaciji.
+          </li>
         </ul>
         <p>
-          Ne prodajemo podatke, ne dijelimo ih sa oglašivačima i ne koristimo ih
-          za profilisanje izvan gore navedenog. Aplikacija <strong>nema</strong>{" "}
-          oglase ni kupovine u aplikaciji.
+          Ne prodajemo podatke. Oglašivaču dajemo podatke samo u jednom slučaju:
+          Meti, za mjerenje naših reklama, ako to dozvoliš. Igra radi isto i ako
+          ne dozvoliš. Sama aplikacija <strong>nema</strong> oglase ni kupovine u
+          aplikaciji.
         </p>
       </LegalSection>
 
       <LegalSection title="Kome se podaci prosljeđuju">
         <p>
-          Koristimo četiri vanjska servisa. Svaki od njih obrađuje podatke na
+          Koristimo sljedeće vanjske servise. Svaki od njih obrađuje podatke na
           svojim serverima:
         </p>
         <ul className="space-y-1 list-disc list-inside">
@@ -203,6 +216,12 @@ export function PrivacyPolicyBody() {
             ako si ih uključio. Google dobija token uređaja i tekst
             obavještenja, na primjer nadimak igrača koji traži mjesto za tvojim
             stolom.
+          </li>
+          <li>
+            <strong>Meta Platforms</strong> (Irska; podaci se mogu prenositi u
+            Sjedinjene Američke Države) — mjerenje reklama, samo u Android
+            aplikaciji i samo ako to dozvoliš. Meta podatke koristi i prema
+            svojim pravilima privatnosti.
           </li>
         </ul>
         <p>
@@ -250,6 +269,11 @@ export function PrivacyPolicyBody() {
             Google javi da aplikacija više nije instalirana, a najkasnije{" "}
             <strong>60 dana</strong> poslije posljednjeg otvaranja aplikacije.
           </li>
+          <li>
+            <strong>Podatke za mjerenje reklama</strong> čuva Meta, prema svojim
+            pravilima. Povlačenjem saglasnosti prestaje dalje slanje, ali se
+            već poslani podaci time ne brišu.
+          </li>
         </ul>
       </LegalSection>
 
@@ -271,6 +295,11 @@ export function PrivacyPolicyBody() {
           kolačiće za oglašavanje.
         </p>
         <p>
+          Android aplikacija čuva i tvoj izbor o mjerenju reklama, a ako ga
+          dozvoliš, i Metin SDK na telefonu drži svoje podešavanja i događaje
+          koji još nisu poslani.
+        </p>
+        <p>
           Sve to obrišeš brisanjem podataka aplikacije, odnosno podataka sajta u
           pregledaču. Time gubiš i pristup partijama koje su u toku.
         </p>
@@ -279,12 +308,13 @@ export function PrivacyPolicyBody() {
       <LegalSection title="Razlike između web i Android verzije">
         <ul className="space-y-1 list-disc list-inside">
           <li>
-            <strong>Android aplikacija</strong> traži samo tri dozvole: pristup
-            internetu, vibraciju i obavještenja. Za obavještenja te Android 13 i
-            noviji pita izričito — i to tek kad u aplikaciji dodirneš
-            &bdquo;Uključi obavještenja&ldquo;. Nema pristup lokaciji, kameri,
-            mikrofonu, kontaktima, fotografijama ni datotekama, i ne koristi
-            reklamni identifikator.
+            <strong>Android aplikacija</strong> traži četiri dozvole: pristup
+            internetu, vibraciju, obavještenja i reklamni identifikator. Za
+            obavještenja te Android 13 i noviji pita izričito — i to tek kad u
+            aplikaciji dodirneš &bdquo;Uključi obavještenja&ldquo;. Reklamni
+            identifikator se čita samo ako dozvoliš mjerenje reklama, a možeš ga
+            promijeniti ili obrisati u podešavanjima telefona. Nema pristup
+            lokaciji, kameri, mikrofonu, kontaktima, fotografijama ni datotekama.
           </li>
           <li>
             <strong>Android rezervne kopije.</strong> Aplikacija dozvoljava
@@ -314,6 +344,11 @@ export function PrivacyPolicyBody() {
       </LegalSection>
 
       <LegalSection title="Tvoja prava i brisanje">
+        <p>
+          Saglasnost za mjerenje reklama povlačiš u aplikaciji:{" "}
+          <strong>Profil → Postavke → Mjerenje reklama</strong>. Već poslane
+          podatke čuva Meta, pa se za njih obraćaš Meti.
+        </p>
         <p>
           Prijavu za obavještenje možeš povući u bilo kom trenutku: piši na
           adresu ispod i navedi e-adresu koju si ostavio. Brišemo je za sve

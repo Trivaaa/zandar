@@ -356,6 +356,19 @@ export const sr = {
     quickPlay: "Brza igra",
     quickPlayNote: "Igraj na početnoj kreće s ovim izborom.",
   },
+  /* Saglasnost za Meta App Events (`components/MetaConsent.tsx`). NACRT, ide uz
+     pravni pregled politike privatnosti. */
+  metaConsent: {
+    title: "Mjerenje reklama",
+    body: "Da bismo znali koje reklame dovode nove igrače, aplikacija može poslati Meti (Facebook) podatak o instalaciji i otvaranju, zajedno s reklamnim identifikatorom telefona. Igra radi isto i ako ne dozvoliš. Izbor možeš promijeniti u Postavkama.",
+    policy: "Politika privatnosti",
+    accept: "Dozvoli",
+    decline: "Ne dozvoli",
+    on: "Uključeno",
+    off: "Isključeno",
+    turnOn: "Uključi",
+    turnOff: "Isključi",
+  },
   /* Samo web. U APK-u se sekcija ne renderuje. Imena prodavnica su obična
      oznaka mjesta dok zvanični artwork ne stigne uz živ URL (`lib/stores.ts`). */
   stores: {

@@ -4,4 +4,7 @@
     <string name="title_activity_main">Kartaonica</string>
     <string name="package_name">com.kartaonica.zandar</string>
     <string name="custom_url_scheme">com.kartaonica.zandar</string>
+    <string name="facebook_app_id">1087679437423023</string>
+    <!-- Meta App Dashboard: App settings → Advanced → Security. Dok je prazan, SDK se ne pokreće i nema događaja. -->
+    <string name="facebook_client_token"></string>
 </resources>
