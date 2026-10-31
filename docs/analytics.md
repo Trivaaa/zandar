@@ -178,7 +178,18 @@ pokretanju; sa pravim tokenom ide jednom.
 ostali neposlani (npr. bez mreže) ostaju na telefonu i šalju se samo ako igrač
 ponovo dozvoli; javnog API-ja za njihovo brisanje nema.
 
-**Provjeriti sa pravim tokenom (Events Manager → Test Events):** ručno prvo otvaranje
-nosi `_ui:"unknown"`, `_inBackground:"1"` i nema `_session_id`, za razliku od
-automatskog. Da li ga Meta priznaje vidi se samo tamo. Ako ne, ukloniti ga: prvo
-otvaranje se onda broji pri sljedećem otvaranju.
+**S10e, pravi token (2026-10-31):** bez konekcija prije saglasnosti, poslije odbijanja i
+poslije povlačenja; `MOBILE_APP_INSTALL` jednom, odgovor `success:true`. Events Manager
+(Overview) je poslije ~1 h pokazao 3 instalacije i 8 otvaranja: po jedna instalacija na
+svaku od tri svježe instalacije/brisanja podataka (13:50, 14:23, 14:40 UTC), dakle Meta
+ih ne spaja po telefonu i nema duplikata unutar jedne instalacije. Zadnje otvaranje i
+instalacija stigli su u 14:41 UTC, zajedno sa ručnim prvim otvaranjem, pa ga Meta prima
+(izvedeno iz vremena, ne iz pojedinačnog događaja; ručni događaj nosi `_ui:"unknown"`,
+`_inBackground:"1"`). Isti tok radi i na APK-u potpisanom upload ključem.
+
+**Test Events ostaje prazan** na ovom telefonu: prikazuje samo događaje koje Meta može
+vezati za nalog u Facebook aplikaciji, a `facebook-core` nema `<queries>` za nju. Dokaz
+prijema je Overview, uz kašnjenje do ~1 h. `<queries>` nije dodat namjerno: šalje i
+`attribution` iz Facebook aplikacije, što bi tražilo izmjenu saglasnosti.
+
+**Atribucija kampanje nije dokazana:** to vide tek pravi klikovi na reklamu.

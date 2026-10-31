@@ -921,3 +921,5 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Token:** `META_CLIENT_TOKEN` u `android/local.properties`, kroz `resValue`; release bez njega pada, jer bi inače tiho izašao paket bez događaja.
 
 **Zamka:** `facebook-android-sdk-current.zip` sa Metinog sajta je 4.42.0 iz 2019 (bez `AD_ID`, Support Library), ne koristiti.
+
+**Provjereno (S10e, pravi token):** Overview u Events Manageru pokazuje jednu instalaciju po svježoj instalaciji; Test Events ostaje prazan (vidi `docs/analytics.md`). Meč do kraja, push „neko kuca" sa tapom, pozivnice (hladno, toplo, `verified`) i Google prijava prošli. **Nije provjereno:** instalacija sa Play-a, atribucija stvarnog klika.
