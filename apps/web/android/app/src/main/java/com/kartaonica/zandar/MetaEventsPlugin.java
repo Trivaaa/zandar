@@ -3,7 +3,10 @@ package com.kartaonica.zandar;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.facebook.FacebookSdk;
 import com.facebook.appevents.AppEventsConstants;
@@ -37,6 +40,7 @@ public class MetaEventsPlugin extends Plugin {
     private static final String UNSET = "unset";
     // Staging ima isti prompt i čuva izbor, ali ne šalje ništa u Meta projekat.
     private static final String PRODUCTION_PACKAGE = "com.kartaonica.zandar";
+    private static final long RESTART_DELAY_MS = 3000;
 
     /** MainActivity, PRIJE super.onCreate: tracker mora vidjeti prvi resume. */
     static void startIfConsented(Context context) {
@@ -51,7 +55,7 @@ public class MetaEventsPlugin extends Plugin {
     @PluginMethod
     public void setConsent(PluginCall call) {
         boolean granted = Boolean.TRUE.equals(call.getBoolean("granted", false));
-        // commit, ne apply: poslije povlačenja proces odmah završava.
+        // commit, ne apply: poslije povlačenja proces završava.
         getContext()
             .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
@@ -60,8 +64,13 @@ public class MetaEventsPlugin extends Plugin {
         if (granted) {
             grant();
         } else if (FacebookSdk.isInitialized()) {
-            restartApp();
-            return;
+            // Događaji staju odmah, a proces završava tek kad WebView stigne da
+            // upiše localStorage (izmjereno: upis mlađi od ~1 s se gubi).
+            AppEventsLogger.setFlushBehavior(AppEventsLogger.FlushBehavior.EXPLICIT_ONLY);
+            new Handler(Looper.getMainLooper()).post(() -> {
+                Toast.makeText(getContext(), R.string.meta_restarting, Toast.LENGTH_LONG).show();
+                new Handler(Looper.getMainLooper()).postDelayed(this::restartApp, RESTART_DELAY_MS);
+            });
         }
         call.resolve(status());
     }

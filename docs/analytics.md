@@ -149,9 +149,12 @@ Stari `facebook-android-sdk-current.zip` sa Metinog sajta je 4.42.0 iz 2019: ne 
   saglasnosti SDK kod ne radi. Pokreće ga samo `sdkInitialize`, koji je javan, ali
   `@Deprecated`: provjeriti pri svakoj nadogradnji. Instalaciju šalje sam SDK kad
   učita postavke; dodatni `activateApp` bi dao dva zahtjeva za instalaciju.
-- **Povlačenje ponovo pokreće aplikaciju.** SDK koji radi nema javni način gašenja:
-  sa ugašenim logovanjem i `EXPLICIT_ONLY` i dalje je dohvatao `mobile_sdk_gk`.
-  Novi proces ga više ne diže.
+- **Povlačenje ponovo pokreće aplikaciju, 3 s poslije dodira.** SDK koji radi nema
+  javni način gašenja: sa ugašenim logovanjem i `EXPLICIT_ONLY` i dalje je dohvatao
+  `mobile_sdk_gk`. Novi proces ga više ne diže, a odbijena saglasnost ne pokreće
+  ništa, pa petlje nema. Događaji staju odmah. Odgoda postoji zbog WebView-a: upis u
+  localStorage mlađi od ~1 s se pri završetku procesa gubi (0–750 ms izgubljeno, 1000 ms
+  sačuvano). Ako igrač za te 3 s izađe iz aplikacije, proces samo završi.
 - **Automatsko logovanje u Events Manageru mora ostati uključeno**, inače SDK ne
   šalje ništa bez obzira na kod.
 
@@ -165,6 +168,7 @@ lažan Client Token — Meta je zahtjeve odbila, pa ovo NIJE dokaz prijema):
 | Pozadina 10 s i povratak, hladan start < 60 s | nema novog otvaranja |
 | Pozadina 75 s i povratak, hladan start poslije 75 s | po 1 otvaranje |
 | Povlačenje, 60 s, pa pozadina 65 s i povratak | novi proces, 0 konekcija ka Meti, 0 SDK logova |
+| Upis pa povlačenje bez razmaka, 8 puta | upis sačuvan 8/8, proces stabilan, bez petlje i pada |
 | Ponovna dozvola | događaji kreću ponovo |
 
 Lažan token ne upisuje „instalacija poslana", pa se zahtjev ponavlja pri svakom

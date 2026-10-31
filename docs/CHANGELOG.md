@@ -914,7 +914,9 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 
 **Dva zahtjeva za instalaciju:** SDK sam zove `activateApp` čim učita postavke (`FetchedAppSettingsManager` → `AutomaticAnalyticsLogger.logActivateAppEvent`), a oznaku „poslano" upisuje tek poslije uspješnog odgovora, pa je naš dodatni poziv mogao poslati drugi zahtjev. Uklonjen; pokretanje je sad samo `sdkInitialize`.
 
-**Povlačenje:** `EXPLICIT_ONLY` zaustavlja događaje, ali SDK i dalje dohvata `mobile_sdk_gk`, a javnog gašenja nema. Povlačenje sad pokreće aplikaciju ponovo (launch intent + `exit`, izbor upisan `commit`-om). Red je samo u Postavkama, nikad za stolom. Time su otpali `EXPLICIT_ONLY`, `setAdvertiserIDCollectionEnabled` i grana za ponovnu dozvolu u istom procesu.
+**Povlačenje:** `EXPLICIT_ONLY` zaustavlja događaje, ali SDK i dalje dohvata `mobile_sdk_gk`, a javnog gašenja nema. Povlačenje sad pokreće aplikaciju ponovo (launch intent + `exit`, izbor upisan `commit`-om). Red je samo u Postavkama, nikad za stolom. Time su otpali `setAdvertiserIDCollectionEnabled` i grana za ponovnu dozvolu u istom procesu.
+
+**Zamka:** završetak procesa odmah poslije dodira gubi localStorage upis mlađi od ~1 s (izmjereno 0–750 ms izgubljeno, 1000 ms sačuvano), pa bi npr. izbor iz istog lista Postavki nestao. Zato `EXPLICIT_ONLY` odmah, Toast i restart tek poslije 3 s: 8/8 upisa sačuvano.
 
 **Token:** `META_CLIENT_TOKEN` u `android/local.properties`, kroz `resValue`; release bez njega pada, jer bi inače tiho izašao paket bez događaja.
 
