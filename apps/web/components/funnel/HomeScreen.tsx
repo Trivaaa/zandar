@@ -22,7 +22,7 @@ export type HomeScreenProps = {
   /** Napravi sto i pozovi prijatelje (`/create`). */
   onCreate: () => void;
   onOpenGame: (game: GameConfig) => void;
-  onNotify: () => void;
+  onNotify: (game: GameConfig) => void;
   /** Prikaz reda „Uskoro" (analitika). Zove se jednom po prikazu. */
   onUpcomingViewed?: (() => void) | undefined;
   /** Privatnost / uslovi / o nama — samo web (Google OAuth traži link sa
@@ -107,7 +107,7 @@ function UpcomingSection({
   onViewed,
 }: {
   games: readonly GameConfig[];
-  onNotify: () => void;
+  onNotify: (game: GameConfig) => void;
   onViewed?: (() => void) | undefined;
 }) {
   const ref = useSeenOnce<HTMLElement>(onViewed);
@@ -119,7 +119,7 @@ function UpcomingSection({
       <ul className="home-tiles">
         {games.map((game) => (
           <li key={game.slug}>
-            <UpcomingTile game={game} onNotify={onNotify} />
+            <UpcomingTile game={game} onNotify={() => onNotify(game)} />
           </li>
         ))}
       </ul>

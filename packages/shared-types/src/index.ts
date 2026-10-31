@@ -565,12 +565,18 @@ type NoProps = Record<string, never>;
  * događaj ili parametar koji nije ovdje ne kompajlira. Bez nadimaka, e-adresa
  * i bilo čega što je igrač ukucao.
  */
+/** `GET /api/signups` (samo uz `ADMIN_TOKEN`): pregled prijava za vlasnika. */
+export type SignupListItem = { game: UpcomingGameSlug; email: string; createdAt: number };
+export type SignupListResponse = { signups: SignupListItem[] };
+
 export type AnalyticsEvents = {
   // — klijent —
   first_open: NoProps;
   play_requested: { mode: MatchMode };
   teaser_opened: { game: string };
   upcoming_games_viewed: NoProps;
+  /** Dodir na pločicu najavljene igre na početnoj, bez obzira na to da li je ostavljena adresa. */
+  upcoming_game_tapped: { game: string };
   /** Gost je postao nalog (isti `uid`). Prijava na postojeći nalog NIJE ovo. */
   account_registered: { method: "password" | "google" };
   // — server —
@@ -613,6 +619,7 @@ export type ClientAnalyticsEvent =
   | "play_requested"
   | "teaser_opened"
   | "upcoming_games_viewed"
+  | "upcoming_game_tapped"
   | "account_registered";
 
 export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;

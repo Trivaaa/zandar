@@ -694,6 +694,20 @@ export const sr = {
     loadErrorBody: "Provjeri internet vezu i pokušaj ponovo.",
   },
   /* „Pošalji pozivnicu" (QA P1) — tabla „Pozivnica — tekstovi", share.msg.a. */
+  adminSignups: {
+    title: "Prijave za nove igre",
+    tokenLabel: "Admin token",
+    open: "Prikaži prijave",
+    opening: "Otvaram…",
+    refresh: "Osvježi",
+    download: "Preuzmi CSV",
+    wrongToken: "Token nije prihvaćen.",
+    network: "Server se ne javlja. Pokušaj ponovo.",
+    empty: "Još nema prijava.",
+    addresses: (n: number) => `${n} ${pluralForm(n, "adresa", "adrese", "adresa")}`,
+    note: "Jedna prijava sa početne važi za sve najavljene igre, pa spisak igara ne pokazuje interes po igri.",
+  },
+
   share: {
     title: "Pozivnica za Žandar",
     msg: (host: string, players: number, missing: number, link: string) =>
