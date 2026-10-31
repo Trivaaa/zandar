@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, mock, test } from "node:test";
 
 import posthog from "posthog-js";
 
-import { recordAccount, recordFirstOpen, track } from "./track";
+import { recordAccount, recordFirstOpen, recordInviteOpened, recordInviteShared, track } from "./track";
 
 /**
  * Gate analitike: PostHog dobija događaje SAMO u produkcijskom buildu.
@@ -87,6 +87,68 @@ describe("recordAccount", () => {
       assert.equal(setProps.mock.callCount(), 0);
     });
   }
+});
+
+describe("recordInviteShared", () => {
+  test("meni → share, kopiranje → copy", () => {
+    const capture = mock.method(posthog, "capture", () => undefined);
+    setAppEnv("production");
+    recordInviteShared("sto1", "shared");
+    recordInviteShared("sto1", "copied");
+    assert.deepEqual(capture.mock.calls[0]!.arguments[1], { room_id: "sto1", method: "share" });
+    assert.deepEqual(capture.mock.calls[1]!.arguments[1], { room_id: "sto1", method: "copy" });
+  });
+
+  test("odustajanje iz menija → ništa", () => {
+    const capture = mock.method(posthog, "capture", () => undefined);
+    setAppEnv("production");
+    recordInviteShared("sto1", "cancelled");
+    assert.equal(capture.mock.callCount(), 0);
+  });
+});
+
+describe("recordInviteOpened", () => {
+  function stubSessionStorage(): Map<string, string> {
+    const session = new Map<string, string>();
+    Object.assign(globalThis, {
+      sessionStorage: {
+        getItem: (k: string) => session.get(k) ?? null,
+        setItem: (k: string, v: string) => void session.set(k, v),
+      },
+    });
+    return session;
+  }
+
+  afterEach(() => {
+    delete (globalThis as Record<string, unknown>).sessionStorage;
+  });
+
+  test("osvježavanje iste sobe se ne broji, druga soba se broji", () => {
+    stubSessionStorage();
+    const capture = mock.method(posthog, "capture", () => undefined);
+    setAppEnv("production");
+    recordInviteOpened("sto1", 2);
+    recordInviteOpened("sto1", 2);
+    recordInviteOpened("sto2", 1);
+    assert.equal(capture.mock.callCount(), 2);
+    assert.deepEqual(capture.mock.calls[0]!.arguments[1], { room_id: "sto1", seats_left: 2 });
+  });
+
+  test("bez sessionStorage-a događaj ipak ide", () => {
+    const capture = mock.method(posthog, "capture", () => undefined);
+    setAppEnv("production");
+    recordInviteOpened("sto1", 1);
+    assert.equal(capture.mock.callCount(), 1);
+  });
+
+  test("van produkcije → bez događaja i bez oznake", () => {
+    const session = stubSessionStorage();
+    const capture = mock.method(posthog, "capture", () => undefined);
+    setAppEnv("staging");
+    recordInviteOpened("sto1", 1);
+    assert.equal(capture.mock.callCount(), 0);
+    assert.equal(session.size, 0);
+  });
 });
 
 describe("recordFirstOpen van produkcije", () => {

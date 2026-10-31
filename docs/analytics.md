@@ -91,6 +91,10 @@ skida). U PostHogu: *Filter out internal and test users* → `is_tester = true`.
 | `teaser_opened` | klijent | Otvorena stranica buduće igre. | `game` |
 | `upcoming_games_viewed` | klijent | Sekcija budućih igara ušla u ekran. | — |
 | `account_registered` | klijent | Gost je postao nalog (isti `uid`): e-mail registracija ili povezivanje Googlea (`lib/account.ts`). Prijava na postojeći nalog NE šalje događaj. | `method` (`password` \| `google`) |
+| `invite_shared` | klijent | Host poslao link kroz sistemski meni ili ga kopirao (`lib/track.ts`). Zatvoren meni NE šalje događaj. Na Androidu znači da je izabrana aplikacija, ne da je poruka stigla. | `room_id`, `method` (`share` | `copy`) |
+| `invite_opened` | klijent | Gost otvorio link sobe u kojoj nema sjedište; jednom po sobi u sesiji pregledača. Ne kad već ima zapamćen zahtjev, ni kad soba ne postoji. | `room_id`, `seats_left` |
+| `join_requested` | server | Zahtjev za ulazak primljen. Pun sto (409) NE šalje događaj. Bez guestId-a (stari klijent) nema događaja. | `room_id`, `platform?` |
+| `join_approved` | server | Host odobrio ulazak; ide gostu. | `room_id`, `wait_ms`, `platform?` |
 
 Osobina osobe `registered=true` (`recordAccount` u `lib/track.ts`) postavlja se
 uz `account_registered` i na svaku prijavu na postojeći nalog (novi uređaj).
@@ -124,6 +128,9 @@ Uklonjeni (ostaju u istoriji PostHoga, bez backfill-a): `game_started`,
 | Nove registracije | Trends → `account_registered` → Total count (Line po danu; „Cumulative" za ukupno; breakdown `method` / `platform`) |
 | Aktivni registrovani | Trends → `match_started` → Unique users, filter osobe `registered = true` |
 | Konverzija u nalog | Funnel `first_open` → `account_registered` |
+| Lijevak pozivnice (gost) | Funnel `invite_opened` → `join_requested` → `join_approved` → `match_ended{completed}`, po osobi |
+| Pozivnice po hostu | `invite_shared`: unique `room_id`, breakdown `method`. Otvaranja po sobi: spojiti sa `invite_opened` preko `room_id` (host i gost su različite osobe) |
+| Propali zahtjevi | `join_requested` − `join_approved`: zbir odbijenih i isteklih, ne razlikuju se; `wait_ms` blizu 120000 znači da je host kasnio |
 
 Orijentiri (casual kartaške igre, zapisani PRIJE podataka): D1 30–35%, D7
 12–15%, D30 ~5%, aktivacija 50–60%, završetak ≥70%, DAU/MAU 15–20%. Sedmična

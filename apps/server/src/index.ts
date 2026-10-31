@@ -53,6 +53,8 @@ import {
 } from "./pause";
 import { posthog, track } from "./lib/posthog";
 import {
+  joinApprovedEvent,
+  joinRequestedEvent,
   matchEndedEvents,
   matchStartedEvents,
   parseGuestId,
@@ -495,6 +497,9 @@ fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
 
     room.joinRequests.set(requestId, joinReq);
 
+    const requested = joinRequestedEvent(roomId, joinReq);
+    if (requested) track(requested.distinctId, requested.event, requested.properties);
+
     io.to(roomId).emit("room:joinRequested", {
       requestId,
       displayName: joinReq.displayName,
@@ -643,6 +648,9 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
     req.status = "approved";
     req.playerId = playerId;
     req.sessionToken = sessionToken;
+
+    const approved = joinApprovedEvent(roomId, req, Date.now());
+    if (approved) track(approved.distinctId, approved.event, approved.properties);
 
     // Uređaj iz zahtjeva prelazi na sjedište — odatle ga čita "partija počinje".
     if (req.pushIdHash) {
