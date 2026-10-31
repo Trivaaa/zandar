@@ -897,3 +897,15 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Provjereno:** u paketu `versionName` 1.2.1, `versionCode` 4, `@capacitor/share`, bez `server.url`, produkcijski API i Firebase, bez staging adresa, potpis upload ključem (`EA:71:38…`, isti u `assetlinks.json`). Na kartaonica.com `/room/<id>` servira kod sa `lobby__share`; `/health` = `production`.
 
 **Nije provjereno:** paket nije pokretan na uređaju (`adb` prazan); sistemski meni i kartica u Viberu/WhatsAppu (P1-4) i dalje nisu viđeni na telefonu.
+
+## 109. Meta App Events za Android, uz saglasnost (2026-10-31, `feat/meta-app-events`)
+
+**Šta:** `facebook-core` 19.0.0 za prvu Meta App Install kampanju: samo instalacija i otvaranje. Prompt jednom na početnoj (nikad preko sobe), povlačenje u Postavkama, politika privatnosti i `/delete-account` dopunjeni. Verzija 1.3.0 (`versionCode 5`).
+
+**Odluke:** `FacebookInitProvider` izbačen, jer bi SDK dizao prije saglasnosti. `AutoInitEnabled=false` ga ne zaustavlja: `GraphResponse.fromHttpConnection` blokira tek odgovor, a sdkInitialize se ipak izvrši. Četiri `ACCESS_ADSERVICES_*` dozvole uklonjene (daljinski prekidač bi kroz njih mogao uključiti custom audience). Metapodaci ekrana isključeni (`AutoLogMetaDataEnabled`, `AutoLogProductImprovementEnabled`). Gate po paketu umjesto `BuildConfig`: staging ima pravi prompt, a ne šalje ništa.
+
+**Zamke:** `setAutoLogAppEventsEnabled(false)` ne zaustavlja tracker koji već radi. `EXPLICIT_ONLY` zaustavlja slanje događaja, ali ne i dohvatanje postavki. Tracker pokrenut poslije resume-a ne vidi to otvaranje, otud jedan ručni `logEvent` pri prvoj dozvoli. Emulator na ovoj mašini: Avast MITM daje `net_error -202` u WebView-u pa „Failed to fetch"; za test `webview-command-line` sa `--ignore-certificate-errors` + `am set-debug-app`. Meta zahtjevi i sa lažnim tokenom dobijaju pravi odgovor.
+
+**Provjereno (emulator, lažan token):** tabela u `docs/analytics.md`; staging: pozivnica na hladan start bez prompta preko sobe, partija do prvog poteza, Nazad = odbijanje. Merged manifest bez providera i ADSERVICES, `AD_ID` prisutan.
+
+**Nije provjereno:** prijem u Events Manageru (Client Token nije stigao), S10e (wireless debugging ugašen), Google prijava i push u ovoj verziji, instalacija sa Play-a.

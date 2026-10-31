@@ -360,7 +360,7 @@ export const sr = {
      pravni pregled politike privatnosti. */
   metaConsent: {
     title: "Mjerenje reklama",
-    body: "Da bismo znali koje reklame dovode nove igrače, aplikacija može poslati Meti (Facebook) podatak o instalaciji i otvaranju, zajedno s reklamnim identifikatorom telefona. Igra radi isto i ako ne dozvoliš. Izbor možeš promijeniti u Postavkama.",
+    body: "Da bismo znali koje reklame dovode nove igrače, aplikacija može poslati Meti (Facebook) podatak o instalaciji i otvaranju, zajedno s reklamnim identifikatorom telefona i osnovnim podacima o uređaju. Igra radi isto i ako ne dozvoliš. Izbor možeš promijeniti u Postavkama.",
     policy: "Politika privatnosti",
     accept: "Dozvoli",
     decline: "Ne dozvoli",

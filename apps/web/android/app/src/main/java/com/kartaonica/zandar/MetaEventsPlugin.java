@@ -17,12 +17,13 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  * Meta App Events: instalacija i otvaranje, samo uz saglasnost igrača.
  *
  * FacebookInitProvider je izbačen iz manifesta, jer bi inače SDK dizao pri
- * svakom pokretanju procesa (i uz AutoInitEnabled=false dohvata postavke sa
- * mreže). Ovaj fajl je zato JEDINO mjesto koje pokreće SDK. Neuspjeh se samo
- * zapiše: bez mjerenja igra radi isto.
+ * svakom pokretanju procesa, prije saglasnosti (AutoInitEnabled=false ga ne
+ * zaustavlja: blokira tek odgovor na zahtjev). Ovaj fajl je zato JEDINO mjesto
+ * koje pokreće SDK. Neuspjeh se samo zapiše: bez mjerenja igra radi isto.
  *
- * Povlačenje važi do kraja procesa kroz EXPLICIT_ONLY (ništa se ne šalje samo),
- * a od sljedećeg pokretanja SDK se više ne diže. Izmjereno ponašanje: docs/analytics.md.
+ * Povlačenje: EXPLICIT_ONLY zaustavlja slanje događaja do kraja procesa, ali SDK
+ * koji već radi može još dohvatati svoje postavke. Od sljedećeg pokretanja se više
+ * ne diže. Izmjereno ponašanje i ograničenja: docs/analytics.md.
  */
 @CapacitorPlugin(name = "MetaEvents")
 public class MetaEventsPlugin extends Plugin {

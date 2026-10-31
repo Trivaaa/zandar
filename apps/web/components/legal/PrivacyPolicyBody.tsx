@@ -124,9 +124,12 @@ export function PrivacyPolicyBody() {
           <li>
             <strong>Podaci za mjerenje reklama</strong> — samo u Android
             aplikaciji i samo ako to dozvoliš. Meta dobija podatak da je
-            aplikacija instalirana i otvorena, reklamni identifikator telefona,
-            podatke o uređaju i aplikaciji i IP adresu. Ne šaljemo joj nadimak,
-            e-mail, ID uređaja ni bilo šta o tvojim partijama.
+            aplikacija instalirana i otvorena i koliko je dugo bila otvorena,
+            reklamni identifikator telefona, nasumičan identifikator instalacije
+            koji pravi Metin SDK, podatke o uređaju (model, jezik, vremenska zona,
+            mobilni operater, veličina ekrana), verziju aplikacije i IP adresu.
+            Ne šaljemo joj nadimak, e-mail, ID uređaja ni bilo šta o tvojim
+            partijama.
           </li>
           <li>
             <strong>Tehnički podaci</strong> koje šalje svaki uređaj: IP adresa,
@@ -271,8 +274,12 @@ export function PrivacyPolicyBody() {
           </li>
           <li>
             <strong>Podatke za mjerenje reklama</strong> čuva Meta, prema svojim
-            pravilima. Povlačenjem saglasnosti prestaje dalje slanje, ali se
-            već poslani podaci time ne brišu.
+            pravilima. Povlačenjem saglasnosti prestaje slanje događaja, ali se
+            već poslani podaci time ne brišu. Dok ne zatvoriš aplikaciju, Metin
+            SDK može još preuzeti svoja podešavanja s Metinog servera, bez
+            događaja i bez reklamnog identifikatora; od sljedećeg pokretanja ne
+            radi uopšte. Događaji nastali do zatvaranja aplikacije ostaju na
+            telefonu i šalju se samo ako kasnije ponovo dozvoliš mjerenje.
           </li>
         </ul>
       </LegalSection>

@@ -1,7 +1,8 @@
 # Analitika — Kartaonica
 
-Jedini alat je **PostHog** (EU). KPI-evi se računaju u PostHogu iz sirovih
-događaja — u kodu nema metrika, agregacija ni `dau` događaja.
+Analitika proizvoda je **PostHog** (EU). KPI-evi se računaju u PostHogu iz
+sirovih događaja — u kodu nema metrika, agregacija ni `dau` događaja. Meta App
+Events služi samo za mjerenje reklama i ne dijeli ništa sa PostHogom (dno stranice).
 
 ## Okruženja — šalje SAMO produkcija
 
@@ -129,3 +130,50 @@ Orijentiri (casual kartaške igre, zapisani PRIJE podataka): D1 30–35%, D7
 kohorta ispod ~100 novih igrača se ne čita kao broj — samo trend.
 
 Timezone projekta: `Europe/Sarajevo`, ne mijenja se.
+
+## Meta App Events (Android, samo uz saglasnost)
+
+Svrha: mjerenje Meta App Install kampanja. Šalje se samo instalacija i otvaranje;
+nema `setUserID`, ručnih događaja o igri ni prosljeđivanja iz PostHoga. Kod:
+`MetaEventsPlugin.java`, `components/MetaConsent.tsx`, `facebook-core` 19.0.0.
+
+- **Saglasnost:** prompt jednom na `/`, nikad preko sobe; Nazad i dodir van lista
+  znače „Ne dozvoli". Izbor se mijenja u Profil → Postavke → Mjerenje reklama.
+- **Okruženja:** SDK se pokreće samo pod paketom `com.kartaonica.zandar`. Staging
+  ima isti prompt i čuva izbor, ali ne šalje ništa. Dev petlja (`dev:android`) je
+  na produkcijskom paketu: tester koji dozvoli šalje prave događaje.
+- **Pokretanje:** `FacebookInitProvider` je izbačen iz manifesta, pa prije
+  saglasnosti SDK kod ne radi. `sdkInitialize` je javan, ali `@Deprecated`:
+  provjeriti pri svakoj nadogradnji SDK-a.
+- **Automatsko logovanje u Events Manageru mora ostati uključeno**, inače SDK ne
+  šalje ništa bez obzira na kod.
+
+Izmjereno 2026-10-31 (emulator Android 14, SDK logovi + proxy koji bilježi host,
+lažan Client Token — Meta je zahtjeve odbila, pa ovo NIJE dokaz prijema):
+
+| Scenario | Rezultat |
+|---|---|
+| Svjež start bez odgovora, odbijanje, odbijanje + restart | 0 konekcija ka Meti |
+| Dozvola | `MOBILE_APP_INSTALL`, 1 `fb_mobile_activate_app` |
+| Pozadina 10 s i povratak, hladan start < 60 s | nema novog otvaranja |
+| Pozadina 75 s i povratak, hladan start poslije 75 s | po 1 otvaranje |
+| Povlačenje, 40 s | nema zahtjeva |
+| Povlačenje, pozadina 75 s, povratak (isti proces) | nema slanja događaja; `mobile_sdk_gk` se još dohvata |
+| Povlačenje + restart | 0 konekcija ka Meti |
+| Ponovna dozvola | sačuvani događaji iz perioda povlačenja se šalju |
+
+**Ograničenja povlačenja:** `EXPLICIT_ONLY` ne gasi SDK koji već radi. Do kraja
+procesa događaji i dalje nastaju lokalno, a SDK može dohvatati postavke (Metin
+server vidi IP; u URL-u nema reklamnog identifikatora). Sačuvani događaji se šalju
+samo ako igrač ponovo dozvoli; javnog API-ja za njihovo brisanje nema. Već poslano
+ostaje kod Mete.
+
+**Provjeriti sa pravim tokenom (Events Manager → Test Events):**
+- Ručno prvo otvaranje nosi `_ui:"unknown"`, `_inBackground:"1"` i nema `_session_id`,
+  za razliku od automatskog. Da li ga Meta priznaje vidi se samo u Events Manageru.
+  Ako ne, ukloniti ga: prvo otvaranje se onda broji pri sljedećem otvaranju.
+- U jednom pokretanju viđena su dva `MOBILE_APP_INSTALL` zahtjeva, a jedini pozivalac
+  u SDK-u je jedan `activateApp`. Uzrok nije utvrđen. Mora se pojaviti tačno jedna
+  instalacija.
+- Učestalost `mobile_sdk_gk`: lažan token daje grešku, pa se dohvata pri svakom
+  događaju; po kodu SDK-a keš inače traje sat vremena.
