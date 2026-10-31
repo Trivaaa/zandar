@@ -31,7 +31,10 @@ android {
         resValue "string", "facebook_client_token", metaClientToken
         // Domen čije pozivnice (/room/<id>) otvaraju aplikaciju — App Links
         // intent-filter u AndroidManifest-u. Staging ga nadjačava niže.
-        manifestPlaceholders = [deepLinkHost: "kartaonica.com"]
+        // Google Analytics je FAIL-CLOSED kao i PostHog: uključuje ga samo `release`
+        // niže. `debug` čita produkcijski google-services.json, pa bi inače razvojna
+        // petlja slala podatke u produkcijski GA.
+        manifestPlaceholders = [deepLinkHost: "kartaonica.com", googleAnalyticsEnabled: "false"]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -53,6 +56,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : null
+            manifestPlaceholders = [googleAnalyticsEnabled: "true"]
         }
         // Staging se instalira PORED produkcijske aplikacije (drugi applicationId),
         // pa se isti ekran moze uporediti prije nego promjena ode korisnicima.
@@ -85,6 +89,10 @@ dependencies {
     implementation "com.android.installreferrer:installreferrer:2.2"
     // Meta App Events (MetaEventsPlugin): samo core, bez Login/Share modula.
     implementation "com.facebook.android:facebook-core:19.0.0"
+    // Google Analytics — samo automatski događaji (first_open, session_start...), bez
+    // JS-a. Prekidač je u manifestu, po build tipu. Verzija iz BoM-a 34.12, koji nosi
+    // iste firebase-auth i firebase-messaging kao Capacitor pluginovi.
+    implementation "com.google.firebase:firebase-analytics:23.2.0"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

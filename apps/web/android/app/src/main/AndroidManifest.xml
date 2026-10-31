@@ -81,6 +81,26 @@
         <meta-data
             android:name="com.facebook.sdk.AutoLogProductImprovementEnabled"
             android:value="false" />
+
+        <!-- Google Analytics: placeholder po build tipu (build.gradle), uključen
+             samo u `release`. Služi samo za statistiku, pa su reklamni signali
+             isključeni i ne uzima reklamni ID; AD_ID u paketu postoji samo zbog
+             Mete, uz saglasnost igrača. -->
+        <meta-data
+            android:name="firebase_analytics_collection_enabled"
+            android:value="${googleAnalyticsEnabled}" />
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_storage"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_user_data"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="false" />
     </application>
 
     <!-- Permissions -->

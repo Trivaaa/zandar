@@ -226,6 +226,15 @@ export function PrivacyPolicyBody() {
             aplikaciji i samo ako to dozvoliš. Meta podatke koristi i prema
             svojim pravilima privatnosti.
           </li>
+          <li>
+            <strong>Google Analytics for Firebase</strong> (Sjedinjene Američke
+            Države) — zbirna statistika korišćenja, samo u Android aplikaciji.
+            Automatski bilježi instalacije i otvaranja aplikacije, trajanje
+            korišćenja, model uređaja, verziju sistema i aplikacije, zemlju i
+            približnu lokaciju izvedenu iz IP adrese, vezano za nasumičan
+            identifikator instalacije. Ne dobija tvoj e-mail, nadimak, ID uređaja
+            ni reklamni identifikator.
+          </li>
         </ul>
         <p>
           Web verziju hostuje <strong>Vercel</strong>. Pisma koja nam pošalješ
@@ -264,6 +273,12 @@ export function PrivacyPolicyBody() {
             ranije — vidi ispod.
           </li>
           <li>
+            <strong>Podaci u Google Analyticsu</strong> ostaju onoliko koliko
+            traje rok čuvanja podešen kod tog servisa. Nisu vezani za tvoj nalog
+            ni ID uređaja, pa ih ne možemo pronaći po tvom zahtjevu; identifikator
+            instalacije nestaje brisanjem podataka aplikacije ili deinstalacijom.
+          </li>
+          <li>
             <strong>Zapisnici servera</strong> (uključujući IP adrese) čuvaju se
             onoliko koliko ih Railway drži u svom sistemu zapisnika.
           </li>
@@ -297,7 +312,8 @@ export function PrivacyPolicyBody() {
           Pored toga, <strong>PostHog upisuje svoj kolačić i svoj zapis</strong>{" "}
           u lokalno skladište (imena počinju sa <code>ph_</code>), sa rokom od
           godinu dana. Osim tog kolačića, sami ne postavljamo kolačiće i nemamo
-          kolačiće za oglašavanje.
+          kolačiće za oglašavanje. U Android aplikaciji Google Analytics na
+          uređaju čuva i svoj identifikator instalacije.
         </p>
         <p>
           Android aplikacija čuva i tvoj izbor o mjerenju reklama, a ako ga

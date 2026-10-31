@@ -4,6 +4,15 @@ Analitika proizvoda je **PostHog** (EU). KPI-evi se računaju u PostHogu iz
 sirovih događaja — u kodu nema metrika, agregacija ni `dau` događaja. Meta App
 Events služi samo za mjerenje reklama i ne dijeli ništa sa PostHogom (dno stranice).
 
+Uz njega Android aplikacija ima **Google Analytics for Firebase**, samo sa
+automatskim događajima (`first_open`, `session_start`, `app_update`...), bez
+JS-a, vlastitih događaja i `guestId`-a; nije izvor nijednog KPI-ja ispod.
+Uključen je SAMO u `release` buildu (`firebase_analytics_collection_enabled` kroz
+placeholder u `app/build.gradle`), jer `debug` čita produkcijski
+`google-services.json`. Ne uzima reklamni ID (`google_analytics_adid_collection_enabled=false`); dozvola
+`AD_ID` u paketu postoji samo zbog Mete. Ne čeka saglasnost za Metu.
+Web nema GA dok se ne riješi saglasnost za EU.
+
 ## Okruženja — šalje SAMO produkcija
 
 Analitika je **fail-closed**. Uključuje je samo tačna vrijednost:

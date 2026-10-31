@@ -977,3 +977,13 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 **Provjera:** server 191, web 119, typecheck, lint = osnovica, `next build`, `build:mobile` (bez `out/admin`). E2E u Chromeu sa pravim serverom, produkcijskim buildom i presretnutim PostHogom: dva dodira daju dva događaja, pogrešan token ne daje adrese, jedna adresa sa dvije igre je jedan red, CSV radi, adresa i token nisu ni u URL-u, storage-u ni u dekodiranim zahtjevima analitike. Jedan prazan `/e/` zahtjev nije dekodiran. **Snimak sesije nije testiran** (presretnuti config ga ne pali), a u pravom PostHogu događaj nije gledan.
 
 **Zamka za testove analitike:** PostHog u `HeadlessChrome` ne šalje NIŠTA (filter botova), pa „adresa nije u analitici" tada prolazi uprazno. Provjera mora prvo vidjeti da događaji stižu; test ide sa običnim user-agentom.
+
+## 114. Google Analytics u Android aplikaciji (2026-10-31, `feat/ga-android`)
+
+**Povod:** vlasnik je napravio GA4 Android stream na Firebase projektu `kartaonica---production`. App ID streama je isti kao u `src/release/google-services.json`, pa fajl nije mijenjan.
+
+**Izmjene:** `firebase-analytics:23.2.0` u `app/build.gradle` (verzija iz BoM-a 34.12, firebase-auth i firebase-messaging ostaju 24.0.1 / 25.0.1). Samo automatski događaji, bez JS-a. Prekidač `firebase_analytics_collection_enabled` ide kroz manifest placeholder `googleAnalyticsEnabled`: podrazumijevano `false`, `true` samo u `release`. Reklamni signali su isključeni i GA ne uzima reklamni ID. Dozvola `AD_ID` namjerno ostaje, jer je Meta atribuciji treba: prva verzija ove izmjene, rađena iz `main`-a, uklanjala ju je i tiho bi ugasila atribuciju poslije spajanja, pa je grana prebačena na `release/1.3.0`. PostHog ostaje izvor KPI-eva. Web namjerno nema GA dok se ne riješi saglasnost za EU. Politika privatnosti i `docs/analytics.md` dopunjeni.
+
+**Zamka:** `debug` čita PRODUKCIJSKI `google-services.json`, pa bi bez prekidača razvojna petlja slala podatke u produkcijski GA.
+
+**Provjereno:** spojeni manifesti debug/staging = `false`, release = `true`, `AD_ID` prisutan u sva tri; web testovi 124/124, tsc; staging APK na S10e pokrenut bez pada, log `FA: App measurement disabled via the manifest`. **Nije provjereno uživo:** `release` paket i stvarni događaji u GA vide se tek sa instalacije sa Play-a.
