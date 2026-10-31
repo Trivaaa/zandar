@@ -27,7 +27,11 @@ const useIsomorphicLayoutEffect =
 
 export function useGameEvents(
   state: PrivateGameStateView,
-  onEvent: (event: GameEvent) => void,
+  onEvent: (
+    event: GameEvent,
+    next: PrivateGameStateView,
+    prev: PrivateGameStateView | null,
+  ) => void,
 ): void {
   const prevRef = useRef<PrivateGameStateView | null>(null);
 
@@ -36,7 +40,7 @@ export function useGameEvents(
     if (prev) {
       if (prev.stateVersion !== state.stateVersion) {
         for (const event of deriveGameEvents(prev, state, state.myPlayerId)) {
-          onEvent(event);
+          onEvent(event, state, prev);
         }
       }
     } else if (
@@ -50,11 +54,15 @@ export function useGameEvents(
       // Nema `prev` iz kojeg bi se izveo obim dijeljenja, pa ga čitamo iz samog
       // snapshota: sve karte koje sada stoje u rukama i na stolu upravo su
       // podijeljene (kupljenja još nema — to je uslov iznad).
-      onEvent({
-        type: "deal",
-        perSeat: Math.max(0, ...Object.values(state.handCounts).map((n) => n ?? 0)),
-        toTable: state.table.length,
-      });
+      onEvent(
+        {
+          type: "deal",
+          perSeat: Math.max(0, ...Object.values(state.handCounts).map((n) => n ?? 0)),
+          toTable: state.table.length,
+        },
+        state,
+        null,
+      );
     }
     prevRef.current = state;
   }, [state, onEvent]);

@@ -18,7 +18,8 @@ export type SfxName =
   | "turn"
   | "deal"
   | "win"
-  | "lose";
+  | "lose"
+  | "news";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -135,6 +136,9 @@ function render(name: SfxName): void {
     case "lose": // poraz — silazni dvotonac
       tone(440, 0, 0.18, "triangle", 0.4);
       tone(349.23, 0.16, 0.3, "triangle", 0.4);
+      break;
+    case "news": // mala ili velika kod našeg tima — jedan tih ton (G5)
+      tone(783.99, 0, 0.18, "sine", 0.25);
       break;
   }
 }

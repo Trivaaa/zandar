@@ -21,16 +21,12 @@ function listJoin(names: string[]): string {
 }
 
 export const sr = {
-  // Zaglavlje stola. "Runda" je ono sto igrac broji za stolom; u kodu je to
-  // `handNumber` (dijeljenje). Ne mijenjati jedno bez drugog.
   header: {
-    round: (n: number) => `Runda ${n}`,
     menu: "Meni",
   },
   menu: {
     title: "Meni",
     rules: "Pravila igre",
-    score: "Rezultat",
     leave: "Izađi na početnu",
     close: "Zatvori",
   },
@@ -99,6 +95,31 @@ export const sr = {
   score: {
     title: "Rezultat",
     target: (n: number) => `do ${n}`,
+    /* Traka rezultata na stolu. "Runda" je ono sto igrac broji za stolom; u kodu
+       je to `handNumber` (dijeljenje). Ne mijenjati jedno bez drugog. */
+    barRound: (n: number) => `Runda ${n}`,
+    barTarget: (n: number) => `do ${n}`,
+    barNear: (n: number) => `fali ${n}`,
+    barAria: (sides: string) => `Rezultat: ${sides}. Dodirni za detalje.`,
+    we: "Mi",
+    they: "Oni",
+    you: "Ti",
+    newsOursSmall: "Mala je naša!",
+    newsTheirsSmall: "Mala ide njima",
+    newsOursBig: "Velika je naša!",
+    newsTheirsBig: "Velika ide njima",
+    /* 2P/3P: bez roda i bez "naša". */
+    newsYoursSmall: "Mala je tvoja!",
+    newsYoursBig: "Velika je tvoja!",
+    newsOtherSmall: (name: string) => `Mala ide ${name}`,
+    newsOtherBig: (name: string) => `Velika ide ${name}`,
+    newsSub: (name: string) => `${name} · na kraju dijeljenja`,
+    newsHandEnd: "Kraj dijeljenja",
+    newsHandEndSub: "karte, trefovi, mala, velika",
+    detailsTitle: "Rezultat",
+    thisHand: "Ovo dijeljenje",
+    playTo: (n: number) => `igra se do ${n}`,
+    points: (n: number) => `${n} ${pluralForm(n, "poen", "poena", "poena")}`,
     teamA: "Tim A",
     teamB: "Tim B",
     expand: "Prikaži razradu",

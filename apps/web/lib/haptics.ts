@@ -14,6 +14,7 @@ import { getHaptics } from "./settings";
 export const HAPTIC = {
   turn: 25,
   capture: [12, 30, 18],
+  news: 15, // jedna laka: mala ili velika kod našeg tima
   error: [40, 30, 40],
   confirm: [20, 40, 40], // osjetna potvrda kod paljenja preklopke
 } as const;

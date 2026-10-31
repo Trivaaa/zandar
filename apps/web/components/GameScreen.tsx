@@ -29,12 +29,22 @@ import { SeatCaption } from "@/components/felt/SeatCaption";
 import { DeckPile } from "@/components/felt/DeckPile";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { FeltHeader } from "@/components/felt/FeltHeader";
+import { ScoreBar } from "@/components/felt/ScoreBar";
+import { ScoreDetails } from "@/components/felt/ScoreDetails";
 import { arrangeSeats } from "@/lib/seating";
 import { sr } from "@/lib/sr";
 import { ReactionBubble } from "@/components/overlay/EmojiReactions";
 import { vibrate, HAPTIC } from "@/lib/haptics";
 import { playSfx } from "@/lib/sound";
 import { useGameEvents } from "@/lib/useGameEvents";
+import {
+  barView,
+  cardNews,
+  detailRows,
+  handEndNews,
+  handEndPending,
+} from "@/lib/scoreBar";
+import { useScoreNews } from "@/lib/useScoreNews";
 import { useTableBeat } from "@/lib/useTableBeat";
 import { dealFromDeck } from "@/lib/flyAnimation";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -47,7 +57,7 @@ import type { ActiveReaction } from "@/lib/reactions";
  *
  * Spaja sve B-komponente sa public game state-om: pozicijski sto (TableSeats +
  * GameTable), TableArea (capture/trail), HandArea (fluid tap), TurnTimer na
- * aktivnom, ScorePill, ReactionFab, PauseAbandonOverlay (uklj. abandoned ekran).
+ * aktivnom, ScoreBar, ReactionFab, PauseAbandonOverlay (uklj. abandoned ekran).
  * Bot-agnostičan — koristi samo PublicPlayer/PrivateGameStateView.
  */
 
@@ -127,9 +137,9 @@ export function GameScreen({
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  // Meni i razrada rezultata su prezentacijski; otvorenost drži ekran.
+  // Meni i detalji rezultata su prezentacijski; otvorenost drži ekran.
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scoreOpen, setScoreOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
 
   useEffect(() => {
@@ -173,12 +183,47 @@ export function GameScreen({
     [],
   );
   const endSfxRef = useRef<"win" | "lose" | null>(null);
-  const handleGameEvent = useCallback((event: GameEvent) => {
+
+  // Potez kao slijed na stolu, ne kao panel preko njega (vidi `useTableBeat`).
+  const beat = useTableBeat(state, {
+    onLand: () => playSfx("place"),
+    onCollect: (m) => {
+      setFlash((f) => ({ key: f.key + 1, sweep: m.jackSweep }));
+      playSfx(m.jackSweep ? "sweep" : "capture");
+      if (m.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
+    },
+  });
+
+  const interrupted =
+    state.phase === "paused_for_reconnect" ||
+    state.phase === "abandon_vote" ||
+    state.phase === "abandoned";
+  // Vijest u traci rezultata čeka da karta sleti, da ne oda potez unaprijed.
+  const { queue: newsQueue, enqueue: enqueueScoreNews } = useScoreNews(
+    beat.phase !== "land" && beat.phase !== "hold",
+    `${state.matchId}:${state.handNumber}:${interrupted}`,
+  );
+
+  const handleGameEvent = useCallback((
+    event: GameEvent,
+    next: PrivateGameStateView,
+    prev: PrivateGameStateView | null,
+  ) => {
     switch (event.type) {
-      // `capture` i `trail` NISU ovdje. Njihov zvuk, flash i haptika su ranije
-      // padali svi u isti trenutak — zajedno sa panelom koji je pokrivao sto.
-      // Sad potez ima DVA trenutka (karta dodirne sto / karte odlete u pile), a
-      // vlasnik tog sata je `useTableBeat`.
+      // Zvuk, flash i haptika kupljenja i traila NISU ovdje. Ranije su padali svi
+      // u isti trenutak — zajedno sa panelom koji je pokrivao sto. Sad potez ima
+      // DVA trenutka (karta dodirne sto / karte odlete u pile), a vlasnik tog sata
+      // je `useTableBeat`. Ovdje je samo vijest o maloj i velikoj.
+      case "capture": {
+        const news = (event.scoring ?? []).flatMap((key) => {
+          const pile = next.liveHand?.breakdown[key]?.winnerPileId;
+          return pile === undefined
+            ? []
+            : [cardNews(key, pile, event.playerId, next.players, next.myPlayerId)];
+        });
+        if (news.length > 0) enqueueScoreNews(news);
+        break;
+      }
       case "deal": {
         if (prefersReducedMotion()) {
           // Nema ni leta ni zadržavanja — karte su već u ruci, ostaje zvuk.
@@ -194,24 +239,20 @@ export function GameScreen({
         vibrate(HAPTIC.turn);
         break;
       case "matchEnd":
+      case "handEnd": {
         // Ne odmah: rezultat se pokaže tek kad zadnji potez završi na stolu,
         // a fanfara prije njega bi odala ishod dok karte još lete.
-        endSfxRef.current = event.iWon ? "win" : "lose";
+        // handEnd nema zvuk (matchEnd nosi rezultat), ali oba idu kroz traku.
+        if (event.type === "matchEnd") endSfxRef.current = event.iWon ? "win" : "lose";
+        const hand = next.handScores.at(-1);
+        if (hand) {
+          enqueueScoreNews([handEndNews(hand, next.players, next.myPlayerId, prev?.liveHand)]);
+        }
         break;
-      // handEnd → bez zvuka (matchEnd nosi rezultat)
+      }
     }
-  }, []);
+  }, [enqueueScoreNews]);
   useGameEvents(state, handleGameEvent);
-
-  // Potez kao slijed na stolu, ne kao panel preko njega (vidi `useTableBeat`).
-  const beat = useTableBeat(state, {
-    onLand: () => playSfx("place"),
-    onCollect: (m) => {
-      setFlash((f) => ({ key: f.key + 1, sweep: m.jackSweep }));
-      playSfx(m.jackSweep ? "sweep" : "capture");
-      if (m.byMe) vibrate(HAPTIC.capture); // haptika samo za MOJE kupljenje
-    },
-  });
 
   /*
    * Sat dijeljenja. Čeka da se potez odigra do kraja (`beat.phase === "idle"`)
@@ -281,7 +322,15 @@ export function GameScreen({
    * nema beat i rezultat se vidi odmah.
    */
   const endReveal = (isHandOver || isMatchOver) && beat.phase !== "idle";
-  const showResult = (isHandOver || isMatchOver) && !endReveal;
+  // I traka prvo kaže „Kraj dijeljenja · Mi +3 · Oni +1". Ulazak u već završenu
+  // ruku nema `handEnd`, pa ni te vijesti, i rezultat ide odmah.
+  const showResult =
+    (isHandOver || isMatchOver) && !endReveal && !handEndPending(newsQueue);
+  if (detailsOpen && !isPlaying) {
+    // Pri renderu, kao i ostala otkazivanja ovdje: bez kadra sa panelom preko
+    // kraja ruke, i bez ponovnog otvaranja u sljedećoj ruci.
+    setDetailsOpen(false);
+  }
   useEffect(() => {
     if (!showResult || !endSfxRef.current) return;
     playSfx(endSfxRef.current);
@@ -294,10 +343,6 @@ export function GameScreen({
   // Opcije na stolu tek kad se sto smiri — do tada je nacrtan stari raspored.
   const tableCard = tableBusy ? null : selectedCard;
 
-  const interrupted =
-    state.phase === "paused_for_reconnect" ||
-    state.phase === "abandon_vote" ||
-    state.phase === "abandoned";
   const reactionsDisabled = interrupted;
   const pauseFrame =
     state.phase === "abandoned"
@@ -343,10 +388,13 @@ export function GameScreen({
   // Isto za Back u pregledaču (web); u aplikaciji to radi stek iznad.
   useBrowserBackGuard(!isNative, matchLive && !!onLeave, () => requestLeave?.());
 
+  const closeDetails = useCallback(() => setDetailsOpen(false), []);
+
   async function play(cardId: string, captureIds: string[]) {
     if (busy) return;
     setBusy(true);
     setError(null);
+    setDetailsOpen(false);
     try {
       await onPlayCard(cardId, captureIds);
       setSelectedId(null);
@@ -448,6 +496,21 @@ export function GameScreen({
   // Pozicijski raspored: ti dole, partner gore, protivnici lijevo/desno.
   const seats = arrangeSeats(state.players, state.myPlayerId);
 
+  // Prsten iz ugla igrača, iste boje kao Mi/Oni u traci.
+  const toneOf = (player: PublicPlayer) =>
+    player.teamId === undefined ? undefined : player.teamId === me?.teamId ? "a" : "b";
+
+  const scoreView = barView({
+    players: state.players,
+    myPlayerId: state.myPlayerId,
+    playing: isPlaying,
+    matchScore: state.matchScore,
+    targetScore: state.targetScore,
+    handNumber: state.handNumber,
+    liveHand: state.liveHand,
+    queue: newsQueue,
+  });
+
   // Dok karte "padaju" (i dok se na njih čeka) ne prikazuj odbrojavanje —
   // jasan slijed na startu runde.
   const showTimer = deal.phase === "none" && turnDeadline != null;
@@ -539,22 +602,38 @@ export function GameScreen({
       data-sides={seats.oppL || seats.oppR ? "true" : "false"}
       data-table={tableTheme}
     >
-      <FeltHeader
-        roundLabel={sr.header.round(state.handNumber)}
-        onMenu={() => setMenuOpen(true)}
-        rightSlot={<FeedbackToggles />}
-      />
+      <FeltHeader onMenu={() => setMenuOpen(true)}>
+        <ScoreBar
+          view={scoreView}
+          news={newsQueue.current}
+          detailsOpen={detailsOpen}
+          onToggleDetails={() => {
+            if (isPlaying) setDetailsOpen((v) => !v);
+          }}
+        />
+      </FeltHeader>
+
+      {detailsOpen && (
+        <ScoreDetails
+          view={scoreView}
+          rows={detailRows(state.liveHand, scoreView.sides)}
+          targetLine={sr.score.playTo(state.targetScore)}
+          roundLine={sr.score.barRound(state.handNumber).toLowerCase()}
+          onClose={closeDetails}
+        />
+      )}
 
       {/* Partner / jedini protivnik — gore-centar, ispod zaglavlja.
 
           Nije više PRISLONJEN uz zaglavlje: lepeza poleđina viri iznad avatara,
           a ona je apsolutna i ne širi kutiju sjedišta — pa bez ovog razmaka
-          karte ulaze u traku, pod čip "Runda N". `--stage-partner-lift` je ista
+          karte ulaze u traku rezultata. `--stage-partner-lift` je ista
           vrijednost koju `--table-top` dodaje stolu, deklarisana jednom u
           `felt.css`. Na 3P je 0 — tamo ovog sjedišta nema. */}
       {seats.partner && (
         <PlayerSeat
           player={seats.partner}
+          teamTone={toneOf(seats.partner)}
           isActive={isPlaying && state.currentPlayerId === seats.partner.id}
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
@@ -581,6 +660,7 @@ export function GameScreen({
       {seats.oppL && (
         <PlayerSeat
           player={seats.oppL}
+          teamTone={toneOf(seats.oppL)}
           isActive={isPlaying && state.currentPlayerId === seats.oppL.id}
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
@@ -596,6 +676,7 @@ export function GameScreen({
       {seats.oppR && (
         <PlayerSeat
           player={seats.oppR}
+          teamTone={toneOf(seats.oppR)}
           isActive={isPlaying && state.currentPlayerId === seats.oppR.id}
           secondsRemaining={showTimer ? turnSeconds : 0}
           totalSeconds={TURN_TOTAL_SECONDS}
@@ -694,6 +775,7 @@ export function GameScreen({
       {seats.me && (
         <PlayerSeat
           player={seats.me}
+          teamTone={toneOf(seats.me)}
           isYou
           isActive={myTurn}
           cardCount={0}
@@ -721,10 +803,6 @@ export function GameScreen({
         />
       </div>
 
-      {/* Rezultat vise nije pilula u cosku — presao je u meni (hamburger).
-          Gornji desni cosak je po referenci zvuk, a broj po igracu sad stoji
-          ispod imena na svakom sjedistu. */}
-
       {/* Špil — stanjuje se kako runde idu; sidro za deal animaciju. Lijevi
           pojas u visini tvog sjedišta: donji lijevi ugao je sad tvoje sjedište,
           a ne prazan felt. */}
@@ -737,10 +815,6 @@ export function GameScreen({
         />
       )}
 
-      {/* Ugao sa "? Pravila" i preklopkama je rasformiran: pravila su u meniju,
-          preklopke su u zaglavlju (desni slot = "zvuk" iz reference). Time je
-          nestao i cijeli razlog za `pointer-events` gimnastiku oko njih. */}
-
       {/* Meni stola. Scrim i pozicioniranje daje ekran, komponenta samo
           sadržaj — isti dogovor kao kod pauze i kraja ruke. */}
       {menuOpen && (
@@ -750,12 +824,6 @@ export function GameScreen({
         >
           <div onClick={(e) => e.stopPropagation()} className="w-full flex justify-center">
             <GameMenuSheet
-              players={state.players}
-              matchScore={state.matchScore}
-              targetScore={state.targetScore}
-              handScores={lastHandScore ? [lastHandScore] : []}
-              scoreExpanded={scoreOpen}
-              onToggleScore={() => setScoreOpen((v) => !v)}
               onRules={() => {
                 setMenuOpen(false);
                 setRulesOpen(true);
@@ -768,7 +836,11 @@ export function GameScreen({
       )}
 
       {/* Overlay: reactions */}
-      <ReactionFab onReact={onReact} disabled={reactionsDisabled} />
+      <ReactionFab
+        onReact={onReact}
+        disabled={reactionsDisabled}
+        aboveFab={<FeedbackToggles stacked />}
+      />
 
       {/* Reakcije se sad prikazuju uz svako sjedište (seatReaction) — vidi gore. */}
 

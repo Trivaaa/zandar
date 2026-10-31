@@ -21,6 +21,6 @@ export {
 } from "./identity";
 export type { GeneratedWithMeta } from "./identity";
 export { deriveGameEvents, isJackSweep } from "./gameEvents";
-export type { GameEvent, EventSnapshot } from "./gameEvents";
+export type { GameEvent, EventSnapshot, ScoringCard } from "./gameEvents";
 
 export const VERSION = "0.0.1";

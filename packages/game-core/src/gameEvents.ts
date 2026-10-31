@@ -5,6 +5,11 @@
 // snapshota klijentskog state-a. Pokreće feedback sloj (zvuk/haptika/animacije).
 // NE mijenja state — samo ga čita. Drži se game-core charter-a (state in, result out).
 
+/** Bodovna karta koja nosi poen sama po sebi: mala (2♣) i velika (10♦). */
+export type ScoringCard = "twoOfClubs" | "tenOfDiamonds";
+
+const SCORING_CARDS: readonly ScoringCard[] = ["twoOfClubs", "tenOfDiamonds"];
+
 /** Tipovi feedback događaja. */
 export type GameEvent =
   /**
@@ -14,7 +19,17 @@ export type GameEvent =
    * zadnjeg dijeljenja u ruci, kad špil ne stigne da podijeli pune 4.
    */
   | { type: "deal"; perSeat: number; toTable: number }
-  | { type: "capture"; byMe: boolean; jackSweep: boolean; playerId: string }
+  | {
+      type: "capture";
+      byMe: boolean;
+      jackSweep: boolean;
+      playerId: string;
+      /**
+       * Bodovne karte koje je ovaj potez odnio. Niz, ne jedna vrijednost: 10♦
+       * kojom se kupe 2♣ + 8 nosi obje odjednom, a može i J. Nema ga kad je prazan.
+       */
+      scoring?: ScoringCard[];
+    }
   | { type: "trail"; byMe: boolean }
   | { type: "yourTurn" }
   | { type: "handEnd" }
@@ -35,6 +50,13 @@ export type EventSnapshot = {
   targetScore: number;
   handNumber: number;
   players: readonly { id: string; teamId?: number }[];
+  /** Ruka u toku; opciono jer ga stariji server ne šalje. */
+  liveHand?: {
+    breakdown: {
+      twoOfClubs?: { winnerPileId?: string | undefined } | undefined;
+      tenOfDiamonds?: { winnerPileId?: string | undefined } | undefined;
+    };
+  };
 };
 
 function sum(rec: Record<string, number>): number {
@@ -58,6 +80,21 @@ function myPileId(snap: EventSnapshot, myPlayerId: string): string {
  */
 export function isJackSweep(prevTableSize: number, nextTableSize: number): boolean {
   return prevTableSize > 0 && nextTableSize === 0;
+}
+
+/**
+ * Bodovne karte koje su dobile vlasnika između dva snapshota. Ne zavisi od toga
+ * kojom kartom su odnesene, pa ni od `jackSweep`-a: poen je osvojen i kad ih nosi
+ * žandar. Bez `liveHand`-a u `prev` nema s čim da se poredi (server tek dobio
+ * polje), pa se ništa ne prijavljuje umjesto da se javi davno odnesena karta.
+ */
+function newScoringCards(prev: EventSnapshot, next: EventSnapshot): ScoringCard[] {
+  if (!prev.liveHand || !next.liveHand) return [];
+  const before = prev.liveHand.breakdown;
+  const after = next.liveHand.breakdown;
+  return SCORING_CARDS.filter(
+    (key) => after[key]?.winnerPileId !== undefined && before[key]?.winnerPileId === undefined,
+  );
 }
 
 /**
@@ -120,11 +157,13 @@ export function deriveGameEvents(
   // Kupljenje vs trailanje.
   const capturedDelta = sum(next.capturedCounts) - sum(prev.capturedCounts);
   if (capturedDelta > 0) {
+    const scoring = newScoringCards(prev, next);
     events.push({
       type: "capture",
       byMe,
       jackSweep: isJackSweep(prev.table.length, next.table.length),
       playerId: mover,
+      ...(scoring.length > 0 ? { scoring } : {}),
     });
   } else if (next.table.length === prev.table.length + 1) {
     // Karta spuštena na sto bez kupljenja.

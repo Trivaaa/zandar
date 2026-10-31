@@ -897,3 +897,29 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Provjereno:** u paketu `versionName` 1.2.1, `versionCode` 4, `@capacitor/share`, bez `server.url`, produkcijski API i Firebase, bez staging adresa, potpis upload ključem (`EA:71:38…`, isti u `assetlinks.json`). Na kartaonica.com `/room/<id>` servira kod sa `lobby__share`; `/health` = `production`.
 
 **Nije provjereno:** paket nije pokretan na uređaju (`adb` prazan); sistemski meni i kartica u Viberu/WhatsAppu (P1-4) i dalje nisu viđeni na telefonu.
+
+## 109. Rezultat uživo na stolu, koncept B (2026-10-31, `feat/live-score`)
+
+**Šta:** traka rezultata u `FeltHeader`-u umjesto čipa „Runda N" (`ScoreBar`): Mi : Oni, +N do kraja dijeljenja, „fali N" blizu kraja. Kad neko odnese 2♣ ili 10♦, traka 1,5 s postane vijest u boji tima, pa se vrati rezultat sa +1; vibracija i tih zvuk samo za naš tim. Na kraju ruke traka kaže „Kraj dijeljenja · Mi +3 · Oni +1", pa tek onda ide `RoundEndOverlay`. Dodir na traku otvara `ScoreDetails` ispod nje, igra ne staje. Zvuk i vibracija su dolje desno iznad reakcija. Spec: `docs/Specs/SPEC_REZULTAT_UZIVO.md`.
+
+**Podaci:** klijent nije imao trefove ni vlasnike male i velike do kraja ruke. Dodato je jedno opciono polje, `PrivateGameStateView.liveHand` = `calculateHandScore(state)`: isto pravilo kao na kraju ruke, pa klijent ne odlučuje o bodovima, a `breakdownRows` radi nad njim bez izmjene. `GameState` nije diran, pa snapshot i hidracija nisu pogođeni. `capture.scoring` je razlika vlasnika između dva snapshota.
+
+**Odluke gdje se spec i kod razilaze:**
+- `scoring` je niz, ne jedna vrijednost: 10♦ kojom se kupe 2♣ + 8 nosi obje odjednom, pa idu dvije vijesti jedna za drugom.
+- J sweep koji nosi malu ili veliku DOBIJA vijest (odluka vlasnika): poen je stvarno osvojen, a `isJackSweep` ne razlikuje žandara od obične karte koja isprazni sto. Sweep bez njih nema vijest.
+- Zadnji potez ruke nema zasebnu vijest o maloj i velikoj; pokriva ih „Kraj dijeljenja".
+- Prsten oko avatara je sad iz ugla igrača (`teamTone`): ranije je `teamId 0` uvijek bio plav, pa bi igrač iz tima 1 svoj tim vidio u boji koju traka daje protivnicima. Lobi ostaje apsolutan.
+- Panel je ispod trake i bez scrima (slika b-b5 pokazuje drugačije, važi spec): zatvara ga `pointerdown` bez `stopPropagation`, pa isti dodir i bira kartu.
+- Red mala/velika u panelu ostaje iz `breakdownRows` (velika prva), isti kao na kraju ruke.
+
+**Zamke:**
+- Vijest ne smije krenuti kad stigne snapshot: to je ~540 ms prije nego karte odlete. Red čeka fazu beat-a. Red je stanje, a ne `onCollect`, jer novi potez poništava tajmere beat-a i vijest vezana za njih bi se izgubila.
+- Server `matchScore` novog stanja šalje u istom snapshotu kao zadnji potez, pa traka do kraja vijesti crta `matchScore − pointsByPile` i +N iz `liveHand`-a prije poteza.
+- `/dev/game` nije povećavao `capturedCounts` pri kupljenju, pa `deriveGameEvents` nije vidio potez; mock je popravljen, a dodati su potezi `mala|velika|obje|sweepmala` i parametri `held`, `score`, `team`.
+- Okvir trake je `outline`, ne `border`: border je dugme spuštao na 42 px, ispod mete od 44.
+
+**Posljedice:** u meniju više nema razrade prethodne ruke tokom igre; `ScorePill` ostaje samo u `/dev/overlays`; `RoundEndOverlay` i dalje piše „Tim A / Tim B".
+
+**Provjereno:** game-core 178 (+11), server 186 (+4), web 115 (+23), typecheck, lint = osnovica, `next build` i `build:mobile`. Prava ruka protiv botova na lokalnom serveru (headless Chrome, 360×740): vijest 1,92 s, protivnička bez vibracije, ukupni broj se mijenja tek na kraju (1 : 4, isto kao overlay), overlay poslije vijesti, dodir na kartu zatvara panel i bira kartu. Rubni slučajevi kroz `/dev/game` 26/26: obje karte, J sweep, 2P, igrač iz tima 1, reduced-motion (1526 ms, bez animacije i linije). Izmjereno na 360×740 i 390×844: zaglavlje 56 px kao i prije, traka 44 px, lepeza partnera 9 px ispod trake, bez sudara dugmadi sa rukom i sa najdužom rečenicom u `TurnBanner`-u.
+
+**Nije provjereno:** ništa na uređaju (vibracija je presretnuta u pregledaču, Android nazad nije gađan, zvuk nije slušan). Čitač ekrana nije pokretan; `aria-live` je provjeren samo po sadržaju. 3P traka je gledana samo na mocku; na 360 px sa +1 kod oba dugo ime u 2P ostaje na prvom slovu („B…").

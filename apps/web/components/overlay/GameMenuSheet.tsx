@@ -1,17 +1,8 @@
 "use client";
 
-import type { HandScore, PublicPlayer } from "@zandar/shared-types";
-import { ScorePill } from "./ScorePill";
 import { sr } from "@/lib/sr";
 
 export type GameMenuSheetProps = {
-  players: PublicPlayer[];
-  matchScore: Record<string, number>;
-  targetScore: number;
-  handScores?: HandScore[];
-  /** Razrada rezultata — stanje drži ekran, kao i kod ScorePill-a na feltu. */
-  scoreExpanded: boolean;
-  onToggleScore: () => void;
   onRules: () => void;
   onLeave?: (() => void) | undefined;
   onClose: () => void;
@@ -19,26 +10,13 @@ export type GameMenuSheetProps = {
 };
 
 /**
- * Meni stola — odredište hamburgera iz zaglavlja.
- *
- * Skuplja ono što je ranije živjelo po ćoškovima felta: rezultat (bio je pilula
- * gore-desno, gdje referenca ima zvuk), pravila (dugme gore-lijevo) i izlaz
- * (bio dostupan samo kroz kraj partije ili prekid).
- *
- * Rezultat renderuje POSTOJEĆI `ScorePill` — bez `scorepill--compact`, jer je
- * razlog za kompaktnost bio zauzet vrh ekrana, a ovdje mjesta ima. Nema
- * duplikata te komponente i nema novog propa na njoj.
+ * Meni stola — odredište hamburgera iz zaglavlja: pravila i izlaz. Rezultat je
+ * na stolu, u traci u zaglavlju (`ScoreBar`), pa ovdje više nema svoj blok.
  *
  * Scrim i pozicioniranje daje ekran; ovdje je samo sadržaj (isti dogovor kao
  * `RoundEndOverlay`).
  */
 export function GameMenuSheet({
-  players,
-  matchScore,
-  targetScore,
-  handScores = [],
-  scoreExpanded,
-  onToggleScore,
   onRules,
   onLeave,
   onClose,
@@ -54,16 +32,6 @@ export function GameMenuSheet({
       <div className="gamemenu__grip" aria-hidden="true" />
 
       <div className="gamemenu__scroll">
-        <span className="gamemenu__label font-sans text-sm text-muted">{sr.menu.score}</span>
-        <ScorePill
-          players={players}
-          matchScore={matchScore}
-          targetScore={targetScore}
-          handScores={handScores}
-          expanded={scoreExpanded}
-          onToggle={onToggleScore}
-        />
-
         <button type="button" className="gamemenu__item font-sans text-base" onClick={onRules}>
           {sr.menu.rules}
         </button>

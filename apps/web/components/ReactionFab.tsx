@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { ReactionType } from "@zandar/shared-types";
 import { EmojiReactionRow } from "@/components/overlay/EmojiReactions";
 
@@ -23,12 +23,15 @@ type ReactionFabProps = {
   /** Pauza/abandon — onemogući reakcije. */
   disabled?: boolean;
   cooldownMs?: number;
+  /** Dugmad iznad FAB-a (zvuk i vibracija); sklone se dok je panel otvoren. */
+  aboveFab?: ReactNode;
 };
 
 export function ReactionFab({
   onReact,
   disabled = false,
   cooldownMs = 2000,
+  aboveFab,
 }: ReactionFabProps) {
   const [open, setOpen] = useState(false);
   // Preostali cooldown u ms — odbrojava se na 0 (bez Date.now, SSR-safe).
@@ -78,6 +81,8 @@ export function ReactionFab({
             className="animate-fade-in"
           />
         )}
+
+        {panelOpen ? null : aboveFab}
 
         {/* FAB */}
         <button

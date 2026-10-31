@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
     "start": "tsx src/index.ts",
-    "test": "tsx --test src/signups.test.ts src/rateLimit.test.ts src/analytics.test.ts src/posthog.test.ts src/push/messages.test.ts src/push/devices.test.ts src/push/fcm.test.ts src/quickplay.test.ts src/trustProxy.test.ts src/auth/idToken.test.ts src/profile/nickname.test.ts src/profile/store.test.ts src/profile/results.test.ts src/profile/routes.test.ts src/profile/cleanup.test.ts src/publicPlayer.test.ts src/profile/friends.test.ts src/profile/friendRoutes.test.ts src/profile/invites.test.ts src/socketGuard.test.ts src/roomSwitch.test.ts src/pause.test.ts"
+    "test": "tsx --test src/signups.test.ts src/rateLimit.test.ts src/analytics.test.ts src/posthog.test.ts src/push/messages.test.ts src/push/devices.test.ts src/push/fcm.test.ts src/quickplay.test.ts src/trustProxy.test.ts src/auth/idToken.test.ts src/profile/nickname.test.ts src/profile/store.test.ts src/profile/results.test.ts src/profile/routes.test.ts src/profile/cleanup.test.ts src/publicPlayer.test.ts src/profile/friends.test.ts src/profile/friendRoutes.test.ts src/profile/invites.test.ts src/socketGuard.test.ts src/roomSwitch.test.ts src/pause.test.ts src/gameStateView.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.0.1",

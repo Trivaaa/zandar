@@ -794,10 +794,6 @@
   gap: 0.5rem;
 }
 
-.gamemenu__label {
-  padding-inline: 0.15rem;
-}
-
 .gamemenu__item {
   display: flex;
   align-items: center;

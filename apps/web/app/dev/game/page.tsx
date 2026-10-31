@@ -20,6 +20,9 @@ import { GameScreen } from "@/components/GameScreen";
  *   /dev/game?move=redeal              → zadnja karta runde: potez + dijeljenje
  *   /dev/game?phase=hand_finished&tie=1 → razrada ruke, nerijeseno na kartama
  *   /dev/game?table=wood|cloth         → podloga stola (`TABLE_THEMES`)
+ *   /dev/game?move=mala&turn=left      → kupljenje male; vijest u traci rezultata
+ *   /dev/game?held=both&score=17,12    → +1 kod oba, blizu kraja („fali N")
+ *   /dev/game?team=1                   → igrač je u timu 1 (Mi/Oni iz njegovog ugla)
  *
  * To NIJE ukras: headless Chrome (`--screenshot`) ne moze da klikne dugmad, pa
  * bi bez URL-a svaki snimak bio isto pocetno stanje — a raspored se lomi bas u
@@ -71,6 +74,10 @@ const MOVES = [
   "redeal",
   "endcapture",
   "endtrail",
+  "mala",
+  "velika",
+  "obje",
+  "sweepmala",
 ] as const;
 type MoveKind = (typeof MOVES)[number];
 
@@ -93,6 +100,17 @@ const REDEAL_PER_SEAT = 4;
 /** Karte koje NISU ni u `TABLE_POOL` ni u ruci — da se id-evi ne sudare. */
 const PLAYED = card("hearts", "10");
 const PLAYED_JACK = card("clubs", "J");
+
+const MALA = card("clubs", "2");
+const VELIKA = card("diamonds", "10");
+
+/** Bodovne karte koje dati potez nosi — stavljaju se prve na sto, da ih i odnese. */
+const SCORING_ON_TABLE: Partial<Record<MoveKind, ReturnType<typeof card>[]>> = {
+  mala: [MALA],
+  velika: [VELIKA],
+  obje: [MALA, VELIKA],
+  sweepmala: [MALA],
+};
 
 /** Tvoja ruka. `redeal` je krati na jednu kartu prije poteza. */
 const HAND = [
@@ -122,6 +140,12 @@ type Opts = {
    * pocetno dijeljenje (jedino koje puni i STO) ne moze ni snimiti.
    */
   fresh: boolean;
+  /** `held=both`: mala je već kod prvog, velika kod drugog pile-a (širina +1). */
+  held: boolean;
+  /** `score=17,12`: ukupni rezultat po pile-u. */
+  score: number[] | null;
+  /** `team=1`: igrač je u timu 1. */
+  myTeam: 0 | 1;
 };
 
 /**
@@ -200,7 +224,7 @@ function turnSeatId(turn: Opts["turn"], players: { id: string }[]): string {
  * `pilesOf`/`pileIdOf` u dvojcu i dalje racunali po timovima, pa preview ne bi
  * pokazivao ono sto server salje.
  */
-function rosterFor(playerCount: 2 | 3 | 4, longName: string | null) {
+function rosterFor(playerCount: 2 | 3 | 4, longName: string | null, myTeam: 0 | 1 = 0) {
   // `name=...` mijenja ime SVIM igracima: najgori slucaj za bocni cip je dugo
   // ime na bocnom sjedistu, ne na tvom (tvoje nema pojas koji ga ogranicava).
   const names = longName
@@ -211,7 +235,7 @@ function rosterFor(playerCount: 2 | 3 | 4, longName: string | null) {
     displayName: names[i]!,
     seatIndex: i,
     isHost: i === 0,
-    ...(playerCount === 4 ? { teamId: i % 2 } : {}),
+    ...(playerCount === 4 ? { teamId: (i + myTeam) % 2 } : {}),
     connectionStatus: "connected" as const,
     // Ti i drugi protivnik imaju nalog (crtež), ostali su gosti (slovo).
     avatar: i === 0 ? ("lisica" as const) : i === 2 ? ("sova" as const) : null,
@@ -230,20 +254,25 @@ function mockState({
   moved,
   tie,
   fresh,
+  held,
+  score,
+  myTeam,
 }: Opts): PrivateGameStateView & {
   turnDeadline?: number;
 } {
-  const players = rosterFor(playerCount, longName);
+  const players = rosterFor(playerCount, longName, myTeam);
   const mover = turnSeatId(turn, players);
-  const baseTable = TABLE_POOL.slice(0, tableCount);
+  const scoringOnTable = (move && SCORING_ON_TABLE[move]) ?? [];
+  const baseTable = [...scoringOnTable, ...TABLE_POOL].slice(0, tableCount);
 
   // Bez `move=`: staticno stanje kao i ranije. Sa `move=`: prvo stanje PRIJE
   // poteza, pa `window.__devMove()` prebaci na stanje POSLIJE — tek taj prelaz
   // (novi `stateVersion` + novi `moveId`) pusti beat.
-  const played = move === "sweep" ? PLAYED_JACK : PLAYED;
+  const sweeping = move === "sweep" || move === "sweepmala";
+  const played = sweeping ? PLAYED_JACK : PLAYED;
   const end = isEndMove(move);
   const taken =
-    move === "sweep"
+    sweeping
       ? baseTable
       : move === "trail" || move === "endtrail"
         ? []
@@ -274,6 +303,48 @@ function mockState({
     captured[recipient] = (captured[recipient] ?? 0) + baseTable.length + 1;
   }
   const endPre = end && !live;
+
+  // Ruka u toku, kao `calculateHandScore` na serveru. Vlasnik karte iz poteza se
+  // pojavi tek poslije `__devMove()`, jer je taj prelaz ono što pali vijest.
+  const moverPileId =
+    playerCount === 4 ? `team-${players.find((p) => p.id === mover)?.teamId ?? 0}` : mover;
+  // Bez rasta pile-a `deriveGameEvents` ne vidi kupljenje, pa nema ni vijesti.
+  if (!end && live && taken.length > 0) {
+    captured[moverPileId] = (captured[moverPileId] ?? 0) + taken.length + 1;
+  }
+  const ownerOf = (c: ReturnType<typeof card>, heldBy: string | undefined) =>
+    live && scoringOnTable.includes(c) ? moverPileId : held ? heldBy : undefined;
+  const final = mockHandScore(playerCount, tie);
+  const liveCards = Object.fromEntries(
+    pileIds.map((id, i) => [id, (captured[id] ?? 0) + i * 3]),
+  );
+  const liveClubs = Object.fromEntries(pileIds.map((id, i) => [id, 3 - i]));
+  const leader = (by: Record<string, number>) => {
+    const top = Math.max(...Object.values(by));
+    const tops = Object.keys(by).filter((id) => by[id] === top);
+    return tops.length === 1 ? tops[0] : undefined;
+  };
+  const liveHand: HandScore =
+    end && live
+      ? final
+      : {
+          handNumber: 3,
+          pointsByPile: {},
+          breakdown: {
+            mostCards: { winnerPileId: leader(liveCards), cardCountByPile: liveCards, points: 2 },
+            mostClubs: { winnerPileId: leader(liveClubs), clubCountByPile: liveClubs, points: 1 },
+            twoOfClubs: { winnerPileId: ownerOf(MALA, pileIds[0]), points: 1 },
+            tenOfDiamonds: { winnerPileId: ownerOf(VELIKA, pileIds[1]), points: 1 },
+          },
+        };
+
+  // Ukupni broj: prije zadnjeg poteza ruke još nema poena te ruke.
+  const baseScore: Record<string, number> =
+    playerCount === 4
+      ? { "team-0": 14, "team-1": 9 }
+      : Object.fromEntries(players.map((p, i) => [p.id, 21 - i * 3]));
+  if (score) pileIds.forEach((id, i) => { baseScore[id] = score[i] ?? 0; });
+  if (endPre) pileIds.forEach((id) => { baseScore[id]! -= final.pointsByPile[id] ?? 0; });
 
   // `redeal`: prije poteza JEDINO igrac na potezu ima kartu (ostali su vec
   // odigrali svoje), poslije poteza su sve ruke pune — tacno onaj snapshot na
@@ -313,14 +384,12 @@ function mockState({
       ]),
     ),
     capturedCounts: captured,
-    matchScore:
-      playerCount === 4
-        ? { "team-0": 14, "team-1": 9 }
-        : Object.fromEntries(players.map((p, i) => [p.id, 21 - i * 3])),
+    matchScore: baseScore,
     targetScore: 21,
     stateVersion: live ? 2 : 1,
     handNumber: 3,
-    handScores: [mockHandScore(playerCount, tie)],
+    handScores: [final],
+    liveHand,
     myPlayerId: "me",
     myHand,
     // Prije `__devMove()` nema poteza — kao svjeza soba. Inace bi beat na
@@ -378,6 +447,9 @@ type UrlOpts = {
   fresh: boolean;
   /** `table=wood`: podloga stola. Nepoznata ili izostavljena → podrazumijevana. */
   table: TableTheme;
+  held: boolean;
+  score: number[] | null;
+  myTeam: 0 | 1;
 };
 
 function parseParams(search: string): UrlOpts {
@@ -405,6 +477,9 @@ function parseParams(search: string): UrlOpts {
     tie: q.get("tie") === "1",
     fresh: q.get("fresh") === "1",
     table: parseTableTheme(q.get("table")),
+    held: q.get("held") === "both",
+    score: q.get("score")?.split(",").map(Number) ?? null,
+    myTeam: q.get("team") === "1" ? 1 : 0,
   };
 }
 
@@ -483,7 +558,9 @@ function Measure() {
       const pick: [string, Element | null][] = [
         ["stage", document.querySelector(".felt-stage")],
         ["header", document.querySelector(".felt-header")],
-        ["chip", document.querySelector(".felt-header__chip")],
+        ["bar", document.querySelector(".scorebar")],
+        ["details", document.querySelector(".scoredetails")],
+        ["toggles", document.querySelector('[aria-label*="zvuk"]')],
         ["topPill", document.querySelector(".seat--top .seat__meta")],
         ["band", document.querySelector("[data-table-drop]")],
         ["drop", document.querySelector(".table__drop")],
@@ -595,6 +672,9 @@ export default function DevGamePage() {
           moved,
           tie: url.tie,
           fresh: url.fresh,
+          held: url.held,
+          score: url.score,
+          myTeam: url.myTeam,
         })}
         {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
         tableTheme={url.table}

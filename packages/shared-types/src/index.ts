@@ -425,6 +425,12 @@ export type PrivateGameStateView = {
   stateVersion: number;
   handNumber: number;
   handScores: HandScore[];
+  /**
+   * Stanje ruke u toku (traka rezultata na stolu): karte, trefovi i ko drži malu
+   * i veliku. Javno, jer svi vide šta je odneseno. `pointsByPile` je međustanje i
+   * ulazi u `matchScore` tek na kraju ruke. Opciono: stariji server ga ne šalje.
+   */
+  liveHand?: HandScore;
   myPlayerId: string;
   myHand: Card[];
   /** Zadnji odigrani potez — vidi `LastMove`. null na početku ruke. */

@@ -1,3 +1,4 @@
+import { calculateHandScore } from "@zandar/game-core";
 import type {
   GameState,
   PrivateGameStateView,
@@ -51,6 +52,8 @@ export function buildPrivateGameStateView(
     stateVersion: state.stateVersion,
     handNumber: state.handNumber,
     handScores: state.handScores,
+    // Isto pravilo kao na kraju ruke, pa klijent ne odlučuje ništa o bodovima.
+    liveHand: calculateHandScore(state),
     myPlayerId: viewerPlayerId,
     myHand: state.hands[viewerPlayerId] ?? [],
     lastMove,

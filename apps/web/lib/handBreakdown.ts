@@ -14,7 +14,7 @@ export type BreakdownRow = {
 
 /**
  * Redovi razrade jedne ruke — jedini izvor za obje povrsine koje je crtaju
- * (`RoundEndOverlay` na kraju ruke, `ScorePill` u meniju). Isti razlog zbog
+ * (`RoundEndOverlay` na kraju ruke, `ScoreDetails` za stolom). Isti razlog zbog
  * kojeg `pilesOf` zivi u `lib/piles.ts`: dvije kopije se raziđu pri prvoj
  * sljedecoj izmjeni, a onda se pri svakom bug-u prvo mora utvrditi koja je ziva.
  *

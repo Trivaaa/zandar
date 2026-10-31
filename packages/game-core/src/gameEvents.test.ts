@@ -178,6 +178,120 @@ describe("deriveGameEvents", () => {
   });
 });
 
+describe("deriveGameEvents — capture.scoring", () => {
+  const hand = (twoOfClubs?: string, tenOfDiamonds?: string) => ({
+    breakdown: {
+      twoOfClubs: twoOfClubs === undefined ? {} : { winnerPileId: twoOfClubs },
+      tenOfDiamonds: tenOfDiamonds === undefined ? {} : { winnerPileId: tenOfDiamonds },
+    },
+  });
+  // Običan potez: p1 kupi dvije karte, na stolu ostane jedna (nije sweep).
+  const prevOf = (liveHand?: EventSnapshot["liveHand"]) =>
+    base({ table: [{}, {}, {}], ...(liveHand ? { liveHand } : {}) });
+  const nextOf = (liveHand?: EventSnapshot["liveHand"], over: Partial<EventSnapshot> = {}) =>
+    base({
+      currentPlayerId: "p2",
+      table: [{}],
+      capturedCounts: { p1: 3, p2: 0 },
+      handCounts: { p1: 3, p2: 4 },
+      ...(liveHand ? { liveHand } : {}),
+      ...over,
+    });
+  const capture = (events: ReturnType<typeof deriveGameEvents>) =>
+    events.find((e) => e.type === "capture");
+
+  it("mala: pile dobije 2♣", () => {
+    const events = deriveGameEvents(prevOf(hand()), nextOf(hand("p1")), "p1");
+    expect(capture(events)).toEqual({
+      type: "capture",
+      byMe: true,
+      jackSweep: false,
+      playerId: "p1",
+      scoring: ["twoOfClubs"],
+    });
+  });
+
+  it("velika kod protivnika: scoring ne zavisi od toga ko gleda", () => {
+    const prev = base({ currentPlayerId: "p2", table: [{}, {}, {}], liveHand: hand() });
+    const next = nextOf(hand(undefined, "p2"), {
+      currentPlayerId: "p1",
+      capturedCounts: { p1: 0, p2: 3 },
+    });
+    expect(capture(deriveGameEvents(prev, next, "p1"))).toMatchObject({
+      byMe: false,
+      scoring: ["tenOfDiamonds"],
+    });
+  });
+
+  it("obje u jednom potezu (10♦ kupi 2♣ + 8)", () => {
+    const events = deriveGameEvents(prevOf(hand()), nextOf(hand("p1", "p1")), "p1");
+    expect(capture(events)).toMatchObject({ scoring: ["twoOfClubs", "tenOfDiamonds"] });
+  });
+
+  it("J sweep koji nosi malu: i dalje je scoring", () => {
+    const events = deriveGameEvents(prevOf(hand()), nextOf(hand("p1"), { table: [] }), "p1");
+    expect(capture(events)).toMatchObject({ jackSweep: true, scoring: ["twoOfClubs"] });
+  });
+
+  it("sweep bez male i velike nema polje scoring", () => {
+    const events = deriveGameEvents(prevOf(hand()), nextOf(hand(), { table: [] }), "p1");
+    expect(capture(events)).toEqual({
+      type: "capture",
+      byMe: true,
+      jackSweep: true,
+      playerId: "p1",
+    });
+  });
+
+  it("karta osvojena ranije se ne javlja ponovo", () => {
+    const events = deriveGameEvents(prevOf(hand("p1")), nextOf(hand("p1")), "p1");
+    expect(capture(events)).not.toHaveProperty("scoring");
+  });
+
+  it("javlja se samo nova karta, ne i ona od ranije", () => {
+    const events = deriveGameEvents(prevOf(hand("p2")), nextOf(hand("p2", "p1")), "p1");
+    expect(capture(events)).toMatchObject({ scoring: ["tenOfDiamonds"] });
+  });
+
+  it("trail nema scoring ni kad se vlasnik promijeni u istom snapshotu", () => {
+    const prev = base({ table: [{}, {}], liveHand: hand() });
+    const next = base({
+      currentPlayerId: "p2",
+      table: [{}, {}, {}],
+      handCounts: { p1: 3, p2: 4 },
+      liveHand: hand("p1"),
+    });
+    expect(deriveGameEvents(prev, next, "p1")).toEqual([{ type: "trail", byMe: true }]);
+  });
+
+  it("zadnji potez ruke daje samo handEnd: pokriva ga vijest o kraju dijeljenja", () => {
+    const next = nextOf(hand("p1", "p1"), { phase: "hand_finished", table: [] });
+    expect(deriveGameEvents(prevOf(hand()), next, "p1")).toEqual([{ type: "handEnd" }]);
+  });
+
+  it("stariji server (bez liveHand): nema polja, u oba smjera", () => {
+    expect(capture(deriveGameEvents(prevOf(), nextOf(), "p1"))).not.toHaveProperty("scoring");
+    // Tek deployovan server: `prev` nema s čim da se poredi, pa nema lažne vijesti.
+    expect(capture(deriveGameEvents(prevOf(), nextOf(hand("p1")), "p1"))).not.toHaveProperty(
+      "scoring",
+    );
+  });
+
+  it("nova ruka: vlasnici se resetuju i ništa se ne javlja", () => {
+    const prev = base({
+      phase: "hand_finished",
+      capturedCounts: { p1: 30, p2: 22 },
+      liveHand: hand("p1", "p2"),
+    });
+    const next = base({
+      capturedCounts: { p1: 0, p2: 0 },
+      handNumber: 2,
+      liveHand: hand(),
+    });
+    expect(capture(deriveGameEvents(prev, next, "p1"))).toBeUndefined();
+  });
+});
+
 describe("isJackSweep", () => {
   it("pun sto koji ostane prazan je sweep", () => {
     expect(isJackSweep(3, 0)).toBe(true);

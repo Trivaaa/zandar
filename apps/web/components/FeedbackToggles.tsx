@@ -24,9 +24,12 @@ import { sr } from "@/lib/sr";
 export function FeedbackToggles({
   className,
   showPush = false,
+  stacked = false,
 }: {
   className?: string;
   showPush?: boolean;
+  /** Uspravno i 44 px: za stolom, dolje desno iznad dugmeta za reakcije. */
+  stacked?: boolean;
 }) {
   const [sound, setSound] = useSetting("sound");
   const [haptics, setHaptics] = useSetting("haptics");
@@ -40,8 +43,10 @@ export function FeedbackToggles({
     () => false, // server
   );
 
+  const size = stacked ? "w-11 h-11" : "w-10 h-10";
+
   return (
-    <div className={`flex items-center gap-1.5 ${className ?? ""}`}>
+    <div className={`flex items-center gap-1.5 ${stacked ? "flex-col self-center" : ""} ${className ?? ""}`}>
       <button
         type="button"
         aria-pressed={sound}
@@ -52,7 +57,7 @@ export function FeedbackToggles({
           setSound(next);
           if (next) playSfx("capture"); // potvrda + otključavanje audija
         }}
-        className={`w-10 h-10 rounded-full flex items-center justify-center text-lg bg-black/30 hover:bg-black/40 active:scale-95 transition ${
+        className={`${size} rounded-full flex items-center justify-center text-lg bg-black/30 hover:bg-black/40 active:scale-95 transition ${
           sound ? "ring-1 ring-white/25" : "opacity-50"
         }`}
       >
@@ -82,7 +87,7 @@ export function FeedbackToggles({
           setHaptics(next);
           if (next) vibrate(HAPTIC.confirm); // osjetna potvrda (no-op ako nije podržano)
         }}
-        className={`w-10 h-10 rounded-full flex items-center justify-center text-lg bg-black/30 transition ${
+        className={`${size} rounded-full flex items-center justify-center text-lg bg-black/30 transition ${
           !canVibrate
             ? "opacity-30 cursor-not-allowed"
             : haptics
@@ -100,7 +105,7 @@ export function FeedbackToggles({
           aria-label={pushTable ? sr.push.toggleOn : sr.push.toggleOff}
           title={pushTable ? sr.push.stateOn : sr.push.stateOff}
           onClick={() => setPushTable(!pushTable)}
-          className={`w-10 h-10 rounded-full flex items-center justify-center text-lg bg-black/30 hover:bg-black/40 active:scale-95 transition ${
+          className={`${size} rounded-full flex items-center justify-center text-lg bg-black/30 hover:bg-black/40 active:scale-95 transition ${
             pushTable ? "ring-1 ring-white/25" : "opacity-50"
           }`}
         >

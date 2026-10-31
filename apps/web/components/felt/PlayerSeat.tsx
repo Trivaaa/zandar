@@ -8,6 +8,11 @@ import type { PublicPlayer } from "@/components/felt/types";
 
 export type PlayerSeatProps = {
   player: PublicPlayer;
+  /**
+   * Boja tima iz ugla igrača: a = Mi, b = Oni. Bez nje prsten ide po `teamId`,
+   * pa bi igrač iz tima 1 svoj tim vidio u boji koju traka daje protivnicima.
+   */
+  teamTone?: "a" | "b" | undefined;
   isActive?: boolean;
   /** Tvoje sjediste (orientation="bottom"): jaci prsten na potezu. */
   isYou?: boolean;
@@ -47,6 +52,7 @@ function initial(name: string) {
 
 export function PlayerSeat({
   player,
+  teamTone,
   isActive = false,
   secondsRemaining = 0,
   totalSeconds = 20,
@@ -61,7 +67,8 @@ export function PlayerSeat({
   style,
   onTap,
 }: PlayerSeatProps) {
-  const team = player.teamId === undefined ? undefined : player.teamId === 0 ? "a" : "b";
+  const team =
+    teamTone ?? (player.teamId === undefined ? undefined : player.teamId === 0 ? "a" : "b");
 
   // Sat drzi roditelj; ovdje se samo crta udio preostalog vremena.
   const countdown = isActive && !isThinking && secondsRemaining > 0;
@@ -139,8 +146,8 @@ export function PlayerSeat({
               Utility bi iz kasnijeg sloja pobijedio i to bi tiho otkazalo. */}
           <span className="seat__name font-sans">{player.displayName}</span>
           {/* Rezultat je skinut sa sjedista — stajao je na svakom igracu i bio
-              najglasniji broj na feltu, a cita se u meniju (hamburger →
-              Rezultat) i sam iskoci na kraju svake ruke. Zeton ostaje kao sina
+              najglasniji broj na feltu, a sad se cita u traci u zaglavlju
+              i sam iskoci na kraju svake ruke. Zeton ostaje kao sina
               za kasniju kozmetiku; danas ga niko ne pali. */}
           {showCoins ? (
             <span className="seat__numbers">
