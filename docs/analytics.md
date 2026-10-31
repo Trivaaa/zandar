@@ -11,7 +11,16 @@ Uključen je SAMO u `release` buildu (`firebase_analytics_collection_enabled` kr
 placeholder u `app/build.gradle`), jer `debug` čita produkcijski
 `google-services.json`. Ne uzima reklamni ID (`google_analytics_adid_collection_enabled=false`); dozvola
 `AD_ID` u paketu postoji samo zbog Mete. Ne čeka saglasnost za Metu.
-Web nema GA dok se ne riješi saglasnost za EU.
+
+Web ima **Google Analytics** (stream „Kartaonica Web", `G-76WWHZ49Y0`), samo u
+produkcijskom web buildu: staging, dev i APK nemaju tag (`lib/googleAnalytics.ts`).
+Nema vlastitih događaja ni `guestId`-a i nije izvor nijednog KPI-ja. Bilježi
+`page_view` samo pri punom učitavanju, ne pri prelazu između ekrana; Enhanced
+measurement je ugašen, a njegovo slaganje sa skidanjem ID-a sobe nije provjereno.
+Saglasnost: oglašavanje odbijeno svuda; u EEA, UK i Švajcarskoj `analytics_storage`
+je odbijen, pa nema kolačića, a Google dobija samo pingove bez kolačića. Baner ne
+postoji. Da li su ti pingovi dovoljni za HR/SI ide uz isti pravni pregled kao EU
+saglasnost za PostHog. ID sobe se skida iz `page_location`.
 
 ## Okruženja — šalje SAMO produkcija
 

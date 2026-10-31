@@ -235,6 +235,15 @@ export function PrivacyPolicyBody() {
             identifikator instalacije. Ne dobija tvoj e-mail, nadimak, ID uređaja
             ni reklamni identifikator.
           </li>
+          <li>
+            <strong>Google Analytics</strong> (Sjedinjene Američke Države) —
+            zbirna statistika posjeta, samo u web verziji. Bilježi učitanu
+            stranicu (bez oznake sobe), odakle si došao, pregledač, uređaj, zemlju
+            i približnu lokaciju izvedenu iz IP adrese. Ne dobija tvoj e-mail,
+            nadimak ni ID uređaja i ne koristimo ga za oglašavanje. U Evropskom
+            ekonomskom prostoru, Ujedinjenom Kraljevstvu i Švajcarskoj ne upisuje
+            kolačiće i ne čuva identifikator na tvom uređaju.
+          </li>
         </ul>
         <p>
           Web verziju hostuje <strong>Vercel</strong>. Pisma koja nam pošalješ
@@ -276,7 +285,8 @@ export function PrivacyPolicyBody() {
             <strong>Podaci u Google Analyticsu</strong> ostaju onoliko koliko
             traje rok čuvanja podešen kod tog servisa. Nisu vezani za tvoj nalog
             ni ID uređaja, pa ih ne možemo pronaći po tvom zahtjevu; identifikator
-            instalacije nestaje brisanjem podataka aplikacije ili deinstalacijom.
+            instalacije nestaje brisanjem podataka aplikacije ili deinstalacijom,
+            a kolačić na webu brisanjem podataka sajta u pregledaču.
           </li>
           <li>
             <strong>Zapisnici servera</strong> (uključujući IP adrese) čuvaju se
@@ -311,7 +321,10 @@ export function PrivacyPolicyBody() {
         <p>
           Pored toga, <strong>PostHog upisuje svoj kolačić i svoj zapis</strong>{" "}
           u lokalno skladište (imena počinju sa <code>ph_</code>), sa rokom od
-          godinu dana. Osim tog kolačića, sami ne postavljamo kolačiće i nemamo
+          godinu dana. Na webu, van Evropskog ekonomskog prostora, Ujedinjenog
+          Kraljevstva i Švajcarske, <strong>Google Analytics</strong> upisuje
+          svoje kolačiće (imena počinju sa <code>_ga</code>), sa rokom do dvije
+          godine. Osim tih kolačića, sami ne postavljamo kolačiće i nemamo
           kolačiće za oglašavanje. U Android aplikaciji Google Analytics na
           uređaju čuva i svoj identifikator instalacije.
         </p>

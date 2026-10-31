@@ -6,6 +6,7 @@ import { NativeShell } from "@/components/NativeShell";
 import { MetaConsentPrompt } from "@/components/MetaConsent";
 import { NativePush } from "@/components/NativePush";
 import { AuthBoot } from "@/components/AuthBoot";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 
 // latin-ext je OBAVEZAN — č ć ž š đ žive tamo. Bez njega dijakritika
 // pada na sistemski font i tekst se vidljivo miješa usred riječi.
@@ -71,6 +72,7 @@ export default function RootLayout({
         <MetaConsentPrompt />
         <NativePush />
         <AuthBoot />
+        <GoogleAnalytics />
       </body>
     </html>
   );

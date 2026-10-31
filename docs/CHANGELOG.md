@@ -987,3 +987,13 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 **Zamka:** `debug` čita PRODUKCIJSKI `google-services.json`, pa bi bez prekidača razvojna petlja slala podatke u produkcijski GA.
 
 **Provjereno:** spojeni manifesti debug/staging = `false`, release = `true`, `AD_ID` prisutan u sva tri; web testovi 124/124, tsc; staging APK na S10e pokrenut bez pada, log `FA: App measurement disabled via the manifest`. **Nije provjereno uživo:** `release` paket i stvarni događaji u GA vide se tek sa instalacije sa Play-a.
+
+## 115. Google Analytics na webu (2026-10-31, `feat/ga-web`)
+
+**Povod:** vlasnik je napravio GA4 web stream „Kartaonica Web" (`G-76WWHZ49Y0`) i tražio tag na webu. Time je promijenjena odluka iz unosa 114 („web nema GA dok se ne riješi saglasnost za EU").
+
+**Izmjene:** `lib/googleAnalytics.ts` (prekidač, isječak) i `components/GoogleAnalytics.tsx` u `layout.tsx`. Razlike u odnosu na Google-ov isječak: samo produkcijski web build (APK dijeli `NEXT_PUBLIC_APP_ENV`, a već ima Firebase Analytics, pa ga isključuje `NEXT_PUBLIC_PLATFORM`); Consent Mode: oglašavanje odbijeno svuda, `analytics_storage` odbijen u EEA, UK i Švajcarskoj, jer banera nema; ID sobe se skida iz `page_location`, jer je pozivnica za sto. Politika privatnosti i `docs/analytics.md` dopunjeni.
+
+**Zamka:** aplikacija ne radi pune navigacije, pa GA broji `page_view` samo pri učitavanju. Enhanced measurement je ugašen, a nije provjereno kako bi njegovi `page_view`-ovi pri prelazu ekrana stajali uz `page_location` iz `config`-a.
+
+**Provjereno:** web testovi 129/129, typecheck, lint = osnovica, tri builda. Chrome sa presretnutim GA-om: produkcijski build šalje jedan `page_view` po učitavanju, `gcs=G101` (oglašavanje odbijeno, mjerenje dozvoljeno), `/room/abc123` odlazi kao `/room/`. Staging build: nula zahtjeva i kolačića. Mobilni produkcijski export: nula pogodaka za ID i `googletagmanager`. **Nije provjereno:** grana bez kolačića (Google je bira po IP adresi, a provjera nije rađena iz EEA) i stvarni događaji u GA.
