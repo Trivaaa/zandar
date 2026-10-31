@@ -16,6 +16,8 @@ public class MainActivity extends BridgeActivity {
         // Plugini iz samog projekta se prijavljuju PRIJE super.onCreate — tamo
         // se diže bridge, i kasnija prijava ga više ne stiže.
         registerPlugin(InstallReferrerPlugin.class);
+        registerPlugin(MetaEventsPlugin.class);
+        MetaEventsPlugin.startIfConsented(this);
         super.onCreate(savedInstanceState);
         enterImmersive();
     }

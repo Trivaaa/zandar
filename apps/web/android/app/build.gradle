@@ -10,6 +10,14 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Meta Client Token: META_CLIENT_TOKEN u android/local.properties (nije u repou).
+// Bez njega se SDK ne pokreće; staging ga ni ne koristi, a release pada niže.
+def localProperties = new Properties()
+if (rootProject.file("local.properties").exists()) {
+    rootProject.file("local.properties").withInputStream { localProperties.load(it) }
+}
+def metaClientToken = localProperties.getProperty("META_CLIENT_TOKEN", "").trim()
+
 android {
     namespace = "com.kartaonica.zandar"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -17,9 +25,10 @@ android {
         applicationId "com.kartaonica.zandar"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
-        versionName "1.2.1"
+        versionCode 5
+        versionName "1.3.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        resValue "string", "facebook_client_token", metaClientToken
         // Domen čije pozivnice (/room/<id>) otvaraju aplikaciju — App Links
         // intent-filter u AndroidManifest-u. Staging ga nadjačava niže.
         manifestPlaceholders = [deepLinkHost: "kartaonica.com"]
@@ -74,6 +83,8 @@ dependencies {
     implementation project(':capacitor-android')
     // Play Install Referrer — poziv u sobu preživi instalaciju (InstallReferrerPlugin).
     implementation "com.android.installreferrer:installreferrer:2.2"
+    // Meta App Events (MetaEventsPlugin): samo core, bez Login/Share modula.
+    implementation "com.facebook.android:facebook-core:19.0.0"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
@@ -90,6 +101,11 @@ gradle.taskGraph.whenReady { graph ->
         throw new GradleException(
             "keystore.properties nedostaje (android/keystore.properties) — release/bundle " +
             "zahtijeva upload keystore. Vidi CLAUDE.md Deployment."
+        )
+    }
+    if (wantsRelease && !metaClientToken) {
+        throw new GradleException(
+            "META_CLIENT_TOKEN nedostaje u android/local.properties — paket bez njega ne šalje događaje Meti."
         )
     }
 }

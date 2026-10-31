@@ -927,3 +927,29 @@ Birač: na 360×640 je red sa sličicama gurao „Nazad" ispod ivice — sličic
 **Staging gubi sobe na deployu:** partija započeta prije ovog deploya je stala, jer je soba poslije restarta na stagingu nestala (`GET /api/rooms/:id` = 404, živa soba = 200). Klijent to ne prikazuje: sto stoji bez poruke, a na potezu ostaje bot. Lokalno hidracija radi (restart usred bot poteza 4/4, bot nastavlja), a oblik snapshota nije mijenjan, pa je uzrok vjerovatno u postavkama staging servisa (volumen ili `DATA_DIR`). Dashboard nije gledan; produkcija ovim nije provjerena.
 
 **Nije provjereno:** zvuk i vibracija nisu slušani ni osjećeni (viđen je samo poziv vibracije; zvuk je upaljen preklopkom, ali njegovo puštanje nije potvrđeno). Čitač ekrana nije pokretan; `aria-live` je provjeren samo po sadržaju. 3P traka je gledana samo na mocku; na 360 px sa +1 kod oba dugo ime u 2P ostaje na prvom slovu („B…").
+
+## 110. Meta App Events za Android, uz saglasnost (2026-10-31, `feat/meta-app-events`)
+
+**Šta:** `facebook-core` 19.0.0 za prvu Meta App Install kampanju: samo instalacija i otvaranje. Prompt jednom na početnoj (nikad preko sobe), povlačenje u Postavkama, politika privatnosti i `/delete-account` dopunjeni. Verzija 1.3.0 (`versionCode 5`).
+
+**Odluke:** `FacebookInitProvider` izbačen, jer bi SDK dizao prije saglasnosti. `AutoInitEnabled=false` ga ne zaustavlja: `GraphResponse.fromHttpConnection` blokira tek odgovor, a sdkInitialize se ipak izvrši. Četiri `ACCESS_ADSERVICES_*` dozvole uklonjene (daljinski prekidač bi kroz njih mogao uključiti custom audience). Metapodaci ekrana isključeni (`AutoLogMetaDataEnabled`, `AutoLogProductImprovementEnabled`). Gate po paketu umjesto `BuildConfig`: staging ima pravi prompt, a ne šalje ništa.
+
+**Zamke:** `setAutoLogAppEventsEnabled(false)` ne zaustavlja tracker koji već radi. `EXPLICIT_ONLY` zaustavlja slanje događaja, ali ne i dohvatanje postavki. Tracker pokrenut poslije resume-a ne vidi to otvaranje, otud jedan ručni `logEvent` pri prvoj dozvoli. Emulator na ovoj mašini: Avast MITM daje `net_error -202` u WebView-u pa „Failed to fetch"; za test `webview-command-line` sa `--ignore-certificate-errors` + `am set-debug-app`. Meta zahtjevi i sa lažnim tokenom dobijaju pravi odgovor.
+
+**Provjereno (emulator, lažan token):** tabela u `docs/analytics.md`; staging: pozivnica na hladan start bez prompta preko sobe, partija do prvog poteza, Nazad = odbijanje. Merged manifest bez providera i ADSERVICES, `AD_ID` prisutan.
+
+**Nije provjereno:** prijem u Events Manageru (Client Token nije stigao), S10e (wireless debugging ugašen), Google prijava i push u ovoj verziji, instalacija sa Play-a.
+
+## 111. Meta: jedan zahtjev za instalaciju, povlačenje ponovo pokreće aplikaciju (2026-10-31, `feat/meta-app-events`)
+
+**Dva zahtjeva za instalaciju:** SDK sam zove `activateApp` čim učita postavke (`FetchedAppSettingsManager` → `AutomaticAnalyticsLogger.logActivateAppEvent`), a oznaku „poslano" upisuje tek poslije uspješnog odgovora, pa je naš dodatni poziv mogao poslati drugi zahtjev. Uklonjen; pokretanje je sad samo `sdkInitialize`.
+
+**Povlačenje:** `EXPLICIT_ONLY` zaustavlja događaje, ali SDK i dalje dohvata `mobile_sdk_gk`, a javnog gašenja nema. Povlačenje sad pokreće aplikaciju ponovo (launch intent + `exit`, izbor upisan `commit`-om). Red je samo u Postavkama, nikad za stolom. Time su otpali `setAdvertiserIDCollectionEnabled` i grana za ponovnu dozvolu u istom procesu.
+
+**Zamka:** završetak procesa odmah poslije dodira gubi localStorage upis mlađi od ~1 s (izmjereno 0–750 ms izgubljeno, 1000 ms sačuvano), pa bi npr. izbor iz istog lista Postavki nestao. Zato `EXPLICIT_ONLY` odmah, Toast i restart tek poslije 3 s: 8/8 upisa sačuvano.
+
+**Token:** `META_CLIENT_TOKEN` u `android/local.properties`, kroz `resValue`; release bez njega pada, jer bi inače tiho izašao paket bez događaja.
+
+**Zamka:** `facebook-android-sdk-current.zip` sa Metinog sajta je 4.42.0 iz 2019 (bez `AD_ID`, Support Library), ne koristiti.
+
+**Provjereno (S10e, pravi token):** Overview u Events Manageru pokazuje jednu instalaciju po svježoj instalaciji; Test Events ostaje prazan (vidi `docs/analytics.md`). Meč do kraja, push „neko kuca" sa tapom, pozivnice (hladno, toplo, `verified`) i Google prijava prošli. **Nije provjereno:** instalacija sa Play-a, atribucija stvarnog klika.

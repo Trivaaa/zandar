@@ -3,6 +3,7 @@ import { Archivo_Black, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { PwaManager } from "@/components/PwaManager";
 import { NativeShell } from "@/components/NativeShell";
+import { MetaConsentPrompt } from "@/components/MetaConsent";
 import { NativePush } from "@/components/NativePush";
 import { AuthBoot } from "@/components/AuthBoot";
 
@@ -67,6 +68,7 @@ export default function RootLayout({
         {children}
         <PwaManager />
         <NativeShell />
+        <MetaConsentPrompt />
         <NativePush />
         <AuthBoot />
       </body>

@@ -1,7 +1,8 @@
 # Analitika — Kartaonica
 
-Jedini alat je **PostHog** (EU). KPI-evi se računaju u PostHogu iz sirovih
-događaja — u kodu nema metrika, agregacija ni `dau` događaja.
+Analitika proizvoda je **PostHog** (EU). KPI-evi se računaju u PostHogu iz
+sirovih događaja — u kodu nema metrika, agregacija ni `dau` događaja. Meta App
+Events služi samo za mjerenje reklama i ne dijeli ništa sa PostHogom (dno stranice).
 
 ## Okruženja — šalje SAMO produkcija
 
@@ -129,3 +130,66 @@ Orijentiri (casual kartaške igre, zapisani PRIJE podataka): D1 30–35%, D7
 kohorta ispod ~100 novih igrača se ne čita kao broj — samo trend.
 
 Timezone projekta: `Europe/Sarajevo`, ne mijenja se.
+
+## Meta App Events (Android, samo uz saglasnost)
+
+Svrha: mjerenje Meta App Install kampanja. Šalje se samo instalacija i otvaranje;
+nema `setUserID`, ručnih događaja o igri ni prosljeđivanja iz PostHoga. Kod:
+`MetaEventsPlugin.java`, `components/MetaConsent.tsx`, `facebook-core` 19.0.0.
+Stari `facebook-android-sdk-current.zip` sa Metinog sajta je 4.42.0 iz 2019: ne koristiti.
+
+- **Saglasnost:** prompt jednom na `/`, nikad preko sobe; Nazad i dodir van lista
+  znače „Ne dozvoli". Izbor se mijenja u Profil → Postavke → Mjerenje reklama.
+- **Token:** `META_CLIENT_TOKEN` u `android/local.properties` (nije u repou).
+  `bundleRelease`/`assembleRelease` bez njega padaju.
+- **Okruženja:** SDK se pokreće samo pod paketom `com.kartaonica.zandar`. Staging
+  ima isti prompt i čuva izbor, ali ne šalje ništa. Dev petlja (`dev:android`) je
+  na produkcijskom paketu: tester koji dozvoli šalje prave događaje.
+- **Pokretanje:** `FacebookInitProvider` je izbačen iz manifesta, pa prije
+  saglasnosti SDK kod ne radi. Pokreće ga samo `sdkInitialize`, koji je javan, ali
+  `@Deprecated`: provjeriti pri svakoj nadogradnji. Instalaciju šalje sam SDK kad
+  učita postavke; dodatni `activateApp` bi dao dva zahtjeva za instalaciju.
+- **Povlačenje ponovo pokreće aplikaciju, 3 s poslije dodira.** SDK koji radi nema
+  javni način gašenja: sa ugašenim logovanjem i `EXPLICIT_ONLY` i dalje je dohvatao
+  `mobile_sdk_gk`. Novi proces ga više ne diže, a odbijena saglasnost ne pokreće
+  ništa, pa petlje nema. Događaji staju odmah. Odgoda postoji zbog WebView-a: upis u
+  localStorage mlađi od ~1 s se pri završetku procesa gubi (0–750 ms izgubljeno, 1000 ms
+  sačuvano). Ako igrač za te 3 s izađe iz aplikacije, proces samo završi.
+- **Automatsko logovanje u Events Manageru mora ostati uključeno**, inače SDK ne
+  šalje ništa bez obzira na kod.
+
+Izmjereno 2026-10-31 (emulator Android 14, SDK logovi + proxy koji bilježi host,
+lažan Client Token — Meta je zahtjeve odbila, pa ovo NIJE dokaz prijema):
+
+| Scenario | Rezultat |
+|---|---|
+| Svjež start bez odgovora, odbijanje, odbijanje + restart | 0 konekcija ka Meti |
+| Dozvola | 1 `MOBILE_APP_INSTALL`, 1 `fb_mobile_activate_app` |
+| Pozadina 10 s i povratak, hladan start < 60 s | nema novog otvaranja |
+| Pozadina 75 s i povratak, hladan start poslije 75 s | po 1 otvaranje |
+| Povlačenje, 60 s, pa pozadina 65 s i povratak | novi proces, 0 konekcija ka Meti, 0 SDK logova |
+| Upis pa povlačenje bez razmaka, 8 puta | upis sačuvan 8/8, proces stabilan, bez petlje i pada |
+| Ponovna dozvola | događaji kreću ponovo |
+
+Lažan token ne upisuje „instalacija poslana", pa se zahtjev ponavlja pri svakom
+pokretanju; sa pravim tokenom ide jednom.
+
+**Ograničenja povlačenja:** već poslano ostaje kod Mete. Događaji koji su ranije
+ostali neposlani (npr. bez mreže) ostaju na telefonu i šalju se samo ako igrač
+ponovo dozvoli; javnog API-ja za njihovo brisanje nema.
+
+**S10e, pravi token (2026-10-31):** bez konekcija prije saglasnosti, poslije odbijanja i
+poslije povlačenja; `MOBILE_APP_INSTALL` jednom, odgovor `success:true`. Events Manager
+(Overview) je poslije ~1 h pokazao 3 instalacije i 8 otvaranja: po jedna instalacija na
+svaku od tri svježe instalacije/brisanja podataka (13:50, 14:23, 14:40 UTC), dakle Meta
+ih ne spaja po telefonu i nema duplikata unutar jedne instalacije. Zadnje otvaranje i
+instalacija stigli su u 14:41 UTC, zajedno sa ručnim prvim otvaranjem, pa ga Meta prima
+(izvedeno iz vremena, ne iz pojedinačnog događaja; ručni događaj nosi `_ui:"unknown"`,
+`_inBackground:"1"`). Isti tok radi i na APK-u potpisanom upload ključem.
+
+**Test Events ostaje prazan** na ovom telefonu: prikazuje samo događaje koje Meta može
+vezati za nalog u Facebook aplikaciji, a `facebook-core` nema `<queries>` za nju. Dokaz
+prijema je Overview, uz kašnjenje do ~1 h. `<queries>` nije dodat namjerno: šalje i
+`attribution` iz Facebook aplikacije, što bi tražilo izmjenu saglasnosti.
+
+**Atribucija kampanje nije dokazana:** to vide tek pravi klikovi na reklamu.

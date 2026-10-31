@@ -4,4 +4,6 @@
     <string name="title_activity_main">Kartaonica</string>
     <string name="package_name">com.kartaonica.zandar</string>
     <string name="custom_url_scheme">com.kartaonica.zandar</string>
+    <string name="facebook_app_id">1087679437423023</string>
+    <string name="meta_restarting">Mjerenje je isključeno. Aplikacija se ponovo pokreće.</string>
 </resources>
