@@ -171,6 +171,48 @@ kohorta ispod ~100 novih igrača se ne čita kao broj — samo trend.
 
 Timezone projekta: `Europe/Sarajevo`, ne mijenja se.
 
+## Čitanje kampanje `zandar_boost_01`
+
+Jednokratni upit, nije saved insight. Plaćena kohorta je `first_open` sa
+`utm_content='52528053747929'`; bez tog parametra su Metin nalet (US/IE/SE) i ostalo.
+Kohorta se dijeli na objavu ponude aplikacije (prvi `app_offer_shown`, 1.11.2026. u 08:54),
+jer je tada nestala Play oznaka. Prelazak u aplikaciju nije uračunat: novi guest ID se
+vidi tek kroz `app_install_attributed` (1.3.1). `landing_engaged` postoji od objave
+`049a0df`, pa je `stvarno_vidjeli` za ranije posjete 0. Meč bez `match_ended` prije te
+objave računaj kao nezavršen.
+
+```sql
+WITH c AS (
+  SELECT person_id AS pid, min(timestamp) AS t0
+  FROM events
+  WHERE event = 'first_open' AND timestamp >= toDateTime('2026-10-31 09:00:00')
+    AND properties.utm_content = '52528053747929'
+  GROUP BY person_id
+),
+p AS (
+  SELECT person_id AS pid,
+    countIf(event = 'landing_engaged') AS seen,
+    countIf(event = '$autocapture' AND elements_chain ILIKE '%home__cta--hero%') AS hero,
+    countIf(event = 'app_offer_click' OR (event = '$autocapture' AND elements_chain ILIKE '%google-play-badge%')) AS app_click,
+    countIf(event = 'match_started') AS started,
+    countIf(event = 'hand_finished') AS hand,
+    countIf(event = 'match_ended' AND properties.end_reason = 'completed') AS completed
+  FROM events
+  WHERE timestamp >= toDateTime('2026-10-31 09:00:00') AND person_id IN (SELECT pid FROM c)
+  GROUP BY person_id
+)
+SELECT if(c.t0 < toDateTime('2026-11-01 08:54:00'), '1 prije ponude', '2 poslije ponude') AS kohorta,
+  count() AS posjete,
+  countIf(p.seen > 0) AS stvarno_vidjeli,
+  countIf(p.hero > 0) AS glavno_dugme,
+  countIf(p.app_click > 0) AS dodir_aplikacija,
+  countIf(p.started > 0) AS pokrenuli_partiju,
+  countIf(p.hand > 0) AS zavrsili_ruku,
+  countIf(p.completed > 0) AS zavrsili_mec
+FROM c LEFT JOIN p ON c.pid = p.pid
+GROUP BY kohorta ORDER BY kohorta
+```
+
 ## Meta App Events (Android, samo uz saglasnost)
 
 Svrha: mjerenje Meta App Install kampanja. Šalje se samo instalacija i otvaranje;
