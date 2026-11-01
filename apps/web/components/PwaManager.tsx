@@ -142,7 +142,7 @@ function PwaBanner() {
           </button>
         </>
       ) : storeUrl ? (
-        <StoreOffer url={storeUrl} onDismiss={store.dismiss} />
+        <StoreOffer url={storeUrl} onOpen={store.opened} onDismiss={store.dismiss} />
       ) : (
         <>
           <span className="text-sm text-white">Instaliraj Žandar</span>

@@ -89,18 +89,28 @@ događaj mijenja, mijenja se i ova stranica.
 Klijent ih registruje jednom (`posthog.register`), server ih dodaje u `track()`.
 Na serverskim događajima `platform` postoji samo kad ga je klijent poslao.
 
-Izvor saobraćaja: posthog-js sam postavlja `$initial_utm_*` i
-`$initial_referring_domain` kao set-once osobine osobe. Instalacije iz Play
-Store-a: Play Console → Acquisition.
+Izvor saobraćaja na webu: `utm_*` se čita sa događaja (`utm_campaign` na
+`first_open`), ne iz osobina osobe. `$initial_utm_*` je 31.10.2026. bio prazan na
+svim profilima.
+
+Instalacije: web i aplikacija imaju različit guest ID, pa ih povezuje samo
+kampanja. Traka upisuje `utm_*` u Play `referrer` (`lib/stores.ts`), a aplikacija
+ih pri prvom čitanju referrera šalje kao `app_install_attributed`. Klik se ne može
+spojiti sa instalacijom po osobi, nego samo po kampanji. Izdanja koja ne šalju taj
+događaj: samo Play Console → Acquisition.
 
 Testeri: `?tester=1` postavlja osobinu osobe `is_tester=true` (`?tester=0` je
-skida). U PostHogu: *Filter out internal and test users* → `is_tester = true`.
+skida). U PostHogu: *Filter out internal and test users* → `is_tester ≠ true`
+(postavljeno 1.11.2026.). ⚠ **Ne koristiti kohortu `$internal_or_test_user`:** nju
+dobija svako sa `$host=localhost`, a to je svaki igrač u Android aplikaciji.
 
 ## Događaji
 
 | Događaj | Gdje | Kad / idempotentnost | Parametri |
 |---|---|---|---|
 | `first_open` | klijent | Jednom po guest ID-u. Zatečeni igrači (ID od prije) se tiho označe. Ne na `/privatnost`, `/privacy`, `/uslovi`, `/delete-account`, `/o-nama` — tamo čeka prvo otvaranje igre. | — |
+| `store_banner_clicked` | klijent | Dodir na Play oznaku u traci na webu (samo Android). Vodi u prodavnicu, nije instalacija. „Ne sada" i link u Profilu NE šalju događaj. | `has_room`, `utm_source?`, `utm_medium?`, `utm_campaign?`, `utm_content?` |
+| `app_install_attributed` | klijent | Aplikacija jednom po instalaciji pročita Play referrer. Stiže i za organsku instalaciju (`utm_source=google-play`, `utm_medium=organic`). Ko je već pročitao referrer u ranijem izdanju ne šalje ništa. | `has_room`, `utm_source?`, `utm_medium?`, `utm_campaign?`, `utm_content?` |
 | `play_requested` | klijent | Pritisak na Quick Play, kreiranje sobe, slanje zahtjeva za ulazak (`lib/api.ts`). | `mode` |
 | `match_started` | server | Jednom po čovjeku po `match_id` (Quick Play, host `/start`, revanš). Botovi nikad. | `mode`, `match_id`, `player_count`, `human_count`, `bot_count`, `target_score`, `is_rematch`, `platform?` |
 | `match_ended` | server | Jednom po čovjeku po `match_id`, uključujući čovjeka koji je pao s veze. Kraj i prekid dijele guard. | `mode`, `match_id`, `end_reason`, `hands_played`, `duration_ms?`, `is_winner?`, `platform?` |

@@ -1,3 +1,5 @@
+import type { InstallCampaign } from "@zandar/shared-types";
+
 /**
  * Prodavnice aplikacija — jedno mjesto za linkove.
  *
@@ -29,19 +31,31 @@ export const STORE_ORDER: readonly StoreId[] = ["app-store", "google-play"];
  * Link ka Play listingu koji NOSI poziv u sobu. Play parametar `referrer` vrati
  * aplikaciji pri prvom pokretanju poslije instalacije (Install Referrer), pa
  * igrač koji je instalirao sa pozivnice sleti na tu sobu, ne na početnu
- * (`lib/installReferrer.ts`). Čista funkcija — listing se prosljeđuje.
+ * (`lib/installReferrer.ts`). Istim putem ide i kampanja iz koje je došao, da se
+ * instalacija može pripisati oglasu. Čista funkcija — listing se prosljeđuje.
  */
-export function withInviteReferrer(listingUrl: string, roomId?: string | null): string {
-  if (!roomId) return listingUrl;
+export function withInviteReferrer(
+  listingUrl: string,
+  roomId?: string | null,
+  campaign: InstallCampaign = {},
+): string {
+  const referrer = new URLSearchParams(roomId ? { room: roomId } : {});
+  for (const [key, value] of Object.entries(campaign)) referrer.set(key, value);
+  // `toString`, ne `size`: `size` ne postoji na starijim Android pregledačima.
+  const value = referrer.toString();
+  if (!value) return listingUrl;
   const url = new URL(listingUrl);
-  url.searchParams.set("referrer", `room=${roomId}`);
+  url.searchParams.set("referrer", value);
   return url.toString();
 }
 
 /** `null` dok aplikacija nije na Play-u — ponuda se tada ne crta uopšte. */
-export function playStoreUrl(roomId?: string | null): string | null {
+export function playStoreUrl(
+  roomId?: string | null,
+  campaign?: InstallCampaign,
+): string | null {
   const listing = STORE_LINKS["google-play"];
-  return listing ? withInviteReferrer(listing, roomId) : null;
+  return listing ? withInviteReferrer(listing, roomId, campaign) : null;
 }
 
 /** Id paketa iz Play listinga; staging APK je isti paket sa sufiksom. */

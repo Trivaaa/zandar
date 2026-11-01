@@ -997,3 +997,13 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 **Zamka:** aplikacija ne radi pune navigacije, pa GA broji `page_view` samo pri učitavanju. Enhanced measurement je ugašen, a nije provjereno kako bi njegovi `page_view`-ovi pri prelazu ekrana stajali uz `page_location` iz `config`-a.
 
 **Provjereno:** web testovi 129/129, typecheck, lint = osnovica, tri builda. Chrome sa presretnutim GA-om: produkcijski build šalje jedan `page_view` po učitavanju, `gcs=G101` (oglašavanje odbijeno, mjerenje dozvoljeno), `/room/abc123` odlazi kao `/room/`. Staging build: nula zahtjeva i kolačića. Mobilni produkcijski export: nula pogodaka za ID i `googletagmanager`. **Nije provjereno:** grana bez kolačića (Google je bira po IP adresi, a provjera nije rađena iz EEA) i stvarni događaji u GA.
+
+## 116. Pripisivanje instalacija kampanji (2026-11-01, `feat/install-attribution`)
+
+**Povod:** kampanja `zandar_boost_01` vodi na web, a traka je već prvog dana odvela 7 od 32 Android posjetioca na Play. Aplikacija dobija novi guest ID, pa su ti ljudi izgledali kao izgubljeni na webu, a instalacija se nije mogla vezati za oglas. Hipoteza A se bez toga ne može mjeriti.
+
+**Šta:** `lib/campaign.ts` čita `utm_source/medium/campaign/content` i pamti ih za sesiju pregledača, jer navigacija skida parametre sa adrese. Traka ih upisuje u Play `referrer` uz sobu i šalje `store_banner_clicked`. Aplikacija pri prvom čitanju referrera šalje `app_install_attributed`; `utm_*` otpada ako nije `[\w.-]{1,100}`, jer je ulaz tuđ, a id sobe ne ide u analitiku.
+
+**Zamke:** `URLSearchParams.size` ne postoji na starijim Android pregledačima. Lokalna provjera sa `NEXT_PUBLIC_APP_ENV=production` bi pokrenula i GA i Sentry, pa je Chrome pušten sa `--host-resolver-rules` koji blokira sve van localhost-a. Sintetički `element.click()` uz ručni `pagehide` nije dao događaj, a pravi dodir kroz CDP jeste. Uzrok nije dalje istraživan.
+
+**Provjereno:** web testovi 143/143, typecheck (web i server), lint = osnovica. Chrome sa Android UA i lažnim PostHog hostom: link sa oglasa nosi kampanju, ona preživi otvaranje bez parametara u istoj sesiji, dodir šalje događaj sa kampanjom, a bez kampanje link ostaje bez `referrer`-a. **Nije provjereno:** `app_install_attributed` na uređaju (referrer se ne može lažirati lokalno, a staging ne šalje analitiku), traka na sobi sa `intent:` linkom u pregledaču (samo jedinični testovi).

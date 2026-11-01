@@ -1,4 +1,8 @@
+import type { AnalyticsEvents } from "@zandar/shared-types";
+
+import { campaignFromParams } from "./campaign";
 import { ROOM_ID } from "./routes";
+import { track } from "./track";
 
 /**
  * Poziv koji preživi instalaciju (Play Install Referrer).
@@ -27,6 +31,13 @@ export function roomIdFromReferrer(referrer: string | null | undefined): string 
   if (!referrer) return null;
   const id = new URLSearchParams(referrer).get("room");
   return id && ROOM_ID.test(id) ? id : null;
+}
+
+/** Parametri za `app_install_attributed`; id sobe ne ide u analitiku. */
+export function installAttribution(
+  referrer: string | null | undefined,
+): AnalyticsEvents["app_install_attributed"] {
+  return { has_room: roomIdFromReferrer(referrer) !== null, ...campaignFromParams(referrer) };
 }
 
 function alreadyConsumed(): boolean {
@@ -66,6 +77,7 @@ export async function consumeInstallRoom(): Promise<string | null> {
     ]);
     if (result === null) return null;
     markConsumed();
+    track("app_install_attributed", installAttribution(result.referrer));
     return roomIdFromReferrer(result.referrer);
   } catch {
     return null;

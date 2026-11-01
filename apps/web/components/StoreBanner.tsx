@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { rememberCampaign } from "@/lib/campaign";
 import { isNative, isStaging } from "@/lib/platform";
 import { roomIdFromLink } from "@/lib/routes";
 import { sr } from "@/lib/sr";
@@ -11,6 +12,7 @@ import {
   playStoreUrl,
   snoozeStoreOffer,
 } from "@/lib/stores";
+import { track } from "@/lib/track";
 
 /**
  * Ponuda aplikacije na webu (Android): „Nabavite na usluzi Google Play".
@@ -40,6 +42,7 @@ const onServer = () => false;
 export function useStoreOffer(pathname: string | null): {
   url: string | null;
   dismiss: () => void;
+  opened: () => void;
 } {
   const android = useSyncExternalStore(noSubscribe, isAndroidBrowser, onServer);
   const [dismissed, setDismissed] = useState(false);
@@ -50,12 +53,13 @@ export function useStoreOffer(pathname: string | null): {
   };
 
   if (isNative || !android || dismissed || isStoreOfferSnoozed()) {
-    return { url: null, dismiss };
+    return { url: null, dismiss, opened: () => {} };
   }
   // `android` je tačno samo na klijentu, pa je `window` ovdje siguran.
   void pathname;
   const roomId = roomIdFromLink(window.location.href);
-  const listing = playStoreUrl(roomId);
+  const campaign = rememberCampaign(window.location.search);
+  const listing = playStoreUrl(roomId, campaign);
   const pkg = appPackage(isStaging);
   // Na pozivnici dodir prvo proba aplikaciju (ugrađeni browseri ne okidaju App
   // Link), a Play je rezerva. Van sobe intent-filter nema šta da primi.
@@ -63,10 +67,19 @@ export function useStoreOffer(pathname: string | null): {
     listing && roomId && pkg
       ? appIntentUrl(window.location.host, roomId, pkg, listing)
       : listing;
-  return { url, dismiss };
+  const opened = () => track("store_banner_clicked", { has_room: roomId !== null, ...campaign });
+  return { url, dismiss, opened };
 }
 
-export function StoreOffer({ url, onDismiss }: { url: string; onDismiss: () => void }) {
+export function StoreOffer({
+  url,
+  onOpen,
+  onDismiss,
+}: {
+  url: string;
+  onOpen: () => void;
+  onDismiss: () => void;
+}) {
   return (
     <>
       <span className="text-sm text-white">{sr.stores.bannerText}</span>
@@ -74,6 +87,7 @@ export function StoreOffer({ url, onDismiss }: { url: string; onDismiss: () => v
       <a
         href={url}
         {...(url.startsWith("intent:") ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+        onClick={onOpen}
         className="shrink-0"
       >
         {/* Zvanična oznaka, netaknuta (smjernice brenda): bez sjenke, bez

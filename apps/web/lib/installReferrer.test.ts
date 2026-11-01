@@ -1,7 +1,37 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { roomIdFromReferrer } from "./installReferrer";
+import { installAttribution, roomIdFromReferrer } from "./installReferrer";
+
+describe("installAttribution", () => {
+  test("instalacija sa oglasa", () => {
+    assert.deepEqual(
+      installAttribution("utm_source=facebook&utm_medium=paid_social&utm_campaign=zandar_boost_01"),
+      {
+        has_room: false,
+        utm_source: "facebook",
+        utm_medium: "paid_social",
+        utm_campaign: "zandar_boost_01",
+      },
+    );
+  });
+
+  test("organska instalacija se razlikuje od oglasa", () => {
+    assert.deepEqual(installAttribution("utm_source=google-play&utm_medium=organic"), {
+      has_room: false,
+      utm_source: "google-play",
+      utm_medium: "organic",
+    });
+  });
+
+  test("pozivnica: soba se računa, a njen id ne ide u analitiku", () => {
+    assert.deepEqual(installAttribution("room=c99edf"), { has_room: true });
+  });
+
+  test("bez referrera", () => {
+    assert.deepEqual(installAttribution(undefined), { has_room: false });
+  });
+});
 
 describe("roomIdFromReferrer", () => {
   test("soba iz pozivnice", () => {

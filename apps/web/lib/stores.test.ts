@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { roomIdFromReferrer } from "./installReferrer";
+import { installAttribution, roomIdFromReferrer } from "./installReferrer";
 import {
   appIntentUrl,
   appPackage,
@@ -29,6 +29,29 @@ describe("withInviteReferrer", () => {
   test("ono što traka pošalje, aplikacija pročita", () => {
     const sent = new URL(withInviteReferrer(LISTING, "c99edf")).searchParams.get("referrer");
     assert.equal(roomIdFromReferrer(sent), "c99edf");
+  });
+
+  test("kampanja bez sobe ide u referrer", () => {
+    const url = new URL(
+      withInviteReferrer(LISTING, null, { utm_source: "facebook", utm_campaign: "zandar_boost_01" }),
+    );
+    assert.equal(
+      url.searchParams.get("referrer"),
+      "utm_source=facebook&utm_campaign=zandar_boost_01",
+    );
+    // `&` unutar vrijednosti mora biti kodiran, inače Play siječe referrer.
+    assert.doesNotMatch(url.search, /referrer=[^&]*&utm_campaign/);
+  });
+
+  test("aplikacija čita i sobu i kampanju, što god da traka pošalje", () => {
+    const sent = new URL(
+      withInviteReferrer(LISTING, "c99edf", { utm_campaign: "zandar_boost_01" }),
+    ).searchParams.get("referrer");
+    assert.equal(roomIdFromReferrer(sent), "c99edf");
+    assert.deepEqual(installAttribution(sent), {
+      has_room: true,
+      utm_campaign: "zandar_boost_01",
+    });
   });
 });
 

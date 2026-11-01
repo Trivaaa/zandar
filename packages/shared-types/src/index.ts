@@ -569,9 +569,21 @@ type NoProps = Record<string, never>;
 export type SignupListItem = { game: UpcomingGameSlug; email: string; createdAt: number };
 export type SignupListResponse = { signups: SignupListItem[] };
 
+/** Odakle je igrač došao, iz adrese ili Play referrera. Samo vrijednosti iz našeg linka, nikad lični podaci. */
+export type InstallCampaign = {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+};
+
 export type AnalyticsEvents = {
   // — klijent —
   first_open: NoProps;
+  /** Dodir na Play oznaku u traci na webu. Vodi u prodavnicu; instalacija tu još nije desila. */
+  store_banner_clicked: InstallCampaign & { has_room: boolean };
+  /** Aplikacija je prvi put pročitala Play referrer. Nosi kampanju web klika pod novim guest ID-em. */
+  app_install_attributed: InstallCampaign & { has_room: boolean };
   play_requested: { mode: MatchMode };
   teaser_opened: { game: string };
   upcoming_games_viewed: NoProps;
@@ -624,6 +636,8 @@ export type AnalyticsEvents = {
 
 export type ClientAnalyticsEvent =
   | "first_open"
+  | "store_banner_clicked"
+  | "app_install_attributed"
   | "play_requested"
   | "teaser_opened"
   | "upcoming_games_viewed"
