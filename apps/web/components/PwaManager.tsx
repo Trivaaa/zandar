@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { identityUi } from "@/lib/features";
+import { useAndroidBrowser } from "@/components/AppOffer";
+import { rememberCampaign } from "@/lib/campaign";
 import { isNative } from "@/lib/platform";
-import { StoreOffer, useStoreOffer } from "@/components/StoreBanner";
 
 /**
  * PwaManager (DS §9 D1) — registruje service worker (samo statika),
  * nudi install prompt (beforeinstallprompt) i update prompt (novi SW).
- * Na Androidu, čim aplikacija postoji na Play-u, umjesto „Dodaj na ekran" nudi
- * nju (`StoreBanner`) — dvije ponude instalacije bi se takmičile.
+ * Na Androidu „Dodaj na ekran" ne nudi: tamo je ponuda aplikacija (`AppOffer`), a
+ * dvije ponude instalacije bi se takmičile.
  * Mount-uje se jednom u root layout-u. Bez UI dok nema šta da ponudi.
  */
 
@@ -43,7 +44,14 @@ function PwaBanner() {
   const onForm = /^[/](igre|ime|prijatelji|profil)([/]|$)/.test(pathname ?? "");
   // Home nosi donju navigaciju (`TabBar`) — banner stoji iznad nje.
   const overTabBar = identityUi && /^[/]?$/.test(pathname ?? "");
-  const store = useStoreOffer(pathname);
+  // Za stolom, u lobiju, na pozivnici i na čekanju stola nema ponude za instalaciju.
+  const atTable = /^[/](room|matching)([/]|$)/.test(pathname ?? "");
+  const android = useAndroidBrowser();
+
+  // Navigacija skida `utm_*` sa adrese, a ponuda stiže tek poslije partije.
+  useEffect(() => {
+    rememberCampaign(window.location.search);
+  }, [pathname]);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
@@ -113,9 +121,8 @@ function PwaBanner() {
     setUpdateReady(null);
   }
 
-  // Nova verzija ima prednost: ponuda aplikacije može da sačeka osvježavanje.
-  const storeUrl = updateReady ? null : store.url;
-  if (onForm || (!installEvt && !updateReady && !storeUrl)) return null;
+  const offerInstall = installEvt !== null && !android && !atTable;
+  if (onForm || (!offerInstall && !updateReady)) return null;
 
   return (
     <div
@@ -141,8 +148,6 @@ function PwaBanner() {
             Osvježi
           </button>
         </>
-      ) : storeUrl ? (
-        <StoreOffer url={storeUrl} onOpen={store.opened} onDismiss={store.dismiss} />
       ) : (
         <>
           <span className="text-sm text-white">Instaliraj Žandar</span>

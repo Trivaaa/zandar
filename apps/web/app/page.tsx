@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
 
+import { AppOfferBar } from "@/components/AppOffer";
 import { RulesModal } from "@/components/RulesModal";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { GameSheet } from "@/components/home/GameSheet";
@@ -139,7 +140,7 @@ export default function Home() {
           setSheet({ kind: "signup" });
         }}
         onUpcomingViewed={() => track("upcoming_games_viewed")}
-        {...(isNative ? {} : { legalSlot })}
+        {...(isNative ? {} : { legalSlot, topSlot: <AppOfferBar /> })}
         className={identityUi ? "screen--tabbed" : ""}
       />
       {identityUi ? <TabBar /> : null}

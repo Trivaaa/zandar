@@ -1,4 +1,4 @@
-import type { InstallCampaign } from "@zandar/shared-types";
+import type { AppOfferPlace, InstallCampaign } from "@zandar/shared-types";
 
 /**
  * Prodavnice aplikacija — jedno mjesto za linkove.
@@ -66,46 +66,133 @@ export function appPackage(staging: boolean): string | null {
 }
 
 /**
- * Android `intent:` link koji pozivnicu otvara U APLIKACIJI, a kad aplikacije
- * nema vodi na `fallbackUrl` (Play listing sa sobom u referreru).
- *
- * Zašto treba pored App Linka: ugrađeni browseri (Messenger, Instagram, Viber…)
- * link učitaju u vlastitom WebView-u i NE šalju intent, pa Android verifikaciju
- * domena niko ni ne pita — igrač koji ima aplikaciju ostane na webu. Dodir na
- * `intent:` link je jedini put odatle u aplikaciju. `host` mora biti onaj iz
- * intent-filtera (`deepLinkHost`), `package` sprečava da ga preuzme neko drugi.
+ * Play link ponude: `utm_content` kaže koje mjesto je donijelo instalaciju. Plaćena
+ * kampanja ostaje netaknuta, jer po njoj se čita kohorta; mjesto se tada vidi iz
+ * `app_offer_click`.
  */
-export function appIntentUrl(
-  host: string,
-  roomId: string,
-  pkg: string,
-  fallbackUrl: string,
-): string {
+export function appOfferStoreUrl(
+  place: AppOfferPlace,
+  campaign: InstallCampaign = {},
+): string | null {
+  return playStoreUrl(null, { utm_source: "web", utm_content: place, ...campaign });
+}
+
+/**
+ * Android `intent:` link koji otvara APLIKACIJU, a kad je nema (ili je starija od
+ * putanje `/otvori`) vodi na `fallbackUrl`. Launcher filter nije `BROWSABLE`, pa
+ * pregledač smije pokrenuti samo App Link filter iz AndroidManifest-a; `host` mora
+ * biti njegov (`deepLinkHost`), a `package` sprečava da link preuzme neko drugi.
+ */
+export function appOpenUrl(host: string, pkg: string, fallbackUrl: string): string {
   return (
-    `intent://${host}/room/${encodeURIComponent(roomId)}` +
-    `#Intent;scheme=https;package=${pkg};` +
-    `S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`
+    "intent://" + host + "/otvori" +
+    "#Intent;scheme=https;package=" + pkg + ";" +
+    "S.browser_fallback_url=" + encodeURIComponent(fallbackUrl) + ";end"
   );
 }
 
+/** Gdje host može prikazati ponudu; `AppOfferPlace` je ono što je stvarno prikazano. */
+export type AppOfferSurface = "home" | "match_end";
+
+export type AppOfferState = {
+  /** Aplikacija je otkrivena na telefonu (`getInstalledRelatedApps`). */
+  installed: boolean;
+  snoozed: boolean;
+  /** Koliko je puta odbijena traka „Preuzmi". */
+  rejections: number;
+  /** Igrač je na ovom pregledaču završio bar jednu partiju. */
+  matchFinished: boolean;
+  /** Ponuda prikazana u ovoj posjeti. */
+  shownThisVisit: AppOfferPlace | null;
+};
+
+/** Poslije ovoliko × početna više ne nudi preuzimanje; ostaje red na kraju partije. */
+const MAX_REJECTIONS = 3;
+
+/** Šta ekran prikazuje, ili `null`. Na stolu, u lobiju i na pozivnici nema poziva. */
+export function decideAppOffer(
+  surface: AppOfferSurface,
+  state: AppOfferState,
+): AppOfferPlace | null {
+  if (state.snoozed) return null;
+  let place: AppOfferPlace | null;
+  if (surface === "match_end") {
+    place = state.installed ? null : "match_end";
+  } else if (state.installed) {
+    place = "home_open";
+  } else {
+    place = state.matchFinished && state.rejections < MAX_REJECTIONS ? "home_top" : null;
+  }
+  // Jedna ponuda po posjeti; ista se vraća kad se igrač vrati na ekran.
+  return state.shownThisVisit && state.shownThisVisit !== place ? null : place;
+}
+
 const STORE_SNOOZE_KEY = "zandar:store:snoozeUntil";
-/** „Ne sada" sakriva ponudu nedjelju dana — isto pravilo kao push ponuda. */
+const REJECTIONS_KEY = "zandar:store:rejections";
+const MATCH_FINISHED_KEY = "zandar:store:matchFinished";
+const VISIT_KEY = "zandar:store:offerShown";
+/** × sakriva ponudu nedjelju dana — isto pravilo kao push ponuda. */
 const STORE_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** localStorage ume da BACI (privatni prozor, blokirani site data). */
-export function isStoreOfferSnoozed(now: number = Date.now()): boolean {
+const OFFER_PLACES: readonly string[] = ["home_top", "home_open", "match_end"] satisfies AppOfferPlace[];
+
+/** Skladište ume da BACI (privatni prozor, blokirani site data). Bez njega: čisto stanje. */
+export function readAppOfferState(
+  installed: boolean,
+  now: number = Date.now(),
+): AppOfferState {
+  const state: AppOfferState = {
+    installed,
+    snoozed: false,
+    rejections: 0,
+    matchFinished: false,
+    shownThisVisit: null,
+  };
   try {
     const until = Number(window.localStorage.getItem(STORE_SNOOZE_KEY));
-    return Number.isFinite(until) && until > now;
+    state.snoozed = Number.isFinite(until) && until > now;
+    const rejections = Number(window.localStorage.getItem(REJECTIONS_KEY));
+    state.rejections = Number.isFinite(rejections) ? rejections : 0;
+    state.matchFinished = window.localStorage.getItem(MATCH_FINISHED_KEY) !== null;
+    const shown = window.sessionStorage.getItem(VISIT_KEY);
+    state.shownThisVisit = shown && OFFER_PLACES.includes(shown) ? (shown as AppOfferPlace) : null;
   } catch {
-    return false;
+    // Ponuda se u najgorem slučaju vrati na sljedećem učitavanju — prihvatljivo.
+  }
+  return state;
+}
+
+/** Zauzima ponudu ove posjete. `true` samo prvi put, da se prikaz broji jednom. */
+export function claimAppOfferVisit(place: AppOfferPlace): boolean {
+  try {
+    if (window.sessionStorage.getItem(VISIT_KEY) === place) return false;
+    window.sessionStorage.setItem(VISIT_KEY, place);
+  } catch {
+    // vidi `readAppOfferState`
+  }
+  return true;
+}
+
+export function recordAppOfferDismissed(place: AppOfferPlace, now: number = Date.now()): void {
+  try {
+    window.localStorage.setItem(STORE_SNOOZE_KEY, String(now + STORE_SNOOZE_MS));
+    // Samo odbijena traka „Preuzmi" se broji: „Otvori" i red na kraju partije ostaju.
+    if (place === "home_top") {
+      const rejections = Number(window.localStorage.getItem(REJECTIONS_KEY));
+      window.localStorage.setItem(
+        REJECTIONS_KEY,
+        String((Number.isFinite(rejections) ? rejections : 0) + 1),
+      );
+    }
+  } catch {
+    // vidi `readAppOfferState`
   }
 }
 
-export function snoozeStoreOffer(now: number = Date.now()): void {
+export function recordMatchFinished(): void {
   try {
-    window.localStorage.setItem(STORE_SNOOZE_KEY, String(now + STORE_SNOOZE_MS));
+    window.localStorage.setItem(MATCH_FINISHED_KEY, "1");
   } catch {
-    // Bez skladišta ponuda se vrati na sljedećem učitavanju — prihvatljivo.
+    // vidi `readAppOfferState`
   }
 }

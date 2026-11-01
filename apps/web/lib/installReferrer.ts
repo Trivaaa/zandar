@@ -7,9 +7,10 @@ import { track } from "./track";
 /**
  * Poziv koji preživi instalaciju (Play Install Referrer).
  *
- * Igrač bez aplikacije otvori pozivnicu na webu, instalira sa trake
- * (`playStoreUrl(roomId)` u `lib/stores.ts`), i Play pri prvom pokretanju vrati
- * isti `referrer` string. Odatle sleti na sobu u koju je pozvan, ne na početnu.
+ * Link sa sobom (`playStoreUrl(roomId)` u `lib/stores.ts`) Play pri prvom pokretanju
+ * vrati kao isti `referrer` string, pa igrač sleti na sobu, ne na početnu. Web ga od
+ * ponude aplikacije (W1/W4/W6) više ne šalje, jer za stolom i na pozivnici nema ponude;
+ * čitanje ostaje zbog instalacija sa starih linkova i zbog kampanje.
  *
  * Čita se JEDNOM po instalaciji: Play vraća isti referrer i 90 dana kasnije, pa
  * bi bez oznake svako pokretanje vodilo u istu, odavno ugašenu sobu.

@@ -393,10 +393,18 @@ export const sr = {
   /* Samo web. U APK-u se sekcija ne renderuje. Imena prodavnica su obična
      oznaka mjesta dok zvanični artwork ne stigne uz živ URL (`lib/stores.ts`). */
   stores: {
-    /* Traka na webu (Android): ponuda aplikacije. Tekst zvanične oznake je na
-       samoj slici; `badgeAlt` je njen opis za čitač ekrana. */
-    bannerText: "Igraj u aplikaciji",
-    badgeAlt: "Nabavite na usluzi Google Play",
+    /* Ponuda aplikacije na webu (Android): traka na početnoj i red na kraju partije. */
+    barLabel: "Aplikacija",
+    barTitle: "Kartaonica za Android",
+    barBody: "Brže, preko cijelog ekrana, sa obavještenjima",
+    barGo: "Preuzmi",
+    openTitle: "Kartaonica je instalirana",
+    openBody: "Otvori ovaj ekran u aplikaciji",
+    openGo: "Otvori",
+    rowTitle: "Igraj u aplikaciji",
+    rowBody: "Brže, i javimo ti kad te zovu",
+    rowGo: "Google Play",
+    close: "Zatvori",
     later: "Ne sada",
   },
   /* Pravne stranice. Samo interaktivne labele i tekst poruke — proza zivi u

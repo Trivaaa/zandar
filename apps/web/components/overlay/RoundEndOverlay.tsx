@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { HandScore, PublicPlayer } from "@zandar/shared-types";
 import { breakdownRows } from "@/lib/handBreakdown";
 import { pilesOf } from "@/lib/piles";
@@ -21,6 +22,8 @@ export type RoundEndOverlayProps = {
   onRematch?: () => void;
   onFindNewTable?: () => void;
   onLeave?: () => void;
+  /** match_finished only: tih red ispod glavnih radnji. */
+  appOffer?: ReactNode;
   className?: string | undefined;
 };
 
@@ -37,6 +40,7 @@ export function RoundEndOverlay({
   onRematch,
   onFindNewTable,
   onLeave,
+  appOffer,
   className = "",
 }: RoundEndOverlayProps) {
   const piles = pilesOf(players);
@@ -182,6 +186,8 @@ export function RoundEndOverlay({
             {sr.end.newTable}
           </button>
         ) : null}
+
+        {isMatch ? appOffer : null}
 
         {isMatch && onLeave ? (
           <button

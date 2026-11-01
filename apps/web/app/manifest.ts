@@ -1,4 +1,6 @@
 import type { MetadataRoute } from "next";
+import { isStaging } from "@/lib/platform";
+import { appPackage, STORE_LINKS } from "@/lib/stores";
 
 /**
  * PWA manifest (DS §9 D1). Generiše /manifest.webmanifest.
@@ -12,6 +14,8 @@ import type { MetadataRoute } from "next";
 export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const pkg = appPackage(isStaging);
+  const listing = STORE_LINKS["google-play"];
   return {
     name: "Kartaonica",
     short_name: "Kartaonica",
@@ -24,6 +28,11 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#18181b",
     theme_color: "#18181b",
     lang: "bs",
+    // Za `getInstalledRelatedApps` (`AppOffer`). Bez `prefer_related_applications`:
+    // ponudu vodimo sami, vidi komentar tamo.
+    ...(pkg && listing
+      ? { related_applications: [{ platform: "play", id: pkg, url: listing }] }
+      : {}),
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

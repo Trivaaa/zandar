@@ -39,6 +39,9 @@
                 <data android:scheme="https" android:host="${deepLinkHost}" />
                 <data android:pathPrefix="/room/" />
                 <data android:pathPrefix="/zandar/room/" />
+                <!-- „Otvori" sa weba (intent: link, lib/stores.ts): samo pokreće
+                     aplikaciju, launcher filter pregledač ne smije pokrenuti. -->
+                <data android:pathPrefix="/otvori" />
             </intent-filter>
 
         </activity>
@@ -52,6 +55,12 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Web smije pitati da li je aplikacija instalirana (getInstalledRelatedApps,
+             components/AppOffer.tsx). Par je related_applications u app/manifest.ts. -->
+        <meta-data
+            android:name="asset_statements"
+            android:resource="@string/asset_statements" />
 
         <!-- Push (PRD §51): ikonica u traci kad poruka ne navede svoju. Bijela
              silueta, jer Android crta masku (res/drawable/ic_stat_notify.xml).

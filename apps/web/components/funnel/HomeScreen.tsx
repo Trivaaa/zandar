@@ -28,6 +28,8 @@ export type HomeScreenProps = {
   /** Privatnost / uslovi / o nama — samo web (Google OAuth traži link sa
    * početne); na Androidu ih host izostavlja, tamo su u Postavkama. */
   legalSlot?: ReactNode;
+  /** Ponuda aplikacije: traka na samom vrhu, iznad marke. */
+  topSlot?: ReactNode;
   className?: string | undefined;
 };
 
@@ -49,6 +51,7 @@ export function HomeScreen({
   onNotify,
   onUpcomingViewed,
   legalSlot,
+  topSlot,
   className = "",
 }: HomeScreenProps) {
   // Sto je niži samo kad ima „Još igara" (A3); pločice „Uskoro" su niže i
@@ -56,6 +59,7 @@ export function HomeScreen({
   const compact = layout.more.length > 0;
   return (
     <main className={`screen home ${className}`}>
+      {topSlot}
       <header className="home__top">
         <BrandLockup showDomain={false} className="brand--home" />
         {isStaging ? <span className="home__env">STAGING</span> : null}

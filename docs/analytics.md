@@ -94,7 +94,8 @@ Izvor saobraćaja na webu: `utm_*` se čita sa događaja (`utm_campaign` na
 svim profilima.
 
 Instalacije: web i aplikacija imaju različit guest ID, pa ih povezuje samo
-kampanja. Traka upisuje `utm_*` u Play `referrer` (`lib/stores.ts`), a aplikacija
+kampanja. Ponuda aplikacije upisuje `utm_*` u Play `referrer` (`lib/stores.ts`): plaćena
+kampanja ostaje netaknuta, a bez nje ide `utm_source=web&utm_content=<place>`. Aplikacija
 ih pri prvom čitanju referrera šalje kao `app_install_attributed`. Klik se ne može
 spojiti sa instalacijom po osobi, nego samo po kampanji. Izdanja koja ne šalju taj
 događaj: samo Play Console → Acquisition.
@@ -109,7 +110,9 @@ dobija svako sa `$host=localhost`, a to je svaki igrač u Android aplikaciji.
 | Događaj | Gdje | Kad / idempotentnost | Parametri |
 |---|---|---|---|
 | `first_open` | klijent | Jednom po guest ID-u. Zatečeni igrači (ID od prije) se tiho označe. Ne na `/privatnost`, `/privacy`, `/uslovi`, `/delete-account`, `/o-nama` — tamo čeka prvo otvaranje igre. | — |
-| `store_banner_clicked` | klijent | Dodir na Play oznaku u traci na webu (samo Android). Vodi u prodavnicu, nije instalacija. „Ne sada" i link u Profilu NE šalju događaj. | `has_room`, `utm_source?`, `utm_medium?`, `utm_campaign?`, `utm_content?` |
+| `app_offer_shown` | klijent | Ponuda aplikacije je prikazana (samo Android pregledač). Jednom po posjeti. | `place` (`home_top`, `home_open`, `match_end`) |
+| `app_offer_click` | klijent | Dodir na „Preuzmi", „Google Play" ili „Otvori". Vodi van weba, nije instalacija. Link u Profilu NE šalje događaj. Zamijenio je `store_banner_clicked` (živ samo do ovog izdanja). | `place`, `utm_source?`, `utm_medium?`, `utm_campaign?`, `utm_content?` |
+| `app_offer_dismiss` | klijent | Dodir na × (7 dana mira). | `place` |
 | `app_install_attributed` | klijent | Aplikacija jednom po instalaciji pročita Play referrer. Stiže i za organsku instalaciju (`utm_source=google-play`, `utm_medium=organic`). Ko je već pročitao referrer u ranijem izdanju ne šalje ništa. | `has_room`, `utm_source?`, `utm_medium?`, `utm_campaign?`, `utm_content?` |
 | `play_requested` | klijent | Pritisak na Quick Play, kreiranje sobe, slanje zahtjeva za ulazak (`lib/api.ts`). | `mode` |
 | `match_started` | server | Jednom po čovjeku po `match_id` (Quick Play, host `/start`, revanš). Botovi nikad. | `mode`, `match_id`, `player_count`, `human_count`, `bot_count`, `target_score`, `is_rematch`, `platform?` |

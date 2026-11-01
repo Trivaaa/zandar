@@ -577,11 +577,18 @@ export type InstallCampaign = {
   utm_content?: string;
 };
 
+/** Mjesto ponude aplikacije na webu. `home_open` je traka „Otvori", kad je aplikacija već na telefonu. */
+export type AppOfferPlace = "home_top" | "home_open" | "match_end";
+
 export type AnalyticsEvents = {
   // — klijent —
   first_open: NoProps;
-  /** Dodir na Play oznaku u traci na webu. Vodi u prodavnicu; instalacija tu još nije desila. */
-  store_banner_clicked: InstallCampaign & { has_room: boolean };
+  /** Ponuda aplikacije je prikazana. Jednom po posjeti pregledača. */
+  app_offer_shown: { place: AppOfferPlace };
+  /** Dodir na „Preuzmi", „Google Play" ili „Otvori". Vodi van weba; instalacija tu još nije desila. */
+  app_offer_click: InstallCampaign & { place: AppOfferPlace };
+  /** Dodir na × (7 dana mira). */
+  app_offer_dismiss: { place: AppOfferPlace };
   /** Aplikacija je prvi put pročitala Play referrer. Nosi kampanju web klika pod novim guest ID-em. */
   app_install_attributed: InstallCampaign & { has_room: boolean };
   play_requested: { mode: MatchMode };
@@ -636,7 +643,9 @@ export type AnalyticsEvents = {
 
 export type ClientAnalyticsEvent =
   | "first_open"
-  | "store_banner_clicked"
+  | "app_offer_shown"
+  | "app_offer_click"
+  | "app_offer_dismiss"
   | "app_install_attributed"
   | "play_requested"
   | "teaser_opened"

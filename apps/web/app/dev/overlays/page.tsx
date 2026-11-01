@@ -13,6 +13,7 @@ import {
   ReactionBubble,
 } from "@/components/overlay/EmojiReactions";
 import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
+import { AppOfferRow } from "@/components/AppOffer";
 import { RoundEndOverlay } from "@/components/overlay/RoundEndOverlay";
 import { Toast } from "@/components/overlay/Toast";
 import { GameMenuSheet } from "@/components/overlay/GameMenuSheet";
@@ -252,6 +253,7 @@ export default function DevOverlaysPage() {
               onRematch={() => setSent("revanš")}
               onFindNewTable={() => setSent("novi sto")}
               onLeave={() => setSent("izlaz")}
+              appOffer={<AppOfferRow />}
             />
           </div>
         </div>

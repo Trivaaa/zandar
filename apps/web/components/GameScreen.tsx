@@ -15,6 +15,7 @@ import { PlayerSeat } from "@/components/felt/PlayerSeat";
 import { TableSurface, type LandFrom } from "@/components/felt/TableSurface";
 import { PlayerHand } from "@/components/felt/PlayerHand";
 import { TurnBanner } from "@/components/felt/TurnBanner";
+import { AppOfferRow } from "@/components/AppOffer";
 import { GameMenuSheet } from "@/components/overlay/GameMenuSheet";
 import { ReactionFab } from "@/components/ReactionFab";
 import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
@@ -885,6 +886,7 @@ export function GameScreen({
             onRematch={() => void runAction(onRematch)}
             {...(onFindNewTable ? { onFindNewTable } : {})}
             {...(requestLeave ? { onLeave: requestLeave } : {})}
+            appOffer={<AppOfferRow />}
           />
         </div>
       )}

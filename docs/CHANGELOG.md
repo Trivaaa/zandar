@@ -1007,3 +1007,24 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 **Zamke:** `URLSearchParams.size` ne postoji na starijim Android pregledačima. Lokalna provjera sa `NEXT_PUBLIC_APP_ENV=production` bi pokrenula i GA i Sentry, pa je Chrome pušten sa `--host-resolver-rules` koji blokira sve van localhost-a. Sintetički `element.click()` uz ručni `pagehide` nije dao događaj, a pravi dodir kroz CDP jeste. Uzrok nije dalje istraživan.
 
 **Provjereno:** web testovi 143/143, typecheck (web i server), lint = osnovica. Chrome sa Android UA i lažnim PostHog hostom: link sa oglasa nosi kampanju, ona preživi otvaranje bez parametara u istoj sesiji, dodir šalje događaj sa kampanjom, a bez kampanje link ostaje bez `referrer`-a. **Nije provjereno:** `app_install_attributed` na uređaju (referrer se ne može lažirati lokalno, a staging ne šalje analitiku), traka na sobi sa `intent:` linkom u pregledaču (samo jedinični testovi).
+
+## 117. Ponuda aplikacije: traka na vrhu, red na kraju partije, „Otvori" (2026-11-01, `feat/app-offer`)
+
+**Povod:** plutajuća traka sa Play oznakom izgledala je polomljeno i pokrivala sadržaj, a prikazivala se i tokom partije. Stisnuta je bila zbog `fixed left-1/2` (širina po sadržaju je najviše 50vw), a oznaka ima neprovidnu bijelu pozadinu.
+
+**Šta:** vlasnik je sa table „Ponuda aplikacije" izabrao W1 (traka u toku stranice na početnoj), W4 (red na kraju partije) i W6 (ista traka sa „Otvori" kad je aplikacija na telefonu), bez W5, sa 7 dana mira umjesto 14. Pravila su u `decideAppOffer` (`lib/stores.ts`), prikaz u `components/AppOffer.tsx`, a `StoreBanner.tsx` je obrisan.
+- Samo Android pregledač. Traka ne ide prije prve završene partije, jedna ponuda po posjeti (`sessionStorage`), × daje 7 dana mira svim mjestima.
+- Tri odbijanja gase samo „Preuzmi"; „Otvori" i red na kraju partije ostaju, i ne broje se kao odbijanje.
+- Na `/room` (sto, lobi, pozivnica) i `/matching` nema nikakve ponude, ni PWA na desktopu (rješava QA B4). Na Androidu više nema PWA ponude.
+- Događaji `app_offer_shown/click/dismiss` sa `place`; `store_banner_clicked` je uklonjen. Play link nosi `utm_source=web&utm_content=<place>`, a plaćena kampanja ostaje netaknuta.
+- W6: `related_applications` u manifestu + `asset_statements` u APK-u (`getInstalledRelatedApps`), i putanja `/otvori` u App Link filteru, jer launcher filter nije `BROWSABLE` i pregledač ga ne smije pokrenuti.
+
+**Odstupanje od table:** opis trake se lomi u dva reda umjesto da se reže trotačkom (na 360 px bi ostalo pola rečenice). Sto plaća traku: `--home-rest` raste za nju preko `.home:has(> .app-bar)`.
+
+**Svjesna cijena:** pozivnica više nema dodir koji iz Messengera/Instagrama otvara sto u aplikaciji (unos 86) ni instalaciju koja čuva poziv. W6 ne radi u ugrađenim pregledačima (API postoji samo u Chrome-u) i traži novi APK; stari APK-ovi se ne otkrivaju, pa njihovi vlasnici vide „Preuzmi". PostHog upit preko `elements_chain ILIKE '%google-play-badge%'` više ne važi.
+
+**Zamke:** `next build` (Turbopack) na ovoj mašini pada na Google fontovima (`Can't resolve '@vercel/turbopack-next/internal/font/google/font'`), uz Avast i sa `NODE_EXTRA_CA_CERTS`; prolazi `next build --webpack` sa `NODE_EXTRA_CA_CERTS=<Avast root>`. `/dev/*` ne postoji na `next start`. `cap sync` mijenja `capacitor.build.gradle` i `capacitor.settings.gradle` u svježem worktree-u; ne komitovati. `/matching` bez prave sobe preusmjerava na početnu, pa tamo test može vidjeti traku početne.
+
+**Provjereno:** web 155/155, server 196/196, typecheck, lint = osnovica, web i mobilni build (webpack), Gradle `processStagingResources` (string i spojeni manifest). Chrome sa Android UA na 320×640, 360×740, 390×844, 395×707: W1 od ivice do ivice gura sadržaj (65 px, na 320 px 86), pločice iznad donje trake; × i 7 dana, tri odbijanja, jedna ponuda po posjeti, W6 sa podmetnutim API-jem. W4 (60 px) na `/dev/overlays`. Pravi tok sa lokalnim serverom: početna → `/matching` → `/room` bez ponude.
+
+**Nije provjereno:** W4 na stvarnom kraju partije (samo preview), slanje događaja (PostHog radi samo u produkciji), i na uređaju: `getInstalledRelatedApps` sa pravim APK-om, `intent:` „Otvori" i rezerva na Play. Telefon nije bio na `adb`-u.

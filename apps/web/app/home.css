@@ -264,6 +264,82 @@
   background-image: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 55%, var(--bg-bottom) 100%);
 }
 
+/* Ponuda aplikacije na vrhu početne (tabla „Ponuda aplikacije", W1 i W6): od ivice
+   do ivice, u toku stranice. Ide preko paddinga ekrana, a mjesto plaća sto. */
+.app-bar {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-sizing: content-box;
+  min-height: 3.5rem;
+  margin: calc(-0.625rem - var(--safe-top)) calc(-1 * (var(--funnel-pad) + var(--safe-right))) 0.625rem
+    calc(-1 * (var(--funnel-pad) + var(--safe-left)));
+  padding: calc(0.25rem + var(--safe-top)) calc(0.75rem + var(--safe-right)) 0.25rem var(--safe-left);
+  background-color: var(--nav-bg);
+  border-bottom: 1px solid var(--accent-line);
+}
+
+.home:has(> .app-bar) .game-card {
+  --home-rest: 34.75rem;
+}
+
+.app-bar__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  width: 44px;
+  min-height: 4rem;
+  margin-block: -0.25rem;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.app-bar__icon {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: -0.375rem;
+  border-radius: 0.625rem;
+}
+
+.app-bar__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+}
+
+.app-bar__text b {
+  color: var(--text);
+  font: 700 var(--type-sm) / 1.1 var(--font-sans-stack);
+}
+
+/* 12 px, kao na tabli: rečenica staje u dva reda i na 360 px. */
+.app-bar__text small {
+  color: var(--text-muted);
+  font: 400 0.75rem / 1.2 var(--font-sans-stack);
+}
+
+.app-bar__go {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  font: 700 var(--type-sm) / 1 var(--font-sans-stack);
+  text-decoration: none;
+}
+
 /* Marka: mali znak, ime 15 px. Nema zupčanika. */
 .brand--home {
   gap: 0.5rem;
