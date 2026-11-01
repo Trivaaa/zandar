@@ -583,6 +583,8 @@ export type AppOfferPlace = "home_top" | "home_open" | "match_end";
 export type AnalyticsEvents = {
   // — klijent —
   first_open: NoProps;
+  /** Čovjek je vidio stranicu: prvi dodir ili 5 s vidljivosti. Jednom po guest ID-u. */
+  landing_engaged: InstallCampaign & { trigger: "visible_5s" | "tap" };
   /** Ponuda aplikacije je prikazana. Jednom po posjeti pregledača. */
   app_offer_shown: { place: AppOfferPlace };
   /** Dodir na „Preuzmi", „Google Play" ili „Otvori". Vodi van weba; instalacija tu još nije desila. */
@@ -643,6 +645,7 @@ export type AnalyticsEvents = {
 
 export type ClientAnalyticsEvent =
   | "first_open"
+  | "landing_engaged"
   | "app_offer_shown"
   | "app_offer_click"
   | "app_offer_dismiss"

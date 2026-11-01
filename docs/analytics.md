@@ -110,13 +110,14 @@ dobija svako sa `$host=localhost`, a to je svaki igrač u Android aplikaciji.
 | Događaj | Gdje | Kad / idempotentnost | Parametri |
 |---|---|---|---|
 | `first_open` | klijent | Jednom po guest ID-u. Zatečeni igrači (ID od prije) se tiho označe. Ne na `/privatnost`, `/privacy`, `/uslovi`, `/delete-account`, `/o-nama` — tamo čeka prvo otvaranje igre. | — |
+| `landing_engaged` | klijent | Prvi dodir ili 5 s vidljive stranice, jednom po guest ID-u; vrijeme u pozadini se ne računa. Za razliku od `first_open`, koji se šalje pri pokretanju SDK-a, znači da je stranica stvarno viđena. Važi i za zatečene igrače, pa kohortu čitaj preko `first_open`. Ne na istim stranicama kao `first_open`. | `trigger` (`visible_5s`, `tap`), `utm_source?`, `utm_medium?`, `utm_campaign?`, `utm_content?` |
 | `app_offer_shown` | klijent | Ponuda aplikacije je prikazana (samo Android pregledač). Jednom po posjeti. | `place` (`home_top`, `home_open`, `match_end`) |
 | `app_offer_click` | klijent | Dodir na „Preuzmi", „Google Play" ili „Otvori". Vodi van weba, nije instalacija. Link u Profilu NE šalje događaj. Zamijenio je `store_banner_clicked` (živ samo do ovog izdanja). | `place`, `utm_source?`, `utm_medium?`, `utm_campaign?`, `utm_content?` |
 | `app_offer_dismiss` | klijent | Dodir na × (7 dana mira). | `place` |
 | `app_install_attributed` | klijent | Aplikacija jednom po instalaciji pročita Play referrer. Stiže i za organsku instalaciju (`utm_source=google-play`, `utm_medium=organic`). Ko je već pročitao referrer u ranijem izdanju ne šalje ništa. | `has_room`, `utm_source?`, `utm_medium?`, `utm_campaign?`, `utm_content?` |
 | `play_requested` | klijent | Pritisak na Quick Play, kreiranje sobe, slanje zahtjeva za ulazak (`lib/api.ts`). | `mode` |
 | `match_started` | server | Jednom po čovjeku po `match_id` (Quick Play, host `/start`, revanš). Botovi nikad. | `mode`, `match_id`, `player_count`, `human_count`, `bot_count`, `target_score`, `is_rematch`, `platform?` |
-| `match_ended` | server | Jednom po čovjeku po `match_id`, uključujući čovjeka koji je pao s veze. Kraj i prekid dijele guard. | `mode`, `match_id`, `end_reason`, `hands_played`, `duration_ms?`, `is_winner?`, `platform?` |
+| `match_ended` | server | Jednom po čovjeku po `match_id`, uključujući čovjeka koji je pao s veze. Kraj i prekid dijele guard. Sto bez povezanih ljudi na rezultatu ruke dobija prekid poslije 30 s + 10 min, pa `duration_ms` tada nosi i to čekanje; soba koju sweeper zatekne otvorenu dobija prekid pri brisanju (poslije restarta bez `duration_ms`). Mečevi prije izdanja ove popravke (1.11.2026) nemaju pouzdan kraj: meč bez kraja računaj kao nezavršen. | `mode`, `match_id`, `end_reason`, `hands_played`, `duration_ms?`, `is_winner?`, `platform?` |
 | `hand_finished` | server | Jednom po čovjeku po ruci (zadnja ruka meča ide kao `match_ended`). | `roomId`, `matchId`, `handNumber`, `playerCount`, `isPublic`, `humansAtTable`, `botsAtTable`, `botSeatShare` |
 | `signup_succeeded` | server | Samo nova prijava (ponovljena ne). | `game`, `platform` |
 | `teaser_opened` | klijent | Otvorena stranica buduće igre. | `game` |

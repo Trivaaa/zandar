@@ -1028,3 +1028,14 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 **Provjereno:** web 155/155, server 196/196, typecheck, lint = osnovica, web i mobilni build (webpack), Gradle `processStagingResources` (string i spojeni manifest). Chrome sa Android UA na 320×640, 360×740, 390×844, 395×707: W1 od ivice do ivice gura sadržaj (65 px, na 320 px 86), pločice iznad donje trake; × i 7 dana, tri odbijanja, jedna ponuda po posjeti, W6 sa podmetnutim API-jem. W4 (60 px) na `/dev/overlays`. Pravi tok sa lokalnim serverom: početna → `/matching` → `/room` bez ponude.
 
 **Nije provjereno:** W4 na stvarnom kraju partije (samo preview), slanje događaja (PostHog radi samo u produkciji), i na uređaju: `getInstalledRelatedApps` sa pravim APK-om, `intent:` „Otvori" i rezerva na Play. Telefon nije bio na `adb`-u.
+
+## 118. `match_ended` bez gubitka i `landing_engaged` (2026-11-01, `fix/match-ended-loss`)
+
+**Povod:** GTM revizija kampanje `zandar_boost_01`. `match_ended` je nedostajao na 11 od 35 mečeva od 12.10, a `first_open` se šalje pri pokretanju SDK-a, pa nije govorio koliko je ljudi stvarno vidjelo stranicu (od 65 snimljenih plaćenih sesija, 34 su imale ispod 1 s aktivnosti).
+
+**Uzrok gubitka:** grace timer je izlazio za svaku fazu osim `playing`. Čovjek koji ode sa stola dok je na rezultatu ruke nije dobijao prekid, a sobu je poslije 12 h brisao sweeper bez događaja. Podaci se slažu: svih 12 mečeva bez kraja stalo je poslije bar jedne završene ruke.
+
+**Šta:** `afterGrace` u `pause.ts`. Na rezultatu ruke bez povezanih ljudi prvi istek čeka još `HAND_END_GRACE_MS` (10 min), a drugi raspušta. Sweeper otvorenom meču daje `abandoned` prije brisanja. `landing_engaged` (`lib/landingEngaged.ts`): prvi dodir ili 5 s vidljivosti, jednom po guest ID-u.
+
+**Svjesna cijena:** rezultat ruke je predah, pa namjerno nije 30 s kao u partiji, ali igrač koji se vrati poslije više od 10 min sada zatiče raspušten sto (ranije do 12 h). Prvi deploy jednom pošalje `abandoned` za stare zaglavljene sobe, sa vremenom deploya i bez `duration_ms`.
+**Provjereno:** server i web testovi, typecheck, lint na izmijenjenim fajlovima, web build. Lokalni server sa lažnim PostHog prijemnikom i pravom hidracijom: rezultat ruke + odlazak daje prekid tek poslije produženog roka i `match_ended`; povratak tokom čekanja čuva sto; stara soba dobija `match_ended` tačno jednom i briše se; završen meč ne dobija novi ishod; odlazak usred partije radi kao ranije. **Nije provjereno:** `landing_engaged` u stvarnom Facebook pregledaču, što se vidi tek iz produkcijskih događaja; dio za aplikaciju stiže s prvim sljedećim APK-om.

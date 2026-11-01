@@ -101,15 +101,47 @@ export type LeaveOutcome =
   | "abandon"
   | "ignore";
 
+/** Meč je počeo i još nema ishod: nije lobi, kraj meča ni raspušten sto. */
+export function isMatchOpen(phase: GameState["phase"]): boolean {
+  return (
+    phase === "playing" ||
+    phase === "hand_finished" ||
+    phase === "paused_for_reconnect" ||
+    phase === "abandon_vote"
+  );
+}
+
+/**
+ * Šta kad istekne rok čovjeku koji je pao s veze.
+ *
+ * Rezultat ruke je predah (sljedeću ruku pokreće host), pa zaključan telefon tu
+ * ne smije odmah raspustiti sto: prvi istek daje `wait_hand_end`, tek drugi
+ * `abandon`. Bez toga je sto ostajao na rezultatu dok ga sweeper ne obriše, bez
+ * `match_ended`.
+ *
+ * - `abandon`       — nema više nijednog povezanog čovjeka, raspusti.
+ * - `pause`         — partija teče, a neko je ostao → pauza za ostale.
+ * - `wait_hand_end` — rezultat ruke bez povezanih ljudi, sačekaj duži rok.
+ * - `ignore`        — sto već stoji ili neko čeka na rezultatu ruke.
+ */
+export type GraceOutcome = "abandon" | "pause" | "wait_hand_end" | "ignore";
+
+export function afterGrace(
+  gs: Pick<GameState, "phase" | "players">,
+  handEndWaited: boolean,
+): GraceOutcome {
+  const nobodyLeft = nextPhaseAfterGrace(gs) === "abandoned";
+  if (gs.phase === "playing") return nobodyLeft ? "abandon" : "pause";
+  if (gs.phase === "hand_finished" && nobodyLeft) {
+    return handEndWaited ? "abandon" : "wait_hand_end";
+  }
+  return "ignore";
+}
+
 export function afterLeave(
   gs: Pick<GameState, "phase" | "players">,
 ): LeaveOutcome {
-  const live =
-    gs.phase === "playing" ||
-    gs.phase === "hand_finished" ||
-    gs.phase === "paused_for_reconnect" ||
-    gs.phase === "abandon_vote";
-  if (!live) return "ignore";
+  if (!isMatchOpen(gs.phase)) return "ignore";
   if (nextPhaseAfterGrace(gs) === "abandoned") return "abandon";
   if (gs.phase === "playing") return "pause";
   if (gs.phase === "hand_finished") return "next_hand_then_pause";

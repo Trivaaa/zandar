@@ -242,13 +242,17 @@ const IDLE_ROOM_TTL_MS = 12 * 60 * 60 * 1000;     // 12h bez ikakve aktivnosti
 const SWEEP_INTERVAL_MS = 10 * 60 * 1000;         // provjera svakih 10 min
 
 /** Ukloni sobe kojima je istekao TTL. Vraća broj uklonjenih. */
-export function sweepStaleRooms(now: number = Date.now()): number {
+export function sweepStaleRooms(
+  now: number = Date.now(),
+  onBeforeRemove?: (room: LobbyRoom) => void,
+): number {
   let removed = 0;
   for (const room of rooms.values()) {
     const last = room.lastActivityAt ?? room.createdAt;
     const ttl =
       room.status === "finished" ? FINISHED_ROOM_TTL_MS : IDLE_ROOM_TTL_MS;
     if (now - last >= ttl) {
+      onBeforeRemove?.(room);
       deleteRoom(room.id);
       removed += 1;
     }
@@ -259,9 +263,10 @@ export function sweepStaleRooms(now: number = Date.now()): number {
 /** Pokreni periodični sweep. unref() — ne drži proces živim. */
 export function startRoomSweeper(
   onSweep?: (removed: number) => void,
+  onBeforeRemove?: (room: LobbyRoom) => void,
 ): ReturnType<typeof setInterval> {
   const timer = setInterval(() => {
-    const removed = sweepStaleRooms();
+    const removed = sweepStaleRooms(Date.now(), onBeforeRemove);
     if (removed > 0) onSweep?.(removed);
   }, SWEEP_INTERVAL_MS);
   timer.unref();

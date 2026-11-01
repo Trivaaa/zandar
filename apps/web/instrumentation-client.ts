@@ -5,6 +5,7 @@
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
 import { getGuestId, peekGuestId } from "@/lib/guestId";
+import { armLandingEngaged } from "@/lib/landingEngaged";
 import {
   applyTesterFlag,
   CLIENT_BASE_PROPS,
@@ -48,6 +49,7 @@ if (isAnalyticsEnabled()) {
   });
   posthog.register(CLIENT_BASE_PROPS);
   recordFirstOpen(hadGuestId);
+  armLandingEngaged();
   applyTesterFlag();
 }
 

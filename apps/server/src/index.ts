@@ -44,10 +44,11 @@ import {
 } from "./rooms";
 import { buildPrivateGameStateView } from "./gameStateView";
 import {
+  afterGrace,
   afterLeave,
+  isMatchOpen,
   connectedHumans,
   hasReconnectingHuman,
-  nextPhaseAfterGrace,
   resolveVote,
   resolveVoteTimeout,
 } from "./pause";
@@ -1402,6 +1403,8 @@ const ms = (name: string, fallback: number): number => {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
 const GRACE_MS = ms("GRACE_MS", 30 * 1000);
+/** Rezultat ruke je predah: toliko još čeka sto bez ijednog povezanog čovjeka. */
+const HAND_END_GRACE_MS = ms("HAND_END_GRACE_MS", 10 * 60 * 1000);
 const PAUSE_MS = ms("PAUSE_MS", 2 * 60 * 1000);
 const VOTE_MS = ms("VOTE_MS", 60 * 1000);
 const WAIT_EXTENSION_MS = ms("WAIT_EXTENSION_MS", 5 * 60 * 1000);
@@ -1738,6 +1741,15 @@ async function handlePlayerDisconnect(
   const existing = disconnectTimers.get(playerId);
   if (existing) clearTimeout(existing);
 
+  armGraceTimer(roomId, playerId, GRACE_MS, false);
+}
+
+function armGraceTimer(
+  roomId: string,
+  playerId: string,
+  delayMs: number,
+  handEndWaited: boolean,
+): void {
   const timer = setTimeout(async () => {
     disconnectTimers.delete(playerId);
     const room = getRoom(roomId);
@@ -1745,18 +1757,18 @@ async function handlePlayerDisconnect(
     const p = room.gameState.players.find((x) => x.id === playerId);
     if (!p || p.connectionStatus !== "reconnecting") return;
 
-    // Neko drugi je već zaustavio sto (dva igrača otpala jedan za drugim) —
-    // ne diraj rok koji već teče, inače bi drugi otpad produžio pauzu.
-    const phase = room.gameState.phase;
-    if (phase !== "playing") return;
-
-    if (nextPhaseAfterGrace(room.gameState) === "abandoned") {
+    // `ignore`: neko drugi je već zaustavio sto (dva igrača otpala jedan za
+    // drugim) — ne diraj rok koji već teče, inače bi drugi otpad produžio pauzu.
+    const outcome = afterGrace(room.gameState, handEndWaited);
+    if (outcome === "abandon") {
       // Sto pun botova: nema koga pitati, raspusti bez glasanja (PRD v3.1 #5).
       await enterAbandoned(roomId);
-    } else {
+    } else if (outcome === "pause") {
       await enterPause(roomId);
+    } else if (outcome === "wait_hand_end") {
+      armGraceTimer(roomId, playerId, HAND_END_GRACE_MS, true);
     }
-  }, GRACE_MS);
+  }, delayMs);
 
   disconnectTimers.set(playerId, timer);
 }
@@ -2608,13 +2620,17 @@ try {
 
 // Sweep napuštenih soba: jednom odmah (čisti stare fajlove naslijeđene s diska)
 // pa periodično — inače rooms Map i .data rastu neograničeno.
-const sweptOnBoot = sweepStaleRooms();
+// Meč koji je sweeper zatekao otvoren dobija ishod, inače bi ostao bez `match_ended`.
+const closeSweptMatch = (room: LobbyRoom) => {
+  if (room.gameState && isMatchOpen(room.gameState.phase)) emitMatchEnded(room, "abandoned");
+};
+const sweptOnBoot = sweepStaleRooms(Date.now(), closeSweptMatch);
 if (sweptOnBoot > 0) {
   fastify.log.info(`🧹 Sweep na startu: uklonjeno ${sweptOnBoot} napuštenih soba`);
 }
 startRoomSweeper((removed) => {
   fastify.log.info(`🧹 Sweep: uklonjeno ${removed} napuštenih soba`);
-});
+}, closeSweptMatch);
 
 // Push uređaji (PRD §51). Hidriraju se i bez FCM ključa: preklopke i tokeni ne
 // smiju nestati samo zato što je varijabla privremeno skinuta.

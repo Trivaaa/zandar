@@ -57,6 +57,10 @@ const FIRST_OPEN_KEY = "kartaonica_first_open";
 /** Stranice koje nisu igra — otvaranje politike privatnosti nije prvo otvaranje aplikacije. */
 const NON_APP_PATHS = ["/privatnost", "/privacy", "/uslovi", "/delete-account", "/o-nama", "/dev", "/admin"];
 
+export function isNonAppPath(path: string): boolean {
+  return NON_APP_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
 /**
  * `first_open` — jednom po guest ID-u. Poziva se PRIJE nego što PostHog napravi
  * guest ID, sa informacijom da li je ID već postojao.
@@ -79,8 +83,7 @@ export function recordFirstOpen(hadGuestId: boolean): void {
     const state = localStorage.getItem(FIRST_OPEN_KEY);
     if (state === "sent") return;
 
-    const path = window.location.pathname;
-    if (NON_APP_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) {
+    if (isNonAppPath(window.location.pathname)) {
       if (!hadGuestId) localStorage.setItem(FIRST_OPEN_KEY, "pending");
       return;
     }
