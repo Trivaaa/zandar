@@ -188,7 +188,7 @@ Botovi omogućavaju trenutni ulazak u Quick Play: svako mjesto koje u tom trenut
 - Quick Play: popunjavaju sva prazna mjesta do 4 igrača, odmah pri ulasku.
 - Privatne sobe: samo ako kreator izričito doda botove.
 - Za stolom uvijek mora biti barem jedan pravi igrač. Meč samo s botovima se ne pokreće.
-- Kad pravi igrač napusti meč ili se ne vrati nakon prekida veze, njegovo mjesto preuzima bot s istim brojem žetona.
+- Kad pravi igrač napusti meč ili se ne vrati nakon prekida veze, njegovo mjesto ostaje prazno: dobija najlošiji preostali plasman, a njegovi žetoni izlaze iz igre (u tekućoj ruci to je fold; uloženo ostaje u potu). Bot ne preuzima mjesto u V1 (odluka vlasnika 6. 11. 2026).
 - Prikazuju se kao gosti, u skladu s odlukom iz V1 sloja identiteta.
 
 **Ponašanje V1 (pravila, bez učenja)**
@@ -255,13 +255,13 @@ Stanje meča se snima nakon svake akcije, da se meč može obnoviti nakon pada s
 
 ## Edge caseovi
 
-Meč se nikad ne zaustavlja zbog jednog igrača: ko ne odigra, server odigra umjesto njega najpasivniju dozvoljenu akciju, a kod dužeg odsustva mjesto preuzima bot.
+Meč se nikad ne zaustavlja zbog jednog igrača: ko ne odigra, server odigra umjesto njega najpasivniju dozvoljenu akciju, a kod dužeg odsustva mjesto ostaje prazno (V1: bot ga ne preuzima).
 
 | Situacija | Ponašanje |
 | --- | --- |
 | Istekne tajmer poteza (20 s) | Check ako je moguć, inače fold |
-| Igrač izgubi vezu | Status „sitting out”: automatski check ili fold, blindovi se i dalje plaćaju. Ako se ne vrati za 60 s, mjesto preuzima bot s istim brojem žetona |
-| Igrač namjerno napusti meč | Potvrda „Napuštaš meč?”. Dobija najlošiji preostali plasman, mjesto preuzima bot s istim brojem žetona |
+| Igrač izgubi vezu | Status „sitting out”: automatski check ili fold, blindovi se i dalje plaćaju. Ako se ne vrati za 60 s, isto kao namjeran izlazak: mjesto ostaje prazno |
+| Igrač namjerno napusti meč | Potvrda „Napuštaš meč?”. Dobija najlošiji preostali plasman, mjesto ostaje prazno, žetoni izlaze iz igre. Ako za stolom ne ostane nijedan pravi igrač, meč se završava odmah (plasman po žetonima) |
 | Dva ili više igrača bankrotiraju u istoj ruci | Bolji plasman dobija onaj s više žetona na početku ruke. Ako su jednaki, dijele plasman |
 | Svi aktivni igrači all-in | Karte se otkrivaju, preostale zajedničke karte se dijele automatski |
 | All-in manji od punog raisea | Ne otvara ponovo betovanje igračima koji su već odigrali |

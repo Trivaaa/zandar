@@ -1163,3 +1163,62 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
   - restart procesa usred ruke vraća sto i sjedište
   - nijedna greška u logu servera
 - game-core 317, typecheck za server i web.
+
+## 122. Poker — web (2026-11-06, `feat/poker-core`)
+
+**Šta:** poker sto po tabli „UI · Poker NL" (Claude Design, platno „Kartaonica · identitet", ekrani A–M). Pravilo table: novo je samo ono što poker ima, a Žandar nema.
+
+**Preuzeto bez izmjene:** `.felt-stage` i budžet visine, podloge (classic/wood/cloth), `PlayingCard`, `CardBack`, `FeltHeader`, `GameMenuSheet`, `LeaveTableSheet`, `ReactionFab`, `Toast`, `Avatar`, `arrangeSeats`.
+
+**Prošireno (Žandar se ne mijenja):**
+- `PlayerSeat`: `statusText` („Čeka se veza"), `adornment` (D/SB/BB), `faceCards` + `cardTone` (karte na showdownu) i `data-warn` na pola roka.
+- `SeatCaption`: tonovi `bet` / `allin` / `fold`.
+- `ReactionFab`: `side` i `style`. Poker ga drži lijevo, jer su desno tvoje karte.
+- `RulesModal`: `game`.
+- `LobbyScreen`: `game`. Poker nema cilj, timove ni Start.
+- `TableSetupFields`: `showTarget`.
+- `CreateRoomScreen`: izbor igre.
+
+**Novo:**
+- `components/poker/`: `PokerScreen`, `ActionPanel`, `RaiseSheet`, `PokerParts`, `PokerRules`.
+- `app/poker.css`: sve pod `[data-game="poker"]`, bez novih tokena.
+- `lib/pokerView.ts`: čist, testiran.
+
+**Budžet pozornice:** isti `--stage-*`, samo poker vrijednosti.
+- Dno je panel (5rem) umjesto lepeze i trake.
+- Poleđine stoje uz avatar, ne iznad njega, pa gornje sjedište plaća samo natpis akcije.
+- Bočna sjedišta su u gornjem dijelu stola (`--pk-side-top`), board i pot ispod njih (tabla A).
+
+**Odluke koje kod nosi:**
+- Pot = sve na stolu, uključujući uloge ulice.
+- Bet kad niko nije uložio u ulici, inače Raise.
+- Akcije i kombinacije na engleskom.
+- „Šta imaš" uz tvoje karte ostaje.
+- Bez žetona: Nova partija · Gledaj do kraja · Izađi.
+- „Soba" → „Sto" i „Napustio igru" → „Nije za stolom", u obje igre (odluka 9 sa table).
+- Tekstovi kraja su rodno neutralni („Tvoj plasman: 4.", „Prvo mjesto: Marko").
+
+**Prekidač izdanja:** `lib/pokerRelease.ts`.
+- `pokerLive` je uključen kad `NEXT_PUBLIC_APP_ENV !== "production"`, ili uz `NEXT_PUBLIC_POKER=1`. `0` ga gasi svuda.
+- Razlog: IARC. Igra sa simuliranim kockanjem mijenja rejting cijele aplikacije, pa produkcija ne smije dobiti poker samim merge-om na `production`.
+- Bez prekidača poker ostaje „Uskoro" sa prijavom.
+
+**Matching:** poker Quick Play pita `GET /api/rooms/:id` dok se sto ne popuni ili ne krene (server čeka do 2 s). Ritual otkrivanja je kratak. Javni sto u stanju `waiting` više nikad ne prikazuje lobi.
+
+**Zamke:**
+- **Side pot iz `buildPots` slojeva je pogrešan za prikaz.** Nepraćen all-in preko blindova davao je „Glavni pot 3 · Pot 2 100" (uhvaćeno u e2e). Sad se pot reže samo na iznosu kraćeg all-ina (manje od najvećeg uloga među živima). Višak bez bar dva ovlaštena ide u prethodni pot.
+- **Quick Play za 4 daje `teamId`** (zajednička logika sobe), pa su sjedišta nosila Žandarove boje Mi/Oni. `withoutTeam` u `PokerScreen`.
+- **Headless Chrome ne ide ispod ~500 px širine.** `--window-size=360,…` daje razvučen snimak, pa mjerenje ide kroz CDP `Emulation.setDeviceMetricsOverride`.
+- **Lint (`react-hooks`):** zaključavanje panela i raise list su izvedeni iz `stateVersion` (`busyAt === stateVersion`), ne iz efekta. Prva ruka novog nivoa se računa iz pogleda: N = (ostalo + ruka − 1) / nivo.
+- **Jedini čovjek bez žetona:** server odmah završava meč (pravilo „bez živog čovjeka"), pa karta „Bez žetona" postoji samo kad za stolom ostane još neki pravi igrač.
+
+**Provjereno:**
+- Web testovi: 178 (+15). Typecheck. Lint = osnovica (5/2).
+- CDP snimci `/dev/poker`: 360×740 (A–K), 360×640 (2P/3P/4P) i 390×844. Bez horizontalnog skrola.
+- e2e u headless Chromeu protiv lokalnog servera:
+  - Quick Play → vidljiv board za 2,69–2,72 s (`next dev`, zagrijano)
+  - 25 poteza kroz panel (Check/Call)
+  - all-in kroz raise panel do „Kraj partije", plasman 1–4 i „Igraj ponovo"
+  - 0 grešaka u konzoli
+
+**Nije provjereno:** uređaj, `next build` + `build:mobile`, privatna soba sa dva prava igrača u pregledaču, poziv prijatelja za poker (tekst poziva u `InviteInbox` i pushu još kaže samo „partija").

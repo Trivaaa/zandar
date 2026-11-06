@@ -1,4 +1,4 @@
-import { buildPots, evaluateBestHand } from "@zandar/game-core";
+import { evaluateBestHand } from "@zandar/game-core";
 import type {
   Card,
   PokerHandCategory,
@@ -37,37 +37,36 @@ export type PotChip = { label: "main" | "side"; index: number; amount: number };
  * Potovi za prikaz u sredini stola. Zbir je UVIJEK `potTotal` (pot = sve na
  * stolu, uključujući uloge tekuće ulice — odluka 2 sa table).
  *
- * Side pot se crta tek kad je neko all-in; sloj sa jednim ovlaštenim (ulog koji
- * još niko nije pratio) nije zaseban pot nego dio zadnjeg, inače bi svaki
- * neodgovoren raise na trenutak izgledao kao „Pot 2".
+ * Side pot se reže samo na iznosu KRAĆEG all-ina (manje od najvećeg uloga među
+ * živima). Slojevi blindova i ulog koji još niko nije pratio nisu side pot —
+ * prva verzija (slojevi iz `buildPots`) je na stolu pokazivala „Pot 2" čim neko
+ * gurne all-in preko blindova (uhvaćeno u e2e).
  */
 export function displayPots(view: Pick<PokerPlayerView, "potTotal" | "seats">): PotChip[] {
   if (view.potTotal <= 0) return [];
-  const anyAllIn = view.seats.some((s) => s.allIn && s.inHand && !s.folded);
-  if (!anyAllIn) return [{ label: "main", index: 0, amount: view.potTotal }];
-
-  const pots = buildPots(
-    view.seats
-      .filter((s) => s.totalBet > 0)
-      .map((s) => ({
-        playerId: s.playerId,
-        amount: s.totalBet,
-        folded: s.folded || s.status === "left",
-      })),
+  const live = view.seats.filter((s) => s.inHand && !s.folded && s.status !== "left");
+  const top = Math.max(0, ...live.map((s) => s.totalBet));
+  // Rezovi: kraći all-in (manje od najvećeg uloga među živima). Slojevi samih
+  // blindova i nepraćen ulog nisu side pot.
+  const cuts = [...new Set(live.filter((s) => s.allIn && s.totalBet < top).map((s) => s.totalBet))].sort(
+    (a, b) => a - b,
   );
-  const merged: number[] = [];
-  for (const pot of pots) {
-    if (pot.eligiblePlayerIds.length < 2 && merged.length > 0) {
-      merged[merged.length - 1]! += pot.amount;
-    } else {
-      merged.push(pot.amount);
-    }
+  if (cuts.length === 0) return [{ label: "main", index: 0, amount: view.potTotal }];
+
+  const amounts: number[] = [];
+  let prev = 0;
+  for (const level of [...cuts, Infinity]) {
+    let amount = 0;
+    for (const s of view.seats) amount += Math.max(0, Math.min(s.totalBet, level) - prev);
+    const eligible = live.filter((s) => s.totalBet > prev).length;
+    // Iznad zadnjeg reza bez bar dva ovlaštena = vraćanje, ne pot.
+    if (eligible < 2 && amounts.length > 0) amounts[amounts.length - 1]! += amount;
+    else if (amount > 0) amounts.push(amount);
+    prev = level;
   }
-  // Sigurnosna mreža: ako se zbir ikad razidje sa serverom, važi server.
-  const sum = merged.reduce((a, b) => a + b, 0);
-  if (sum !== view.potTotal) return [{ label: "main", index: 0, amount: view.potTotal }];
-  if (merged.length === 1) return [{ label: "main", index: 0, amount: merged[0]! }];
-  return merged.map((amount, index) => ({ label: index === 0 ? "main" : "side", index, amount }));
+  const sum = amounts.reduce((a, b) => a + b, 0);
+  if (sum !== view.potTotal || amounts.length === 1) return [{ label: "main", index: 0, amount: view.potTotal }];
+  return amounts.map((amount, index) => ({ label: index === 0 ? "main" : "side", index, amount }));
 }
 
 /** Pločice uz sjedište. Heads-up: dealer je i small blind, pa dobija obje. */

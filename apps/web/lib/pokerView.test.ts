@@ -65,6 +65,15 @@ describe("displayPots", () => {
     assert.deepEqual(displayPots({ potTotal: 90, seats }), [{ label: "main", index: 0, amount: 90 }]);
   });
 
+  test("nepraćen all-in preko blindova je jedan pot", () => {
+    const seats = [
+      seat("a", 0, { totalBet: 100, allIn: true, stack: 0 }),
+      seat("b", 1, { totalBet: 1 }),
+      seat("c", 2, { totalBet: 2 }),
+    ];
+    assert.deepEqual(displayPots({ potTotal: 103, seats }), [{ label: "main", index: 0, amount: 103 }]);
+  });
+
   test("prazan pot se ne crta", () => {
     assert.deepEqual(displayPots({ potTotal: 0, seats: [] }), []);
   });

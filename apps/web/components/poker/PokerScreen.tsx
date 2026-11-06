@@ -74,6 +74,16 @@ export type PokerScreenProps = {
 type Orientation = "top" | "left" | "right" | "bottom";
 
 /**
+ * Poker nema timove, a server 4-mjesnom stolu (zajednička logika sobe) daje
+ * `teamId` — bez ovoga bi sjedišta nosila Žandarove boje Mi/Oni.
+ */
+function withoutTeam(player: PublicPlayer): PublicPlayer {
+  const rest = { ...player };
+  delete rest.teamId;
+  return rest;
+}
+
+/**
  * Poker sto (Claude Design „UI · Poker NL", ekrani A–M).
  *
  * Isti felt, iste podloge, isti `PlayerSeat`, meni, reakcije i list za
@@ -219,7 +229,7 @@ export function PokerScreen({
     return (
       <PlayerSeat
         key={player.id}
-        player={player}
+        player={withoutTeam(player)}
         orientation={orientation}
         isYou={isMe}
         isActive={state.phase === "betting" && state.currentPlayerId === player.id}
@@ -270,7 +280,8 @@ export function PokerScreen({
     : "calc(var(--table-top) + 1.75rem)";
 
   const bustedPlace = mySeat?.status === "bankrupt" ? mySeat.place : null;
-  const showBusted = mySeat?.status === "bankrupt" && !matchOver && !bustSeen;
+  // Poslije trake rezultata, ne preko nje: igrač prvo vidi kako je ruka završila.
+  const showBusted = mySeat?.status === "bankrupt" && !matchOver && !handOver && !bustSeen;
   const mode: "quick" | "host" | "guest" = isQuickPlay ? "quick" : me?.isHost ? "host" : "guest";
 
   return (
