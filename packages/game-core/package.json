@@ -10,13 +10,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "simulate:poker": "tsx scripts/simulate-poker.ts"
   },
   "dependencies": {
     "@zandar/shared-types": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.5.0",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "tsx": "^4.19.2"
   }
 }

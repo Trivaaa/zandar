@@ -29,3 +29,13 @@ export {
 } from "./match";
 export type { CreatePokerMatchParams, PokerRng, StartPokerHandOptions } from "./match";
 export { getPokerView, getPokerAutoAction } from "./view";
+export {
+  selectPokerBotAction,
+  pokerBotThinkMs,
+  chenScore,
+  readPostflop,
+  DEFAULT_POKER_BOT_CONFIG,
+} from "./bot";
+export type { PokerBotConfig } from "./bot";
+export { simulatePokerMatches } from "./simulate";
+export type { PokerSimOptions, PokerSimResult, PokerSimMatch } from "./simulate";

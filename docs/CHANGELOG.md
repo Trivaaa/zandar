@@ -1064,3 +1064,41 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 
 **Provjereno:** game-core 293 testa (bilo 178): 13 kategorija, kickeri, 32 scenarija side potova sa zbirom, heads-up, min-raise, kratki all-in, BB opcija, plasman kod dvostrukog bankrota, izlazak, vidljivost (JSON pogleda nema špil ni tuđe karte), i 500 nasumičnih mečeva (2–4 igrača, nasumični izlasci) sa konstantnim zbirom žetona poslije svake akcije. Typecheck game-core, server i web. Lint za game-core se ne može pokrenuti (eslint nije instaliran u paketu, zatečeno).
 
+## 120. Poker — bot i simulacija (2026-11-06, `feat/poker-core`)
+
+**Šta:** `game-core/src/poker/bot.ts` i `simulate.ts`, plus skripta `scripts/simulate-poker.ts` (`pnpm --filter @zandar/game-core simulate:poker [-- --matches N --players N --seed N --hpl N]`).
+
+**Bot V1** radi po pravilima, bez učenja, i ima jedan nivo jačine:
+- **Ulaz je samo `PokerPlayerView`.** Test potvrđuje da drugačije tuđe karte i drugačiji špil daju istu odluku.
+- **Preflop:** Chen formula sa pragom po broju igrača. Otvaranje je 2,5 BB, plus po 1 BB za svakog ko je samo platio. Re-raise ide na oko 3× tuđeg uloga; odbrana se ravna po pot oddsima, uz malu šansu „da vidim flop".
+- **Kratak stack (< 12 BB): push/fold.** Prag se spušta sa stackom.
+- **Postflop:** ruka spada u monster, jaku, srednju, draw ili ništa. Kombinacija koju daje sam board se ne računa kao igračeva. Odluka ide po pot oddsima i šansi drawa, uz blef, slowplay i semi-blef kao vjerovatnoće.
+- **Konfiguracija:** sve težine su u `DEFAULT_POKER_BOT_CONFIG` (HARD RULE 7).
+- **Vrijeme odluke:** `pokerBotThinkMs` daje 1–5 s, duže kad odluka košta veći dio stacka.
+
+**Kalibracija** (800 mečeva po varijanti, 4 igrača):
+
+| Pokušaj | Šta se mjerilo | Zašto nije valjalo / šta je promijenjeno |
+|---|---|---|
+| prvi pragovi | 89% ruku bez showdowna, 3,1 akcija po ruci | botovi su skoro sve foldali preflop, pa čovjek krade blindove |
+| labaviji pragovi | flop i dalje samo 23% | otvaranje na 0,75 pota davalo je BB pot odds 0,31, tik iznad praga odbrane; prelazak na fiksnih 2,5 BB i prag odbrane 0,35 → flop 31% |
+| — | prvi bankrot medijan u 4. ruci, p10 meča 10 ruku | preflop ratovi re-raiseova |
+| re-raise od Chen 12, mirniji postflop | prvi bankrot u 7. ruci, p10 18 ruku, 67% mečeva u 12–20 min | zadržano kao podrazumijevano |
+
+`handsPerLevel` 6 bi produžio 4P meč (medijan 15,1 min, p90 19,7), ali spec kaže 5 i to je ostalo.
+
+**Model trajanja** je pretpostavka iz skripte, ne mjerenje: 1 čovjek u 4 sjedišta odlučuje prosječno 6 s, botovi koliko kaže `pokerBotThinkMs`, a svaka ruka ima 6 s za dijeljenje, let žetona i prikaz rezultata. Pravi broj daće tek analitika (`duration_ms`).
+
+**10.000 mečeva × 4 (seed 1, 112 s):**
+- 0 odstupanja u zbiru žetona, 0 odbijenih akcija bota
+- ruke po meču: p10 17 · medijan 43 · p90 51
+- 3,9 akcija po ruci; flop vidi 32% ruku; all-in runout 9%
+- procjena trajanja: p10 7,5 · medijan 13,6 · p90 17,4 min; 66% mečeva u cilju
+
+**Zapaženo:**
+- Gornju granicu meča drže blindovi: na nivou 10–11 (50/100 → 100/200 uz 400 žetona za stolom) meč se završi oko 51. ruke.
+- Kratki mečevi (p10) su posljedica ranih all-in sukoba, ne strukture.
+- 2P i 3P mečevi su kraći (2P: medijan oko 8 min). Cilj 12–20 važi samo za Quick Play sa 4 igrača.
+
+**Provjereno:** game-core 316 testova (bilo 293): Chen, procjena postflopa, push/fold, AA se ne folda, monster se ne folda, nezavisnost od skrivenih podataka, vrijeme odluke, i simulacija od 150 mečeva za 2/3/4 igrača bez grešaka. Typecheck.
+
