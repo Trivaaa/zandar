@@ -1102,3 +1102,64 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 
 **Provjereno:** game-core 316 testova (bilo 293): Chen, procjena postflopa, push/fold, AA se ne folda, monster se ne folda, nezavisnost od skrivenih podataka, vrijeme odluke, i simulacija od 150 mečeva za 2/3/4 igrača bez grešaka. Typecheck.
 
+## 121. Poker — server (2026-11-06, `feat/poker-core`)
+
+**Šta:** poker sobe na postojećim sobama, linkovima, nalozima, pozivima i botovima. Žandar putanje nisu prepisane.
+
+**Ključna odluka:** poker soba drži stanje u `LobbyRoom.poker`, a `gameState` joj je uvijek `null`. Sav Žandar kod (tajmeri, pauza, glasanje, `broadcastGameState`, bot potezi, analitika ruke, sweeper) uslovljen je sa `room.gameState`, pa poker sobe preskače sam od sebe. U `index.ts` su zato samo grananja na ulazima: rute, `room:subscribe`, `room:leave`, `disconnect`, `game:rematch`, hidracija i sweeper. Ostalo je u `apps/server/src/poker/table.ts` (`PokerTables`).
+
+**Pravila stola** (spec + odluke vlasnika):
+- Rok poteza je 20 s; istek daje check ako može, inače fold.
+- Bot odlučuje za 1–5 s iz `getPokerView`. Rok za prikaz je isti kao za čovjeka, pa sat izgleda jednako.
+- Bez veze: `sitting_out` (server za igrača igra check/fold, blindovi se plaćaju). Poslije 60 s mjesto ostaje prazno (`leavePokerMatch`, `player.left`); bot ga ne preuzima.
+- Ruke idu jedna za drugom bez hosta: 2,5 s poslije ruke bez showdowna, 5 s poslije showdowna.
+- Bez živog čovjeka za stolom meč se završava odmah (`finishPokerMatchEarly`, plasman po žetonima).
+- Kreator privatne sobe koji izađe prije starta zatvara sobu (ostali dobijaju `room:kicked`).
+- Revanš: samo host, svi ponovo od 100.
+- Tajmer poteza se NE resetuje kad stigne `broadcast` za isti potez: ključ je ruka + broj akcija + igrač + status. Žandar ima obrnutu grešku (QA B2).
+
+**Ulazak:**
+- **Quick Play** (`game: "poker"`): uvijek 4 mjesta. Sto čeka druge prave igrače do `matchWindowMs`, pa ostatak dobijaju botovi. Podrazumijevano je 2 s, ne 3 s: sa 3 s je mjereno 3.044 ms od klika do prve ruke, a spec traži manje od 3 s. 1,5 s je dalo 1.549 ms.
+- **Privatna soba** (`/api/rooms`, `/api/invites` sa `game`): kreće sama kad se popune sva mjesta. To uključuje i uključen bot-fill („popuni botovima i odmah počni"). `/start` i dalje radi.
+
+**Stari klijent:** APK 1.0–1.3 ne zna za poker i crtao bi Žandar sto sa poker stanjem.
+- Klijent mora javiti `games: ["zandar","poker"]`: u tijelu `join-request` i `invites/:id/accept`, i u `auth` na socketu.
+- Bez toga REST vraća 426 `{ code: "update_required" }`, a `room:subscribe` vraća `UPDATE_REQUIRED`.
+- `GET /api/rooms/:id` sada vraća `game` za svaku sobu. Pozivnica (`user:invite`) nosi `game: "poker"` samo za poker.
+
+**Miješanje:** `cryptoRng` = `crypto.randomInt(0, 2^48−1) / (2^48−1)`. **Zamka:** `randomInt` traži raspon strogo manji od 2^48. Sa `2 ** 48` svaki start meča baca `RangeError`.
+
+**Analitika:**
+- `game` je i na Žandar `match_started`/`match_ended` (`"zandar"`).
+- Za poker: `pokerMatchStartedEvents`/`pokerMatchEndedEvents` (bez `target_score`, sa `placement`; `is_winner` = 1. mjesto).
+- Brojač partija na profilu je zajednički za obje igre (pitanje 9 je otvoreno).
+- `docs/analytics.md` je dopunjen.
+
+**Back-compat:** sva nova polja (`game`, `poker`, `matchingUntil`) su opciona. Soba bez `game` je Žandar, a Žandar sobe se upisuju bez novih polja.
+
+**Provjereno:**
+- **Server testovi:** 217 (bilo 202). 15 novih u `poker/table.test.ts`:
+  - pogled bez `isBot`, špila i tuđih karata
+  - meč do kraja bez interakcije
+  - sat se ne resetuje
+  - greške akcija
+  - sitting out → prazno mjesto
+  - povratak prije roka
+  - izlazak zadnjeg protivnika
+  - zatvaranje sobe
+  - Quick Play prozor
+  - automatski start (Žandar netaknut)
+  - hidracija iz JSON-a
+  - revanš
+  - `clientSupportsGame`
+  - analitika
+- **e2e na lokalnom serveru:**
+  - Quick Play
+  - stari klijent: 426 i `UPDATE_REQUIRED`
+  - 17 akcija kroz `poker:action`
+  - nijedan `game:state` bez `turnDeadline`, sa `isBot` ili špilom
+  - Žandar Quick Play bez `game` radi kao ranije
+  - privatna 2P + bot-fill kreće sama
+  - restart procesa usred ruke vraća sto i sjedište
+  - nijedna greška u logu servera
+- game-core 317, typecheck za server i web.

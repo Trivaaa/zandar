@@ -567,3 +567,23 @@ export function setPokerSeatStatus(
   state.stateVersion += 1;
   return state;
 }
+
+/**
+ * Kraj meča prije vremena (server): npr. za stolom više nema pravog igrača
+ * (spec: „Meč samo s botovima se ne pokreće"). Samo između ruku. Preostali
+ * dobijaju plasman po broju žetona (više = bolje, jednaki dijele).
+ */
+export function finishPokerMatchEarly(prev: PokerGameState): PokerGameState {
+  if (prev.phase !== "hand_complete") return prev;
+  const state = clone(prev);
+  const alive = state.seats.filter(isAlive);
+  for (const s of alive) {
+    const better = alive.filter((o) => o.stack > s.stack).length;
+    s.place = better + 1;
+    state.placements.push({ playerId: s.playerId, place: s.place });
+  }
+  state.phase = "match_finished";
+  state.currentPlayerId = null;
+  state.stateVersion += 1;
+  return state;
+}

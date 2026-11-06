@@ -3,7 +3,7 @@
 // Spec: docs/poker-spec.md
 // ====================================================
 
-import type { Card } from "./index";
+import type { Card, PublicPlayer } from "./index";
 
 /** Igre koje se stvarno igraju za stolom. Soba bez polja `game` je Žandar. */
 export const GAME_IDS = ["zandar", "poker"] as const;
@@ -239,4 +239,25 @@ export interface PokerPlayerView {
   legal: PokerLegalActions | null;
   lastHandResult: PokerHandResult | null;
   placements: PokerPlacement[];
+}
+
+/**
+ * Ono što server šalje kroz `game:state` za poker sobu: pogled + javni igrači
+ * (imena, avatari; whitelist `toPublicPlayer`, bez `isBot`) + rok poteza.
+ * Klijent razlikuje payload po `game: "poker"`.
+ */
+export interface PokerGamePayload extends PokerPlayerView {
+  players: PublicPlayer[];
+  /** Kraj roka poteza (epoch ms) — i za bota, da tajmer izgleda isto za sve. */
+  turnDeadline?: number;
+}
+
+/**
+ * Klijent javlja koje igre zna da prikaže (REST tijelo `games`, socket
+ * `auth.games`). Stari klijent (APK 1.0–1.3) ne šalje ništa → zna samo Žandar,
+ * pa ne smije ući u poker sobu (inače bi crtao Žandar sto sa poker stanjem).
+ */
+export function clientSupportsGame(games: unknown, game: GameId): boolean {
+  if (game === "zandar") return true;
+  return Array.isArray(games) && games.includes(game);
 }

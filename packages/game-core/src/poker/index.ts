@@ -26,6 +26,7 @@ export {
   setPokerSeatStatus,
   isPokerMatchFinished,
   pokerTotalChips,
+  finishPokerMatchEarly,
 } from "./match";
 export type { CreatePokerMatchParams, PokerRng, StartPokerHandOptions } from "./match";
 export { getPokerView, getPokerAutoAction } from "./view";

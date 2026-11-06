@@ -612,20 +612,26 @@ export type AnalyticsEvents = {
   match_started: {
     mode: MatchMode;
     match_id: string;
+    /** Igra (od pokera). Događaji bez polja su Žandar. */
+    game?: "zandar" | "poker";
     player_count: number;
     human_count: number;
     bot_count: number;
-    target_score: number;
+    /** Samo Žandar (poker nema cilj). */
+    target_score?: number;
     is_rematch: boolean;
     platform?: AnalyticsPlatform;
   };
   match_ended: {
     mode: MatchMode;
     match_id: string;
+    game?: "zandar" | "poker";
     end_reason: MatchEndReason;
     hands_played: number;
     duration_ms?: number;
     is_winner?: boolean;
+    /** Poker: konačan plasman igrača (1 = pobjednik). */
+    placement?: number;
     platform?: AnalyticsPlatform;
   };
   hand_finished: {

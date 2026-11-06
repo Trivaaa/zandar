@@ -592,3 +592,18 @@ describe("poker — invarijanta žetona (nasumični mečevi)", () => {
     }
   });
 });
+
+describe("poker — prijevremeni kraj meča", () => {
+  it("između ruku: preostali dobijaju plasman po žetonima", async () => {
+    const { finishPokerMatchEarly } = await import("./match");
+    let s = makeHand({ stacks: [100, 100, 100], button: 0 });
+    expect(finishPokerMatchEarly(s)).toBe(s); // usred ruke — ništa
+    s = act(s, "fold");
+    s = act(s, "fold");
+    s = finishPokerMatchEarly(s);
+    expect(s.phase).toBe("match_finished");
+    expect(seat(s, 2).place).toBe(1); // 101
+    expect(seat(s, 0).place).toBe(2); // 100
+    expect(seat(s, 1).place).toBe(3); // 99
+  });
+});

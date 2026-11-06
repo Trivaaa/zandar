@@ -85,6 +85,7 @@ describe("matchStartedEvents", () => {
     assert.deepEqual(events[0]!.properties, {
       mode: "quick_play",
       match_id: "abc123",
+      game: "zandar",
       player_count: 4,
       human_count: 1,
       bot_count: 3,

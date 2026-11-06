@@ -7,11 +7,14 @@ import {
   createInitialGameState,
   createRulesConfig,
   DEFAULT_BOT_CONFIGS,
+  DEFAULT_POKER_CONFIG,
   generateTableIdentities,
   normalizeName,
   selectBotMove,
 } from "@zandar/game-core";
 import {
+  clientSupportsGame,
+  parseGameId,
   isConsentTextId,
   isUpcomingGameSlug,
   normalizeEmail,
@@ -59,6 +62,8 @@ import {
   matchEndedEvents,
   matchStartedEvents,
   parseGuestId,
+  pokerMatchEndedEvents,
+  pokerMatchStartedEvents,
   parsePlatform,
   tableComposition,
   trackedHumans,
@@ -110,6 +115,19 @@ import {
 import { accountIdentityFor, applyAccountIdentity } from "./profile/accountIdentity";
 import { toPublicPlayer } from "./publicPlayer";
 import { profileStore } from "./profile/store";
+import { PokerTables } from "./poker/table";
+
+/**
+ * Poker soba traži klijenta koji zna poker. Stari APK (1.0–1.3) ne šalje
+ * `games`, pa bi poker stanje crtao kao Žandar sto i pao.
+ */
+const UPDATE_REQUIRED = {
+  code: "update_required",
+  error: "Za ovu igru ažuriraj aplikaciju.",
+} as const;
+function needsUpdate(room: LobbyRoom, games: unknown): boolean {
+  return !clientSupportsGame(games, parseGameId(room.game));
+}
 
 const JOIN_REQUEST_TTL_MS = 2 * 60 * 1000;
 const REACTION_COOLDOWN_MS = 2000;
@@ -329,6 +347,7 @@ type CreateRoomBody = {
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
   platform?: unknown;
+  game?: unknown; // "poker"; bez polja = Žandar
 };
 
 fastify.post<{ Body: CreateRoomBody }>(
@@ -352,6 +371,7 @@ fastify.post<{ Body: CreateRoomBody }>(
       targetScore,
       tableTheme: request.body.tableTheme,
       identity,
+      game: parseGameId(request.body.game),
     });
 
     return {
@@ -373,6 +393,7 @@ async function createPrivateRoom(opts: {
   targetScore: number;
   tableTheme: unknown;
   identity: Pick<Player, "guestId" | "platform" | "uid">;
+  game?: "zandar" | "poker";
 }): Promise<{ room: LobbyRoom; playerId: string; sessionToken: string }> {
   const roomId = createRoomId();
   const playerId = createPlayerId();
@@ -406,6 +427,8 @@ async function createPrivateRoom(opts: {
     joinRequests: new Map(),
     createdAt: Date.now(),
     tableTheme: parseTableTheme(opts.tableTheme),
+    // Samo poker upisuje polje — Žandar sobe ostaju bajt-za-bajt kao ranije.
+    ...(opts.game === "poker" ? { game: "poker" as const, poker: null } : {}),
   };
 
   storeRoom(room);
@@ -423,6 +446,7 @@ fastify.get<{ Params: { roomId: string } }>(
     return {
       id: room.id,
       status: room.status,
+      game: parseGameId(room.game),
       isPublic: room.isPublic ?? false,
       createdAt: room.createdAt,
       // Lobi ne prikazuje vezu (connectionStatus), ostalo je isti whitelist.
@@ -447,6 +471,7 @@ fastify.get<{ Params: { roomId: string } }>(
 
 type JoinRequestBody = {
   displayName: string;
+  games?: unknown; // igre koje klijent zna (poker); stari klijenti ne šalju
   pushId?: unknown;
   guestId?: unknown; // analitika (PostHog distinctId)
   platform?: unknown;
@@ -465,6 +490,10 @@ fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
     const room = getRoom(roomId);
     if (!room) {
       return reply.code(404).send({ error: "Soba ne postoji" });
+    }
+
+    if (needsUpdate(room, request.body.games)) {
+      return reply.code(426).send(UPDATE_REQUIRED);
     }
 
     expireOldRequests(room);
@@ -667,6 +696,7 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
     persistRoom(room); // novi igrač u lobby-ju → preživi restart
 
     io.to(roomId).emit("room:update");
+    pokerTables.startIfFull(room);
 
     fastify.log.info(
       `→ Approved ${requestId} → player ${playerId} (${req.displayName})`,
@@ -765,6 +795,7 @@ type InviteBody = {
   tableTheme?: unknown;
   guestId?: unknown;
   platform?: unknown;
+  game?: unknown;
 };
 
 /** E2 → E3: nova privatna soba sa pozivima izabranim prijateljima. */
@@ -777,7 +808,9 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
   if (playerCount !== 2 && playerCount !== 3 && playerCount !== 4) {
     return reply.code(400).send({ error: "playerCount mora biti 2, 3 ili 4" });
   }
-  if (targetScore !== 11 && targetScore !== 21) {
+  const game = parseGameId(body.game);
+  // Poker nema cilj; upisuje se 21 samo da `rulesConfig` ostane istog oblika.
+  if (game === "zandar" && targetScore !== 11 && targetScore !== 21) {
     return reply.code(400).send({ error: "targetScore mora biti 11 ili 21" });
   }
   const now = Date.now();
@@ -788,9 +821,10 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
   const { room, playerId, sessionToken } = await createPrivateRoom({
     displayName: me.nickname,
     playerCount,
-    targetScore,
+    targetScore: game === "poker" ? 21 : (targetScore as number),
     tableTheme: body.tableTheme,
     identity: { ...analyticsIdentity(body), uid: me.uid },
+    game,
   });
   addInvites(room, invitees);
   persistRoom(room);
@@ -826,7 +860,10 @@ fastify.post<{ Params: { roomId: string }; Body: { profileIds?: unknown } }>(
 );
 
 /** E5 Pridruži se — pravo u sobu, BEZ odobrenja hosta. Istekao poziv → 410 (F7). */
-fastify.post<{ Params: { roomId: string }; Body: { guestId?: unknown; platform?: unknown } }>(
+fastify.post<{
+  Params: { roomId: string };
+  Body: { guestId?: unknown; platform?: unknown; games?: unknown };
+}>(
   "/api/invites/:roomId/accept",
   async (request, reply) => {
     const me = await inviteMember(request, reply);
@@ -834,6 +871,7 @@ fastify.post<{ Params: { roomId: string }; Body: { guestId?: unknown; platform?:
     const room = getRoom(request.params.roomId);
     const invite = room ? inviteFor(room, me.uid, Date.now()) : null;
     if (!room || !invite) return reply.code(410).send({ code: "expired" });
+    if (needsUpdate(room, request.body?.games)) return reply.code(426).send(UPDATE_REQUIRED);
     const admitted = await admitPlayer(room, {
       displayName: me.nickname,
       ...analyticsIdentity(request.body ?? {}),
@@ -843,6 +881,7 @@ fastify.post<{ Params: { roomId: string }; Body: { guestId?: unknown; platform?:
     removeInvite(room, me.uid);
     persistRoom(room);
     io.to(room.id).emit("room:update");
+    pokerTables.startIfFull(room);
     return { roomId: room.id, playerId: admitted.playerId, sessionToken: admitted.sessionToken };
   },
 );
@@ -1040,6 +1079,7 @@ fastify.get<{
 
 type QuickPlayBody = {
   displayName: string;
+  game?: unknown; // "poker"; bez polja = Žandar (stari klijenti)
   playerCount: 2 | 3 | 4;
   targetScore?: number;
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
@@ -1055,6 +1095,9 @@ fastify.post<{ Body: QuickPlayBody }>(
 
     if (!displayName || displayName.trim().length === 0) {
       return reply.code(400).send({ error: "displayName je obavezan" });
+    }
+    if (parseGameId(request.body.game) === "poker") {
+      return pokerQuickPlay(displayName.trim(), request.body.tableTheme, identity);
     }
     // Veličinu stola i cilj bira igrač (ekran `/igraj`) — oba su korisnički unos.
     const parsed = parseQuickPlayConfig(request.body);
@@ -1150,6 +1193,71 @@ fastify.post<{ Body: QuickPlayBody }>(
   },
 );
 
+/**
+ * Poker Quick Play (spec: „Ulazak za sto"): uvijek 4 mjesta. Igrač odmah dobija
+ * sto; server do `matchWindowMs` (3 s) spaja druge prave igrače koji stignu,
+ * a ostala mjesta tada popunjavaju botovi.
+ */
+async function pokerQuickPlay(
+  displayName: string,
+  tableTheme: unknown,
+  identity: Pick<Player, "guestId" | "platform" | "uid">,
+): Promise<{ roomId: string; playerId: string; playerSessionToken: string }> {
+  const playerId = createPlayerId();
+  const sessionToken = createSessionToken();
+  const now = Date.now();
+  const seat = (seatIndex: number, isHost: boolean): Player => ({
+    id: playerId,
+    displayName,
+    seatIndex,
+    connectionStatus: "connected",
+    isHost,
+    consecutiveAutoPlays: 0,
+    ...identity,
+  });
+
+  const open = getAllRooms().find(
+    (r) =>
+      r.game === "poker" &&
+      r.isPublic &&
+      r.status === "waiting" &&
+      (r.matchingUntil ?? 0) > now &&
+      r.players.length < r.rulesConfig.playerCount,
+  );
+  if (open) {
+    const player = seat(open.players.length, false);
+    applyAccountIdentity(player, await accountIdentityFor(profileStore, identity.uid));
+    open.players.push(player);
+    open.sessionTokens.set(playerId, hashToken(sessionToken));
+    io.to(open.id).emit("room:update");
+    fastify.log.info(`🤝 Poker: ${playerId} spojen u sto ${open.id}`);
+    if (!pokerTables.startIfFull(open)) persistRoom(open);
+    return { roomId: open.id, playerId, playerSessionToken: sessionToken };
+  }
+
+  const host = seat(0, true);
+  applyAccountIdentity(host, await accountIdentityFor(profileStore, identity.uid));
+  const room: LobbyRoom = {
+    id: createRoomId(),
+    status: "waiting",
+    hostPlayerId: playerId,
+    players: [host],
+    rulesConfig: createRulesConfig(4),
+    gameState: null,
+    sessionTokens: new Map([[playerId, hashToken(sessionToken)]]),
+    joinRequests: new Map(),
+    createdAt: now,
+    isPublic: true,
+    tableTheme: parseTableTheme(tableTheme),
+    game: "poker",
+    poker: null,
+  };
+  storeRoom(room);
+  pokerTables.openMatching(room);
+  fastify.log.info(`🃏 Poker Quick Play ${room.id}: čeka prave igrače`);
+  return { roomId: room.id, playerId, playerSessionToken: sessionToken };
+}
+
 // Single-player endpoint uklonjen u v3.2 — Quick Play sa lakim botovima je dovoljan (§37.5)
 
 // ---- START GAME ----
@@ -1186,6 +1294,16 @@ fastify.post<{ Params: { roomId: string }; Body: StartBody }>(
       return reply.code(409).send({
         error: `Treba ${room.rulesConfig.playerCount} igrača (ima ${room.players.length})`,
       });
+    }
+
+    if (room.game === "poker") {
+      pokerTables.start(room);
+      notifyDevices(
+        gameStartRecipients(room),
+        buildGameStartedPush({ roomId }),
+        `game_started:${room.poker?.matchId ?? roomId}`,
+      );
+      return { success: true };
     }
 
     const gameState = createInitialGameState({
@@ -1252,6 +1370,8 @@ fastify.post<{ Params: { roomId: string }; Body: BotFillBody }>(
 
     persistRoom(room);
     io.to(roomId).emit("room:update");
+    // Poker: kreator popuni prazna mjesta botovima i meč odmah kreće (spec).
+    pokerTables.startIfFull(room);
 
     fastify.log.info(
       `→ Bot-fill ${enabled ? "ON" : "OFF"} room ${roomId} (${room.players.length}/${room.rulesConfig.playerCount})`,
@@ -1410,6 +1530,25 @@ const VOTE_MS = ms("VOTE_MS", 60 * 1000);
 const WAIT_EXTENSION_MS = ms("WAIT_EXTENSION_MS", 5 * 60 * 1000);
 /** Koliko čekamo ispiranje pri gašenju prije nego svejedno izađemo. */
 const SHUTDOWN_FLUSH_MS = ms("SHUTDOWN_FLUSH_MS", 3000);
+
+// ---- POKER (docs/poker-spec.md) ----
+const pokerTables = new PokerTables({
+  getRoom,
+  socketsIn: (roomId) => io.in(roomId).fetchSockets(),
+  persist: persistRoom,
+  fillBots: (room) => fillSeatsWithBots(room, 2),
+  log: { info: (m) => fastify.log.info(m), error: (m) => fastify.log.error(m) },
+  timing: {
+    turnMs: ms("POKER_TURN_MS", DEFAULT_POKER_CONFIG.turnTimeoutSeconds * 1000),
+    graceMs: ms("POKER_GRACE_MS", DEFAULT_POKER_CONFIG.disconnectGraceSeconds * 1000),
+    handPauseMs: ms("POKER_HAND_PAUSE_MS", 2500),
+    showdownPauseMs: ms("POKER_SHOWDOWN_PAUSE_MS", 5000),
+    autoActMs: ms("POKER_AUTO_ACT_MS", 1200),
+    matchWindowMs: ms("POKER_MATCH_WINDOW_MS", 2000), // spec: „do 3 s", a cilj je prva ruka < 3 s od klika
+  },
+  onMatchStarted: (room) => emitMatchStarted(room),
+  onMatchEnded: (room, reason) => emitMatchEnded(room, reason),
+});
 
 // ---- BOT MOVE TIMERS ----
 // roomId → timeout. Kad je bot na potezu, server interno odigra potez.
@@ -1725,6 +1864,11 @@ async function handlePlayerDisconnect(
   const stillConnected = sockets.some((s) => s.data.playerId === playerId);
   if (stillConnected) return;
 
+  if (getRoom(roomId)?.game === "poker") {
+    await pokerTables.onDisconnect(roomId, playerId);
+    return;
+  }
+
   const room = getRoom(roomId);
   if (!room?.gameState) return;
 
@@ -1831,6 +1975,14 @@ function sendCaptures<E extends ServerAnalyticsEvent>(captures: readonly Capture
  * Play, host `/start`, revanš — jer nijedno od njih ne prolazi kroz drugo.
  */
 function emitMatchStarted(room: LobbyRoom): void {
+  if (room.poker) {
+    const key = `start:${room.poker.matchId}`;
+    if (analyticsEmitted.has(key)) return;
+    analyticsEmitted.add(key);
+    matchStartTimes.set(room.poker.matchId, Date.now());
+    sendCaptures(pokerMatchStartedEvents(room.poker, room.players, roomMode(room)));
+    return;
+  }
   const gs = room.gameState;
   if (!gs) return;
   const key = `start:${gs.matchId}`;
@@ -1842,6 +1994,22 @@ function emitMatchStarted(room: LobbyRoom): void {
 
 /** `match_ended` — jednom po meču: kraj i prekid dijele ključ, pa se ne mogu oba desiti. */
 function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
+  if (room.poker) {
+    const ps = room.poker;
+    const key = `end:${ps.matchId}`;
+    if (analyticsEmitted.has(key)) return;
+    analyticsEmitted.add(key);
+    const startedAt = matchStartTimes.get(ps.matchId);
+    matchStartTimes.delete(ps.matchId);
+    sendCaptures(
+      pokerMatchEndedEvents(ps, room.players, { mode: roomMode(room), reason, startedAt, now: Date.now() }),
+    );
+    if (reason === "completed") {
+      const seated = new Set(ps.seats.map((x) => x.playerId));
+      void recordCompletedMatch(profileStore, ps.matchId, room.players.filter((p) => seated.has(p.id)));
+    }
+    return;
+  }
   const gs = room.gameState;
   if (!gs) return;
   const key = `end:${gs.matchId}`;
@@ -2157,6 +2325,10 @@ io.on("connection", (socket) => {
         ack?.({ ok: false, error: "INVALID_TOKEN" });
         return;
       }
+      if (needsUpdate(room, socket.handshake.auth?.games)) {
+        ack?.({ ok: false, error: "UPDATE_REQUIRED" });
+        return;
+      }
 
       // Prelazak iz druge sobe (B10): bez ovoga socket ostaje i u staroj
       // socket.io sobi i dobija njeno stanje izgrađeno za pogrešnog gledaoca.
@@ -2248,6 +2420,8 @@ io.on("connection", (socket) => {
         }
       }
 
+      if (room.poker) await pokerTables.onSubscribe(roomId, playerId, socket);
+
       if (room.gameState) {
         // Svježa soba jos nije prošla kroz broadcastGameState, pa rok ne postoji.
         // Rutiraj ovdje da prvi state koji igrač vidi već nosi turnDeadline.
@@ -2272,6 +2446,19 @@ io.on("connection", (socket) => {
           }
         }
       }
+    }),
+  );
+
+  socket.on(
+    "poker:action",
+    guarded("poker:action", fastify.log, async (raw, ack) => {
+      const playerId = socket.data.playerId;
+      const roomId = socket.data.roomId;
+      if (typeof playerId !== "string" || typeof roomId !== "string") {
+        ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+      ack?.(await pokerTables.act(roomId, playerId, raw));
     }),
   );
 
@@ -2388,6 +2575,11 @@ io.on("connection", (socket) => {
       }
 
       const room = getRoom(roomId);
+      if (room?.game === "poker") {
+        await pokerTables.leave(roomId, playerId);
+        ack?.({ ok: true });
+        return;
+      }
       const gs = room?.gameState;
       const player = gs?.players.find((p) => p.id === playerId);
       if (!room || !gs || !player || player.connectionStatus === "abandoned") {
@@ -2429,6 +2621,10 @@ io.on("connection", (socket) => {
       }
 
       const room = getRoom(roomId);
+      if (room?.game === "poker") {
+        ack?.(pokerTables.rematch(roomId, playerId));
+        return;
+      }
       if (!room || !room.gameState) {
         ack?.({ ok: false, error: "GAME_NOT_STARTED" });
         return;
@@ -2598,6 +2794,10 @@ try {
     fastify.log.info(`♻ Restored ${restoredIds.length} room(s) from persistence`);
     for (const id of restoredIds) {
       const room = getRoom(id);
+      if (room?.game === "poker") {
+        pokerTables.rearm(room);
+        continue;
+      }
       if (room?.gameState?.phase === "playing") {
         const cp = room.gameState.players.find(
           (p) => p.id === room.gameState!.currentPlayerId,
@@ -2623,6 +2823,8 @@ try {
 // Meč koji je sweeper zatekao otvoren dobija ishod, inače bi ostao bez `match_ended`.
 const closeSweptMatch = (room: LobbyRoom) => {
   if (room.gameState && isMatchOpen(room.gameState.phase)) emitMatchEnded(room, "abandoned");
+  const pokerPhase = room.poker?.phase;
+  if (pokerPhase === "betting" || pokerPhase === "hand_complete") emitMatchEnded(room, "abandoned");
 };
 const sweptOnBoot = sweepStaleRooms(Date.now(), closeSweptMatch);
 if (sweptOnBoot > 0) {

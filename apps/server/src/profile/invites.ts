@@ -25,6 +25,7 @@ export type InviteRoom = {
   players: { uid?: string; isBot?: boolean }[];
   rulesConfig: { playerCount: number; targetScore: number };
   invites?: RoomInvite[];
+  game?: string;
 };
 
 /** Ima li još mjesta za čovjeka (bot-sjedište se oslobađa za njega). */
@@ -73,6 +74,8 @@ export type InviteNotice = {
   playerCount: number;
   targetScore: number;
   expiresAt: number;
+  /** Samo za poker sobu; bez polja = Žandar (stari klijenti ga ne čitaju). */
+  game?: "poker";
 };
 
 export function noticeOf(roomId: string, room: InviteRoom, invite: RoomInvite, fromNickname: string): InviteNotice {
@@ -82,5 +85,6 @@ export function noticeOf(roomId: string, room: InviteRoom, invite: RoomInvite, f
     playerCount: room.rulesConfig.playerCount,
     targetScore: room.rulesConfig.targetScore,
     expiresAt: invite.createdAt + INVITE_TTL_MS,
+    ...(room.game === "poker" ? { game: "poker" as const } : {}),
   };
 }

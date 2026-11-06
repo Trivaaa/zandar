@@ -1,7 +1,9 @@
 import { randomBytes, createHash } from "node:crypto";
 import type {
   AnalyticsPlatform,
+  GameId,
   GameState,
+  PokerGameState,
   Player,
   RulesConfig,
   TableTheme,
@@ -67,6 +69,16 @@ export type LobbyRoom = {
    * nemaju. `uid` pozvanog je server-only: klijent dobija `publicInvites`.
    */
   invites?: RoomInvite[];
+  /**
+   * Igra sobe. Opciono — sobe od prije pokera ga nemaju i ostaju Žandar
+   * (`parseGameId`). Poker soba NIKAD nema `gameState`: njeno stanje je u
+   * `poker`, pa sav Žandar kod (koji gleda `gameState`) poker sobe preskače.
+   */
+  game?: GameId;
+  /** Stanje poker meča (samo server — špil i tuđe karte). */
+  poker?: PokerGameState | null;
+  /** Poker Quick Play: do kad sto čeka druge prave igrače prije botova (epoch ms). */
+  matchingUntil?: number;
 };
 
 const rooms = new Map<string, LobbyRoom>();

@@ -141,6 +141,7 @@ export function matchStartedEvents(
     properties: {
       mode,
       match_id: gs.matchId,
+      game: "zandar" as const,
       player_count: gs.players.length,
       human_count: humansAtTable,
       bot_count: botsAtTable,
@@ -172,6 +173,7 @@ export function matchEndedEvents(
     properties: {
       mode,
       match_id: gs.matchId,
+      game: "zandar" as const,
       end_reason: reason,
       hands_played: gs.handScores.length,
       ...(startedAt !== undefined ? { duration_ms: Math.max(0, now - startedAt) } : {}),
@@ -179,4 +181,68 @@ export function matchEndedEvents(
       ...(p.platform ? { platform: p.platform } : {}),
     },
   }));
+}
+
+// ── Poker ────────────────────────────────────────────────────────────────────
+
+type PokerMatchLike = {
+  matchId: string;
+  handNo: number;
+  startStack: number;
+  seats: readonly { playerId: string; place: number | null }[];
+};
+
+/** `match_started` za poker — isti događaj, `game: "poker"`, bez cilja. */
+export function pokerMatchStartedEvents(
+  state: PokerMatchLike,
+  players: readonly PlayerLike[],
+  mode: MatchMode,
+): Capture<"match_started">[] {
+  const atTable = players.filter((p) => state.seats.some((s) => s.playerId === p.id));
+  const { humansAtTable, botsAtTable } = tableComposition(atTable);
+  return trackedHumans(atTable).map((p) => ({
+    distinctId: p.guestId,
+    event: "match_started" as const,
+    properties: {
+      mode,
+      match_id: state.matchId,
+      game: "poker" as const,
+      player_count: atTable.length,
+      human_count: humansAtTable,
+      bot_count: botsAtTable,
+      is_rematch: isRematch(state.matchId),
+      ...(p.platform ? { platform: p.platform } : {}),
+    },
+  }));
+}
+
+/**
+ * `match_ended` za poker. Pobjednik = 1. mjesto; `placement` se šalje kad je
+ * poznat (i igraču koji je napustio meč — on ima najlošiji preostali plasman).
+ */
+export function pokerMatchEndedEvents(
+  state: PokerMatchLike,
+  players: readonly PlayerLike[],
+  opts: { mode: MatchMode; reason: MatchEndReason; startedAt?: number | undefined; now: number },
+): Capture<"match_ended">[] {
+  const { mode, reason, startedAt, now } = opts;
+  const atTable = players.filter((p) => state.seats.some((s) => s.playerId === p.id));
+  return trackedHumans(atTable).map((p) => {
+    const place = state.seats.find((s) => s.playerId === p.id)?.place ?? null;
+    return {
+      distinctId: p.guestId,
+      event: "match_ended" as const,
+      properties: {
+        mode,
+        match_id: state.matchId,
+        game: "poker" as const,
+        end_reason: reason,
+        hands_played: state.handNo,
+        ...(startedAt !== undefined ? { duration_ms: Math.max(0, now - startedAt) } : {}),
+        ...(reason === "completed" ? { is_winner: place === 1 } : {}),
+        ...(place !== null ? { placement: place } : {}),
+        ...(p.platform ? { platform: p.platform } : {}),
+      },
+    };
+  });
 }
