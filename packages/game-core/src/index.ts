@@ -1,7 +1,7 @@
 // Žandar game-core public API
 
 export { createDeck } from "./deck";
-export { shuffle } from "./shuffle";
+export { shuffle, shuffleWith, createSeededRandom } from "./shuffle";
 export { getCaptureOptions } from "./capture";
 export { defaultRulesConfig, createRulesConfig } from "./rules";
 export { createInitialGameState, dealCardsToPlayers } from "./deal";
@@ -22,5 +22,8 @@ export {
 export type { GeneratedWithMeta } from "./identity";
 export { deriveGameEvents, isJackSweep } from "./gameEvents";
 export type { GameEvent, EventSnapshot, ScoringCard } from "./gameEvents";
+
+// Poker — zasebna igra, imena sa prefiksom `poker`/`Poker`.
+export * from "./poker";
 
 export const VERSION = "0.0.1";

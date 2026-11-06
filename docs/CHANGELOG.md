@@ -1039,3 +1039,28 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 
 **Svjesna cijena:** rezultat ruke je predah, pa namjerno nije 30 s kao u partiji, ali igrač koji se vrati poslije više od 10 min sada zatiče raspušten sto (ranije do 12 h). Prvi deploy jednom pošalje `abandoned` za stare zaglavljene sobe, sa vremenom deploya i bez `duration_ms`.
 **Provjereno:** server i web testovi, typecheck, lint na izmijenjenim fajlovima, web build. Lokalni server sa lažnim PostHog prijemnikom i pravom hidracijom: rezultat ruke + odlazak daje prekid tek poslije produženog roka i `match_ended`; povratak tokom čekanja čuva sto; stara soba dobija `match_ended` tačno jednom i briše se; završen meč ne dobija novi ishod; odlazak usred partije radi kao ranije. **Nije provjereno:** `landing_engaged` u stvarnom Facebook pregledaču, što se vidi tek iz produkcijskih događaja; dio za aplikaciju stiže s prvim sljedećim APK-om.
+
+## 119. Poker — tipovi i čist motor (2026-11-06, `feat/poker-core`)
+
+**Povod:** `docs/poker-spec.md` v1.1 (Texas Hold'em NL kao druga igra). Kod nije imao okvir igara: `game-core` je ravna lista Žandar funkcija, a `LobbyRoom` nema polje za igru. Zato poker ide pored Žandara, koji se ne dira.
+
+**Šta:**
+- `shared-types/src/poker.ts`: `GameId` i `parseGameId` (sve osim `"poker"` je Žandar, zbog starih klijenata i snapshota), stanje (`PokerGameState`, samo server) i pogled (`PokerPlayerView`).
+- `game-core/src/poker/`: `evaluate` (vlastiti, najbolja 5 od 7, kickeri, točak A-2-3-4-5, royal), `pots` (slojevi, foldani doprinose bez prava, nepraćen višak se vraća, neparan žeton prvom lijevo od buttona), `config` (tabela blindova, skaliranje faktorom startStack/100, duplira poslije 10. nivoa), `betting` (legalne akcije), `match` (tok ruke i meča, plasman, izlazak), `view` (pogled + auto check/fold).
+- `shuffleWith(items, rng)`: Fisher-Yates sa ubrizganim generatorom. `shuffle(deck, seed?)` ga zove, a Žandar ponašanje je isto (ista sekvenca poziva).
+
+**Odluke vlasnika (2026-11-06), koje odstupaju od speca ili ga dopunjuju:**
+- tajmer 20 s, prsten oko avatara (samo poker)
+- igrač koji ode: mjesto ostaje prazno, NE preuzima ga bot; najlošiji preostali plasman, žetoni izlaze iz igre (`chipsRemoved`), ulog u ruci ostaje u potu
+- Quick Play jedan dodir; prozor 3 s za prave igrače ulazi u V1
+- automatski start privatne sobe samo za poker
+- evaluator vlastiti
+
+**Zamke:**
+- **Kratki all-in:** pravilo se drži brojačem `fullRaiseCount` u ulici i `actedAtRaiseCount` po igraču. Igrač smije raise ako nije odigrao ili je poslije njegove akcije bio puni raise.
+- **Zatvaranje ulice kad je samo jedan igrač bez all-ina:** nije dovoljno „niko ne mora igrati", jer bi BB koji ima opciju čekao sam. `isBettingRoundComplete` ga pušta ako je već izjednačio najveći ulog. Isto važi kad blind ode all-in, pa nema licitacije.
+- **Kratak BB:** za poziv se i dalje traži puni big blind (`currentBet = bigBlind`), a razliku rješavaju side potovi.
+- **Akcije ne mutiraju ulaz** (`structuredClone`), za razliku od Žandarovog `applyMove`.
+
+**Provjereno:** game-core 293 testa (bilo 178): 13 kategorija, kickeri, 32 scenarija side potova sa zbirom, heads-up, min-raise, kratki all-in, BB opcija, plasman kod dvostrukog bankrota, izlazak, vidljivost (JSON pogleda nema špil ni tuđe karte), i 500 nasumičnih mečeva (2–4 igrača, nasumični izlasci) sa konstantnim zbirom žetona poslije svake akcije. Typecheck game-core, server i web. Lint za game-core se ne može pokrenuti (eslint nije instaliran u paketu, zatečeno).
+

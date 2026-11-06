@@ -25,18 +25,30 @@ function createSeededRandom(seed: number): () => number {
  * @returns Novi niz sa istim kartama u nasumičnom redoslijedu.
  */
 export function shuffle(deck: Card[], seed?: number): Card[] {
-  const result = [...deck]; // kopija, ne dirati original
   const random = seed !== undefined ? createSeededRandom(seed) : Math.random;
+  return shuffleWith(deck, random);
+}
+
+/**
+ * Fisher-Yates sa ubrizganim generatorom `random()` u [0, 1).
+ * Vraća NOVI niz. Poker ga zove sa kriptografskim generatorom (server),
+ * testovi sa seeded — game-core ne zna odakle dolazi slučajnost.
+ */
+export function shuffleWith<T>(items: readonly T[], random: () => number): T[] {
+  const result = [...items]; // kopija, ne dirati original
 
   // Fisher-Yates: idemo od kraja ka početku
   // Za svaki indeks i, biramo nasumični j između 0 i i, pa swap-ujemo
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
-    const cardI = result[i]!;
-    const cardJ = result[j]!;
-    result[i] = cardJ;
-    result[j] = cardI;
+    const itemI = result[i]!;
+    const itemJ = result[j]!;
+    result[i] = itemJ;
+    result[j] = itemI;
   }
 
   return result;
 }
+
+/** Seeded generator za testove i simulaciju (isti seed = ista sekvenca). */
+export { createSeededRandom };

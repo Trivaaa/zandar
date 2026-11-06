@@ -831,3 +831,6 @@ export function nicknameChangeAllowedAt(
   const allowedAt = lastChangedAt + NICKNAME_CHANGE_INTERVAL_MS;
   return allowedAt > now ? allowedAt : null;
 }
+
+// Poker (Texas Hold'em) — tipovi stanja, pogleda i identitet igre.
+export * from "./poker";
