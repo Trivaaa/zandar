@@ -17,7 +17,8 @@
 export type SeatCaptionProps = {
   text: string;
   /** ŽANDAR dobija mesing; sve ostalo je mirno. */
-  tone?: "normal" | "sweep";
+  /** Poker: ulog (mesing), all-in (crveno), fold (prigušeno). */
+  tone?: "normal" | "sweep" | "bet" | "allin" | "fold";
   /** Druga linija — danas samo "automatski potez". */
   note?: string | undefined;
   /** Zadnji dio vijeka: natpis se gasi umjesto da nestane rezom. */

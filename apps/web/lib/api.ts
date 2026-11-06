@@ -1,6 +1,8 @@
+import { CLIENT_GAMES } from "@/lib/clientGames";
 import { getGuestId } from "@/lib/guestId";
 import {
   CURRENT_CONSENT_TEXT_ID,
+  type GameId,
   type ProfileAvatar,
   type SignupListResponse,
   type SignupRequest,
@@ -36,6 +38,8 @@ export type RoomPlayer = {
 export type RoomInfo = {
   id: string;
   status: string;
+  /** Igra za stolom. Stariji server ga ne šalje → Žandar. */
+  game?: GameId;
   isPublic: boolean;
   createdAt: number;
   players: RoomPlayer[];
@@ -77,8 +81,10 @@ export async function createRoom(input: {
   playerCount: 2 | 3 | 4;
   targetScore: number;
   tableTheme?: TableTheme;
+  /** Bez polja = Žandar. */
+  game?: GameId;
 }): Promise<CreateRoomResponse> {
-  track("play_requested", { mode: "private_room" });
+  track("play_requested", { mode: "private_room", game: input.game ?? "zandar" });
   const res = await fetch(`${API_BASE}/api/rooms`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(await authHeaders()) },
@@ -114,6 +120,7 @@ export async function submitJoinRequest(
       displayName,
       ...(pushId ? { pushId } : {}),
       ...analyticsIdentity(),
+      games: CLIENT_GAMES,
     }),
   });
   if (!res.ok) {
@@ -304,8 +311,10 @@ export async function quickPlay(input: {
   playerCount: number;
   targetScore: number;
   tableTheme?: TableTheme;
+  /** Poker: server sam bira 4 mjesta i ignoriše veličinu i cilj. */
+  game?: GameId;
 }): Promise<QuickPlayResponse> {
-  track("play_requested", { mode: "quick_play" });
+  track("play_requested", { mode: "quick_play", game: input.game ?? "zandar" });
   const res = await fetch(`${API_BASE}/api/quickplay`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(await authHeaders()) },

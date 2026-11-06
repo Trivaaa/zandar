@@ -2,6 +2,9 @@
 /* Felt sloj — ručno pisani CSS za karte, ruku, sto, pilulu i sjedišta.
    Čita samo tokene definisane niže; ništa ne definiše sam. */
 @import "./felt.css" layer(components);
+/* Poker sto — isti felt i budžet pozornice, samo poker vrijednosti. POSLIJE
+   felt.css: isti sloj, pa kasniji fajl pobjeđuje na istoj specifičnosti. */
+@import "./poker.css" layer(components);
 /* Overlay sloj — reveal, rezultat, reakcije, pauza/prekid. Isti dogovor:
    layer(components) da utility klase iz komponenti mogu da nadjacaju. */
 @import "./overlay.css" layer(components);

@@ -14,7 +14,7 @@ import { saveTableTheme } from "@/lib/tableTheme";
  *
  * Ime i izbor se pamte PRIJE zahtjeva, pa mrežna greška ne briše ono što je
  * igrač upisao i izabrao. Tek USPJEH igru upisuje kao zadnju igranu (glavna
- * kartica početne, nestaje NOVO). Server danas zna samo Žandar. Vraća putanju matching ekrana; navigaciju radi
+ * kartica početne, nestaje NOVO). Poker šalje `game`; veličinu i cilj server za njega ignoriše. Vraća putanju matching ekrana; navigaciju radi
  * pozivalac (`replace`, da „nazad" sa traženja vodi na početnu).
  */
 export async function startQuickPlay(
@@ -27,7 +27,12 @@ export async function startQuickPlay(
   savePlayerName(displayName);
   saveQuickPlayPrefs(prefs, game);
   saveTableTheme(tableTheme, game);
-  const res = await quickPlay({ displayName, ...prefs, tableTheme });
+  const res = await quickPlay({
+    displayName,
+    ...prefs,
+    tableTheme,
+    ...(game === "poker" ? { game: "poker" as const } : {}),
+  });
   markGamePlayed(game);
   saveSession({
     roomId: res.roomId,

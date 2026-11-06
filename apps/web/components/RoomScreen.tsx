@@ -25,6 +25,7 @@ import { JoinFlow } from "@/components/JoinFlow";
 import { readQuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import { GameScreen } from "@/components/GameScreen";
+import { PokerScreen } from "@/components/poker/PokerScreen";
 import { usePlayerInfo } from "@/components/profile/PlayerInfo";
 import { RoomInviteSheet } from "@/components/friends/InviteGuestSheet";
 import { shareInvite } from "@/lib/share";
@@ -34,6 +35,8 @@ import { identityUi } from "@/lib/features";
 import type { ActiveReaction } from "@/lib/reactions";
 import type {
   AbandonVote,
+  PokerActionRequest,
+  PokerGamePayload,
   PrivateGameStateView,
 } from "@zandar/shared-types";
 
@@ -82,6 +85,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   const [gameState, setGameState] = useState<GameStateWithDeadline | null>(
     null,
   );
+  // Poker sto ima svoj oblik stanja (`game: "poker"`); Žandar ga nikad ne vidi.
+  const [pokerState, setPokerState] = useState<PokerGamePayload | null>(null);
   const [starting, setStarting] = useState(false);
   const [botFillLoading, setBotFillLoading] = useState(false);
   const [activeReactions, setActiveReactions] = useState<ActiveReaction[]>([]);
@@ -216,12 +221,13 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     function handleJoinRequested() {
       setRefreshTrigger((n) => n + 1);
     }
-    function handleGameState(state: GameStateWithDeadline) {
+    function handleGameState(state: GameStateWithDeadline | PokerGamePayload) {
       // Singleton socket: stanje druge sobe (stari server još nije napustio
       // prethodnu socket sobu, B10) ne smije se nacrtati pod ovom rutom.
       if (state.roomId !== roomId) return;
       assertNoBotLeak(state.players); // dev straža (DS §7.1, C4)
-      setGameState(state);
+      if ("game" in state && state.game === "poker") setPokerState(state);
+      else setGameState(state as GameStateWithDeadline);
     }
     function handleReaction(event: ReactionEvent) {
       const id = `${event.timestamp}-${Math.random().toString(36).slice(2)}`;
@@ -382,6 +388,17 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     await emitAction("game:rematch", {});
   }
 
+  /** Poker potez — namjera; legalnost provjerava server (`poker:action`). */
+  async function handlePokerAction(
+    action: Pick<PokerActionRequest, "type" | "amount">,
+  ): Promise<void> {
+    if (!pokerState) throw new Error("Igra nije aktivna");
+    await emitAction("poker:action", {
+      ...action,
+      clientKnownStateVersion: pokerState.stateVersion,
+    });
+  }
+
   /** "Sačekaj još" — resetuje rok pauze na serveru (§32.3). */
   /**
    * Izlazak sa stola (QA B1): serveru javi da igrač odlazi, pa ostali odmah
@@ -413,19 +430,22 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   async function handleFindNewTable(): Promise<void> {
     // Napusti ovaj sto i nađi novi (Quick Play sa novim igračima).
     const myName =
-      gameState?.players.find((p) => p.id === session?.playerId)?.displayName ??
+      (gameState ?? pokerState)?.players.find((p) => p.id === session?.playerId)?.displayName ??
       readPlayerName() ??
       "Igrač";
     try {
       // Isti sto kakav je upravo odigran (veličina i cilj), ne podrazumijevani:
       // ko je igrao u dvoje do 11, „novi sto" očekuje opet takav.
       const prefs = readQuickPlayPrefs();
+      const poker = room?.game === "poker";
       const res = await quickPlay({
         displayName: myName,
-        playerCount: room?.playerCount ?? prefs.playerCount,
-        targetScore: room?.targetScore ?? prefs.targetScore,
+        // Poker: server sam postavlja 4 mjesta, cilj ne postoji.
+        playerCount: poker ? 4 : (room?.playerCount ?? prefs.playerCount),
+        targetScore: poker ? 21 : (room?.targetScore ?? prefs.targetScore),
         // I izgled: „novi sto" izgleda kao ovaj koji je upravo odigran.
         ...(room?.tableTheme ? { tableTheme: room.tableTheme } : {}),
+        ...(poker ? { game: "poker" as const } : {}),
       });
       saveSession({
         roomId: res.roomId,
@@ -510,6 +530,26 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     );
   }
 
+  if (pokerState) {
+    return (
+      <>
+        <PokerScreen
+          state={pokerState}
+          tableTheme={room.tableTheme}
+          isQuickPlay={room.isPublic}
+          onAction={handlePokerAction}
+          onRematch={handleRematch}
+          onNewTable={handleFindNewTable}
+          onReact={handleReact}
+          onLeave={() => void handleLeave()}
+          activeReactions={activeReactions}
+          onPlayerTap={onPlayerTap}
+        />
+        {playerInfo.layer}
+      </>
+    );
+  }
+
   if (gameState) {
     return (
       <>
@@ -541,7 +581,9 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   // partiju u toku) — gameState stiže socket-om za koji trenutak. NE prikazuj
   // lobby (invite link, host kontrole, "Pokreni igru") u tom prozoru: nakon
   // matching ekrana mora doći Sto, ne lobby. Drži tih loading dok state ne stigne.
-  if (room.status === "playing" || room.status === "finished") {
+  // Javni sto nema lobi: poker Quick Play se na serveru puni do 2 s (prozor
+  // za prave igrače) i kreće sam — do tad isti tihi ekran.
+  if (room.status === "playing" || room.status === "finished" || room.isPublic) {
     return (
       <main className="min-h-screen bg-felt text-white flex items-center justify-center">
         <p className="text-muted">Učitavanje stola...</p>
@@ -603,6 +645,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           )
         }
         onPlayerTap={onPlayerTap}
+        game={room.game}
         invites={room.invites}
         onInviteFriends={
           // F5/F6: i gost-host i nalog bez prijatelja vide dugme; list im

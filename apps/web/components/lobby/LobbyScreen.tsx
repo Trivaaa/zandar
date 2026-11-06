@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import type { ProfileAvatar } from "@zandar/shared-types";
+import type { GameId, ProfileAvatar } from "@zandar/shared-types";
 
 import { Avatar } from "@/components/profile/Avatar";
 import { sr } from "@/lib/sr";
@@ -54,6 +54,11 @@ export type LobbyScreenProps = {
   onInviteFriends?: (() => void) | undefined;
   /** Dodir na red drugog igrača → tuđi profil ili kartica gosta (T2/T3). */
   onPlayerTap?: ((player: LobbyPlayer, anchor: DOMRect) => void) | undefined;
+  /**
+   * Poker (tabla L): bez cilja i timova, bez dugmeta Start — partija kreće
+   * sama kad se mjesta popune (ili odmah uz „Popuni prazna mjesta").
+   */
+  game?: GameId | undefined;
   className?: string | undefined;
 };
 
@@ -88,7 +93,9 @@ export function LobbyScreen({
   onPlayerTap,
   invites = [],
   onInviteFriends,
+  game = "zandar",
 }: LobbyScreenProps) {
+  const poker = game === "poker";
   const seatsFilled = players.length;
   const seatsNeeded = Math.max(0, playerCount - seatsFilled);
 
@@ -99,14 +106,17 @@ export function LobbyScreen({
     if (!takenSeatIndices.has(i)) emptySeatIndices.push(i);
   }
 
-  const teamLetter = (teamId?: number) => (teamId === 0 ? "A" : teamId === 1 ? "B" : undefined);
+  const teamLetter = (teamId?: number) =>
+    poker ? undefined : teamId === 0 ? "A" : teamId === 1 ? "B" : undefined;
 
   return (
     <div className={`screen lobby ${className}`}>
       <header className="lobby__head">
         <h1 className="lobby__title font-display text-2xl">{sr.lobby.title(roomId)}</h1>
         <p className="lobby__meta font-sans text-sm">
-          {sr.lobby.meta(seatsFilled, playerCount, targetScore)}
+          {poker
+            ? sr.lobby.metaPoker(seatsFilled, playerCount)
+            : sr.lobby.meta(seatsFilled, playerCount, targetScore)}
         </p>
       </header>
 
@@ -190,7 +200,7 @@ export function LobbyScreen({
                 key={player.id}
                 className="lobby__seat"
                 data-lobby-seat={player.id}
-                data-team={player.teamId ?? ""}
+                data-team={poker ? "" : (player.teamId ?? "")}
                 data-empty="false"
               >
                 {onPlayerTap && !isYou ? (
@@ -271,15 +281,19 @@ export function LobbyScreen({
                 <p className="lobby__fill-hint font-sans text-xs">{sr.lobby.fillHint}</p>
               </div>
 
-              <button
-                type="button"
-                className="lobby__start font-display text-xl"
-                onClick={onStart}
-                disabled={!canStart || starting}
-                data-disabled={!canStart || starting}
-              >
-                {starting ? sr.lobby.starting : sr.lobby.start}
-              </button>
+              {poker ? (
+                <p className="lobby__waiting font-sans text-base">{sr.poker.lobbyHint}</p>
+              ) : (
+                <button
+                  type="button"
+                  className="lobby__start font-display text-xl"
+                  onClick={onStart}
+                  disabled={!canStart || starting}
+                  data-disabled={!canStart || starting}
+                >
+                  {starting ? sr.lobby.starting : sr.lobby.start}
+                </button>
+              )}
 
               {!canStart && !starting ? (
                 <p className="lobby__need-more font-sans text-base">
@@ -288,7 +302,9 @@ export function LobbyScreen({
               ) : null}
             </>
           ) : (
-            <p className="lobby__waiting font-sans text-base">{sr.lobby.waitingHost}</p>
+            <p className="lobby__waiting font-sans text-base">
+              {poker ? sr.poker.lobbyHint : sr.lobby.waitingHost}
+            </p>
           )}
         </div>
 

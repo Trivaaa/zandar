@@ -1,7 +1,8 @@
 "use client";
 
-import type { TableTheme } from "@zandar/shared-types";
+import type { GameId, TableTheme } from "@zandar/shared-types";
 
+import { CLIENT_GAMES } from "@/lib/clientGames";
 import { getGuestId } from "@/lib/guestId";
 import { analyticsPlatform } from "@/lib/platform";
 import { authed } from "@/lib/profile";
@@ -15,6 +16,8 @@ export async function createInviteRoom(input: {
   playerCount: 2 | 3 | 4;
   targetScore: 11 | 21;
   tableTheme?: TableTheme | undefined;
+  /** Bez polja = Žandar (server isto tumači). */
+  game?: GameId | undefined;
 }): Promise<string> {
   const res = await authed("/api/invites", {
     method: "POST",
@@ -40,7 +43,7 @@ export async function acceptInvite(roomId: string): Promise<"ok" | "expired" | "
   try {
     const res = await authed(`/api/invites/${encodeURIComponent(roomId)}/accept`, {
       method: "POST",
-      body: JSON.stringify({ guestId: getGuestId(), platform: analyticsPlatform }),
+      body: JSON.stringify({ guestId: getGuestId(), platform: analyticsPlatform, games: CLIENT_GAMES }),
     });
     if (res.status === 410) return "expired";
     if (!res.ok) return "error";

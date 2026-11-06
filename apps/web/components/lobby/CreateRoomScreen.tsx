@@ -1,6 +1,6 @@
 "use client";
 
-import type { TableTheme } from "@zandar/shared-types";
+import type { GameId, TableTheme } from "@zandar/shared-types";
 
 import { TableSetupFields } from "@/components/lobby/TableSetupFields";
 import { sr } from "@/lib/sr";
@@ -23,8 +23,13 @@ export type CreateRoomScreenProps = {
   counts?: readonly (2 | 3 | 4)[] | undefined;
   /** Naslov i natpisi. Isti ekran služi i brzoj igri (`sr.quickSetup`). */
   copy?: CreateRoomCopy | undefined;
+  /** Igra za stolom. Bez `onGame` red izbora igre se ne crta (samo Žandar). */
+  game?: GameId | undefined;
+  onGame?: ((game: GameId) => void) | undefined;
   className?: string | undefined;
 };
+
+const GAME_CHOICES: readonly GameId[] = ["zandar", "poker"];
 
 export type CreateRoomCopy = {
   title: string;
@@ -56,6 +61,8 @@ export function CreateRoomScreen({
   error,
   counts = DEFAULT_COUNTS,
   copy = sr.create,
+  game = "zandar",
+  onGame,
   className = "",
 }: CreateRoomScreenProps) {
   const ctaDisabled = loading || displayName.trim() === "";
@@ -83,7 +90,29 @@ export function CreateRoomScreen({
           />
         </div>
 
+        {onGame && (
+          <div className="create__field">
+            <span className="create__label font-sans text-sm">{sr.create.game}</span>
+            <div className="create__segmented" role="radiogroup" aria-label={sr.create.game}>
+              {GAME_CHOICES.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  role="radio"
+                  aria-checked={game === g}
+                  className="create__option font-display text-base"
+                  data-selected={game === g}
+                  onClick={() => onGame(g)}
+                >
+                  {sr.games[g].name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <TableSetupFields
+          showTarget={game !== "poker"}
           playerCount={playerCount}
           onPlayerCount={onPlayerCount}
           targetScore={targetScore}

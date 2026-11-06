@@ -6,17 +6,19 @@ import { GAMES, homeLayout, isNewGame, type GameConfig, type HomeHistory } from 
 const NONE: HomeHistory = { pinned: null, played: {} };
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Konfiguracija sa izabranim živim igrama (ostale ostaju najavljene). */
+/** Konfiguracija sa TAČNO izabranim živim igrama (ostale najavljene) — ne zavisi od `pokerLive`. */
 function withLive(...live: string[]): GameConfig[] {
   return GAMES.map((g) =>
-    live.includes(g.slug) ? { ...g, status: "live" as const, releasedAt: g.releasedAt ?? "2026-10-01" } : g,
+    live.includes(g.slug)
+      ? { ...g, status: "live" as const, releasedAt: g.releasedAt ?? "2026-10-01" }
+      : { ...g, status: "upcoming" as const, releasedAt: null },
   );
 }
 const slugs = (games: GameConfig[]) => games.map((g) => g.slug);
 
 describe("homeLayout (SPEC_POCETNA §3, §5)", () => {
-  test("danas (H1): Žandar glavna, nema „Još igara\", Poker i Raub uskoro", () => {
-    const l = homeLayout(GAMES, NONE);
+  test("samo Žandar (H1): Žandar glavna, nema „Još igara\", Poker i Raub uskoro", () => {
+    const l = homeLayout(withLive("zandar"), NONE);
     assert.equal(l.main.slug, "zandar");
     assert.deepEqual(slugs(l.more), []);
     assert.deepEqual(slugs(l.upcoming), ["poker", "raub"]);
@@ -50,7 +52,7 @@ describe("homeLayout (SPEC_POCETNA §3, §5)", () => {
   });
 
   test("zakačena ili igrana igra koja nije živa se ignoriše", () => {
-    const l = homeLayout(GAMES, { pinned: "poker", played: { raub: 900 } });
+    const l = homeLayout(withLive("zandar"), { pinned: "poker", played: { raub: 900 } });
     assert.equal(l.main.slug, "zandar");
   });
 });

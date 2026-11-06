@@ -5,6 +5,7 @@ import {
   type UpcomingGameSlug,
 } from "@zandar/shared-types";
 
+import { pokerLive } from "@/lib/pokerRelease";
 import { sr } from "@/lib/sr";
 
 /**
@@ -106,8 +107,9 @@ export const GAMES: readonly GameConfig[] = [
     letter: "P",
     suit: "spades",
     minutes: 15,
-    status: "upcoming",
-    releasedAt: null,
+    // Iza prekidača izdanja (IARC) — vidi `lib/pokerRelease.ts`.
+    status: pokerLive ? "live" : "upcoming",
+    releasedAt: pokerLive ? "2026-11-06" : null,
     heroCards: [
       { rank: "10", suit: "spades" },
       { rank: "J", suit: "spades" },
@@ -115,7 +117,7 @@ export const GAMES: readonly GameConfig[] = [
       { rank: "K", suit: "spades" },
       { rank: "A", suit: "spades" },
     ],
-    hasRules: false,
+    hasRules: true,
     tint: "poker",
     tileCards: [
       { rank: "A", suit: "spades" },

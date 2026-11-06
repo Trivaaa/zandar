@@ -14,7 +14,7 @@ import { SignupSheet } from "@/components/home/SignupSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { useBackHandler } from "@/lib/backHandlers";
 import { identityUi } from "@/lib/features";
-import { GAMES, homeLayout, type GameConfig } from "@/lib/games";
+import { GAMES, homeLayout, type GameConfig, type GameSlug } from "@/lib/games";
 import { setPinnedGame, useHomeHistory } from "@/lib/homePrefs";
 import { isNative } from "@/lib/platform";
 import { readPlayerName, savePlayerName } from "@/lib/playerName";
@@ -35,6 +35,9 @@ const legalSlot = (
     <Link href="/o-nama">{sr.home.about}</Link>
   </>
 );
+
+/** Nova soba za igru; Žandar ostaje na staroj adresi (linkovi, APK). */
+const createPath = (game: GameSlug) => (game === "poker" ? "/create?game=poker" : "/create");
 
 type Sheet =
   | { kind: "name" }
@@ -57,7 +60,8 @@ export default function Home() {
   const [now] = useState(() => Date.now());
 
   const [sheet, setSheet] = useState<Sheet>(null);
-  const [rulesOpen, setRulesOpen] = useState(false);
+  const [rulesFor, setRulesFor] = useState<GameSlug | null>(null);
+  const rulesOpen = rulesFor !== null;
   const [playing, setPlaying] = useState(false);
   const [playError, setPlayError] = useState<string | null>(null);
   // `playing` gasi dugme tek na sljedećem renderu; brz dupli tap stigne prije.
@@ -65,7 +69,7 @@ export default function Home() {
   // Šta čeka na ime: igra i (opciono) izbor iz lista podešavanja.
   const pending = useRef<{ game: GameConfig; choice?: Choice } | null>(null);
 
-  useBackHandler(rulesOpen, () => setRulesOpen(false));
+  useBackHandler(rulesOpen, () => setRulesFor(null));
 
   /** Pravo za sto. `replace`: „nazad" sa traženja vodi na početnu, ne opet ovdje. */
   async function play(name: string, game: GameConfig, choice?: Choice) {
@@ -132,8 +136,10 @@ export default function Home() {
         // zadnjim izborom označenim; „Igraj" u listu kreće za sto. Odluka
         // vlasnika (#96, potvrđena 2026-10-24 poslije K1). Isti izbor se
         // mijenja i u Postavke → Brza igra.
-        onPlay={() => setSheet({ kind: "setup" })}
-        onCreate={() => router.push("/create")}
+        // Poker: jedan dodir, bez izbora (odluka 3, 6.11.2026) — sto je uvijek
+        // za 4, a izgled stola je zadnji zapamćen.
+        onPlay={() => (main.slug === "poker" ? void start(main) : setSheet({ kind: "setup" }))}
+        onCreate={() => router.push(createPath(main.slug))}
         onOpenGame={(game) => setSheet({ kind: "game", game })}
         onNotify={(game) => {
           track("upcoming_game_tapped", { game: game.slug });
@@ -187,10 +193,11 @@ export default function Home() {
             setSheet(null);
             void start(game);
           }}
-          onFriends={() => router.push("/create")}
+          onFriends={() => router.push(createPath(sheet.game.slug))}
           onRules={() => {
+            const game = sheet.game.slug;
             setSheet(null);
-            setRulesOpen(true);
+            setRulesFor(game);
           }}
           onTogglePin={() => {
             // Samo jedna zakačena: novo kačenje zamjenjuje staro. List se
@@ -206,7 +213,11 @@ export default function Home() {
 
       {/* `RulesModal` dijeli igra; omotač ga diže iznad PWA trake. */}
       <div className="home-layer">
-        <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
+        <RulesModal
+          isOpen={rulesOpen}
+          game={rulesFor === "poker" ? "poker" : "zandar"}
+          onClose={() => setRulesFor(null)}
+        />
       </div>
     </>
   );

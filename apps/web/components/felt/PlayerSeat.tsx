@@ -2,9 +2,10 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { CardBack } from "./CardBack";
+import { PlayingCard } from "./PlayingCard";
 import { Avatar } from "@/components/profile/Avatar";
 import { sr } from "@/lib/sr";
-import type { PublicPlayer } from "@/components/felt/types";
+import type { Card, PublicPlayer } from "@/components/felt/types";
 
 export type PlayerSeatProps = {
   player: PublicPlayer;
@@ -35,6 +36,17 @@ export type PlayerSeatProps = {
    * pravi `<button>`, bez uticaja na raspored. Bez handlera ga nema.
    */
   onTap?: ((anchor: DOMRect) => void) | undefined;
+  /**
+   * Tekst statusa umjesto stanja veze (poker: „Čeka se veza", „Fold"). Žandar
+   * ga ne šalje, pa tamo status ostaje stanje veze.
+   */
+  statusText?: string | undefined;
+  /** Uz avatar, apsolutno (poker: pločice D/SB/BB). Ne troši raspored. */
+  adornment?: ReactNode;
+  /** Karte licem gore u lepezi umjesto poleđina (poker showdown). */
+  faceCards?: readonly Card[] | undefined;
+  /** Karte iz `faceCards` koje čine pobjedničku kombinaciju / koje ne. */
+  cardTone?: ((card: Card) => "hi" | "lo" | undefined) | undefined;
 };
 
 const statusLabel = {
@@ -66,6 +78,10 @@ export function PlayerSeat({
   className = "",
   style,
   onTap,
+  statusText,
+  adornment,
+  faceCards,
+  cardTone,
 }: PlayerSeatProps) {
   const team =
     teamTone ?? (player.teamId === undefined ? undefined : player.teamId === 0 ? "a" : "b");
@@ -74,6 +90,9 @@ export function PlayerSeat({
   const countdown = isActive && !isThinking && secondsRemaining > 0;
   const fill = countdown ? Math.max(0, Math.min(1, secondsRemaining / totalSeconds)) : 1;
   const urgent = countdown && secondsRemaining <= 5;
+  // Pola roka: druga boja sata. Žandar je ne crta (njegov sat ima dva stanja),
+  // poker prsten ide zeleno → narandžasto → crveno (felt.css, poker blok).
+  const warn = countdown && !urgent && fill <= 0.5;
   // Zadnjih 10s broj stoji U avataru. Ranije ne: protivnik koji odigra za par
   // sekundi (a tako igra vecina poteza) ne treba da pali cifre na stolu.
   // `useCountdown` vraca razlomljene sekunde (otkucaj 250ms) — cifra se
@@ -92,6 +111,7 @@ export function PlayerSeat({
       data-seat-id={player.id}
       {...(isActive ? { "data-current-turn": true } : {})}
       {...(urgent ? { "data-urgent": true } : {})}
+      {...(warn ? { "data-warn": true } : {})}
       {...(countdown ? { "data-countdown": true } : {})}
       data-status={player.connectionStatus}
     >
@@ -156,26 +176,48 @@ export function PlayerSeat({
           ) : null}
           {/* Status je izuzetak, ne ukras: "Na vezi" ispod svakog imena je sum.
               Boja stanja zivi u felt.css (.seat__status), ne u utility klasi. */}
-          {player.connectionStatus !== "connected" ? (
+          {statusText ? (
+            <span className="seat__status font-sans text-sm">{statusText}</span>
+          ) : player.connectionStatus !== "connected" ? (
             <span className="seat__status font-sans text-sm">
               {player.left ? sr.connection.left : statusLabel[player.connectionStatus]}
             </span>
           ) : null}
 
         </div>
+        {adornment}
       </div>
 
-      <div
-        className="seat__fan"
-        aria-label={sr.seat.cards(cardCount)}
-        style={{ "--fan-n": Math.min(cardCount, 8) } as React.CSSProperties}
-      >
-        {Array.from({ length: Math.min(cardCount, 8) }, (_, i) => (
-          <span key={i} className="seat__fan-slot" style={{ "--fan-i": i } as React.CSSProperties}>
-            <CardBack size="xs" />
-          </span>
-        ))}
-      </div>
+      {faceCards && faceCards.length > 0 ? (
+        <div
+          className="seat__fan"
+          data-face-up
+          style={{ "--fan-n": faceCards.length } as React.CSSProperties}
+        >
+          {faceCards.map((card, i) => (
+            <span
+              key={card.id}
+              className="seat__fan-slot"
+              data-tone={cardTone?.(card)}
+              style={{ "--fan-i": i } as React.CSSProperties}
+            >
+              <PlayingCard card={card} size="xs" />
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div
+          className="seat__fan"
+          aria-label={sr.seat.cards(cardCount)}
+          style={{ "--fan-n": Math.min(cardCount, 8) } as React.CSSProperties}
+        >
+          {Array.from({ length: Math.min(cardCount, 8) }, (_, i) => (
+            <span key={i} className="seat__fan-slot" style={{ "--fan-i": i } as React.CSSProperties}>
+              <CardBack size="xs" />
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

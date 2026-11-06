@@ -17,6 +17,8 @@ export type TableSetupFieldsProps = {
   /** Natpisi redova (`sr.create` ili `sr.quickSetup`). */
   playersLabel: string;
   targetLabel: string;
+  /** Poker nema cilj — red se ne crta. */
+  showTarget?: boolean | undefined;
 };
 
 const TARGETS: readonly number[] = [11, 21];
@@ -36,6 +38,7 @@ export function TableSetupFields({
   counts,
   playersLabel,
   targetLabel,
+  showTarget = true,
 }: TableSetupFieldsProps) {
   return (
     <>
@@ -58,6 +61,7 @@ export function TableSetupFields({
         </div>
       </div>
 
+      {showTarget && (
       <div className="create__field">
         <span className="create__label font-sans text-sm">{targetLabel}</span>
         <div className="create__segmented" role="radiogroup" aria-label={targetLabel}>
@@ -76,6 +80,7 @@ export function TableSetupFields({
           ))}
         </div>
       </div>
+      )}
 
       {onTableTheme && (
         <div className="create__field">

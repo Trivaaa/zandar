@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import type { ReactionType } from "@zandar/shared-types";
 import { EmojiReactionRow } from "@/components/overlay/EmojiReactions";
 
@@ -25,6 +25,10 @@ type ReactionFabProps = {
   cooldownMs?: number;
   /** Dugmad iznad FAB-a (zvuk i vibracija); sklone se dok je panel otvoren. */
   aboveFab?: ReactNode;
+  /** Strana ekrana. Poker ga drži lijevo: desno su tvoje karte. */
+  side?: "left" | "right";
+  /** Visina na pozornici (poker: iznad akcionog panela). */
+  style?: CSSProperties | undefined;
 };
 
 export function ReactionFab({
@@ -32,6 +36,8 @@ export function ReactionFab({
   disabled = false,
   cooldownMs = 2000,
   aboveFab,
+  side = "right",
+  style,
 }: ReactionFabProps) {
   const [open, setOpen] = useState(false);
   // Preostali cooldown u ms — odbrojava se na 0 (bez Date.now, SSR-safe).
@@ -72,7 +78,14 @@ export function ReactionFab({
         />
       )}
 
-      <div className="absolute bottom-0 right-0 z-40 p-3 pb-safe-bottom pr-safe-right flex flex-col items-end gap-2">
+      <div
+        className={
+          side === "left"
+            ? "absolute bottom-0 left-0 z-40 p-3 pb-safe-bottom pl-safe-left flex flex-col items-start gap-2"
+            : "absolute bottom-0 right-0 z-40 p-3 pb-safe-bottom pr-safe-right flex flex-col items-end gap-2"
+        }
+        style={style}
+      >
         {/* Emoji panel */}
         {panelOpen && (
           <EmojiReactionRow

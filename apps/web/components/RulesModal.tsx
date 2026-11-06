@@ -10,9 +10,15 @@
  * Touch feedback ide preko `active:`, ne `hover:` (hover se lijepi na touchu).
  */
 
+import type { GameId } from "@zandar/shared-types";
+
+import { PokerRulesBody } from "@/components/poker/PokerRules";
+
 type Props = {
   isOpen: boolean;
   onClose: () => void;
+  /** Čija pravila. Bez polja = Žandar (svi postojeći pozivi). */
+  game?: GameId | undefined;
 };
 
 /** Naslov sekcije — mesing, konzistentan kroz cijeli modal. */
@@ -22,19 +28,20 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function RulesModal({ isOpen, onClose }: Props) {
+export function RulesModal({ isOpen, onClose, game = "zandar" }: Props) {
   if (!isOpen) return null;
+  const title = game === "poker" ? "Pravila pokera" : "Pravila Žandara";
 
   return (
     <div
       className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Pravila Žandara"
+      aria-label={title}
     >
       <div className="bg-surface-raised rounded-token-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-accent/20 pt-safe-top pb-safe-bottom">
         <div className="flex justify-between items-center gap-2 mb-4">
-          <h2 className="font-sans text-2xl font-bold">📖 Pravila Žandara</h2>
+          <h2 className="font-sans text-2xl font-bold">📖 {title}</h2>
           <button
             onClick={onClose}
             className="shrink-0 w-12 h-12 flex items-center justify-center rounded-token-md text-3xl leading-none text-muted active:bg-surface active:text-white"
@@ -45,6 +52,9 @@ export function RulesModal({ isOpen, onClose }: Props) {
           </button>
         </div>
 
+        {game === "poker" ? (
+          <PokerRulesBody SectionTitle={SectionTitle} />
+        ) : (
         <div className="space-y-5 font-sans text-base">
           <section>
             <SectionTitle>🎯 Cilj igre</SectionTitle>
@@ -114,6 +124,7 @@ export function RulesModal({ isOpen, onClose }: Props) {
             </p>
           </section>
         </div>
+        )}
 
         <button
           onClick={onClose}
