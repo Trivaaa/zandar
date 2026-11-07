@@ -1254,3 +1254,55 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 - CDP snimci `/dev/home?live=2` na 360×740, 390×844 i 360×640, bez skrola.
 - Zakačen poker, greška traženja, i `live=1` = stara K1.
 - Web testovi 180, typecheck, lint = osnovica. **Nije provjereno na uređaju.**
+
+
+## 124. Poker — sto kao priča: animacije i zajednički ritam (2026-11-07, `feat/poker-core`)
+
+**Zašto:** QA krug 2026-11-07 (PK-P1). Server za jedan potez šalje jedno stanje u kojem je sve već gotovo: ulog u potu, flop na stolu, sat sljedećeg igrača. Sto je zato „skakao" sa stanja na stanje. Odluka vlasnika: jasnoća ispred brzine, i po cijenu sporijeg stola.
+
+**Ritam (`packages/game-core/src/poker/pace.ts`):**
+- `POKER_PACE` je jedno mjesto za sva trajanja: potez 650, fold 550, check 450, mir 350, ulozi u pot 800, flop 1500, turn i river 950, otkrivanje 550 po igraču, isticanje 1100, isplata 950 po potu, bankrot 550, čitanje 2600 / 1500, dijeljenje 500 + 140 po karti + 320 + 260 ms.
+- `pokerPresentationMs(prev, next, …)` računa koliko traje prikaz jednog prelaza. Testirano (8 testova).
+
+**Server (`poker/table.ts`):**
+- Sat sljedećeg igrača i odluka bota kreću tek poslije prikaza.
+- Payload nosi `turnStartsAt` (opciono; stari klijent ga ignoriše).
+- Pauza između ruku = priča kraja ruke, umjesto fiksnih 2,5 / 5 s.
+- Prikaz se računa JEDNOM po stvarnoj promjeni: ponovno slanje istog stanja ne pomjera rok.
+- `POKER_PACE_PERCENT` (100 = normalno) podešava ritam bez deploya koda.
+- Prva ruka meča dobija i vrijeme za dijeljenje: `start()` postavlja „prazan sto" kao prethodno stanje.
+- Testovi rade sa `paceScale: 0` (stara pravila), a ritam pokrivaju dva nova testa.
+
+**Klijent:**
+- `lib/pokerBeat.ts` (čisto) pravi korake iz razlike prikazanog i novog stanja. Svaki korak kaže šta sto drži (uloge, natpise, board, pot, stackove, otkrivene, isticanje, rezultat, dijeljenje, sjedište bankrota) i koji let pokreće. Test provjerava da je **zbir koraka tačno jednak serverovom vremenu**, za 6 scenarija.
+- Motor na prelazu ulice briše uloge i natpise, a na kraju ruke i `totalBet`. „Ko je koliko upravo uložio" se zato računa iz stackova: prethodni − (novi − dobitak).
+- `lib/usePokerBeat.ts` izvodi korake. Obrazac je Žandarov `useTableBeat`, sa izvedenim stanjem u renderu, bez `setState` u efektu.
+  - Novo stanje usred priče čeka svoj red.
+  - Više stanja na čekanju = priča se samo prelaz do najnovijeg.
+  - Kad priča kasni za `turnStartsAt`, koraci se sabiju (najviše na 25%). U pozadini se preskaču.
+  - Let sljedećeg koraka kreće PRIJE promjene stola, da se sidra izmjere dok su na ekranu.
+- `lib/pokerFly.ts`: duhovi na `body`-ju (isti mehanizam kao Žandar). Pokriva žetone od sjedišta do uloga, uloge u pot, pot pobjedniku (podijeljen pot ide u dva toka), fold, „kuc" za check i dijeljenje u dva kruga. Sidra su `data-bet-anchor`, `data-pot-anchor` i `data-deal-from`.
+- CSS:
+  - board karta po karta, sa padom i okretanjem (`--t-pk-board`);
+  - okretanje tuđih karata na showdownu (`--t-pk-flip`);
+  - pobjedničke karte podignute svojstvom `translate`, ne `transform`, jer bi `transform` pregazio rotaciju lepeze;
+  - novi tokeni kolapsiraju pod prigušenim pokretom.
+
+**Usput riješeno iz QA:**
+- PK-B6: kraj meča više ne prekriva isplatu.
+- „Bez žetona" i „Sljedeća ruka počinje…" stižu tek uz traku rezultata.
+- Igrač koji je upravo ostao bez žetona vidi svoje karte do kraja priče.
+
+**Zamke:**
+- `makeGhost` piše pozadinu inline, pa je klasa ne može nadjačati. Žeton-duh se zato stilizuje inline.
+- React StrictMode u `next dev` pokreće efekat koraka 0 dvaput, pa ima duplo duhova (16 za 8 karata). U produkciji je jednom.
+
+**Cijena:** ruka je ~4–6 s duža. Prije stvarnog mjerenja na stagingu procjena je ~17 min za meč (bilo 13,6).
+
+**Provjereno:**
+- game-core 325, server 219, web 186 testova; typecheck; lint = osnovica.
+- Filmska traka na lokalnom serveru sa pravim ritmom (snimak svakih ~300 ms kroz cijelu ruku). Redoslijed je potez → ulog → mir → ulozi u pot → flop 1-2-3 → panel, a na kraju otkrivanje → isticanje → isplata → bankrot → rezultat → kraj meča.
+- Prigušen pokret: isti redoslijed, nula duhova.
+- Nijedna greška u konzoli.
+
+**Nije provjereno na uređaju:** tempo okom, glatkoća na S10e i StrictMode-neutralan broj duhova u produkcijskom buildu.
