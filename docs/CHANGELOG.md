@@ -1528,3 +1528,13 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Izmjena:** `DEFAULT_RAUB_RULES.turnTimeoutSeconds` 15 → 25 (server ga čita kao `RAUB_TURN_MS`, i dalje se može nadjačati env-om). Prsten na avataru čita `state.rules.turnTimeoutSeconds`, pa je usklađen sam. Mečevi koji već traju zadržavaju 15 u snimljenim pravilima (prsten), a server poslije deploya čeka 25 — prsten kod njih ističe ranije od stvarnog roka, samo do kraja tog meča.
 
 **Provjereno:** game-core 372, server 236, web 203.
+
+## 136. Raub — botovi razmišljaju 2,5–7 s (2026-11-07, `fix/raub-taken-talon`)
+
+**Povod:** vlasnik: botovi igraju prebrzo i ujednačeno, treba da izgleda realnije. **Odluka 11** u `docs/raub-spec.md`.
+
+**Izmjena:** `DEFAULT_RAUB_BOT_CONFIG.thinkMinMs/thinkMaxMs` 1000/3000 → 2500/7000 (ravnomjerno nasumično po odluci, `raubBotThinkMs`). Rok poteza 25 s ostaje daleko iznad, pa bot nikad ne dira AFK (HARD RULE 4). `GAMES` Raub `minutes` 20 → 35.
+
+**Mjerenje:** `simulate:raub` (10.000 × 4 igrača): medijan 34,4 min, p10 22, p90 50,4 (ranije ~20). Iznad ciljanih 15–25 min iz speca — ako bude predugo, spustiti gornju granicu ili ubrzati očigledne poteze (jedina dozvoljena karta, „Dalje" bez aduta).
+
+**Provjereno:** game-core 372, web 203.

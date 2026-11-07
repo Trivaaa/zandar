@@ -141,8 +141,8 @@ export const GAMES: readonly GameConfig[] = [
     slug: "raub",
     letter: "R",
     suit: "clubs",
-    // Simulacija (changelog 125): 4 igrača, medijan ~20 min.
-    minutes: 20,
+    // Simulacija (changelog 136): 4 igrača, botovi 2,5–7 s, medijan ~34 min.
+    minutes: 35,
     // Iza prekidača izdanja (odluka 8) — vidi `lib/raubRelease.ts`.
     status: raubLive ? "live" : "upcoming",
     releasedAt: raubLive ? "2026-11-07" : null,

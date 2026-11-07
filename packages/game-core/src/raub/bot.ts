@@ -45,8 +45,9 @@ export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
   goLooseP: 0.1,
   blunderP: 0.05,
   keepSideRank: 7,
-  thinkMinMs: 1000,
-  thinkMaxMs: 3000,
+  // Odluka 11: 2,5–7 s, nasumično (1–3 s je djelovalo mašinski).
+  thinkMinMs: 2500,
+  thinkMaxMs: 7000,
 };
 
 const isHigh = (c: Card) => c.rank === "A" || c.rank === "K";

@@ -330,6 +330,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 8 | Prekidač izdanja | Raub se uključuje prekidačem kao Poker: staging i razvoj odmah, produkcija svjesnim upisom | Produkcija ne dobija igru sama od sebe kad kod stigne na `production` |
 | 9 | Idem / Ne idem | Uvedeno (pagat): poslije određivanja aduta svako osim nosioca bira da li igra; ko ne ide, ne boduje se; ako niko ne ide, nosilac −4 | Simulacija botova (7.11.2026) sa „svi igraju”: 2 igrača završe za ~11 ruku, 3 za ~23, a sa 4 igrača nijedan od 60 mečeva ni za 150 ruku — bodovi u prosjeku rastu +0,15 po ruci (4 štiha, a ~45 % igrača bez štiha dobija +2). Sa „Idem / Ne idem” 4 igrača završe za medijan ~21 ruku |
 | 10 | Tajmer poteza | 25 s umjesto 15 s | Vlasnik na uređaju (7.11.2026): 15 s ističe prije nego se stigne razmisliti; traženo bar 50 % duže. Botovi igraju za 1–3 s, pa tempo meča raste samo kad čovjek razmišlja |
+| 11 | Brzina botova | Nasumično 2,5–7 s po odluci (bilo 1–3 s) | Vlasnik (7.11.2026): da izgleda realnije. Simulacija: 4 igrača, medijan ~34 min (bilo ~20), p90 ~50 min — iznad ciljanih 15–25 min |
 
 ## Metrike, acceptance i otvorena pitanja
 

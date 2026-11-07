@@ -54,12 +54,12 @@ describe("raub bot", () => {
     expect(() => selectRaubBotAction(getRaubView(s, "b"))).toThrow("BOT_NOT_ON_TURN");
   });
 
-  it("vrijeme odluke 1–3 s", () => {
+  it("vrijeme odluke 2,5–7 s", () => {
     const rng = makeLcg(3);
     for (let i = 0; i < 200; i++) {
       const ms = raubBotThinkMs(DEFAULT_RAUB_BOT_CONFIG, rng);
-      expect(ms).toBeGreaterThanOrEqual(1000);
-      expect(ms).toBeLessThanOrEqual(3000);
+      expect(ms).toBeGreaterThanOrEqual(2500);
+      expect(ms).toBeLessThanOrEqual(7000);
     }
   });
 });
