@@ -1265,3 +1265,22 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 - Usklađeno s pravilima projekta: bez riječi „bot" u UI-ju, „Zamjena 3" umjesto „Zamijenio 3", pragovi bota kao konfiguracija, okvir modula kao Poker (`LobbyRoom.raub`, `raub:action`, `games` za stare klijente, prekidač izdanja).
 - Riješena proturječnost v1: zamjena ne smije tražiti više karata nego što ih ima u špilu, pa igrač uvijek ulazi u štihove sa 4.
 - `CLAUDE.md`: red u zaglavlju.
+
+## 125. Raub — tipovi i čist motor, „Idem / Ne idem" (2026-11-07, `feat/raub-core`)
+
+**Povod:** S1 plana za Raub (`docs/raub-spec.md`): motor bez servera i UI-ja, po obrascu Pokera (`game-core/src/raub/`, imena sa prefiksom `raub`/`Raub`, `export * from "./raub"`).
+
+**Izmjene:**
+- `shared-types/src/raub.ts`: `RaubRules` (izbori iz tabele „Gdje se izvori razilaze" kao parametri: `maxTalonFlips`, `firstBidder`, `direction`, `mustOvertrump`, `allowDrop`), `RaubGameState` (samo server), `RaubPlayerView` (klijent i bot), `RaubGamePayload`, `RaubInterruption` (pauza i glasanje, apsolutni rokovi).
+- `game-core/src/raub/`: 32 karte iz postojećeg `createDeck()`, dijeljenje 2 + talon + 2 (djelilac sebi zadnji), sva tri scenarija aduta, zamjena sedmice, okretanje 2. i 3. karte, refa i red refa (svaka refa duplira jednu sljedeću odigranu ruku), višak sa zaključanom talon kartom, zamjena ograničena špilom, prva zamjena sve 4 = 5 karata sa otvorenom trećom pa odbacivanje (odluka 1), štihovi (boja → adut → bilo šta), bodovanje (`raubScoreDelta`), plasman sa dijeljenim mjestom, `getRaubView` (djelilac ne vidi karte prije odluke; nikad špil, tuđe ruke ni odbačene), `getRaubAutoAction` za istek roka, bot iz pogleda (`DEFAULT_RAUB_BOT_CONFIG`, 1–3 s), simulacija (`pnpm --filter @zandar/game-core simulate:raub`).
+- Stanje se kopira `structuredClone`-om osim istorije ruku, koja se dijeli (upisani redovi se ne mijenjaju) — inače je simulacija bila O(n²).
+
+**Odluka 9 — „Idem / Ne idem" (vlasnik, 7.11.2026):** prva simulacija sa „svi igraju" (spec v1, potvrđeno ujutro): 2 igrača ~11 ruku, 3 ~23, a sa 4 igrača **nijedan od 60 mečeva ni za 150 ruku** — bodovi rastu +0,15 po igraču po ruci (4 štiha u ruci, ~45 % igrača bez štiha dobija +2, nosilac pada u 48 %). Uveden mehanizam iz pagat-a: poslije određivanja aduta (i viška) svako osim nosioca bira Idem / Ne idem; ko ne ide, odlaže karte i ne boduje se; niko ne ide → nosilac −4. Istek roka = Ne idem. Bot ide sa 2+ aduta ili asom (`goMinTrumps: 2`; sa 1 je 4P medijan bio 42 ruke). Spec dopunjen (odluka 9), a link igrajkarte.com iz izvora sada preusmjerava na nepovezan domen — označen.
+
+**Provjereno:**
+- game-core 362 testa (46 novih Raub: scenariji, licitacija, refa ×3, idem/ne idem, zamjena i prazan špil, štihovi i obaveze, svaki red bodova, primjer iz speca, kraj meča, anti-leak pogleda, istek roka, bot samo dozvoljeno, skraćena simulacija).
+- `simulate:raub`, 10.000 mečeva po veličini stola (seed 1): **0 grešaka karata, 0 grešaka štihova, 0 odbijenih akcija, 0 zaglavljenih**. Ruke po meču (medijan / p90): 2P 10 / 12, 3P 15 / 20, 4P 22 / 32. Refa: 13,6 % / 5,2 % / 2,2 %. Procjena trajanja (model, ne mjerenje: čovjek 4 s po potezu, 8 s po ruci): 2P 5,7 min, 3P 11,3, 4P 20,2 (p90 29,5).
+
+**Zamke:**
+- Ne-interaktivno: `pnpm exec eslint` u game-core ne postoji (zatečeno), kapija je `tsc --noEmit`.
+- Simulacija 4P traje ~4 min za 10.000 mečeva; u vitest ide skraćena (150–300 mečeva).

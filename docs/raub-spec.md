@@ -33,7 +33,7 @@ Raub je igra na štihove sa 32 karte: svaki igrač dobija 4 karte, jedan igrač 
 
 ## Pravila igre
 
-Svaka ruka ima četiri faze: dijeljenje, određivanje aduta, zamjena karata i igranje 4 štiha. Karte nemaju bodovnu vrijednost, broji se samo broj osvojenih štihova.
+Svaka ruka ima pet faza: dijeljenje, određivanje aduta, „Idem / Ne idem”, zamjena karata i igranje 4 štiha. Karte nemaju bodovnu vrijednost, broji se samo broj osvojenih štihova.
 
 **Špil i rang**
 
@@ -71,9 +71,16 @@ Djeliočeve karte su do odluke licem nadolje i server ih djeliocu ne šalje dok 
 
 Igrač koji uzme talon kartu (scenarij 1 i 2) ima 5 karata i odmah odbacuje jednu licem nadolje. Karta uzeta s talona se ne smije odbaciti. Zamjena sedmice u scenariju 3 nije višak: igrač daje sedmicu i dobija talon kartu, pa ostaje na 4.
 
+**Idem / Ne idem** **(odluka 9)**
+
+1. Kad je adut određen (i višak odbačen), svaki igrač osim nosioca, redom od nosioca u smjeru igre, kaže „Idem” ili „Ne idem”. Nosilac uvijek igra.
+2. Ko kaže „Ne idem”, odlaže karte licem nadolje i ne igra do kraja ruke. Ne boduje se: bodovi mu ostaju isti, bez kazne.
+3. Zamjena i štihovi idu samo među igračima koji igraju.
+4. Ako niko osim nosioca ne ide, nosilac upisuje sva 4 štiha (−4) i ruka se završava bez zamjene i štihova.
+
 **Zamjena karata**
 
-1. Redom, počevši od nosioca aduta, svaki igrač odbacuje 0 do 4 karte licem nadolje i dobija isto toliko novih sa špila.
+1. Redom, počevši od nosioca aduta, svaki igrač koji igra odbacuje 0 do 4 karte licem nadolje i dobija isto toliko novih sa špila.
 2. Prvi igrač koji zamijeni sve 4 karte dobija 5 karata ovako: 2 skrivene, 1 otvorena koju vide svi, pa 2 skrivene. Zatim odbacuje jednu, ali ne otvorenu, i ostaje na 4 **(odluka 1)**. Svaki sljedeći igrač koji mijenja sve 4 dobija ih skrivene, tačno 4.
 3. Odbačene karte su van igre do kraja ruke.
 4. Igrač ne može odbaciti više karata nego što ih ima u špilu, pa uvijek ulazi u štihove sa 4 karte **(odluka 4)**. Kad se špil isprazni, ostali igrači više ne mogu mijenjati, i to vide prije svog poteza.
@@ -91,7 +98,7 @@ Igrač koji uzme talon kartu (scenarij 1 i 2) ima 5 karata i odmah odbacuje jedn
 
 **Gdje se izvori razilaze: izbor za V1**
 
-Izbore je vlasnik potvrdio 7.11.2026 **(odluka 5)**.
+Izbore je vlasnik potvrdio 7.11.2026 **(odluka 5)**, osim ispadanja iz ruke, koje je promijenjeno poslije simulacije **(odluka 9)**.
 
 | Pravilo | Izbor u V1 | Alternativa |
 | --- | --- | --- |
@@ -99,7 +106,7 @@ Izbore je vlasnik potvrdio 7.11.2026 **(odluka 5)**.
 | Ko prvi licitira u scenariju 3 | Djelilac | Igrač desno od djelioca |
 | Broj okrenutih karata prije refe | 3 | 2 |
 | Obaveza nadjačavanja štiha | Nema | Mora nadjačati ako može |
-| Ispadanje iz ruke („ne idem”) | Nema, svi igraju | Igrač može odustati i ne boduje se |
+| Ispadanje iz ruke („ne idem”) | Igrač može odustati i ne boduje se **(odluka 9)** | Nema, svi igraju |
 | Pobjeda | Prvi s 0 ili manje bodova | Mora pogoditi tačno 0 |
 
 Sva pravila iz ove tabele su parametri u `RaubRulesConfig`, da se mogu mijenjati bez prepravljanja logike.
@@ -114,6 +121,7 @@ Svi počinju s 21 bodom. Svaki osvojeni štih skida 1 bod, a neuspjeh dodaje kaz
 | --- | --- | --- |
 | Bilo koji igrač | Uzeo 1 ili više štihova (i ispunio obavezu) | −1 po štihu |
 | Igrač koji nije nosilac | 0 štihova | +2 |
+| Igrač koji je rekao „Ne idem” | Ne igra ruku | 0 |
 | Djelilac sa sedmicom (scenarij 1, mora 1) | 0 štihova | +3 |
 | Nosilac u scenariju 2 ili 3 (mora 2) | 1 štih | +3 |
 | Nosilac u scenariju 2 ili 3 (mora 2) | 0 štihova | +4 |
@@ -154,11 +162,11 @@ S 2 igrača u špilu ostaje 23 karte, pa je zamjena gotovo uvijek moguća. S 4 i
 
 Meč je niz ruku. Svaka ruka prolazi isti put: adut se odredi na jedan od tri načina ili se upiše refa, zatim svi mijenjaju karte i igraju 4 štiha, a nakon bodovanja server provjerava da li je neko stigao do 0.
 
-Tok ruke: Dijeljenje (po 4 karte, 1 na talon) → Talon je 7? Da: Sedmica, djelilac mora 1 štih. Ne → Djelilac raub naslijepo? Da: djelilac mora 2 štiha. Ne → Licitacija (Raub ili Dalje u krug): neko kaže Raub → nosilac mora 2 štiha; svi Dalje → nova karta na talon i nova licitacija, nakon 3. karte refa. Iz sva tri scenarija → Zamjena (svako 0–4 karte) → 4 štiha (boja, pa adut) → Bodovanje (21 prema 0, kazne, refa) → host pokreće novu ruku dok neko ne stigne do 0.
+Tok ruke: Dijeljenje (po 4 karte, 1 na talon) → Talon je 7? Da: Sedmica, djelilac mora 1 štih. Ne → Djelilac raub naslijepo? Da: djelilac mora 2 štiha. Ne → Licitacija (Raub ili Dalje u krug): neko kaže Raub → nosilac mora 2 štiha; svi Dalje → nova karta na talon i nova licitacija, nakon 3. karte refa. Iz sva tri scenarija → Idem / Ne idem (niko ne ide: nosilac −4, kraj ruke) → Zamjena (svako 0–4 karte) → 4 štiha (boja, pa adut) → Bodovanje (21 prema 0, kazne, refa) → host pokreće novu ruku dok neko ne stigne do 0.
 
 - **Ulazak za sto:** Quick Play odmah smješta igrača za sto s 4 mjesta, prazna mjesta dobijaju botove. U privatnoj sobi meč kreće kad se popune mjesta.
 - **Start meča:** svi imaju 21 bod, prvi djelilac se bira nasumično.
-- **Ruka:** dijeljenje, izbor aduta, odbacivanje viška, zamjena, 4 štiha, bodovanje.
+- **Ruka:** dijeljenje, izbor aduta, odbacivanje viška, Idem / Ne idem, zamjena, 4 štiha, bodovanje.
 - **Refa:** ruka bez aduta se poništava bez bodovanja, djeljenje prelazi dalje, a sljedeća odigrana ruka se boduje duplo. Poruka o refi stoji dok host ne pokrene novu ruku.
 - **Kraj ruke:** pregled ruke stoji dok host ne pritisne „Sljedeća ruka →”; ostali vide „Čeka se: [ime]” **(odluka 2)**.
 - **Kraj meča:** nakon ruke u kojoj je neko stigao do 0 ili ispod. Ekran s plasmanom; u Quick Play „Igraj ponovo”, u privatnoj sobi „Revanš” za hosta, i „Na početnu” za sve.
@@ -179,6 +187,7 @@ Raub koristi „kafanski sto” i postojeće komponente. Novo su faze koje Žand
 | Meni, izlazak, reakcije, pauza | Preuzima se | `GameMenuSheet`, `LeaveTableSheet`, `ReactionFab`, `PauseAbandonOverlay` **(odluka 3)** |
 | Talon | Novo | Okrenuta karta na sredini stola, uz brojač „karta 1 od 3” i broj karata u špilu |
 | Panel licitacije | Novo | Dugmad „Raub” i „Dalje”; djelilac ima i „Raub naslijepo” prije otvaranja karata |
+| Panel „Idem / Ne idem” | Novo | Dva dugmeta, uz adut i ugovor nosioca; ko ne ide, prigušen je do kraja ruke **(odluka 9)** |
 | Panel zamjene | Novo | Igrač tapom označi karte za odbacivanje, dugme „Zamijeni N” ili „Zadrži sve” |
 | Oznaka aduta | Novo | Simbol boje aduta stalno vidljiv u uglu stola; prije određivanja „nudi se” |
 | Oznaka nosioca | Novo | Kod avatara nosioca: „Raub · mora 2” i trenutni broj uzetih štihova (1/2) |
@@ -195,7 +204,7 @@ Raub koristi „kafanski sto” i postojeće komponente. Novo su faze koje Žand
 
 **Jasnoća faza**
 
-- Natpis faze na vrhu stola: „Licitacija”, „Zamjena”, „Štih 2 od 4”.
+- Natpis faze na vrhu stola: „Licitacija”, „Idem?”, „Zamjena”, „Štih 2 od 4”.
 - Odgovori u licitaciji („Dalje”, „Raub”) prikazani su iznad avatara dok faza traje.
 - Broj karata koje je svaki igrač zamijenio prikazan je kratko iznad avatara: „Zamjena 3” ili „Bez zamjene” (rodno neutralno, ne „Zamijenio 3”).
 - Na kraju ruke kratak pregled: ko je koliko uzeo i promjena bodova, uz isticanje kazne (+3, +4, riječ „kazna”, `--danger-signal`) i dupliranja zbog refe (×2, `--warn`).
@@ -220,6 +229,7 @@ Botovi omogućavaju trenutni Quick Play, isto kao u Pokeru: svako mjesto koje u 
 
 - Raub naslijepo: samo ako je okrenuta karta A ili K i bot je pri dnu tabele po bodovima (mora sustići).
 - Licitacija: procjena snage ruke za ponuđenu boju. Npr. „Raub” ako bi imao 2 ili više aduta, ili 1 jak adut (A, K) i 1 as sa strane.
+- Idem / Ne idem: ide sa 2 ili više aduta ili sa asom sa strane, ponekad i sa slabijom rukom.
 - Zamjena: zadržava adute i aseve, mijenja ostale karte. Kao nosilac nikad ne mijenja sve 4.
 - Igranje: otvara jakim adutom kad mu trebaju štihovi; kad ne može uzeti štih, baca najslabiju dozvoljenu kartu; ne troši jak adut na štih koji već nosi drugi igrač.
 - Nasumičnost u pragovima, da bot ne bude predvidiv.
@@ -288,6 +298,7 @@ Meč se nikad ne zaustavlja zbog jednog poteza: ko ne odigra na vrijeme, server 
 | Istekne tajmer u licitaciji | „Dalje” |
 | Istekne tajmer djeliocu prije otvaranja karata | Nema rauba naslijepo, karte se otvaraju i licitacija ide normalno |
 | Istekne tajmer kod zamjene sedmice za talon | Ne mijenja |
+| Istekne tajmer kod „Idem / Ne idem” | „Ne idem” (bez kazne) |
 | Istekne tajmer u zamjeni | Igrač zadržava sve karte |
 | Istekne tajmer kod odbacivanja viška (5 karata) | Odbacuje se najslabija karta koja nije adut i nije karta s talona (ako su sve adut, najslabiji adut koji nije s talona) |
 | Istekne tajmer u štihu | Baca se najslabija dozvoljena karta |
@@ -317,6 +328,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 6 | Riječi u UI-ju | „Popuni prazna mjesta i počni” (bez riječi „bot”), „Zamjena 3” / „Bez zamjene” (rodno neutralno), „Sto” umjesto „Soba” | HARD RULE 5 i pravilo rodno neutralnog teksta (SPEC_IDENTITET); „Sto” je odluka sa table Pokera |
 | 7 | Kraj meča | Obrazac `RoundEndOverlay` i kraja meča Pokera (Igraj ponovo / Revanš / Na početnu) | Isti ekran za sve igre |
 | 8 | Prekidač izdanja | Raub se uključuje prekidačem kao Poker: staging i razvoj odmah, produkcija svjesnim upisom | Produkcija ne dobija igru sama od sebe kad kod stigne na `production` |
+| 9 | Idem / Ne idem | Uvedeno (pagat): poslije određivanja aduta svako osim nosioca bira da li igra; ko ne ide, ne boduje se; ako niko ne ide, nosilac −4 | Simulacija botova (7.11.2026) sa „svi igraju”: 2 igrača završe za ~11 ruku, 3 za ~23, a sa 4 igrača nijedan od 60 mečeva ni za 150 ruku — bodovi u prosjeku rastu +0,15 po ruci (4 štiha, a ~45 % igrača bez štiha dobija +2). Sa „Idem / Ne idem” 4 igrača završe za medijan ~21 ruku |
 
 ## Metrike, acceptance i otvorena pitanja
 
@@ -359,6 +371,6 @@ Analitika ide kroz postojeće `match_started` / `match_ended` sa `game: "raub"` 
 
 **Izvori pravila**
 
-- [Raub – pravila, igrajkarte.com](http://www.igrajkarte.com/blog/post/raub-pravila/)
+- ~~Raub – pravila, igrajkarte.com~~ — link (`igrajkarte.com/blog/post/raub-pravila/`) od 7.11.2026 preusmjerava na nepovezan domen; ne koristiti.
 - [Raub pravila igre, igresakartama.com](https://igresakartama.com/raub/)
-- [Raub, pagat.com](https://pagat.com/rams/raub.html) (varijanta Hrvata u SAD-u, s „idem / ne idem” i obavezom nadjačavanja)
+- [Raub, pagat.com](https://pagat.com/rams/raub.html) (varijanta Hrvata u SAD-u, s „idem / ne idem” i obavezom nadjačavanja; izvor odluke 9)
