@@ -5,6 +5,7 @@ import type {
   GameState,
   PokerGameState,
   Player,
+  RaubGameState,
   RulesConfig,
   TableTheme,
 } from "@zandar/shared-types";
@@ -77,7 +78,12 @@ export type LobbyRoom = {
   game?: GameId;
   /** Stanje poker meča (samo server — špil i tuđe karte). */
   poker?: PokerGameState | null;
-  /** Poker Quick Play: do kad sto čeka druge prave igrače prije botova (epoch ms). */
+  /**
+   * Stanje Raub meča (samo server — špil, tuđe ruke, odbačene karte). Kao i
+   * poker, Raub soba NIKAD nema `gameState` (docs/raub-spec.md).
+   */
+  raub?: RaubGameState | null;
+  /** Poker i Raub Quick Play: do kad sto čeka druge prave igrače prije botova (epoch ms). */
   matchingUntil?: number;
 };
 

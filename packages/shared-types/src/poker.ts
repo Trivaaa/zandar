@@ -6,12 +6,12 @@
 import type { Card, PublicPlayer } from "./index";
 
 /** Igre koje se stvarno igraju za stolom. Soba bez polja `game` je Žandar. */
-export const GAME_IDS = ["zandar", "poker"] as const;
+export const GAME_IDS = ["zandar", "poker", "raub"] as const;
 export type GameId = (typeof GAME_IDS)[number];
 
 /** Nepoznata ili nedostajuća vrijednost = Žandar (stari klijenti, stari snapshoti). */
 export function parseGameId(value: unknown): GameId {
-  return value === "poker" ? "poker" : "zandar";
+  return value === "poker" || value === "raub" ? value : "zandar";
 }
 
 export type PokerStreet = "preflop" | "flop" | "turn" | "river";

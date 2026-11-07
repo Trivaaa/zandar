@@ -1284,3 +1284,21 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 **Zamke:**
 - Ne-interaktivno: `pnpm exec eslint` u game-core ne postoji (zatečeno), kapija je `tsc --noEmit`.
 - Simulacija 4P traje ~4 min za 10.000 mečeva; u vitest ide skraćena (150–300 mečeva).
+
+## 126. Raub — server (2026-11-07, `feat/raub-server`)
+
+**Povod:** S2 plana za Raub. Server vodi Raub sto po obrascu Pokera: `GameId` = `zandar | poker | raub`, `LobbyRoom.game`/`raub`, a Raub soba nikad nema `gameState`, pa je sav Žandar kod preskače.
+
+**Izmjene:**
+- `apps/server/src/raub/table.ts` (`RaubTables`): start (prvi djelilac nasumično, mjesta po `seatIndex`), Quick Play prozor za prave igrače (2 s, `RAUB_MATCH_WINDOW_MS`) pa botovi, privatna soba kreće sama kad se popuni (i na „Popuni prazna mjesta"), pogled po socketu (`RaubGamePayload`, bez `teamId` — Raub nema timove), rok poteza 15 s (`RAUB_TURN_MS`) i za bota, bot iz `getRaubView` 1–3 s, istek roka = `getRaubAutoAction` + `game:autoPlay`, socket `raub:action`.
+- Sljedeća ruka: `game:nextHand`, samo host (odluka 2).
+- Prekid (odluka 3): ista pauza i glasanje kao Žandar, iste čiste odluke iz `pause.ts` (`afterGrace`, `afterLeave`, `resolveVote`…) i isti rokovi (`GRACE_MS`, `PAUSE_MS`, `VOTE_MS`, `WAIT_EXTENSION_MS`, `HAND_END_GRACE_MS`). Prekid živi u stanju (`RaubGameState.interruption`, apsolutni rokovi), pa preživi restart; `game:waitMore` i `game:abandonVote` rade i za Raub. Dok traje prekid, akcije vraćaju `GAME_PAUSED`.
+- `index.ts`: račvanja na svim mjestima gdje ih ima Poker (sobe, poziv, Quick Play — `pokerQuickPlay` je postao `seatGameQuickPlay(game, …)`, start, bot-fill, odobrenje, prekid veze, subscribe, izlazak, revanš, hidracija, sweeper). Stari klijent bez `games` dobija 426 / `UPDATE_REQUIRED` i za Raub (isti `needsUpdate`).
+- Analitika: `pokerMatchStartedEvents`/`pokerMatchEndedEvents` primaju `game`; Raub šalje `game: "raub"`, `placement`, `hands_played` = broj ruku (sa refama). `docs/analytics.md` dopunjen. Završen meč broji se na profilu (`recordCompletedMatch`).
+
+**Provjereno:**
+- Server 234 testa (17 novih: parser akcija, stari klijent, Quick Play do 4, anti-leak pogleda, bot + istek roka, host za sljedeću ruku, odbijanje van reda, jedini čovjek otpadne → raspušteno, pauza → povratak, glasanje „Završi"/„Čekaj", namjeran izlazak, zatvaranje lobija, hidracija sa isteklim rokom, revanš, analitika).
+- E2E na lokalnom serveru (socket klijent): Quick Play Raub → prvo stanje za 2,0 s; stari klijent 426 i `UPDATE_REQUIRED`; 3 ruke kroz `raub:action` + `game:nextHand`; ilegalna karta → `ILLEGAL_CARD`; ni u jednom stanju `isBot`, `botProfile`, `guestId`, špil, odbačene karte ni `teamId`; **restart servera usred meča** → soba hidrirana i odigrane još dvije ruke; Žandar Quick Play bez `game` i dalje `game: "zandar"`.
+
+**Zamke:**
+- Na Windowsu `TaskStop` ugasi `pnpm`, ali ne i `node` dijete — server ostane na portu. Gasi se po portu (`Get-NetTCPConnection … | Stop-Process`).
