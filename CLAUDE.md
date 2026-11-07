@@ -7,6 +7,7 @@
 > QA nalazi (ručno testiranje, jedan fajl po krugu): `docs/QA/` — zadnji krug `docs/QA/QA_2026-10-24.md` (web + Android app; 16 bugova B1–B16, 14 poboljšanja P1–P14, sve otvoreno; kolona Platforma = `web` / `app` / `web/app`). Pogledaj ga pri provjeri statusa i prije rada u oblasti koju pominje; popravku označi u koloni Status.
 > Spec za nalog, profil i prijatelje: `docs/Specs/SPEC_IDENTITET.md` (izvor istine za implementaciju; oznake ekrana iste kao na Claude Design platnu „Kartaonica · identitet", https://claude.ai/artifact/1DkTrJNEv2148shhQUC3de). `docs/Specs/player-profile-v1.md` je ranija, šira verzija zahtjeva — gdje se razlikuju, važi SPEC_IDENTITET.
 > Poker modul: specifikacija je u `docs/poker-spec.md`.
+> Raub modul: specifikacija je u `docs/raub-spec.md` (v1.1 — odluke vlasnika od 7.11.2026 su u sekciji „Odluke i usklađivanje"; dizajn je tabla `UI_Raub` na istom platnu).
 > Read the relevant PRD section before implementing; flag any deviation.
 
 ---

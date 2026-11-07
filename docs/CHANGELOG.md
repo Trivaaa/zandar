@@ -1254,3 +1254,14 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 - CDP snimci `/dev/home?live=2` na 360×740, 390×844 i 360×640, bez skrola.
 - Zakačen poker, greška traženja, i `live=1` = stara K1.
 - Web testovi 180, typecheck, lint = osnovica. **Nije provjereno na uređaju.**
+
+## 124. Raub — spec u dokumentima (2026-11-07, `feat/raub-spec`)
+
+**Povod:** vlasnik je dao `raub-spec.md` (v1, 6.11.2026) i tablu „UI · Raub — kompletan UI" na platnu „Kartaonica · identitet", uz uslov da se spec uklopi u postojeća pravila i strukturu, a da produkcija ima prednost nad tablom.
+
+**Izmjene:**
+- `docs/raub-spec.md` (v1.1) pored `docs/poker-spec.md` — moduli igara žive u korijenu `docs/`, ne u `docs/Specs/`. Struktura je ista kao poker-spec; izmjene v1 su upisane na svoja mjesta i označene „(odluka N)", a nova sekcija „Odluke i usklađivanje" daje razlog za svaku.
+- Odluke vlasnika: zamjena sve 4 = 5 karata pa odbacivanje jedne (ne otvorene); kraj ruke = dugme hosta kao Žandar (ne auto 5 s sa table); izlazak i prekid veze = postojeća pauza i glasanje (bez preuzimanja mjesta botom); tabela „Gdje se izvori razilaze" potvrđena.
+- Usklađeno s pravilima projekta: bez riječi „bot" u UI-ju, „Zamjena 3" umjesto „Zamijenio 3", pragovi bota kao konfiguracija, okvir modula kao Poker (`LobbyRoom.raub`, `raub:action`, `games` za stare klijente, prekidač izdanja).
+- Riješena proturječnost v1: zamjena ne smije tražiti više karata nego što ih ima u špilu, pa igrač uvijek ulazi u štihove sa 4.
+- `CLAUDE.md`: red u zaglavlju.
