@@ -1335,3 +1335,11 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 **Provjereno:** web 191 test, typecheck, lint = osnovica (5/2). **E2E u pregledaču** (headless Chrome, 360×740, `next dev` + lokalni server): početna nudi Žandar, Poker i Raub; Raub Igraj → traženje stola → sto za 2,9 s; 3 ruke odigrane klikovima kroz panel i ruku (31 klik: otvaranje, licitacija, idem, zamjena, štihovi tap-tap, sljedeća ruka); 0 grešaka u konzoli.
 
 **Prije produkcije:** `NEXT_PUBLIC_RAUB=1` na Vercelu (produkcija) i u produkcijskom APK buildu; server na produkciji mora biti sa ovim kodom (inače `game: "raub"` pada na Žandar). Stari APK (1.x) ne može u Raub sto (426 / „Za ovu igru ažuriraj aplikaciju.").
+
+## 129. Raub — stilovi u felt.css, spajanje u main (2026-11-07, `feat/raub-entry` → `main`)
+
+**Povod:** pri spajanju je `main` već imao `4bee728`: Vercel staging build je izbacio cijeli zasebno uvezen `app/poker.css` (drugi put, poslije `profile.css` 25.10), pa je poker prebačen na kraj `felt.css`. `app/raub.css` je bio isti obrazac i na stagingu bi Raub sto ostao bez stilova.
+
+**Izmjene:** sadržaj `raub.css` bez izmjene na kraju `felt.css` (isti sloj, poslije pokera), `raub.css` i njegov `@import` obrisani; konflikt u `globals.css` riješen tako da ostaje samo `felt.css`. **Pravilo za sljedeću igru:** novi CSS ide na kraj `felt.css`, ne u novi fajl sa `@import`.
+
+**Provjereno:** `next build` — izlazni CSS sadrži `rb-` pravila; web testovi i typecheck.
