@@ -45,6 +45,11 @@ describe("poker ritam prikaza", () => {
     expect(turn).toBe(P.checkMs + P.streetSettleMs + P.betsToPotMs + P.turnRiverMs);
   });
 
+  it("ulica bez ijednog uloga (svi check): nema leta u pot, samo mir pa karta", () => {
+    const ms = pokerPresentationMs({ ...base, prev: frame({ boardCount: 3 }), next: frame({ boardCount: 4 }), lastAction: "check", streetHadBets: false });
+    expect(ms).toBe(P.checkMs + P.streetSettleMs + P.turnRiverMs);
+  });
+
   it("svi foldali: ulozi u pot, isplata, kratko čitanje — bez otkrivanja", () => {
     const r = result({ uncontested: true, showdown: [], pots: [{ amount: 9, eligiblePlayerIds: ["a"] }] });
     const ms = pokerPresentationMs({ ...base, prev: frame({ boardCount: 3 }), next: frame({ boardCount: 3, phase: "hand_complete" }), lastAction: "fold", result: r });

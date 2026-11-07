@@ -29,8 +29,15 @@ function view(over: Partial<BeatView> = {}): BeatView {
 }
 
 /** Isto što računa server za isti prelaz (game-core). */
-function serverMs(prev: BeatView, next: BeatView, lastAction: Parameters<typeof pokerPresentationMs>[0]["lastAction"], busted = 0): number {
+function serverMs(
+  prev: BeatView,
+  next: BeatView,
+  lastAction: Parameters<typeof pokerPresentationMs>[0]["lastAction"],
+  busted = 0,
+  streetHadBets = true,
+): number {
   return pokerPresentationMs({
+    streetHadBets,
     prev: { handNo: prev.handNo, phase: prev.phase, boardCount: prev.board.length },
     next: { handNo: next.handNo, phase: next.phase, boardCount: next.board.length },
     lastAction,
@@ -87,6 +94,16 @@ describe("pokerBeats — šta se priča", () => {
       [0, 0, 0, 1, 2, 3],
     );
     assert.equal(totalMs(steps), serverMs(prev, next, "call"));
+  });
+
+  test("svi check na flopu: bez leta u pot, mir pa turn — isto kao server", () => {
+    const board = [c("9h"), c("Kd"), c("4c")];
+    const prev = view({ street: "flop", board, currentPlayerId: "c", currentBet: 0, seats: [seat("a", 0, { lastAction: { type: "check", amount: 0 } }), seat("b", 1, { lastAction: { type: "check", amount: 0 } }), seat("c", 2)] });
+    const next = view({ street: "turn", board: [...board, c("2s")], currentPlayerId: "a", currentBet: 0 });
+    const steps = pokerBeats(prev, next);
+    assert.equal(steps.some((s) => s.fx?.kind === "betsToPot"), false);
+    assert.deepEqual(steps.map((s) => s.hold.board), [3, 3, 3, 4]);
+    assert.equal(totalMs(steps), serverMs(prev, next, "check", 0, false));
   });
 
   test("nova ruka: dijeljenje od prvog lijevo od djelioca, karte se ne crtaju dok putuju", () => {

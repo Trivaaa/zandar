@@ -236,10 +236,13 @@ export class PokerTables {
     }
     const scale = this.deps.timing.paceScale ?? 1;
     if (scale <= 0) return 0;
+    const last = s.actionLog[s.actionLog.length - 1];
     const ms = pokerPresentationMs({
       prev,
       next,
-      lastAction: s.actionLog[s.actionLog.length - 1]?.type ?? null,
+      lastAction: last?.type ?? null,
+      // Ulica koja se zatvorila je ulica zadnje akcije; preflop uvijek ima blindove.
+      streetHadBets: !last || s.actionLog.some((x) => x.street === last.street && x.amount > 0),
       dealtPlayers: s.seats.filter((x) => x.inHand).length,
       result: s.phase === "betting" ? null : s.lastHandResult,
       busted: s.seats.filter((x) => x.status === "bankrupt" && x.stackAtHandStart > 0).length,

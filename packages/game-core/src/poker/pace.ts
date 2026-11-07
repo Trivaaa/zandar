@@ -76,6 +76,11 @@ export interface PaceInput {
   result: PokerHandResult | null;
   /** Koliko je igrača u ovoj ruci ostalo bez žetona. */
   busted: number;
+  /**
+   * Da li je u ulici koja se upravo zatvorila iko uložio. Kad su svi rekli
+   * check, nema žetona da idu u pot — korak se preskače. Bez polja = da.
+   */
+  streetHadBets?: boolean;
 }
 
 export function dealMs(players: number, pace: PokerPace = POKER_PACE): number {
@@ -105,6 +110,11 @@ export function awardedPots(result: PokerHandResult): number {
   return Math.max(1, idx.size);
 }
 
+/** Ulozi ulice u pot — samo ako ih je bilo. */
+function sweepMs(input: PaceInput, pace: PokerPace): number {
+  return input.streetHadBets === false ? 0 : pace.betsToPotMs;
+}
+
 /**
  * Koliko traje prikaz prelaza `prev` → `next`. Server za toliko odgađa sat
  * sljedećeg igrača (i odluku bota), a kraj ruke drži toliko prije nove.
@@ -121,13 +131,13 @@ export function pokerPresentationMs(input: PaceInput, pace: PokerPace = POKER_PA
 
   if (next.phase === "betting") {
     if (next.boardCount > prev.boardCount) {
-      ms += pace.streetSettleMs + pace.betsToPotMs + boardStageMs(prev.boardCount, pace);
+      ms += pace.streetSettleMs + sweepMs(input, pace) + boardStageMs(prev.boardCount, pace);
     }
     return ms;
   }
 
   // Kraj ruke (ili meča): ulozi u pot, pa priča rezultata.
-  ms += pace.streetSettleMs + pace.betsToPotMs;
+  ms += pace.streetSettleMs + sweepMs(input, pace);
   const result = input.result;
   if (!result) return ms;
 

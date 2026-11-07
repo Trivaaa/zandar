@@ -224,11 +224,10 @@ export function pokerBeats(prev: BeatView | null, next: BeatView): BeatStep[] {
     });
   }
   steps.push({ ms: P.streetSettleMs, hold: { ...base, bets: heldBets, captions: heldCaptions } });
-  steps.push({
-    ms: P.betsToPotMs,
-    hold: { ...base },
-    ...(betIds.length ? { fx: { kind: "betsToPot", playerIds: betIds } as BeatFx } : {}),
-  });
+  // Svi su rekli check: nema žetona za pot — odmah sljedeća karta (isto računa server).
+  if (betIds.length) {
+    steps.push({ ms: P.betsToPotMs, hold: { ...base }, fx: { kind: "betsToPot", playerIds: betIds } });
+  }
 
   if (!handEnded) {
     // Nova ulica: karte jedna po jedna, pa je sljedeći na potezu.
