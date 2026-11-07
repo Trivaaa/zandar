@@ -148,7 +148,7 @@ Primjer: nosilac u scenariju 3 uzme 3 štiha i ide s 21 na 18. Drugi igrač uzme
 | Broj igrača | Uvijek 4 | 2, 3 ili 4, bira kreator |
 | Startni bodovi | 21 | 21 |
 | Ulazak | Odmah; server do 2 s spaja druge prave igrače, ostala mjesta popunjavaju botovi (isto kao Poker) | Meč kreće sam kad se popune sva mjesta, ili kad kreator popuni prazna („Popuni prazna mjesta i počni”) |
-| Tajmer poteza | 15 s | 15 s |
+| Tajmer poteza | 25 s **(odluka 10)** | 25 s |
 | Sljedeća ruka | Host pokreće dugmetom „Sljedeća ruka →” **(odluka 2)** | Isto |
 | Ciljano trajanje | 15–25 min | Zavisi od broja igrača |
 
@@ -183,7 +183,7 @@ Raub koristi „kafanski sto” i postojeće komponente. Novo su faze koje Žand
 | Karte | Preuzima se | `PlayingCard`, `CardBack`, postojeći asseti, samo A do 7 |
 | Lobby, sobe, link poziv | Proširuje se | Izbor igre; u privatnoj sobi broj igrača (2, 3 ili 4), bez cilja i timova (isto kao Poker) |
 | Quick Play | Proširuje se | Jedno dugme, odmah za sto s 4 mjesta |
-| Tajmer poteza | Preuzima se | Prsten oko avatara igrača na potezu (kao Poker), 15 s |
+| Tajmer poteza | Preuzima se | Prsten oko avatara igrača na potezu (kao Poker), 25 s |
 | Meni, izlazak, reakcije, pauza | Preuzima se | `GameMenuSheet`, `LeaveTableSheet`, `ReactionFab`, `PauseAbandonOverlay` **(odluka 3)** |
 | Talon | Novo | Okrenuta karta na sredini stola, uz brojač „karta 1 od 3” i broj karata u špilu |
 | Panel licitacije | Novo | Dugmad „Raub” i „Dalje”; djelilac ima i „Raub naslijepo” prije otvaranja karata |
@@ -329,6 +329,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 7 | Kraj meča | Obrazac `RoundEndOverlay` i kraja meča Pokera (Igraj ponovo / Revanš / Na početnu) | Isti ekran za sve igre |
 | 8 | Prekidač izdanja | Raub se uključuje prekidačem kao Poker: staging i razvoj odmah, produkcija svjesnim upisom | Produkcija ne dobija igru sama od sebe kad kod stigne na `production` |
 | 9 | Idem / Ne idem | Uvedeno (pagat): poslije određivanja aduta svako osim nosioca bira da li igra; ko ne ide, ne boduje se; ako niko ne ide, nosilac −4 | Simulacija botova (7.11.2026) sa „svi igraju”: 2 igrača završe za ~11 ruku, 3 za ~23, a sa 4 igrača nijedan od 60 mečeva ni za 150 ruku — bodovi u prosjeku rastu +0,15 po ruci (4 štiha, a ~45 % igrača bez štiha dobija +2). Sa „Idem / Ne idem” 4 igrača završe za medijan ~21 ruku |
+| 10 | Tajmer poteza | 25 s umjesto 15 s | Vlasnik na uređaju (7.11.2026): 15 s ističe prije nego se stigne razmisliti; traženo bar 50 % duže. Botovi igraju za 1–3 s, pa tempo meča raste samo kad čovjek razmišlja |
 
 ## Metrike, acceptance i otvorena pitanja
 

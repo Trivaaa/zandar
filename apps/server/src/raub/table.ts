@@ -48,7 +48,7 @@ export interface RaubSocketLike {
 }
 
 export interface RaubTiming {
-  /** Rok poteza (spec: 15 s). */
+  /** Rok poteza (spec: 25 s, odluka 10). */
   turnMs: number;
   /** Rok za povratak prije pauze (kao Žandar `GRACE_MS`). */
   graceMs: number;

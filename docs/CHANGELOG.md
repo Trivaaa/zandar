@@ -1520,3 +1520,11 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Uzrok:** `RaubScreen` je `lockedCardId` slao u `PlayerHand.lockedCardIds` i u štihovima, a `PlayerHand` zaključanu kartu tretira kao onemogućenu. Motor je ispravan — `CARD_LOCKED` važi samo za višak i zamjenu, a u štihu je talon karta obična karta (i jeste bila u `legalCardIds`).
 
 **Izmjena:** čista `lockedHandIds(view, panelKind)` u `lib/raubView.ts`: katanac samo prije štihova (talon karta; pri višku i moja otvorena karta), u koraku `tricks` nikad. Testirana (web 203).
+
+## 135. Raub — rok poteza 25 s (2026-11-07, `fix/raub-taken-talon`)
+
+**Povod:** vlasnik na S10e: 15 s ističe prije nego se stigne razmisliti; traženo bar 50 % duže. **Odluka 10** u `docs/raub-spec.md`.
+
+**Izmjena:** `DEFAULT_RAUB_RULES.turnTimeoutSeconds` 15 → 25 (server ga čita kao `RAUB_TURN_MS`, i dalje se može nadjačati env-om). Prsten na avataru čita `state.rules.turnTimeoutSeconds`, pa je usklađen sam. Mečevi koji već traju zadržavaju 15 u snimljenim pravilima (prsten), a server poslije deploya čeka 25 — prsten kod njih ističe ranije od stvarnog roka, samo do kraja tog meča.
+
+**Provjereno:** game-core 372, server 236, web 203.

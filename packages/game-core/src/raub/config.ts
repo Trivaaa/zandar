@@ -11,7 +11,8 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   direction: 1,
   mustOvertrump: false,
   allowDrop: true,
-  turnTimeoutSeconds: 15,
+  // Odluka 10: 15 s je bilo prekratko za razmišljanje (igra na uređaju).
+  turnTimeoutSeconds: 25,
 };
 
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */
