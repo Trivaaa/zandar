@@ -3,6 +3,7 @@
 import type { GameId, TableTheme } from "@zandar/shared-types";
 
 import { TableSetupFields } from "@/components/lobby/TableSetupFields";
+import { TABLE_GAMES, isSeatGame } from "@/lib/liveGames";
 import { sr } from "@/lib/sr";
 
 export type CreateRoomScreenProps = {
@@ -29,7 +30,7 @@ export type CreateRoomScreenProps = {
   className?: string | undefined;
 };
 
-const GAME_CHOICES: readonly GameId[] = ["zandar", "poker"];
+const GAME_CHOICES: readonly GameId[] = TABLE_GAMES;
 
 export type CreateRoomCopy = {
   title: string;
@@ -112,7 +113,7 @@ export function CreateRoomScreen({
         )}
 
         <TableSetupFields
-          showTarget={game !== "poker"}
+          showTarget={!isSeatGame(game)}
           playerCount={playerCount}
           onPlayerCount={onPlayerCount}
           targetScore={targetScore}

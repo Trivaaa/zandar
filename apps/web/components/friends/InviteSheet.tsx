@@ -2,26 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { GameId } from "@zandar/shared-types";
 
 import { Avatar } from "@/components/profile/Avatar";
 import { Sheet } from "@/components/sheet/Sheet";
 import { fetchFriends, type FriendEntry } from "@/lib/friends";
 import { createInviteRoom, inviteToRoom } from "@/lib/invites";
-import { pokerLive } from "@/lib/pokerRelease";
+import { TABLE_GAMES, isSeatGame, pickTableGame } from "@/lib/liveGames";
 import { roomPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
 
 const PREFS_KEY = "zandar:invite";
-type Prefs = { playerCount: 2 | 4; targetScore: 11 | 21; game: "zandar" | "poker" };
+type Prefs = { playerCount: 2 | 4; targetScore: 11 | 21; game: GameId };
 
-/** Igra, broj igrača i cilj pamte zadnji izbor (E2). Poker samo uz prekidač izdanja. */
+/** Igra, broj igrača i cilj pamte zadnji izbor (E2). Poker i Raub samo uz prekidač izdanja. */
 function readPrefs(): Prefs {
   try {
     const raw = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "{}") as Partial<Prefs>;
     return {
       playerCount: raw.playerCount === 2 ? 2 : 4,
       targetScore: raw.targetScore === 11 ? 11 : 21,
-      game: pokerLive && raw.game === "poker" ? "poker" : "zandar",
+      game: pickTableGame(raw.game),
     };
   } catch {
     return { playerCount: 4, targetScore: 21, game: "zandar" };
@@ -93,7 +94,7 @@ export function InviteSheet({
           profileIds: [...chosen],
           playerCount: prefs.playerCount,
           targetScore: prefs.targetScore,
-          ...(prefs.game === "poker" ? { game: "poker" as const } : {}),
+          ...(prefs.game !== "zandar" ? { game: prefs.game } : {}),
         });
         onClose();
         router.push(roomPath(id));
@@ -125,9 +126,9 @@ export function InviteSheet({
     >
       {roomId ? null : (
         <div className="invite__options">
-          {pokerLive ? (
+          {TABLE_GAMES.length > 1 ? (
             <div className="invite__segs" role="group" aria-label={sr.create.game}>
-              {(["zandar", "poker"] as const).map((g) => (
+              {TABLE_GAMES.map((g) => (
                 <button
                   key={g}
                   type="button"
@@ -144,7 +145,7 @@ export function InviteSheet({
           <div className="invite__segs" role="group" aria-label={sr.invite.options}>
             {segment(2, prefs.playerCount, () => choose({ playerCount: 2 }))}
             {segment(4, prefs.playerCount, () => choose({ playerCount: 4 }))}
-            {prefs.game === "poker" ? null : (
+            {isSeatGame(prefs.game) ? null : (
               <>
                 <span className="invite__gap" aria-hidden="true" />
                 {segment(11, prefs.targetScore, () => choose({ targetScore: 11 }))}

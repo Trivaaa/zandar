@@ -1319,3 +1319,19 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 **Provjereno:** web 189 testova (9 novih), typecheck, lint = osnovica (5/2).
 
 **Nije urađeno:** let karte iz ruke na sto (`flyAnimation`) — karta se pojavi na svom mjestu (opacity); zvuk i haptika za Raub događaje; ocjena na uređaju.
+
+## 128. Raub — ulaz u igru i prekidač izdanja (2026-11-07, `feat/raub-entry`)
+
+**Povod:** S4 plana za Raub: igra se pokreće sa početne, iz `/create` i iz „Pozovi na partiju", kao Poker.
+
+**Izmjene:**
+- `lib/raubRelease.ts` (`raubLive`, odluka 8): staging i razvoj uključeno, produkcija tek uz `NEXT_PUBLIC_RAUB=1`, `0` gasi svuda. Testiran kao `pokerRelease`.
+- `lib/liveGames.ts`: jedan spisak igara za izbor stola (`TABLE_GAMES`: Žandar + Poker/Raub iza svojih prekidača), `pickTableGame` (URL / memorija → dozvoljena igra), `isSeatGame` (bez cilja i timova). Koriste ga `/create`, `CreateRoomScreen` i `InviteSheet` — ranije je svaki imao svoj `["zandar", "poker"]`.
+- `GAMES`: Raub `live` iza prekidača, `releasedAt` 7.11.2026 (NOVO 7 dana), `hasRules`, 20 min (simulacija). `sr.games.raub.about`. Početna: Raub Igraj na jedan dodir (Quick Play je uvijek 4, bez izbora cilja), Napravi sto → `/create?game=raub`, pravila Rauba iz liste igre. Lista igara ga uzima sama (živa igra).
+- `startQuickPlay` šalje `game` i za Raub.
+- `RaubScreen`: sinhrona brava poteza (`useRef`) — dvostruki dodir je slao isti potez dvaput i prikazivao sirov kod „INVALID_GAME_PHASE" (nađeno E2E-om u pregledaču); kodovi koji znače „stanje je već otišlo dalje" se ne prikazuju, ostalo je ljudska poruka (`sr.raub.errors`). Poker ima isti obrazac (`busyAt` kao stanje) — nije diran.
+- `games.test.ts`: test „najavljena igra nije NOVO" više ne koristi pravi Raub (koji je sad živ u razvoju), nego eksplicitno najavljenu igru.
+
+**Provjereno:** web 191 test, typecheck, lint = osnovica (5/2). **E2E u pregledaču** (headless Chrome, 360×740, `next dev` + lokalni server): početna nudi Žandar, Poker i Raub; Raub Igraj → traženje stola → sto za 2,9 s; 3 ruke odigrane klikovima kroz panel i ruku (31 klik: otvaranje, licitacija, idem, zamjena, štihovi tap-tap, sljedeća ruka); 0 grešaka u konzoli.
+
+**Prije produkcije:** `NEXT_PUBLIC_RAUB=1` na Vercelu (produkcija) i u produkcijskom APK buildu; server na produkciji mora biti sa ovim kodom (inače `game: "raub"` pada na Žandar). Stari APK (1.x) ne može u Raub sto (426 / „Za ovu igru ažuriraj aplikaciju.").

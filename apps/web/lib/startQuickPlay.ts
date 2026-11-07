@@ -31,7 +31,8 @@ export async function startQuickPlay(
     displayName,
     ...prefs,
     tableTheme,
-    ...(game === "poker" ? { game: "poker" as const } : {}),
+    // Poker i Raub šalju `game`; veličinu i cilj server za njih ignoriše (uvijek 4).
+    ...(game === "poker" || game === "raub" ? { game } : {}),
   });
   markGamePlayed(game);
   saveSession({

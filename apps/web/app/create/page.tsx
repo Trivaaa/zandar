@@ -2,14 +2,14 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { parseGameId, parseTableTheme, type GameId, type TableTheme } from "@zandar/shared-types";
+import { parseTableTheme, type GameId, type TableTheme } from "@zandar/shared-types";
 import { roomPath } from "@/lib/routes";
 import { createRoom } from "@/lib/api";
 import { saveSession } from "@/lib/session";
 import { savePlayerName, usePlayerName } from "@/lib/playerName";
 import { readTableThemeRaw, saveTableTheme } from "@/lib/tableTheme";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
-import { pokerLive } from "@/lib/pokerRelease";
+import { TABLE_GAMES, pickTableGame } from "@/lib/liveGames";
 import { useQueryParam } from "@/lib/useQuery";
 
 const subscribeToNothing = () => () => {};
@@ -24,7 +24,8 @@ export default function CreatePage() {
   // `?game=poker` sa početne; bez prekidača izdanja poker se ne nudi ni ovdje.
   const gameParam = useQueryParam("game");
   const [gameDraft, setGameDraft] = useState<GameId | null>(null);
-  const game: GameId = pokerLive ? (gameDraft ?? parseGameId(gameParam)) : "zandar";
+  // Samo igre iza uključenog prekidača izdanja (`lib/liveGames.ts`).
+  const game: GameId = gameDraft ?? pickTableGame(gameParam);
   const [targetScore, setTargetScore] = useState(21);
   // Zadnja izabrana podloga, zajednička sa brzom igrom; `null` = nije dirano.
   const savedTheme = useSyncExternalStore(subscribeToNothing, readTableThemeRaw, () => null);
@@ -44,7 +45,7 @@ export default function CreatePage() {
         playerCount,
         targetScore,
         tableTheme,
-        ...(game === "poker" ? { game } : {}),
+        ...(game !== "zandar" ? { game } : {}),
       });
       savePlayerName(displayName);
       saveSession({
@@ -70,7 +71,7 @@ export default function CreatePage() {
       tableTheme={tableTheme}
       onTableTheme={setThemeDraft}
       game={game}
-      {...(pokerLive ? { onGame: setGameDraft } : {})}
+      {...(TABLE_GAMES.length > 1 ? { onGame: setGameDraft } : {})}
       onCreate={() => void handleCreate()}
       onBack={() => router.push("/")}
       loading={loading}

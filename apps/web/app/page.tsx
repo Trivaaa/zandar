@@ -37,7 +37,7 @@ const legalSlot = (
 );
 
 /** Nova soba za igru; Žandar ostaje na staroj adresi (linkovi, APK). */
-const createPath = (game: GameSlug) => (game === "poker" ? "/create?game=poker" : "/create");
+const createPath = (game: GameSlug) => (game === "zandar" ? "/create" : `/create?game=${game}`);
 
 type Sheet =
   | { kind: "name" }
@@ -129,11 +129,12 @@ export default function Home() {
   }
 
   /**
-   * Igraj za igru. Poker: jedan dodir (odluka 3, 6.11.2026). Žandar: izbor
-   * 2/4 · 11/21 · sto sa zadnjim označenim (odluka #96).
+   * Igraj za igru. Poker i Raub: jedan dodir (poker odluka 3, 6.11.2026; Raub
+   * Quick Play je uvijek 4 bez izbora cilja). Žandar: izbor 2/4 · 11/21 · sto
+   * sa zadnjim označenim (odluka #96).
    */
   function playGame(game: GameConfig) {
-    if (game.slug === "poker") void start(game);
+    if (game.slug === "poker" || game.slug === "raub") void start(game);
     else setSheet({ kind: "setup", game });
   }
 
@@ -245,7 +246,7 @@ export default function Home() {
       <div className="home-layer">
         <RulesModal
           isOpen={rulesOpen}
-          game={rulesFor === "poker" ? "poker" : "zandar"}
+          game={rulesFor === "poker" || rulesFor === "raub" ? rulesFor : "zandar"}
           onClose={() => setRulesFor(null)}
         />
       </div>

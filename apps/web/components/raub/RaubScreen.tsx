@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type {
   AbandonVote,
   Card,
@@ -53,6 +53,11 @@ import {
 } from "./RaubParts";
 
 const TOAST_MS = 3500;
+/**
+ * Odbijanja koja samo znače „stanje je već otišlo dalje" (dvostruki dodir,
+ * potez bota stigao prvi). Novo stanje stiže samo — bez poruke igraču.
+ */
+const QUIET_ERRORS = new Set(["NOT_YOUR_TURN", "STALE_STATE", "INVALID_GAME_PHASE", "INVALID_ACTION", "INVALID_PHASE"]);
 /** Pun štih ostaje vidljiv (spec: 1 s), pa karte klize ka pobjedniku. */
 const TRICK_HOLD_MS = 1000;
 const TRICK_COLLECT_MS = 350;
@@ -116,6 +121,9 @@ export function RaubScreen({
   const [busyAt, setBusyAt] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
   const busy = running || busyAt === state.stateVersion;
+  // Sinhrona brava: `busyAt` je stanje i važi tek od sljedećeg rendera, pa bi
+  // drugi dodir u istom trenutku poslao isti potez još jednom.
+  const inflight = useRef(false);
   // Izbor karata važi samo za verziju stanja u kojoj je napravljen.
   const [pick, setPick] = useState<{ v: number; ids: string[] }>({ v: -1, ids: [] });
   const picked = pick.v === state.stateVersion ? pick.ids : [];
@@ -188,25 +196,36 @@ export function RaubScreen({
   useBackHandler(tableOpen, () => setTableOpen(false));
   useBrowserBackGuard(!isNative, !matchOver, requestLeave);
 
+  function showError(err: unknown) {
+    const code = err instanceof Error ? err.message : "";
+    if (QUIET_ERRORS.has(code)) return;
+    setToast(code === "GAME_PAUSED" ? sr.raub.errors.paused : sr.raub.errors.generic);
+  }
+
   async function act(action: RaubAction) {
-    if (busy) return;
+    if (busy || inflight.current) return;
+    inflight.current = true;
     setBusyAt(state.stateVersion);
     try {
       await onAction(action);
     } catch (err) {
       setBusyAt(null);
-      setToast(err instanceof Error ? err.message : "Greška");
+      showError(err);
+    } finally {
+      inflight.current = false;
     }
   }
 
   async function run(fn: () => Promise<void>) {
-    if (running) return;
+    if (running || inflight.current) return;
+    inflight.current = true;
     setRunning(true);
     try {
       await fn();
     } catch (err) {
-      setToast(err instanceof Error ? err.message : "Greška");
+      showError(err);
     } finally {
+      inflight.current = false;
       setRunning(false);
     }
   }

@@ -481,6 +481,10 @@ export const sr = {
       points: (n: number) => `${n}`,
     },
     rulesTitle: "Pravila Rauba",
+    errors: {
+      paused: "Sto je pauziran dok se igrač ne vrati.",
+      generic: "Potez nije prošao. Pokušaj ponovo.",
+    },
   },
   games: {
     zandar: {
@@ -509,6 +513,7 @@ export const sr = {
     raub: {
       name: "Raub",
       players: "2–4 igrača",
+      about: "Kafanska igra na štihove: od 21 do nule, ko rauba adut mora da ga i odnese.",
       status: "Raub još nije dostupan.",
       body: "Razmišljamo o raubu za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },

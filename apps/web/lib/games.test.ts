@@ -76,7 +76,8 @@ describe("isNewGame (NOVO)", () => {
   });
 
   test("najavljena igra i igra bez datuma nisu NOVO", () => {
-    assert.equal(isNewGame(GAMES.find((g) => g.slug === "raub")!, NONE, Date.now()), false);
+    // Eksplicitno najavljena: pravi Raub je živ ili ne zavisno od prekidača izdanja.
+    assert.equal(isNewGame({ ...poker, status: "upcoming" }, NONE, released + DAY), false);
     assert.equal(isNewGame({ ...poker, releasedAt: null }, NONE, released), false);
   });
 });
