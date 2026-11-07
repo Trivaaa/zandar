@@ -26,4 +26,7 @@ export type { GameEvent, EventSnapshot, ScoringCard } from "./gameEvents";
 // Poker — zasebna igra, imena sa prefiksom `poker`/`Poker`.
 export * from "./poker";
 
+// Raub — zasebna igra, imena sa prefiksom `raub`/`Raub`.
+export * from "./raub";
+
 export const VERSION = "0.0.1";

@@ -74,8 +74,8 @@ export type InviteNotice = {
   playerCount: number;
   targetScore: number;
   expiresAt: number;
-  /** Samo za poker sobu; bez polja = Žandar (stari klijenti ga ne čitaju). */
-  game?: "poker";
+  /** Samo za poker i raub sobu; bez polja = Žandar (stari klijenti ga ne čitaju). */
+  game?: "poker" | "raub";
 };
 
 export function noticeOf(roomId: string, room: InviteRoom, invite: RoomInvite, fromNickname: string): InviteNotice {
@@ -85,6 +85,6 @@ export function noticeOf(roomId: string, room: InviteRoom, invite: RoomInvite, f
     playerCount: room.rulesConfig.playerCount,
     targetScore: room.rulesConfig.targetScore,
     expiresAt: invite.createdAt + INVITE_TTL_MS,
-    ...(room.game === "poker" ? { game: "poker" as const } : {}),
+    ...(room.game === "poker" || room.game === "raub" ? { game: room.game } : {}),
   };
 }

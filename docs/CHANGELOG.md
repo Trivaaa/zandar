@@ -1255,8 +1255,96 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 - Zakačen poker, greška traženja, i `live=1` = stara K1.
 - Web testovi 180, typecheck, lint = osnovica. **Nije provjereno na uređaju.**
 
+## 124. Raub — spec u dokumentima (2026-11-07, `feat/raub-spec`)
 
-## 124. Poker — sto kao priča: animacije i zajednički ritam (2026-11-07, `feat/poker-core`)
+**Povod:** vlasnik je dao `raub-spec.md` (v1, 6.11.2026) i tablu „UI · Raub — kompletan UI" na platnu „Kartaonica · identitet", uz uslov da se spec uklopi u postojeća pravila i strukturu, a da produkcija ima prednost nad tablom.
+
+**Izmjene:**
+- `docs/raub-spec.md` (v1.1) pored `docs/poker-spec.md` — moduli igara žive u korijenu `docs/`, ne u `docs/Specs/`. Struktura je ista kao poker-spec; izmjene v1 su upisane na svoja mjesta i označene „(odluka N)", a nova sekcija „Odluke i usklađivanje" daje razlog za svaku.
+- Odluke vlasnika: zamjena sve 4 = 5 karata pa odbacivanje jedne (ne otvorene); kraj ruke = dugme hosta kao Žandar (ne auto 5 s sa table); izlazak i prekid veze = postojeća pauza i glasanje (bez preuzimanja mjesta botom); tabela „Gdje se izvori razilaze" potvrđena.
+- Usklađeno s pravilima projekta: bez riječi „bot" u UI-ju, „Zamjena 3" umjesto „Zamijenio 3", pragovi bota kao konfiguracija, okvir modula kao Poker (`LobbyRoom.raub`, `raub:action`, `games` za stare klijente, prekidač izdanja).
+- Riješena proturječnost v1: zamjena ne smije tražiti više karata nego što ih ima u špilu, pa igrač uvijek ulazi u štihove sa 4.
+- `CLAUDE.md`: red u zaglavlju.
+
+## 125. Raub — tipovi i čist motor, „Idem / Ne idem" (2026-11-07, `feat/raub-core`)
+
+**Povod:** S1 plana za Raub (`docs/raub-spec.md`): motor bez servera i UI-ja, po obrascu Pokera (`game-core/src/raub/`, imena sa prefiksom `raub`/`Raub`, `export * from "./raub"`).
+
+**Izmjene:**
+- `shared-types/src/raub.ts`: `RaubRules` (izbori iz tabele „Gdje se izvori razilaze" kao parametri: `maxTalonFlips`, `firstBidder`, `direction`, `mustOvertrump`, `allowDrop`), `RaubGameState` (samo server), `RaubPlayerView` (klijent i bot), `RaubGamePayload`, `RaubInterruption` (pauza i glasanje, apsolutni rokovi).
+- `game-core/src/raub/`: 32 karte iz postojećeg `createDeck()`, dijeljenje 2 + talon + 2 (djelilac sebi zadnji), sva tri scenarija aduta, zamjena sedmice, okretanje 2. i 3. karte, refa i red refa (svaka refa duplira jednu sljedeću odigranu ruku), višak sa zaključanom talon kartom, zamjena ograničena špilom, prva zamjena sve 4 = 5 karata sa otvorenom trećom pa odbacivanje (odluka 1), štihovi (boja → adut → bilo šta), bodovanje (`raubScoreDelta`), plasman sa dijeljenim mjestom, `getRaubView` (djelilac ne vidi karte prije odluke; nikad špil, tuđe ruke ni odbačene), `getRaubAutoAction` za istek roka, bot iz pogleda (`DEFAULT_RAUB_BOT_CONFIG`, 1–3 s), simulacija (`pnpm --filter @zandar/game-core simulate:raub`).
+- Stanje se kopira `structuredClone`-om osim istorije ruku, koja se dijeli (upisani redovi se ne mijenjaju) — inače je simulacija bila O(n²).
+
+**Odluka 9 — „Idem / Ne idem" (vlasnik, 7.11.2026):** prva simulacija sa „svi igraju" (spec v1, potvrđeno ujutro): 2 igrača ~11 ruku, 3 ~23, a sa 4 igrača **nijedan od 60 mečeva ni za 150 ruku** — bodovi rastu +0,15 po igraču po ruci (4 štiha u ruci, ~45 % igrača bez štiha dobija +2, nosilac pada u 48 %). Uveden mehanizam iz pagat-a: poslije određivanja aduta (i viška) svako osim nosioca bira Idem / Ne idem; ko ne ide, odlaže karte i ne boduje se; niko ne ide → nosilac −4. Istek roka = Ne idem. Bot ide sa 2+ aduta ili asom (`goMinTrumps: 2`; sa 1 je 4P medijan bio 42 ruke). Spec dopunjen (odluka 9), a link igrajkarte.com iz izvora sada preusmjerava na nepovezan domen — označen.
+
+**Provjereno:**
+- game-core 362 testa (46 novih Raub: scenariji, licitacija, refa ×3, idem/ne idem, zamjena i prazan špil, štihovi i obaveze, svaki red bodova, primjer iz speca, kraj meča, anti-leak pogleda, istek roka, bot samo dozvoljeno, skraćena simulacija).
+- `simulate:raub`, 10.000 mečeva po veličini stola (seed 1): **0 grešaka karata, 0 grešaka štihova, 0 odbijenih akcija, 0 zaglavljenih**. Ruke po meču (medijan / p90): 2P 10 / 12, 3P 15 / 20, 4P 22 / 32. Refa: 13,6 % / 5,2 % / 2,2 %. Procjena trajanja (model, ne mjerenje: čovjek 4 s po potezu, 8 s po ruci): 2P 5,7 min, 3P 11,3, 4P 20,2 (p90 29,5).
+
+**Zamke:**
+- Ne-interaktivno: `pnpm exec eslint` u game-core ne postoji (zatečeno), kapija je `tsc --noEmit`.
+- Simulacija 4P traje ~4 min za 10.000 mečeva; u vitest ide skraćena (150–300 mečeva).
+
+## 126. Raub — server (2026-11-07, `feat/raub-server`)
+
+**Povod:** S2 plana za Raub. Server vodi Raub sto po obrascu Pokera: `GameId` = `zandar | poker | raub`, `LobbyRoom.game`/`raub`, a Raub soba nikad nema `gameState`, pa je sav Žandar kod preskače.
+
+**Izmjene:**
+- `apps/server/src/raub/table.ts` (`RaubTables`): start (prvi djelilac nasumično, mjesta po `seatIndex`), Quick Play prozor za prave igrače (2 s, `RAUB_MATCH_WINDOW_MS`) pa botovi, privatna soba kreće sama kad se popuni (i na „Popuni prazna mjesta"), pogled po socketu (`RaubGamePayload`, bez `teamId` — Raub nema timove), rok poteza 15 s (`RAUB_TURN_MS`) i za bota, bot iz `getRaubView` 1–3 s, istek roka = `getRaubAutoAction` + `game:autoPlay`, socket `raub:action`.
+- Sljedeća ruka: `game:nextHand`, samo host (odluka 2).
+- Prekid (odluka 3): ista pauza i glasanje kao Žandar, iste čiste odluke iz `pause.ts` (`afterGrace`, `afterLeave`, `resolveVote`…) i isti rokovi (`GRACE_MS`, `PAUSE_MS`, `VOTE_MS`, `WAIT_EXTENSION_MS`, `HAND_END_GRACE_MS`). Prekid živi u stanju (`RaubGameState.interruption`, apsolutni rokovi), pa preživi restart; `game:waitMore` i `game:abandonVote` rade i za Raub. Dok traje prekid, akcije vraćaju `GAME_PAUSED`.
+- `index.ts`: račvanja na svim mjestima gdje ih ima Poker (sobe, poziv, Quick Play — `pokerQuickPlay` je postao `seatGameQuickPlay(game, …)`, start, bot-fill, odobrenje, prekid veze, subscribe, izlazak, revanš, hidracija, sweeper). Stari klijent bez `games` dobija 426 / `UPDATE_REQUIRED` i za Raub (isti `needsUpdate`).
+- Analitika: `pokerMatchStartedEvents`/`pokerMatchEndedEvents` primaju `game`; Raub šalje `game: "raub"`, `placement`, `hands_played` = broj ruku (sa refama). `docs/analytics.md` dopunjen. Završen meč broji se na profilu (`recordCompletedMatch`).
+
+**Provjereno:**
+- Server 234 testa (17 novih: parser akcija, stari klijent, Quick Play do 4, anti-leak pogleda, bot + istek roka, host za sljedeću ruku, odbijanje van reda, jedini čovjek otpadne → raspušteno, pauza → povratak, glasanje „Završi"/„Čekaj", namjeran izlazak, zatvaranje lobija, hidracija sa isteklim rokom, revanš, analitika).
+- E2E na lokalnom serveru (socket klijent): Quick Play Raub → prvo stanje za 2,0 s; stari klijent 426 i `UPDATE_REQUIRED`; 3 ruke kroz `raub:action` + `game:nextHand`; ilegalna karta → `ILLEGAL_CARD`; ni u jednom stanju `isBot`, `botProfile`, `guestId`, špil, odbačene karte ni `teamId`; **restart servera usred meča** → soba hidrirana i odigrane još dvije ruke; Žandar Quick Play bez `game` i dalje `game: "zandar"`.
+
+**Zamke:**
+- Na Windowsu `TaskStop` ugasi `pnpm`, ali ne i `node` dijete — server ostane na portu. Gasi se po portu (`Get-NetTCPConnection … | Stop-Process`).
+
+## 127. Raub — sto (2026-11-07, `feat/raub-table`)
+
+**Povod:** S3 plana za Raub: ekran stola po tabli „UI · Raub — kompletan UI", na istom felt-u, podlogama, sjedištima, lepezi ruke, meniju, reakcijama i pauzi kao Žandar i Poker.
+
+**Izmjene:**
+- `components/raub/RaubScreen.tsx` + `RaubParts.tsx`: zaglavlje (faza „Licitacija" / „Idem?" / „Zamjena" / „Štih 2 od 4", adut „NUDI SE ♠" / „ADUT ♥" i ×2, „Refa ×N", dugme Tabela), talon sa špilom i „Karta N od 3" (ranije okrenute prigušene ispod), prostor štiha (karta ispred onog ko ju je bacio, zadnja sa svijetlim rubom; pun štih 1 s pa klizi ka pobjedniku), panel nad rukom (djelilac: Otvori karte / Raub naslijepo; licitacija: Dalje / Raub; sedmica za talon; višak; Idem / Ne idem; zamjena: Zadrži sve / Zamijeni N; štih: „Ti si na potezu" + zašto su karte zatamnjene; „Čeka se: …"), pregled ruke (kazne crvene sa „kazna", ×2 refa, „ne ide"), refa, tabela kao list odozdo, kraj meča sa bodovima (Igraj ponovo / Revanš / Tabela / Izađi), pauza i glasanje kroz postojeći `PauseAbandonOverlay`.
+- Sjedišta: bodovi ispod imena, natpis odgovora iznad avatara („Dalje", „Raub", „Idem", „Zamjena 3", „Bez zamjene"), D, nosilac „Raub · mora 2" + 1/2 u mesingu (gore i dolje uz avatar; na bočnim mjestima u redu ispod bodova — pločica uz avatar je ulazila u sto), „Ne ide" prigušeno, prsten 15 s.
+- `PlayerHand` (proširenje, Žandar netaknut): `selectedCardIds` (zamjena) i `lockedCardIds` (karta s talona, katanac). Djelilac prije odluke vidi poleđine.
+- `lib/raubView.ts` (čista logika prikaza, testirana), `sr.raub`, pravila (`RulesModal game="raub"`), `app/raub.css` (layer components, `[data-game="raub"]` / `rb-`, bez novih tokena), `CLIENT_GAMES` + `raub`, lobi i matching tretiraju Raub kao Poker (bez cilja/timova, prozor za prave igrače), `RoomScreen` → `RaubScreen` + `raub:action`, „Igraj ponovo" pravi novi Raub sto.
+- `/dev/raub?s=…&n=2|3|4`: stanja NISU ručno pisana — pravi motor i bot vode meč iz sjemena dok ne stignu do koraka (open, bid, bid2, discard, going, exchange, exchangeOpen, trick, declarer, handEnd, refa, table, end, pause, vote).
+
+**Mjereno (CDP, mobilna emulacija 360×740 i 360×640, 2P/3P/4P):** sve vidljivo bez skrola. Nađeno i popravljeno snimkom: dugme reakcija lijevo je pokrivalo „Dalje" (vraćeno na Žandar mjesto); uputa iznad panela je pokrivala tvoje bodove (traka nad rukom 4,6rem, uputa u njoj); oznaka aduta u uglu stola je na 360×640 pokrivala talon i štih (preseljena u zaglavlje); stub zvuk/vibracija/reakcije je na 640 ulazio u desno dugme panela (panel ostavlja 3,6rem desno; `px-3` uklonjen jer bi utility nadjačao CSS); tabela se otvarala ispod kartice kraja ruke (z-index 70); natpis bočnog igrača se sjekao na ivici; otvorena karta je bila velika kutija preko špila (sada čip „10♥ Goga · otvorena", samo za tuđu).
+
+**Provjereno:** web 189 testova (9 novih), typecheck, lint = osnovica (5/2).
+
+**Nije urađeno:** let karte iz ruke na sto (`flyAnimation`) — karta se pojavi na svom mjestu (opacity); zvuk i haptika za Raub događaje; ocjena na uređaju.
+
+## 128. Raub — ulaz u igru i prekidač izdanja (2026-11-07, `feat/raub-entry`)
+
+**Povod:** S4 plana za Raub: igra se pokreće sa početne, iz `/create` i iz „Pozovi na partiju", kao Poker.
+
+**Izmjene:**
+- `lib/raubRelease.ts` (`raubLive`, odluka 8): staging i razvoj uključeno, produkcija tek uz `NEXT_PUBLIC_RAUB=1`, `0` gasi svuda. Testiran kao `pokerRelease`.
+- `lib/liveGames.ts`: jedan spisak igara za izbor stola (`TABLE_GAMES`: Žandar + Poker/Raub iza svojih prekidača), `pickTableGame` (URL / memorija → dozvoljena igra), `isSeatGame` (bez cilja i timova). Koriste ga `/create`, `CreateRoomScreen` i `InviteSheet` — ranije je svaki imao svoj `["zandar", "poker"]`.
+- `GAMES`: Raub `live` iza prekidača, `releasedAt` 7.11.2026 (NOVO 7 dana), `hasRules`, 20 min (simulacija). `sr.games.raub.about`. Početna: Raub Igraj na jedan dodir (Quick Play je uvijek 4, bez izbora cilja), Napravi sto → `/create?game=raub`, pravila Rauba iz liste igre. Lista igara ga uzima sama (živa igra).
+- `startQuickPlay` šalje `game` i za Raub.
+- `RaubScreen`: sinhrona brava poteza (`useRef`) — dvostruki dodir je slao isti potez dvaput i prikazivao sirov kod „INVALID_GAME_PHASE" (nađeno E2E-om u pregledaču); kodovi koji znače „stanje je već otišlo dalje" se ne prikazuju, ostalo je ljudska poruka (`sr.raub.errors`). Poker ima isti obrazac (`busyAt` kao stanje) — nije diran.
+- `games.test.ts`: test „najavljena igra nije NOVO" više ne koristi pravi Raub (koji je sad živ u razvoju), nego eksplicitno najavljenu igru.
+
+**Provjereno:** web 191 test, typecheck, lint = osnovica (5/2). **E2E u pregledaču** (headless Chrome, 360×740, `next dev` + lokalni server): početna nudi Žandar, Poker i Raub; Raub Igraj → traženje stola → sto za 2,9 s; 3 ruke odigrane klikovima kroz panel i ruku (31 klik: otvaranje, licitacija, idem, zamjena, štihovi tap-tap, sljedeća ruka); 0 grešaka u konzoli.
+
+**Prije produkcije:** `NEXT_PUBLIC_RAUB=1` na Vercelu (produkcija) i u produkcijskom APK buildu; server na produkciji mora biti sa ovim kodom (inače `game: "raub"` pada na Žandar). Stari APK (1.x) ne može u Raub sto (426 / „Za ovu igru ažuriraj aplikaciju.").
+
+## 129. Raub — stilovi u felt.css, spajanje u main (2026-11-07, `feat/raub-entry` → `main`)
+
+**Povod:** pri spajanju je `main` već imao `4bee728`: Vercel staging build je izbacio cijeli zasebno uvezen `app/poker.css` (drugi put, poslije `profile.css` 25.10), pa je poker prebačen na kraj `felt.css`. `app/raub.css` je bio isti obrazac i na stagingu bi Raub sto ostao bez stilova.
+
+**Izmjene:** sadržaj `raub.css` bez izmjene na kraju `felt.css` (isti sloj, poslije pokera), `raub.css` i njegov `@import` obrisani; konflikt u `globals.css` riješen tako da ostaje samo `felt.css`. **Pravilo za sljedeću igru:** novi CSS ide na kraj `felt.css`, ne u novi fajl sa `@import`.
+
+**Provjereno:** `next build` — izlazni CSS sadrži `rb-` pravila; web testovi i typecheck.
+
+## 130. Poker — sto kao priča: animacije i zajednički ritam (2026-11-07, `feat/poker-core`)
 
 **Zašto:** QA krug 2026-11-07 (PK-P1). Server za jedan potez šalje jedno stanje u kojem je sve već gotovo: ulog u potu, flop na stolu, sat sljedećeg igrača. Sto je zato „skakao" sa stanja na stanje. Odluka vlasnika: jasnoća ispred brzine, i po cijenu sporijeg stola.
 

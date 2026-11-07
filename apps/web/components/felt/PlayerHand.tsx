@@ -1,6 +1,7 @@
 "use client";
 
 import type { Card, CardSize } from "@/components/felt/types";
+import { LockIcon } from "@/components/icons";
 import { sr } from "@/lib/sr";
 import { PlayingCard } from "./PlayingCard";
 
@@ -8,6 +9,10 @@ export type PlayerHandProps = {
   cards: Card[];
   /** id of the lifted card. Selecting lifts; playing is the parent's business. */
   selectedCardId?: string | null | undefined;
+  /** Više podignutih karata (Raub zamjena). Uz `selectedCardId` važe oba. */
+  selectedCardIds?: readonly string[] | undefined;
+  /** Zaključane karte (Raub: karta s talona) — katanac, ne mogu se izabrati. */
+  lockedCardIds?: readonly string[] | undefined;
   disabledCardIds?: string[];
   dimmedCardIds?: string[];
   faceUp?: boolean;
@@ -21,6 +26,8 @@ export type PlayerHandProps = {
 export function PlayerHand({
   cards,
   selectedCardId = null,
+  selectedCardIds = [],
+  lockedCardIds = [],
   disabledCardIds = [],
   dimmedCardIds = [],
   faceUp = true,
@@ -44,27 +51,38 @@ export function PlayerHand({
       role="group"
       aria-label="Tvoja ruka"
     >
-      {cards.map((c, i) => (
-        <div
-          key={c.id}
-          className="hand__slot"
-          data-selected={c.id === selectedCardId}
-          style={{ "--hand-i": i, "--hand-n": cards.length } as React.CSSProperties}
-        >
-          <PlayingCard
-            card={c}
-            size={size}
-            faceUp={faceUp}
-            selectable={!disabledCardIds.includes(c.id)}
-            selected={c.id === selectedCardId}
-            dimmed={dimmedCardIds.includes(c.id)}
-            disabled={disabledCardIds.includes(c.id)}
-            animateDeal={animateDeal}
-            dealIndex={i}
-            onSelect={onSelect}
-          />
-        </div>
-      ))}
+      {cards.map((c, i) => {
+        const selected = c.id === selectedCardId || selectedCardIds.includes(c.id);
+        const locked = lockedCardIds.includes(c.id);
+        const disabled = locked || disabledCardIds.includes(c.id);
+        return (
+          <div
+            key={c.id}
+            className="hand__slot"
+            data-selected={selected}
+            {...(locked ? { "data-locked": true } : {})}
+            style={{ "--hand-i": i, "--hand-n": cards.length } as React.CSSProperties}
+          >
+            <PlayingCard
+              card={c}
+              size={size}
+              faceUp={faceUp}
+              selectable={!disabled}
+              selected={selected}
+              dimmed={dimmedCardIds.includes(c.id)}
+              disabled={disabled}
+              animateDeal={animateDeal}
+              dealIndex={i}
+              onSelect={onSelect}
+            />
+            {locked ? (
+              <span className="hand__lock" aria-label="Karta s talona">
+                <LockIcon className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }

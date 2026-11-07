@@ -183,20 +183,31 @@ export function matchEndedEvents(
   }));
 }
 
-// ── Poker ────────────────────────────────────────────────────────────────────
+// ── Poker i Raub (igre sa plasmanom po mjestima) ─────────────────────────────
 
-type PokerMatchLike = {
+type SeatMatchLike = {
   matchId: string;
   handNo: number;
-  startStack: number;
   seats: readonly { playerId: string; place: number | null }[];
 };
 
+type SeatGame = "poker" | "raub";
+
+/** Raub stanje u obliku koji dijeli sa pokerom (`dealNo` = broj ruke). */
+export function raubMatchLike(s: {
+  matchId: string;
+  dealNo: number;
+  seats: readonly { playerId: string; place: number | null }[];
+}): SeatMatchLike {
+  return { matchId: s.matchId, handNo: s.dealNo, seats: s.seats };
+}
+
 /** `match_started` za poker — isti događaj, `game: "poker"`, bez cilja. */
 export function pokerMatchStartedEvents(
-  state: PokerMatchLike,
+  state: SeatMatchLike,
   players: readonly PlayerLike[],
   mode: MatchMode,
+  game: SeatGame = "poker",
 ): Capture<"match_started">[] {
   const atTable = players.filter((p) => state.seats.some((s) => s.playerId === p.id));
   const { humansAtTable, botsAtTable } = tableComposition(atTable);
@@ -206,7 +217,7 @@ export function pokerMatchStartedEvents(
     properties: {
       mode,
       match_id: state.matchId,
-      game: "poker" as const,
+      game,
       player_count: atTable.length,
       human_count: humansAtTable,
       bot_count: botsAtTable,
@@ -221,9 +232,10 @@ export function pokerMatchStartedEvents(
  * poznat (i igraču koji je napustio meč — on ima najlošiji preostali plasman).
  */
 export function pokerMatchEndedEvents(
-  state: PokerMatchLike,
+  state: SeatMatchLike,
   players: readonly PlayerLike[],
   opts: { mode: MatchMode; reason: MatchEndReason; startedAt?: number | undefined; now: number },
+  game: SeatGame = "poker",
 ): Capture<"match_ended">[] {
   const { mode, reason, startedAt, now } = opts;
   const atTable = players.filter((p) => state.seats.some((s) => s.playerId === p.id));
@@ -235,7 +247,7 @@ export function pokerMatchEndedEvents(
       properties: {
         mode,
         match_id: state.matchId,
-        game: "poker" as const,
+        game,
         end_reason: reason,
         hands_played: state.handNo,
         ...(startedAt !== undefined ? { duration_ms: Math.max(0, now - startedAt) } : {}),

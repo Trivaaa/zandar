@@ -229,7 +229,9 @@ export default function PokerDevPage() {
   const view = useMemo(() => scenario(s, n, now), [s, n, now]);
   const log = (label: string) => async (...args: unknown[]) => console.info(`[poker dev] ${label}`, ...args);
   return (
+    // Ključ po scenariju: pregled prikazuje stanje, ne priču prelaza iz A (URL se čita poslije hidracije).
     <PokerScreen
+      key={`${s}-${n}`}
       state={view}
       tableTheme={table}
       isQuickPlay={quick}

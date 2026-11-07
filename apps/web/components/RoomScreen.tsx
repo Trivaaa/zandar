@@ -26,6 +26,7 @@ import { readQuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import { GameScreen } from "@/components/GameScreen";
 import { PokerScreen } from "@/components/poker/PokerScreen";
+import { RaubScreen } from "@/components/raub/RaubScreen";
 import { usePlayerInfo } from "@/components/profile/PlayerInfo";
 import { RoomInviteSheet } from "@/components/friends/InviteGuestSheet";
 import { shareInvite } from "@/lib/share";
@@ -37,6 +38,8 @@ import type {
   AbandonVote,
   PokerActionRequest,
   PokerGamePayload,
+  RaubAction,
+  RaubGamePayload,
   PrivateGameStateView,
 } from "@zandar/shared-types";
 
@@ -87,6 +90,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   );
   // Poker sto ima svoj oblik stanja (`game: "poker"`); Žandar ga nikad ne vidi.
   const [pokerState, setPokerState] = useState<PokerGamePayload | null>(null);
+  // Raub sto (`game: "raub"`) — isto kao poker, zaseban oblik stanja.
+  const [raubState, setRaubState] = useState<RaubGamePayload | null>(null);
   const [starting, setStarting] = useState(false);
   const [botFillLoading, setBotFillLoading] = useState(false);
   const [activeReactions, setActiveReactions] = useState<ActiveReaction[]>([]);
@@ -221,12 +226,13 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     function handleJoinRequested() {
       setRefreshTrigger((n) => n + 1);
     }
-    function handleGameState(state: GameStateWithDeadline | PokerGamePayload) {
+    function handleGameState(state: GameStateWithDeadline | PokerGamePayload | RaubGamePayload) {
       // Singleton socket: stanje druge sobe (stari server još nije napustio
       // prethodnu socket sobu, B10) ne smije se nacrtati pod ovom rutom.
       if (state.roomId !== roomId) return;
       assertNoBotLeak(state.players); // dev straža (DS §7.1, C4)
       if ("game" in state && state.game === "poker") setPokerState(state);
+      else if ("game" in state && state.game === "raub") setRaubState(state);
       else setGameState(state as GameStateWithDeadline);
     }
     function handleReaction(event: ReactionEvent) {
@@ -399,6 +405,15 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     });
   }
 
+  /** Raub potez — namjera; legalnost provjerava server (`raub:action`). */
+  async function handleRaubAction(action: RaubAction): Promise<void> {
+    if (!raubState) throw new Error("Igra nije aktivna");
+    await emitAction("raub:action", {
+      ...action,
+      clientKnownStateVersion: raubState.stateVersion,
+    });
+  }
+
   /** "Sačekaj još" — resetuje rok pauze na serveru (§32.3). */
   /**
    * Izlazak sa stola (QA B1): serveru javi da igrač odlazi, pa ostali odmah
@@ -430,22 +445,22 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   async function handleFindNewTable(): Promise<void> {
     // Napusti ovaj sto i nađi novi (Quick Play sa novim igračima).
     const myName =
-      (gameState ?? pokerState)?.players.find((p) => p.id === session?.playerId)?.displayName ??
+      (gameState ?? pokerState ?? raubState)?.players.find((p) => p.id === session?.playerId)?.displayName ??
       readPlayerName() ??
       "Igrač";
     try {
       // Isti sto kakav je upravo odigran (veličina i cilj), ne podrazumijevani:
       // ko je igrao u dvoje do 11, „novi sto" očekuje opet takav.
       const prefs = readQuickPlayPrefs();
-      const poker = room?.game === "poker";
+      const seatGame = room?.game === "poker" || room?.game === "raub" ? room.game : null;
       const res = await quickPlay({
         displayName: myName,
-        // Poker: server sam postavlja 4 mjesta, cilj ne postoji.
-        playerCount: poker ? 4 : (room?.playerCount ?? prefs.playerCount),
-        targetScore: poker ? 21 : (room?.targetScore ?? prefs.targetScore),
+        // Poker i Raub: server sam postavlja 4 mjesta, cilj ne postoji.
+        playerCount: seatGame ? 4 : (room?.playerCount ?? prefs.playerCount),
+        targetScore: seatGame ? 21 : (room?.targetScore ?? prefs.targetScore),
         // I izgled: „novi sto" izgleda kao ovaj koji je upravo odigran.
         ...(room?.tableTheme ? { tableTheme: room.tableTheme } : {}),
-        ...(poker ? { game: "poker" as const } : {}),
+        ...(seatGame ? { game: seatGame } : {}),
       });
       saveSession({
         roomId: res.roomId,
@@ -527,6 +542,29 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           setRefreshTrigger((n) => n + 1);
         }}
       />
+    );
+  }
+
+  if (raubState) {
+    return (
+      <>
+        <RaubScreen
+          state={raubState}
+          tableTheme={room.tableTheme}
+          isQuickPlay={room.isPublic}
+          onAction={handleRaubAction}
+          onNextHand={handleNextHand}
+          onRematch={handleRematch}
+          onNewTable={handleFindNewTable}
+          onReact={handleReact}
+          onLeave={() => void handleLeave()}
+          onWaitMore={handleWaitMore}
+          onAbandonVote={handleAbandonVote}
+          activeReactions={activeReactions}
+          onPlayerTap={onPlayerTap}
+        />
+        {playerInfo.layer}
+      </>
     );
   }
 

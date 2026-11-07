@@ -594,7 +594,7 @@ export type AnalyticsEvents = {
   /** Aplikacija je prvi put pročitala Play referrer. Nosi kampanju web klika pod novim guest ID-em. */
   app_install_attributed: InstallCampaign & { has_room: boolean };
   /** `game` od pokera (6.11.2026); bez njega je Žandar. */
-  play_requested: { mode: MatchMode; game?: "zandar" | "poker" };
+  play_requested: { mode: MatchMode; game?: "zandar" | "poker" | "raub" };
   teaser_opened: { game: string };
   upcoming_games_viewed: NoProps;
   /** Dodir na pločicu najavljene igre na početnoj, bez obzira na to da li je ostavljena adresa. */
@@ -614,11 +614,11 @@ export type AnalyticsEvents = {
     mode: MatchMode;
     match_id: string;
     /** Igra (od pokera). Događaji bez polja su Žandar. */
-    game?: "zandar" | "poker";
+    game?: "zandar" | "poker" | "raub";
     player_count: number;
     human_count: number;
     bot_count: number;
-    /** Samo Žandar (poker nema cilj). */
+    /** Samo Žandar (poker i raub nemaju izbor cilja). */
     target_score?: number;
     is_rematch: boolean;
     platform?: AnalyticsPlatform;
@@ -626,12 +626,12 @@ export type AnalyticsEvents = {
   match_ended: {
     mode: MatchMode;
     match_id: string;
-    game?: "zandar" | "poker";
+    game?: "zandar" | "poker" | "raub";
     end_reason: MatchEndReason;
     hands_played: number;
     duration_ms?: number;
     is_winner?: boolean;
-    /** Poker: konačan plasman igrača (1 = pobjednik). */
+    /** Poker i raub: konačan plasman igrača (1 = pobjednik). */
     placement?: number;
     platform?: AnalyticsPlatform;
   };
@@ -841,3 +841,6 @@ export function nicknameChangeAllowedAt(
 
 // Poker (Texas Hold'em) — tipovi stanja, pogleda i identitet igre.
 export * from "./poker";
+
+// Raub — tipovi stanja i pogleda.
+export * from "./raub";

@@ -6,6 +6,7 @@ import {
 } from "@zandar/shared-types";
 
 import { pokerLive } from "@/lib/pokerRelease";
+import { raubLive } from "@/lib/raubRelease";
 import { sr } from "@/lib/sr";
 
 /**
@@ -140,11 +141,13 @@ export const GAMES: readonly GameConfig[] = [
     slug: "raub",
     letter: "R",
     suit: "clubs",
-    minutes: 12,
-    status: "upcoming",
-    releasedAt: null,
+    // Simulacija (changelog 125): 4 igrača, medijan ~20 min.
+    minutes: 20,
+    // Iza prekidača izdanja (odluka 8) — vidi `lib/raubRelease.ts`.
+    status: raubLive ? "live" : "upcoming",
+    releasedAt: raubLive ? "2026-11-07" : null,
     heroCards: null,
-    hasRules: false,
+    hasRules: true,
     tint: "raub",
     tileCards: [
       { rank: "7", suit: "clubs" },

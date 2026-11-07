@@ -8,6 +8,7 @@ import {
   createRulesConfig,
   DEFAULT_BOT_CONFIGS,
   DEFAULT_POKER_CONFIG,
+  DEFAULT_RAUB_RULES,
   generateTableIdentities,
   normalizeName,
   selectBotMove,
@@ -21,6 +22,7 @@ import {
   parseTableTheme,
   type BotMoveTiming,
   type BotSkillTier,
+  type GameId,
   type MatchEndReason,
   type MatchMode,
   type Player,
@@ -64,6 +66,7 @@ import {
   parseGuestId,
   pokerMatchEndedEvents,
   pokerMatchStartedEvents,
+  raubMatchLike,
   parsePlatform,
   tableComposition,
   trackedHumans,
@@ -116,10 +119,11 @@ import { accountIdentityFor, applyAccountIdentity } from "./profile/accountIdent
 import { toPublicPlayer } from "./publicPlayer";
 import { profileStore } from "./profile/store";
 import { PokerTables } from "./poker/table";
+import { RaubTables } from "./raub/table";
 
 /**
- * Poker soba traži klijenta koji zna poker. Stari APK (1.0–1.3) ne šalje
- * `games`, pa bi poker stanje crtao kao Žandar sto i pao.
+ * Poker i Raub soba traže klijenta koji zna tu igru. Stari APK (1.0–1.3) ne
+ * šalje `games`, pa bi takvo stanje crtao kao Žandar sto i pao.
  */
 const UPDATE_REQUIRED = {
   code: "update_required",
@@ -347,7 +351,7 @@ type CreateRoomBody = {
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
   platform?: unknown;
-  game?: unknown; // "poker"; bez polja = Žandar
+  game?: unknown; // "poker" | "raub"; bez polja = Žandar
 };
 
 fastify.post<{ Body: CreateRoomBody }>(
@@ -393,7 +397,7 @@ async function createPrivateRoom(opts: {
   targetScore: number;
   tableTheme: unknown;
   identity: Pick<Player, "guestId" | "platform" | "uid">;
-  game?: "zandar" | "poker";
+  game?: GameId;
 }): Promise<{ room: LobbyRoom; playerId: string; sessionToken: string }> {
   const roomId = createRoomId();
   const playerId = createPlayerId();
@@ -427,8 +431,9 @@ async function createPrivateRoom(opts: {
     joinRequests: new Map(),
     createdAt: Date.now(),
     tableTheme: parseTableTheme(opts.tableTheme),
-    // Samo poker upisuje polje — Žandar sobe ostaju bajt-za-bajt kao ranije.
+    // Samo poker i raub upisuju polje — Žandar sobe ostaju bajt-za-bajt kao ranije.
     ...(opts.game === "poker" ? { game: "poker" as const, poker: null } : {}),
+    ...(opts.game === "raub" ? { game: "raub" as const, raub: null } : {}),
   };
 
   storeRoom(room);
@@ -697,6 +702,7 @@ fastify.post<{ Params: { roomId: string }; Body: ApproveBody }>(
 
     io.to(roomId).emit("room:update");
     pokerTables.startIfFull(room);
+    raubTables.startIfFull(room);
 
     fastify.log.info(
       `→ Approved ${requestId} → player ${playerId} (${req.displayName})`,
@@ -809,7 +815,7 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
     return reply.code(400).send({ error: "playerCount mora biti 2, 3 ili 4" });
   }
   const game = parseGameId(body.game);
-  // Poker nema cilj; upisuje se 21 samo da `rulesConfig` ostane istog oblika.
+  // Poker i raub nemaju izbor cilja; upisuje se 21 samo da `rulesConfig` ostane istog oblika.
   if (game === "zandar" && targetScore !== 11 && targetScore !== 21) {
     return reply.code(400).send({ error: "targetScore mora biti 11 ili 21" });
   }
@@ -821,7 +827,7 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
   const { room, playerId, sessionToken } = await createPrivateRoom({
     displayName: me.nickname,
     playerCount,
-    targetScore: game === "poker" ? 21 : (targetScore as number),
+    targetScore: game === "zandar" ? (targetScore as number) : 21,
     tableTheme: body.tableTheme,
     identity: { ...analyticsIdentity(body), uid: me.uid },
     game,
@@ -882,6 +888,7 @@ fastify.post<{
     persistRoom(room);
     io.to(room.id).emit("room:update");
     pokerTables.startIfFull(room);
+    raubTables.startIfFull(room);
     return { roomId: room.id, playerId: admitted.playerId, sessionToken: admitted.sessionToken };
   },
 );
@@ -1079,7 +1086,7 @@ fastify.get<{
 
 type QuickPlayBody = {
   displayName: string;
-  game?: unknown; // "poker"; bez polja = Žandar (stari klijenti)
+  game?: unknown; // "poker" | "raub"; bez polja = Žandar (stari klijenti)
   playerCount: 2 | 3 | 4;
   targetScore?: number;
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
@@ -1096,8 +1103,9 @@ fastify.post<{ Body: QuickPlayBody }>(
     if (!displayName || displayName.trim().length === 0) {
       return reply.code(400).send({ error: "displayName je obavezan" });
     }
-    if (parseGameId(request.body.game) === "poker") {
-      return pokerQuickPlay(displayName.trim(), request.body.tableTheme, identity);
+    const qpGame = parseGameId(request.body.game);
+    if (qpGame === "poker" || qpGame === "raub") {
+      return seatGameQuickPlay(qpGame, displayName.trim(), request.body.tableTheme, identity);
     }
     // Veličinu stola i cilj bira igrač (ekran `/igraj`) — oba su korisnički unos.
     const parsed = parseQuickPlayConfig(request.body);
@@ -1194,11 +1202,12 @@ fastify.post<{ Body: QuickPlayBody }>(
 );
 
 /**
- * Poker Quick Play (spec: „Ulazak za sto"): uvijek 4 mjesta. Igrač odmah dobija
- * sto; server do `matchWindowMs` (3 s) spaja druge prave igrače koji stignu,
- * a ostala mjesta tada popunjavaju botovi.
+ * Poker i Raub Quick Play (oba speca: „Ulazak za sto"): uvijek 4 mjesta. Igrač
+ * odmah dobija sto; server do `matchWindowMs` spaja druge prave igrače iste
+ * igre koji stignu, a ostala mjesta tada popunjavaju botovi.
  */
-async function pokerQuickPlay(
+async function seatGameQuickPlay(
+  game: "poker" | "raub",
   displayName: string,
   tableTheme: unknown,
   identity: Pick<Player, "guestId" | "platform" | "uid">,
@@ -1216,9 +1225,10 @@ async function pokerQuickPlay(
     ...identity,
   });
 
+  const tables = game === "poker" ? pokerTables : raubTables;
   const open = getAllRooms().find(
     (r) =>
-      r.game === "poker" &&
+      r.game === game &&
       r.isPublic &&
       r.status === "waiting" &&
       (r.matchingUntil ?? 0) > now &&
@@ -1230,8 +1240,8 @@ async function pokerQuickPlay(
     open.players.push(player);
     open.sessionTokens.set(playerId, hashToken(sessionToken));
     io.to(open.id).emit("room:update");
-    fastify.log.info(`🤝 Poker: ${playerId} spojen u sto ${open.id}`);
-    if (!pokerTables.startIfFull(open)) persistRoom(open);
+    fastify.log.info(`🤝 ${game}: ${playerId} spojen u sto ${open.id}`);
+    if (!tables.startIfFull(open)) persistRoom(open);
     return { roomId: open.id, playerId, playerSessionToken: sessionToken };
   }
 
@@ -1249,12 +1259,11 @@ async function pokerQuickPlay(
     createdAt: now,
     isPublic: true,
     tableTheme: parseTableTheme(tableTheme),
-    game: "poker",
-    poker: null,
+    ...(game === "poker" ? { game: "poker" as const, poker: null } : { game: "raub" as const, raub: null }),
   };
   storeRoom(room);
-  pokerTables.openMatching(room);
-  fastify.log.info(`🃏 Poker Quick Play ${room.id}: čeka prave igrače`);
+  tables.openMatching(room);
+  fastify.log.info(`🃏 ${game} Quick Play ${room.id}: čeka prave igrače`);
   return { roomId: room.id, playerId, playerSessionToken: sessionToken };
 }
 
@@ -1296,12 +1305,13 @@ fastify.post<{ Params: { roomId: string }; Body: StartBody }>(
       });
     }
 
-    if (room.game === "poker") {
-      pokerTables.start(room);
+    if (room.game === "poker" || room.game === "raub") {
+      if (room.game === "poker") pokerTables.start(room);
+      else raubTables.start(room);
       notifyDevices(
         gameStartRecipients(room),
         buildGameStartedPush({ roomId }),
-        `game_started:${room.poker?.matchId ?? roomId}`,
+        `game_started:${room.poker?.matchId ?? room.raub?.matchId ?? roomId}`,
       );
       return { success: true };
     }
@@ -1370,8 +1380,9 @@ fastify.post<{ Params: { roomId: string }; Body: BotFillBody }>(
 
     persistRoom(room);
     io.to(roomId).emit("room:update");
-    // Poker: kreator popuni prazna mjesta botovima i meč odmah kreće (spec).
+    // Poker i Raub: kreator popuni prazna mjesta botovima i meč odmah kreće (spec).
     pokerTables.startIfFull(room);
+    raubTables.startIfFull(room);
 
     fastify.log.info(
       `→ Bot-fill ${enabled ? "ON" : "OFF"} room ${roomId} (${room.players.length}/${room.rulesConfig.playerCount})`,
@@ -1547,6 +1558,28 @@ const pokerTables = new PokerTables({
     matchWindowMs: ms("POKER_MATCH_WINDOW_MS", 2000), // spec: „do 3 s", a cilj je prva ruka < 3 s od klika
     // Vrijeme za animacije (POKER_PACE), u procentima: 130 = 30% sporije, 50 = upola brže.
     paceScale: ms("POKER_PACE_PERCENT", 100) / 100,
+  },
+  onMatchStarted: (room) => emitMatchStarted(room),
+  onMatchEnded: (room, reason) => emitMatchEnded(room, reason),
+});
+
+// ---- RAUB (docs/raub-spec.md) ----
+// Pauza i glasanje imaju iste rokove kao Žandar (odluka 3); potez je 15 s.
+const raubTables = new RaubTables({
+  getRoom,
+  socketsIn: (roomId) => io.in(roomId).fetchSockets(),
+  persist: persistRoom,
+  fillBots: (room) => fillSeatsWithBots(room, 2),
+  emitToRoom: (roomId, event, payload) => io.to(roomId).emit(event, payload),
+  log: { info: (m) => fastify.log.info(m), error: (m) => fastify.log.error(m) },
+  timing: {
+    turnMs: ms("RAUB_TURN_MS", DEFAULT_RAUB_RULES.turnTimeoutSeconds * 1000),
+    graceMs: GRACE_MS,
+    handEndGraceMs: HAND_END_GRACE_MS,
+    pauseMs: PAUSE_MS,
+    voteMs: VOTE_MS,
+    waitExtensionMs: WAIT_EXTENSION_MS,
+    matchWindowMs: ms("RAUB_MATCH_WINDOW_MS", 2000),
   },
   onMatchStarted: (room) => emitMatchStarted(room),
   onMatchEnded: (room, reason) => emitMatchEnded(room, reason),
@@ -1870,6 +1903,10 @@ async function handlePlayerDisconnect(
     await pokerTables.onDisconnect(roomId, playerId);
     return;
   }
+  if (getRoom(roomId)?.game === "raub") {
+    await raubTables.onDisconnect(roomId, playerId);
+    return;
+  }
 
   const room = getRoom(roomId);
   if (!room?.gameState) return;
@@ -1985,6 +2022,14 @@ function emitMatchStarted(room: LobbyRoom): void {
     sendCaptures(pokerMatchStartedEvents(room.poker, room.players, roomMode(room)));
     return;
   }
+  if (room.raub) {
+    const key = `start:${room.raub.matchId}`;
+    if (analyticsEmitted.has(key)) return;
+    analyticsEmitted.add(key);
+    matchStartTimes.set(room.raub.matchId, Date.now());
+    sendCaptures(pokerMatchStartedEvents(raubMatchLike(room.raub), room.players, roomMode(room), "raub"));
+    return;
+  }
   const gs = room.gameState;
   if (!gs) return;
   const key = `start:${gs.matchId}`;
@@ -2009,6 +2054,27 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
     if (reason === "completed") {
       const seated = new Set(ps.seats.map((x) => x.playerId));
       void recordCompletedMatch(profileStore, ps.matchId, room.players.filter((p) => seated.has(p.id)));
+    }
+    return;
+  }
+  if (room.raub) {
+    const rs = room.raub;
+    const key = `end:${rs.matchId}`;
+    if (analyticsEmitted.has(key)) return;
+    analyticsEmitted.add(key);
+    const startedAt = matchStartTimes.get(rs.matchId);
+    matchStartTimes.delete(rs.matchId);
+    sendCaptures(
+      pokerMatchEndedEvents(
+        raubMatchLike(rs),
+        room.players,
+        { mode: roomMode(room), reason, startedAt, now: Date.now() },
+        "raub",
+      ),
+    );
+    if (reason === "completed") {
+      const seated = new Set(rs.seats.map((x) => x.playerId));
+      void recordCompletedMatch(profileStore, rs.matchId, room.players.filter((p) => seated.has(p.id)));
     }
     return;
   }
@@ -2423,6 +2489,7 @@ io.on("connection", (socket) => {
       }
 
       if (room.poker) await pokerTables.onSubscribe(roomId, playerId, socket);
+      if (room.raub) await raubTables.onSubscribe(roomId, playerId, socket);
 
       if (room.gameState) {
         // Svježa soba jos nije prošla kroz broadcastGameState, pa rok ne postoji.
@@ -2461,6 +2528,19 @@ io.on("connection", (socket) => {
         return;
       }
       ack?.(await pokerTables.act(roomId, playerId, raw));
+    }),
+  );
+
+  socket.on(
+    "raub:action",
+    guarded("raub:action", fastify.log, async (raw, ack) => {
+      const playerId = socket.data.playerId;
+      const roomId = socket.data.roomId;
+      if (typeof playerId !== "string" || typeof roomId !== "string") {
+        ack?.({ ok: false, error: "NOT_SUBSCRIBED" });
+        return;
+      }
+      ack?.(await raubTables.act(roomId, playerId, raw));
     }),
   );
 
@@ -2531,6 +2611,10 @@ io.on("connection", (socket) => {
       }
 
       const room = getRoom(roomId);
+      if (room?.game === "raub") {
+        ack?.(await raubTables.nextHand(roomId, playerId));
+        return;
+      }
       if (!room || !room.gameState) {
         ack?.({ ok: false, error: "GAME_NOT_STARTED" });
         return;
@@ -2582,6 +2666,11 @@ io.on("connection", (socket) => {
         ack?.({ ok: true });
         return;
       }
+      if (room?.game === "raub") {
+        await raubTables.leave(roomId, playerId);
+        ack?.({ ok: true });
+        return;
+      }
       const gs = room?.gameState;
       const player = gs?.players.find((p) => p.id === playerId);
       if (!room || !gs || !player || player.connectionStatus === "abandoned") {
@@ -2625,6 +2714,10 @@ io.on("connection", (socket) => {
       const room = getRoom(roomId);
       if (room?.game === "poker") {
         ack?.(pokerTables.rematch(roomId, playerId));
+        return;
+      }
+      if (room?.game === "raub") {
+        ack?.(raubTables.rematch(roomId, playerId));
         return;
       }
       if (!room || !room.gameState) {
@@ -2713,6 +2806,10 @@ io.on("connection", (socket) => {
         return;
       }
       const room = getRoom(roomId);
+      if (room?.game === "raub") {
+        ack?.(await raubTables.waitMore(roomId));
+        return;
+      }
       if (!room?.gameState) {
         ack?.({ ok: false, error: "GAME_NOT_STARTED" });
         return;
@@ -2744,6 +2841,10 @@ io.on("connection", (socket) => {
         return;
       }
       const room = getRoom(roomId);
+      if (room?.game === "raub") {
+        ack?.(await raubTables.castVote(roomId, playerId, vote));
+        return;
+      }
       if (!room?.gameState) {
         ack?.({ ok: false, error: "GAME_NOT_STARTED" });
         return;
@@ -2800,6 +2901,10 @@ try {
         pokerTables.rearm(room);
         continue;
       }
+      if (room?.game === "raub") {
+        raubTables.rearm(room);
+        continue;
+      }
       if (room?.gameState?.phase === "playing") {
         const cp = room.gameState.players.find(
           (p) => p.id === room.gameState!.currentPlayerId,
@@ -2827,6 +2932,8 @@ const closeSweptMatch = (room: LobbyRoom) => {
   if (room.gameState && isMatchOpen(room.gameState.phase)) emitMatchEnded(room, "abandoned");
   const pokerPhase = room.poker?.phase;
   if (pokerPhase === "betting" || pokerPhase === "hand_complete") emitMatchEnded(room, "abandoned");
+  const raubPhase = room.raub?.phase;
+  if (raubPhase === "playing" || raubPhase === "hand_complete") emitMatchEnded(room, "abandoned");
 };
 const sweptOnBoot = sweepStaleRooms(Date.now(), closeSweptMatch);
 if (sweptOnBoot > 0) {
