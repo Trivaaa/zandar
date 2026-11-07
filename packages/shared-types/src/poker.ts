@@ -250,6 +250,11 @@ export interface PokerGamePayload extends PokerPlayerView {
   players: PublicPlayer[];
   /** Kraj roka poteza (epoch ms) — i za bota, da tajmer izgleda isto za sve. */
   turnDeadline?: number;
+  /**
+   * Od kad teče sat (epoch ms): server prvo daje vremena klijentu da ispriča
+   * prethodni prelaz (`POKER_PACE`). Stariji server ga ne šalje.
+   */
+  turnStartsAt?: number;
 }
 
 /**

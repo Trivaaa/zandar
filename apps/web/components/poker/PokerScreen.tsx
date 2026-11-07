@@ -38,6 +38,7 @@ import type { ActiveReaction } from "@/lib/reactions";
 import { arrangeSeats } from "@/lib/seating";
 import { sr } from "@/lib/sr";
 import { useCountdown } from "@/lib/useCountdown";
+import { usePokerBeat } from "@/lib/usePokerBeat";
 
 import { ActionPanel } from "./ActionPanel";
 import {
@@ -93,7 +94,7 @@ function withoutTeam(player: PublicPlayer): PublicPlayer {
  * `state.legal` kaže, a sto se crta tek iz sljedećeg stanja.
  */
 export function PokerScreen({
-  state,
+  state: live,
   tableTheme,
   isQuickPlay,
   onAction,
@@ -104,6 +105,10 @@ export function PokerScreen({
   activeReactions,
   onPlayerTap,
 }: PokerScreenProps) {
+  // Sto kao priča: dok `hold` postoji, sto drži uloge, board, pot i stackove
+  // kakvi su bili i pušta ih korak po korak (`usePokerBeat`, plan animacija).
+  const { view: state, hold } = usePokerBeat(live);
+  const playing = hold !== null;
   const [menuOpen, setMenuOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -125,7 +130,9 @@ export function PokerScreen({
 
   const matchOver = state.phase === "match_finished" || state.phase === "abandoned";
   const handOver = state.phase === "hand_complete";
-  const myTurn = state.phase === "betting" && state.currentPlayerId === state.myPlayerId && state.legal !== null;
+  // Panel i sat tek kad priča prethodnog poteza završi.
+  const myTurn =
+    !playing && state.phase === "betting" && state.currentPlayerId === state.myPlayerId && state.legal !== null;
   const iAmOut = mySeat?.status === "bankrupt" || mySeat?.status === "left";
 
   // Toast greške ili rasta blindova — roditelj drži sat.
@@ -180,19 +187,30 @@ export function PokerScreen({
   const seats = arrangeSeats(state.players, state.myPlayerId);
   const result = handOver || matchOver ? state.lastHandResult : null;
   const summary = result ? summarizeHand(result) : null;
+  const showResult = Boolean(summary) && (!hold || hold.result === true);
   const winners = new Set(
     summary ? (summary.kind === "split" || summary.kind === "multi" ? summary.winners : [summary.winner]).map((w) => w.playerId) : [],
   );
-  const hiIds = winningCardIds(result);
-  const showdownOf = (id: string) => result?.showdown.find((h) => h.playerId === id);
+  const hiIds = hold && !hold.highlight ? new Set<string>() : winningCardIds(result);
+  // Tuđe karte se okreću redom (`hold.revealed`), ne sve odjednom.
+  const showdownOf = (id: string) =>
+    hold?.revealed && !hold.revealed.includes(id) ? undefined : result?.showdown.find((h) => h.playerId === id);
   const toneOf = (card: Card): "hi" | "lo" | undefined =>
     hiIds.size === 0 ? undefined : hiIds.has(card.id) ? "hi" : "lo";
-  const pots = displayPots(state);
+  const pots =
+    hold?.pot !== undefined
+      ? hold.pot > 0
+        ? [{ label: "main" as const, index: 0, amount: hold.pot }]
+        : []
+      : displayPots(state);
+  const boardCards = hold?.board !== undefined ? state.board.slice(0, hold.board) : state.board;
+  const dealing = hold?.dealt === false;
   const waitingName =
     state.phase === "betting" && state.currentPlayerId && state.currentPlayerId !== state.myPlayerId
       ? (playerOf(state.currentPlayerId)?.displayName ?? null)
       : null;
-  const hint = mySeat && !mySeat.folded && state.myCards.length === 2 ? handHint(state.myCards, state.board) : null;
+  const hint =
+    mySeat && !mySeat.folded && state.myCards.length === 2 && !dealing ? handHint(state.myCards, boardCards) : null;
 
   function reactionFor(id: string) {
     const r = [...activeReactions].reverse().find((x) => x.playerId === id);
@@ -202,7 +220,9 @@ export function PokerScreen({
   function renderSeat(player: PublicPlayer, orientation: Orientation, className: string, style: CSSProperties) {
     const seat = seatOf(player.id);
     if (!seat) return null;
-    if (seat.status === "left" || seat.status === "bankrupt") {
+    // Igrač koji je upravo ostao bez žetona sjedi dok mu se ne isplati ruka.
+    const stillSeated = hold?.stillSeated?.includes(player.id) ?? false;
+    if (seat.status === "left" || (seat.status === "bankrupt" && !stillSeated)) {
       return (
         <EmptySeat
           key={player.id}
@@ -221,24 +241,28 @@ export function PokerScreen({
       "z-20",
       seat.folded && seat.inHand ? "pk-folded" : "",
       seat.status === "sitting_out" ? "pk-away" : "",
-      winners.has(player.id) ? "pk-winner" : "",
+      winners.has(player.id) && (!hold || hold.highlight) ? "pk-winner" : "",
     ]
       .filter(Boolean)
       .join(" ");
-    const action = seat.lastAction && !handOver && !matchOver ? seat.lastAction : null;
+    const action = hold?.captions
+      ? (hold.captions[player.id] ?? null)
+      : seat.lastAction && !handOver && !matchOver
+        ? seat.lastAction
+        : null;
     return (
       <PlayerSeat
         key={player.id}
         player={withoutTeam(player)}
         orientation={orientation}
         isYou={isMe}
-        isActive={state.phase === "betting" && state.currentPlayerId === player.id}
+        isActive={!playing && state.phase === "betting" && state.currentPlayerId === player.id}
         secondsRemaining={turnSeconds}
         totalSeconds={TURN_TOTAL_SECONDS}
-        cardCount={!isMe && seat.hasCards && !shown ? 2 : 0}
+        cardCount={!isMe && seat.hasCards && !shown && !dealing ? 2 : 0}
         faceCards={shown?.holeCards}
         cardTone={toneOf}
-        coins={seat.stack}
+        coins={hold?.stacks?.[player.id] ?? seat.stack}
         showCoins
         statusText={seat.status === "sitting_out" ? sr.poker.waitingConnection : undefined}
         adornment={<PositionTags tags={positionTags(state, seat)} />}
@@ -270,8 +294,18 @@ export function PokerScreen({
   }
   function bet(player: PublicPlayer | undefined, where: Orientation) {
     const seat: PokerSeatView | undefined = player ? seatOf(player.id) : undefined;
-    if (!seat || seat.streetBet <= 0 || handOver || matchOver) return null;
-    return <StreetBet key={`bet-${seat.playerId}`} amount={seat.streetBet} style={betStyle(where)} />;
+    if (!seat) return null;
+    const amount = hold?.bets ? (hold.bets[seat.playerId] ?? 0) : handOver || matchOver ? 0 : seat.streetBet;
+    if (amount <= 0) return null;
+    return (
+      <StreetBet
+        key={`bet-${seat.playerId}`}
+        playerId={seat.playerId}
+        amount={amount}
+        hidden={hold?.hiddenBets?.includes(seat.playerId) ?? false}
+        style={betStyle(where)}
+      />
+    );
   }
 
   const hasSides = Boolean(seats.oppL || seats.oppR);
@@ -281,7 +315,7 @@ export function PokerScreen({
 
   const bustedPlace = mySeat?.status === "bankrupt" ? mySeat.place : null;
   // Poslije trake rezultata, ne preko nje: igrač prvo vidi kako je ruka završila.
-  const showBusted = mySeat?.status === "bankrupt" && !matchOver && !handOver && !bustSeen;
+  const showBusted = mySeat?.status === "bankrupt" && !matchOver && !handOver && !bustSeen && !playing;
   const mode: "quick" | "host" | "guest" = isQuickPlay ? "quick" : me?.isHost ? "host" : "guest";
 
   return (
@@ -324,13 +358,17 @@ export function PokerScreen({
         {/* Sredina: board i pot(ovi). Sjedišta sa strane su iznad nje (tabla A). */}
         <div
           className="pk-center absolute left-0 right-0 z-10"
+          data-deal-from
           style={{ top: centerTop, bottom: "calc(var(--table-bottom) + 1.75rem)" }}
         >
-          <Board cards={state.board} toneOf={toneOf} />
-          <Pots pots={pots} />
+          <Board cards={boardCards} toneOf={toneOf} />
+          {/* Sidro letova (ulozi u pot, pot ka pobjedniku) — postoji i kad je pot prazan. */}
+          <div className="pk-pot-anchor" data-pot-anchor>
+            <Pots pots={pots} />
+          </div>
         </div>
 
-        {summary ? (
+        {summary && showResult ? (
           <HandResultBar
             key={`res-${state.handNo}`}
             summary={summary}
@@ -346,7 +384,8 @@ export function PokerScreen({
           : null}
 
         {/* Tvoje dvije karte — desno od tvog sjedišta, licem gore. */}
-        {state.myCards.length > 0 && !iAmOut ? (
+        {/* Igrač koji je upravo ostao bez žetona vidi svoje karte do kraja priče ruke. */}
+        {state.myCards.length > 0 && (!iAmOut || (hold?.stillSeated?.includes(state.myPlayerId) ?? false)) && !dealing ? (
           <div
             className="pk-mine"
             {...(mySeat?.folded ? { "data-folded": true } : {})}
@@ -375,7 +414,8 @@ export function PokerScreen({
             onRaise={() => setRaiseOpen(true)}
             waitingName={waitingName}
             outOfHand={Boolean(mySeat?.folded && mySeat.inHand)}
-            between={handOver}
+            // „Sljedeća ruka počinje…" tek uz traku rezultata, ne dok showdown traje.
+            between={handOver && (!hold || hold.result === true)}
           />
         ) : null}
 
@@ -435,7 +475,7 @@ export function PokerScreen({
           />
         ) : null}
 
-        {matchOver ? (
+        {matchOver && !playing ? (
           <MatchEndCard
             rows={sortedPlacements(state)}
             myPlayerId={state.myPlayerId}

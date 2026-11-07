@@ -151,6 +151,10 @@
   --t-turn-pulse:    1400ms;
   --t-toast-in:      200ms;
   --t-screen-fade:   240ms;
+  /* Poker sto (POKER_PACE u game-core drži ritam koraka; ovo su pokreti unutar koraka). */
+  --t-pk-board:      440ms;
+  --t-pk-flip:       300ms;
+  --t-pk-lift:       320ms;
 
   /* Feedback blicevi u play-zoni. Vrijednosti su ISTE kao ranija hardkodirana
      trajanja (0.55s / 0.77s) — ovo je tokenizacija, ne promjena tempa. */
@@ -393,6 +397,9 @@
     --t-card-collect: 1ms;
     --t-toast-in:     1ms;
     --t-screen-fade:  1ms;
+    --t-pk-board:     1ms;
+    --t-pk-flip:      1ms;
+    --t-pk-lift:      1ms;
     --t-capture-flash: 1ms;
     --t-jack-sweep:    1ms;
     --t-turn-pulse:   0s;

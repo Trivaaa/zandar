@@ -1,6 +1,6 @@
 import { describe, test, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { createRulesConfig } from "@zandar/game-core";
+import { createRulesConfig, dealMs } from "@zandar/game-core";
 import { clientSupportsGame, type Player, type PokerGamePayload } from "@zandar/shared-types";
 import type { LobbyRoom } from "../rooms";
 import { pokerMatchEndedEvents, pokerMatchStartedEvents } from "../analytics";
@@ -84,6 +84,8 @@ function setup(r: LobbyRoom, sockets: PokerSocketLike[] = [], timing: Partial<Po
       showdownPauseMs: 2,
       autoActMs: 2,
       matchWindowMs: 20,
+      // Testovi mjere pravila stola, ne ritam prikaza (njega pokriva poseban test).
+      paceScale: 0,
       ...timing,
     },
     botThinkMs: () => 1,
@@ -313,5 +315,44 @@ describe("stari klijenti i analitika", () => {
     assert.equal(end[0]!.properties.is_winner, true);
     assert.equal(end[0]!.properties.game, "poker");
     assert.equal(end[0]!.properties.duration_ms, 3000);
+  });
+});
+
+describe("PokerTables — ritam prikaza (POKER_PACE)", () => {
+  test("sat prve ruke kreće tek poslije dijeljenja; ponovno slanje ne pomjera rok", async () => {
+    const me = fakeSocket("h1");
+    const other = fakeSocket("h2");
+    const r = room([human("h1", 0), human("h2", 1)]);
+    const { t } = setup(r, [me, other], { paceScale: 1, turnMs: 20_000 });
+    const before = Date.now();
+    t.start(r);
+    await until(() => lastState(me) !== undefined);
+    const st = lastState(me)!;
+    assert.ok(st.turnStartsAt !== undefined, "server šalje turnStartsAt");
+    const wait = st.turnStartsAt! - before;
+    assert.ok(wait >= dealMs(2) - 5 && wait <= dealMs(2) + 200, `čekanje ${wait} ≈ dealMs(2)`);
+    assert.equal(st.turnDeadline, st.turnStartsAt! + 20_000);
+
+    // Pretplata / prekid veze šalju isto stanje — rok i početak ostaju.
+    await t.broadcast(r.id);
+    const again = lastState(me)!;
+    assert.equal(again.turnStartsAt, st.turnStartsAt);
+    assert.equal(again.turnDeadline, st.turnDeadline);
+  });
+
+  test("potez u istoj ulici pomjera sat za trajanje poteza, ne za dijeljenje", async () => {
+    const me = fakeSocket("h1");
+    const other = fakeSocket("h2");
+    const r = room([human("h1", 0), human("h2", 1)]);
+    const { t } = setup(r, [me, other], { paceScale: 1, turnMs: 20_000 });
+    t.start(r);
+    await until(() => lastState(me) !== undefined);
+    const actor = r.poker!.currentPlayerId!;
+    const before = Date.now();
+    const res = await t.act(r.id, actor, { type: "raise", amount: 6 });
+    assert.deepEqual(res, { ok: true });
+    const st = lastState(me)!;
+    const wait = st.turnStartsAt! - before;
+    assert.ok(wait >= 600 && wait <= 900, `čekanje poslije raise-a ${wait}`);
   });
 });

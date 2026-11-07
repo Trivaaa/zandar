@@ -15,7 +15,7 @@
 
 import { prefersReducedMotion } from "./motion";
 
-function centerOf(rect: DOMRect): { x: number; y: number } {
+export function centerOf(rect: DOMRect): { x: number; y: number } {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
@@ -26,12 +26,12 @@ function centerOf(rect: DOMRect): { x: number; y: number } {
  * se slika ne učita (u praksi je već u kešu, jer špil stoji na ekranu prije
  * nego što ijedna karta poleti).
  */
-const BACK_ART = {
+export const BACK_ART = {
   color: "var(--card-back)",
   image: 'url("/cards/back.webp")',
 } as const;
 
-type GhostArt = { color: string; image: string };
+export type GhostArt = { color: string; image: string };
 
 /**
  * Lice karte se NE sastavlja iz `data-card-id`: taj id je id karte u partiji,
@@ -49,7 +49,7 @@ function faceArtOf(cardEl: Element): GhostArt {
   };
 }
 
-function makeGhost(
+export function makeGhost(
   center: { x: number; y: number },
   width: number,
   height: number,
@@ -77,7 +77,7 @@ function makeGhost(
   return ghost;
 }
 
-function runGhost(
+export function runGhost(
   ghost: HTMLElement,
   dx: number,
   dy: number,

@@ -58,10 +58,26 @@ export function EmptySeat({
   );
 }
 
-/** Ulog ulice: stog žetona + iznos. */
-export function StreetBet({ amount, style }: { amount: number; style: CSSProperties }) {
+/** Ulog ulice: stog žetona + iznos. `hidden`: žetoni još lete (sidro ostaje). */
+export function StreetBet({
+  amount,
+  style,
+  playerId,
+  hidden = false,
+}: {
+  amount: number;
+  style: CSSProperties;
+  playerId: string;
+  hidden?: boolean;
+}) {
   return (
-    <span className="pk-bet" style={style} aria-label={sr.poker.chips(amount)}>
+    <span
+      className="pk-bet"
+      data-bet-anchor={playerId}
+      {...(hidden ? { "data-pending": true } : {})}
+      style={style}
+      aria-label={sr.poker.chips(amount)}
+    >
       <span className="pk-stack" aria-hidden="true">
         <i />
         <i />

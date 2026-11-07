@@ -8,10 +8,12 @@ import {
   getPokerView,
   leavePokerMatch,
   pokerBotThinkMs,
+  pokerPresentationMs,
   selectPokerBotAction,
   setPokerSeatStatus,
   startPokerHand,
 } from "@zandar/game-core";
+import type { PaceFrame } from "@zandar/game-core";
 import type {
   PokerActionRequest,
   PokerActionType,
@@ -58,6 +60,11 @@ export interface PokerTiming {
   autoActMs: number;
   /** Quick Play: prozor za druge prave igrače (spec: 3 s). */
   matchWindowMs: number;
+  /**
+   * Množilac vremena prikaza (`POKER_PACE`): 1 = sat sljedećeg igrača i nova
+   * ruka čekaju da klijent ispriča prelaz (animacije); 0 = bez čekanja (testovi).
+   */
+  paceScale?: number;
 }
 
 export interface PokerDeps {
@@ -105,6 +112,10 @@ export class PokerTables {
   /** roomId → za koji potez je tajmer naoružan (da broadcast ne resetuje sat). */
   private readonly armedFor = new Map<string, string>();
   private readonly deadlines = new Map<string, number>();
+  /** Od kad teče sat (poslije prikaza prethodnog prelaza). Šalje se klijentu. */
+  private readonly turnStarts = new Map<string, number>();
+  /** Zadnje stanje po kojem je računat prikaz — da se priča jednom po promjeni. */
+  private readonly shown = new Map<string, PaceFrame & { actions: number }>();
   private readonly handTimers = new Map<string, NodeJS.Timeout>();
   private readonly matchTimers = new Map<string, NodeJS.Timeout>();
   /** `${roomId}:${playerId}` → istek veze. */
@@ -127,6 +138,9 @@ export class PokerTables {
     });
     room.status = "playing";
     delete room.matchingUntil;
+    // Prva ruka se priča kao svaka sljedeća (blindovi + dijeljenje), pa se
+    // „prethodno prikazano" postavi na prazan sto prije nje.
+    this.shown.set(room.id, { handNo: 0, phase: "hand_complete", boardCount: 0, actions: 0 });
     this.deps.onMatchStarted?.(room);
     this.deps.log.info(`🃏 Poker meč ${matchId} počinje (${room.players.length} igrača)`);
     void this.broadcast(room.id);
@@ -169,11 +183,14 @@ export class PokerTables {
 
   payload(room: LobbyRoom, viewerId: string): PokerGamePayload | null {
     if (!room.poker) return null;
-    const deadline = room.poker.phase === "betting" ? this.deadlines.get(room.id) : undefined;
+    const betting = room.poker.phase === "betting";
+    const deadline = betting ? this.deadlines.get(room.id) : undefined;
+    const turnStartsAt = betting ? this.turnStarts.get(room.id) : undefined;
     return {
       ...getPokerView(room.poker, viewerId),
       players: room.players.map(toPublicPlayer),
       ...(deadline !== undefined ? { turnDeadline: deadline } : {}),
+      ...(turnStartsAt !== undefined ? { turnStartsAt } : {}),
     };
   }
 
@@ -198,6 +215,38 @@ export class PokerTables {
     this.armedFor.delete(roomId);
   }
 
+  /**
+   * Koliko klijentu treba da ispriča prelaz od zadnjeg prikazanog stanja
+   * (`POKER_PACE`). Računa se JEDNOM po stvarnoj promjeni — ponovno slanje istog
+   * stanja (pretplata, prekid veze) vraća 0 i ne pomjera ništa.
+   */
+  private presentation(room: LobbyRoom): number {
+    const s = room.poker!;
+    const prev = this.shown.get(room.id) ?? null;
+    const next = { handNo: s.handNo, phase: s.phase, boardCount: s.board.length, actions: s.actionLog.length };
+    this.shown.set(room.id, next);
+    if (
+      !prev ||
+      (prev.handNo === next.handNo &&
+        prev.phase === next.phase &&
+        prev.boardCount === next.boardCount &&
+        prev.actions === next.actions)
+    ) {
+      return 0;
+    }
+    const scale = this.deps.timing.paceScale ?? 1;
+    if (scale <= 0) return 0;
+    const ms = pokerPresentationMs({
+      prev,
+      next,
+      lastAction: s.actionLog[s.actionLog.length - 1]?.type ?? null,
+      dealtPlayers: s.seats.filter((x) => x.inHand).length,
+      result: s.phase === "betting" ? null : s.lastHandResult,
+      busted: s.seats.filter((x) => x.status === "bankrupt" && x.stackAtHandStart > 0).length,
+    });
+    return Math.round(ms * scale);
+  }
+
   /** Ko je na potezu i šta server čeka; kraj ruke → sljedeća; kraj meča. */
   private route(room: LobbyRoom): void {
     const s = room.poker;
@@ -211,8 +260,13 @@ export class PokerTables {
       if (this.armedFor.get(room.id) === key) return; // isti potez — sat teče dalje
       this.clearAct(room.id);
       this.armedFor.set(room.id, key);
+      // Sat kreće tek kad klijent ispriča prethodni prelaz (animacije) — inače
+      // bi igrač gubio sekunde gledajući kako žetoni idu u pot.
+      const show = this.presentation(room);
+      const startsAt = Date.now() + show;
       // Rok za prikaz i za bota: bot odluči brže, a sat izgleda isto (HARD RULE 4/5).
-      this.deadlines.set(room.id, Date.now() + timing.turnMs);
+      this.deadlines.set(room.id, startsAt + timing.turnMs);
+      this.turnStarts.set(room.id, startsAt);
       const player = room.players.find((p) => p.id === pid);
       let delay: number;
       let fire: () => void;
@@ -227,16 +281,24 @@ export class PokerTables {
         delay = timing.turnMs;
         fire = () => this.autoAct(room.id, pid);
       }
-      this.actTimers.set(room.id, setTimeout(fire, delay));
+      this.actTimers.set(room.id, setTimeout(fire, show + delay));
       return;
     }
 
     this.clearAct(room.id);
     this.deadlines.delete(room.id);
+    this.turnStarts.delete(room.id);
 
     if (s.phase === "hand_complete" && !this.handTimers.has(room.id)) {
-      const pause = s.lastHandResult?.uncontested ? timing.handPauseMs : timing.showdownPauseMs;
+      // Pauza = priča kraja ruke (otkrivanje, isplata, čitanje). Bez nje (testovi,
+      // hidracija) ostaju stare fiksne pauze.
+      const show = this.presentation(room);
+      const pause =
+        show > 0 ? show : s.lastHandResult?.uncontested ? timing.handPauseMs : timing.showdownPauseMs;
       this.handTimers.set(room.id, setTimeout(() => this.nextHand(room.id), pause));
+    } else if (s.phase !== "hand_complete") {
+      // Kraj meča: zapamti zadnje stanje, da revanš ne priča „prelaz" iz starog meča.
+      this.presentation(room);
     }
     if (s.phase === "match_finished" || s.phase === "abandoned") {
       if (room.status !== "finished") {
@@ -443,5 +505,7 @@ export class PokerTables {
     }
     this.armedFor.clear();
     this.deadlines.clear();
+    this.turnStarts.clear();
+    this.shown.clear();
   }
 }

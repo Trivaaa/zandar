@@ -1545,6 +1545,8 @@ const pokerTables = new PokerTables({
     showdownPauseMs: ms("POKER_SHOWDOWN_PAUSE_MS", 5000),
     autoActMs: ms("POKER_AUTO_ACT_MS", 1200),
     matchWindowMs: ms("POKER_MATCH_WINDOW_MS", 2000), // spec: „do 3 s", a cilj je prva ruka < 3 s od klika
+    // Vrijeme za animacije (POKER_PACE), u procentima: 130 = 30% sporije, 50 = upola brže.
+    paceScale: ms("POKER_PACE_PERCENT", 100) / 100,
   },
   onMatchStarted: (room) => emitMatchStarted(room),
   onMatchEnded: (room, reason) => emitMatchEnded(room, reason),

@@ -2561,28 +2561,76 @@
   --card-w: var(--pk-board-w, 2.875rem);
   --card-h: calc(var(--pk-board-w, 2.875rem) * 1.417);
 }
+/* Pobjedničke karte se PODIGNU i zasvijetle (QA PK-P3: tanak okvir se nije
+   vidio); ostale potamne. Sjena je statična, pomjera se samo transform. */
+.pk-board__slot,
+.pk-mine__slot,
+.felt-stage[data-game="poker"] .seat__fan-slot {
+  /* `translate`, ne `transform`: slot lepeze već nosi rotaciju u `transform`,
+     a `translate` se sa njom sabira umjesto da je pregazi. */
+  transition:
+    translate var(--t-pk-lift) var(--ease-out-soft),
+    opacity var(--t-pk-lift) var(--ease-out-soft);
+}
+.pk-board__slot[data-tone="hi"] {
+  translate: 0 -0.4rem;
+}
 .pk-board__slot[data-tone="hi"] .card-face {
   box-shadow:
     0 0 0 3px var(--turn-active),
-    0 0 14px 4px color-mix(in oklab, var(--turn-active) 50%, transparent);
+    0 0 16px 5px color-mix(in oklab, var(--turn-active) 60%, transparent);
 }
 .pk-board__slot[data-tone="lo"] {
-  opacity: 0.45;
+  opacity: 0.4;
 }
-/* Nova karta na boardu pada odozgo (flop tri zaredom). */
+/* Nova karta na boardu: pada iz sredine stola i okrene se. Karte se montiraju
+   jedna po jedna (koraci u `pokerBeat`), pa kašnjenja ovdje nema. */
 .pk-board__slot[data-new] .card {
-  animation: pk-board-in var(--t-card-deal) var(--ease-card) backwards;
-  animation-delay: calc(var(--pk-i, 0) * var(--t-card-deal));
+  animation: pk-board-in var(--t-pk-board) var(--ease-card) backwards;
 }
 @keyframes pk-board-in {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(-2.1rem) rotate(-8deg);
+    transform: translateY(-1.6rem) scaleX(0.05) rotate(-6deg);
   }
-  to {
+  45% {
+    opacity: 1;
+    transform: translateY(-0.4rem) scaleX(0.05) rotate(-3deg);
+  }
+  100% {
     opacity: 1;
     transform: none;
   }
+}
+
+/* Showdown: tuđe karte se okreću (sužavanje → lice), jedan igrač po jedan. */
+.felt-stage[data-game="poker"] .seat__fan[data-face-up] .seat__fan-slot .card {
+  animation: pk-flip var(--t-pk-flip) var(--ease-out-soft) backwards;
+}
+@keyframes pk-flip {
+  from {
+    transform: scaleX(0.05);
+  }
+  to {
+    transform: none;
+  }
+}
+.felt-stage[data-game="poker"] .seat__fan-slot[data-tone="hi"],
+.pk-mine__slot[data-tone="hi"] {
+  translate: 0 -0.35rem;
+}
+
+/* Ulog čiji žetoni još lete: sidro leta postoji, ali se ne vidi. */
+.pk-bet[data-pending] {
+  opacity: 0;
+  animation: none;
+}
+
+/* Sidro pota: drži mjesto i kad je pot prazan, pa letovi uvijek imaju cilj. */
+.pk-pot-anchor {
+  display: flex;
+  justify-content: center;
+  min-height: 1.75rem;
 }
 
 .pk-pots {

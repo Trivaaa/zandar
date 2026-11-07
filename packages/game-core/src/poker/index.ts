@@ -31,6 +31,15 @@ export {
 export type { CreatePokerMatchParams, PokerRng, StartPokerHandOptions } from "./match";
 export { getPokerView, getPokerAutoAction } from "./view";
 export {
+  POKER_PACE,
+  pokerPresentationMs,
+  dealMs,
+  actionBeatMs,
+  boardStageMs,
+  awardedPots,
+} from "./pace";
+export type { PokerPace, PaceFrame, PaceInput } from "./pace";
+export {
   selectPokerBotAction,
   pokerBotThinkMs,
   chenScore,
