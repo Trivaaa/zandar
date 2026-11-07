@@ -1,0 +1,657 @@
+/* ------------------------------------------------------------------ *
+ * Raub sto — Claude Design „UI · Raub — kompletan UI" (docs/raub-spec.md).
+ *
+ * Isti `.felt-stage`, iste podloge, ista sjedišta (`PlayerSeat`) i ista
+ * lepeza ruke kao Žandar. Mijenja se samo budžet trake nad rukom: umjesto
+ * „Ti si na potezu" tu stoji panel (licitacija, idem, zamjena) sa dugmadima
+ * od 44 px. Novih tokena nema (tabla: „Novi tokeni: nijedan"): kazna je
+ * `--danger-signal`, ×2 refa `--warn`, nosilac `--accent`.
+ *
+ * Animira se samo transform i opacity; trajanja su `--t-*` (kolapsiraju pod
+ * reduced-motion). Ide u `layer(components)` (globals.css).
+ * ------------------------------------------------------------------ */
+
+.felt-stage[data-game="raub"] {
+  /* Traka nad rukom nosi uputu (1.5rem) i dugmad od 2.75rem (44 px). Uputa je
+     u traci, ne preko sjedišta: izmjereno, preko sjedišta je pokrivala bodove. */
+  --stage-banner-h: 4.6rem;
+  /* Avatar + ime + bodovi (red više nego Žandar, isto kao Poker). */
+  --seat-chip-h: 2.9rem;
+}
+
+/* ---- Zaglavlje ------------------------------------------------------- */
+
+.rb-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+.rb-head__phase {
+  font: 700 1rem/1.2 var(--font-sans);
+  color: var(--text);
+  white-space: nowrap;
+}
+.rb-head__table {
+  margin-left: auto;
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--bg-mid) 75%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--accent);
+  font: 700 0.875rem/1 var(--font-sans);
+}
+.rb-head__table:active {
+  transform: scale(0.97);
+}
+
+.rb-x2 {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--warn) 22%, transparent);
+  box-shadow: inset 0 0 0 1px var(--warn);
+  color: var(--warn);
+  font: 700 0.75rem/1.1 var(--font-sans);
+  white-space: nowrap;
+}
+.rb-head .rb-x2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.rb-suit {
+  color: inherit;
+}
+.rb-suit[data-red] {
+  color: var(--danger-signal);
+}
+
+/* ---- Stol: adut, talon, štih ------------------------------------------ */
+
+.rb-table {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rb-trump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+  height: 2rem;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--bg-mid) 80%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--accent-line);
+}
+.rb-trump[data-state="offered"] {
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--text) 30%, transparent);
+}
+.rb-trump[data-state="trump"] {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.rb-trump__suit {
+  font: 700 1.25rem/1 var(--font-sans);
+  color: var(--text);
+}
+.rb-trump__x2 {
+  padding: 0.1rem 0.3rem;
+  border-radius: 999px;
+  background-color: var(--warn);
+  color: var(--accent-contrast);
+  font: 700 0.6875rem/1 var(--font-sans);
+}
+.rb-trump__label {
+  font: 700 0.625rem/1 var(--font-sans);
+  letter-spacing: 0.06em;
+  color: var(--text-soft);
+}
+.rb-trump[data-state="trump"] .rb-trump__label {
+  color: var(--accent);
+}
+
+.rb-talon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+}
+.rb-talon__deck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+.rb-talon__empty {
+  width: var(--card-w-sm, 3rem);
+  aspect-ratio: 5 / 7;
+  border-radius: 6px;
+  outline: 1.5px dashed color-mix(in oklab, var(--text) 25%, transparent);
+}
+.rb-talon__count,
+.rb-talon__flip {
+  font: 600 0.75rem/1.2 var(--font-sans);
+  color: var(--text-soft);
+}
+.rb-talon__flip {
+  flex-basis: 100%;
+  text-align: center;
+}
+.rb-talon__cards {
+  position: relative;
+  display: grid;
+}
+.rb-talon__cards > span {
+  grid-area: 1 / 1;
+}
+/* Ranije okrenute karte leže prigušene ispod nove, malo pomjerene. */
+.rb-talon__under {
+  opacity: 0.4;
+  transform: translate(calc(-0.6rem - var(--i) * 0.5rem), 0.35rem) rotate(-6deg);
+}
+.rb-talon__top {
+  animation: rb-flip var(--t-card-flip) var(--ease-card) both;
+}
+@keyframes rb-flip {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+.rb-open {
+  position: absolute;
+  left: 0.25rem;
+  bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  border-radius: 10px;
+  background-color: color-mix(in oklab, var(--bg-mid) 80%, transparent);
+  font: 600 0.75rem/1.2 var(--font-sans);
+  color: var(--text-soft);
+}
+.rb-open__card {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background-color: var(--card-face);
+  color: var(--card-ink);
+  font: 700 0.875rem/1.2 var(--font-sans);
+}
+.rb-open__card[data-red] {
+  color: var(--card-ink-red);
+}
+
+/* Štih: svaka karta ispred onog ko ju je bacio (tabla 9/10). */
+.rb-trick {
+  position: absolute;
+  inset: 0;
+  transition:
+    transform var(--t-card-collect) var(--ease-card),
+    opacity var(--t-card-collect) var(--ease-card);
+}
+.rb-trick__card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  animation: rb-play var(--t-card-play) var(--ease-card) both;
+}
+.rb-trick__card[data-dir="bottom"] {
+  transform: translate(-50%, 2%);
+}
+.rb-trick__card[data-dir="top"] {
+  transform: translate(-50%, -102%);
+}
+.rb-trick__card[data-dir="left"] {
+  transform: translate(-150%, -50%) rotate(-4deg);
+}
+.rb-trick__card[data-dir="right"] {
+  transform: translate(50%, -50%) rotate(4deg);
+}
+.rb-trick__card[data-last] .card-face {
+  box-shadow: 0 0 0 2.5px var(--turn-active);
+}
+@keyframes rb-play {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Pun štih klizi ka pobjedniku i nestaje. */
+.rb-trick[data-collect] {
+  opacity: 0;
+}
+.rb-trick[data-collect="bottom"] {
+  transform: translateY(40%) scale(0.6);
+}
+.rb-trick[data-collect="top"] {
+  transform: translateY(-40%) scale(0.6);
+}
+.rb-trick[data-collect="left"] {
+  transform: translateX(-40%) scale(0.6);
+}
+.rb-trick[data-collect="right"] {
+  transform: translateX(40%) scale(0.6);
+}
+
+/* ---- Sjedište --------------------------------------------------------- */
+
+/* Bodovi ispod imena (`showCoins`) — bez žetona, samo broj. */
+.felt-stage[data-game="raub"] .seat__numbers {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--bg-mid) 80%, transparent);
+  font-weight: 700;
+}
+
+/* Prsten 15 s: zeleno → narandžasto → crveno (iste tri boje kao Poker). */
+.felt-stage[data-game="raub"] .seat[data-countdown] {
+  --seat-ring-live: var(--success);
+  --seat-halo: color-mix(in oklab, var(--success) 70%, transparent);
+}
+.felt-stage[data-game="raub"] .seat[data-countdown][data-warn] {
+  --seat-ring-live: var(--warn);
+  --seat-halo: color-mix(in oklab, var(--warn) 75%, transparent);
+}
+.felt-stage[data-game="raub"] .seat[data-countdown][data-urgent] {
+  --seat-ring-live: var(--danger-signal);
+  --seat-halo: color-mix(in oklab, var(--danger-signal) 85%, transparent);
+}
+
+/* Natpis (Dalje / Raub / Idem / Zamjena 3) IZNAD avatara, kao Poker. */
+.felt-stage[data-game="raub"] .seat__caption {
+  top: auto;
+  bottom: calc(100% - 0.55rem);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background-color: var(--card-face);
+}
+/* Bočni natpis ostaje unutar ekrana: poravnat uz ivicu na kojoj sjedi. */
+.felt-stage[data-game="raub"] .seat--left .seat__caption {
+  left: 0;
+  right: auto;
+  transform: none;
+  animation-name: caption-in;
+}
+.felt-stage[data-game="raub"] .seat--right .seat__caption {
+  left: auto;
+  right: 0;
+  transform: none;
+  animation-name: caption-in;
+}
+/* Nosilac na bočnom mjestu: oznaka u redu ispod bodova (mesing). */
+.seat.rb-declarer .seat__status {
+  display: inline-block;
+  margin-top: 0.15rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.felt-stage[data-game="raub"] .seat__caption-text {
+  font-weight: 700;
+  color: var(--accent-contrast);
+  white-space: nowrap;
+}
+.felt-stage[data-game="raub"] .seat__caption[data-tone="bet"] {
+  background-color: var(--accent);
+}
+
+/* Ne ide: ostaje za stolom, prigušen do kraja ruke. */
+.seat.rb-dropped .seat__body {
+  opacity: 0.42;
+}
+
+.rb-tags {
+  position: absolute;
+  top: calc(0.2rem + var(--seat-avatar) - 1.1rem);
+  left: calc(50% + var(--seat-avatar) / 2 - 0.5rem);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.seat--right .rb-tags {
+  left: auto;
+  right: calc(50% + var(--seat-avatar) / 2 - 0.5rem);
+  flex-direction: row-reverse;
+}
+/* „Raub · mora 2" + 1/2 u mesingu — stalno vidljivo, bez tapa (tabla 10). */
+.rb-decl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 1.15rem;
+  padding: 0 0.4rem;
+  border-radius: 4px;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  font: 700 0.625rem/1 var(--font-sans);
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+}
+.rb-decl b {
+  padding: 0.05rem 0.25rem;
+  border-radius: 3px;
+  background-color: var(--accent-contrast);
+  color: var(--accent);
+}
+.rb-tricks {
+  display: grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background-color: var(--card-face);
+  color: var(--card-ink);
+  font: 700 0.6875rem/1 var(--font-sans);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+}
+
+/* ---- Ruka: zaključana karta ------------------------------------------- */
+
+.hand__slot[data-locked] {
+  position: relative;
+}
+.hand__lock {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+  pointer-events: none;
+}
+
+/* ---- Panel nad rukom -------------------------------------------------- */
+
+.rb-panel-slot {
+  height: var(--stage-banner-h);
+  display: flex;
+  align-items: flex-end;
+  /* Desno ostaje stub dugmadi (zvuk, vibracija, reakcije): na niskim ekranima
+     je viši od ruke i ulazi u visinu panela (izmjereno na 360×640). */
+  padding-left: calc(0.75rem + var(--safe-left));
+  padding-right: calc(3.6rem + var(--safe-right));
+}
+.rb-panel {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 28rem;
+  margin-inline: auto;
+}
+.rb-panel__hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.3rem);
+  transform: translateX(-50%);
+  max-width: 100%;
+  margin: 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--bg-mid) 85%, transparent);
+  font: 600 0.8125rem/1.25 var(--font-sans);
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rb-panel__btn {
+  flex: 1;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 12px;
+  font: 700 1rem/1.1 var(--font-sans);
+  display: grid;
+  place-items: center;
+  padding: 0.25rem 0.5rem;
+  transition: transform var(--t-toast-in) var(--ease-out-soft);
+}
+.rb-panel__btn:active {
+  transform: scale(0.97);
+}
+.rb-panel__btn:disabled {
+  opacity: 0.5;
+}
+.rb-panel__btn[data-kind="pass"] {
+  background-color: color-mix(in oklab, var(--bg-mid) 80%, transparent);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--text) 35%, transparent);
+}
+.rb-panel__btn[data-kind="main"] {
+  background-color: var(--card-face);
+  color: var(--accent-contrast);
+}
+.rb-panel__btn[data-kind="accent"] {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.rb-panel__two {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+.rb-panel__two small {
+  font: 600 0.6875rem/1 var(--font-sans);
+  opacity: 0.8;
+}
+.rb-panel[data-wait],
+.rb-panel[data-play] {
+  min-height: 2.75rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  background-color: color-mix(in oklab, var(--bg-mid) 55%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--text) 14%, transparent);
+  text-align: center;
+}
+.rb-panel[data-play] {
+  box-shadow: inset 0 0 0 1.5px var(--turn-active);
+}
+.rb-panel__wait,
+.rb-panel__turn {
+  font: 600 0.9375rem/1.2 var(--font-sans);
+  color: var(--text);
+}
+.rb-panel__why {
+  font: 400 0.75rem/1.2 var(--font-sans);
+  color: var(--text-soft);
+}
+
+/* ---- Kraj ruke --------------------------------------------------------- */
+
+.rb-summary h3 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.rb-summary__pending {
+  color: var(--warn);
+}
+.rb-rows {
+  width: 100%;
+  border-collapse: collapse;
+  font: 400 0.875rem/1.25 var(--font-sans);
+  margin: 0.5rem 0 0.25rem;
+}
+.rb-rows th {
+  font: 600 0.6875rem/1.2 var(--font-sans);
+  color: var(--text-soft);
+  text-align: left;
+  padding: 0.25rem 0.3rem;
+}
+.rb-rows td {
+  padding: 0.35rem 0.3rem;
+  border-top: 1px solid color-mix(in oklab, var(--text) 10%, transparent);
+  vertical-align: middle;
+}
+.rb-rows tr[data-me] td {
+  background-color: color-mix(in oklab, var(--accent) 10%, transparent);
+}
+.rb-rows__who {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.rb-rows__who small {
+  display: block;
+  font: 600 0.625rem/1.2 var(--font-sans);
+  color: var(--accent);
+}
+.rb-rows td[data-penalty] {
+  color: var(--danger-signal);
+  font-weight: 700;
+}
+.rb-rows td small {
+  display: block;
+  font: 600 0.625rem/1.1 var(--font-sans);
+}
+.rb-rows__before {
+  color: var(--text-faint);
+}
+
+/* ---- Tabela (list odozdo) ---------------------------------------------- */
+
+.rb-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  /* Iznad kartice kraja ruke / meča (`.pk-card-scrim`): tabela se otvara iz nje. */
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: rgb(8 6 5 / 0.55);
+}
+.rb-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 85%;
+  padding: 0.5rem 1rem calc(var(--safe-bottom) + 1rem);
+  border-radius: 18px 18px 0 0;
+  background-color: var(--surface-raised);
+  color: var(--text);
+  animation: rb-sheet-in var(--t-screen-fade) var(--ease-out-soft) both;
+}
+@keyframes rb-sheet-in {
+  from {
+    transform: translateY(12%);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.rb-sheet__grip {
+  align-self: center;
+  width: 2.5rem;
+  height: 4px;
+  border-radius: 999px;
+  background-color: var(--text-faint);
+  margin-bottom: 0.5rem;
+}
+.rb-sheet h3 {
+  margin: 0;
+  font: 700 1.125rem/1.2 var(--font-sans);
+}
+.rb-sheet p {
+  margin: 0.25rem 0 0.5rem;
+  font: 400 0.8125rem/1.3 var(--font-sans);
+  color: var(--text-soft);
+}
+.rb-sheet__scroll {
+  overflow: auto;
+  min-height: 0;
+}
+.rb-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font: 400 0.875rem/1.2 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.rb-grid th,
+.rb-grid td {
+  padding: 0.4rem 0.3rem;
+  text-align: center;
+  border-bottom: 1px solid color-mix(in oklab, var(--text) 8%, transparent);
+}
+.rb-grid thead th {
+  font: 600 0.75rem/1.2 var(--font-sans);
+  color: var(--text-soft);
+  max-width: 5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rb-grid tbody th {
+  text-align: left;
+  font: 600 0.75rem/1.2 var(--font-sans);
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.rb-grid tr[data-void] td,
+.rb-grid tr[data-void] th {
+  color: var(--warn);
+}
+.rb-grid td[data-penalty] {
+  color: var(--danger-signal);
+  font-weight: 700;
+}
+.rb-grid tfoot th,
+.rb-grid tfoot td {
+  font-weight: 700;
+  border-bottom: 0;
+  border-top: 1.5px solid color-mix(in oklab, var(--text) 25%, transparent);
+}
+.rb-grid tfoot td[data-lead] {
+  color: var(--accent);
+}
+.rb-sheet p.rb-sheet__pending {
+  color: var(--warn);
+  font-weight: 600;
+}
+.rb-sheet__close {
+  margin-top: 0.75rem;
+  min-height: 2.75rem;
+}
+
+/* ---- Kraj meča: bodovi uz ime ----------------------------------------- */
+
+.rb-end__score {
+  margin-left: auto;
+  font: 700 0.9375rem/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}

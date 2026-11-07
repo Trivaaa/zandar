@@ -95,7 +95,8 @@ export function LobbyScreen({
   onInviteFriends,
   game = "zandar",
 }: LobbyScreenProps) {
-  const poker = game === "poker";
+  // Poker i Raub: bez cilja, timova i dugmeta Start (sto kreće sam kad se popuni).
+  const poker = game === "poker" || game === "raub";
   const seatsFilled = players.length;
   const seatsNeeded = Math.max(0, playerCount - seatsFilled);
 

@@ -59,7 +59,7 @@ export function MatchingScreen({ roomId }: { roomId: string }) {
     const load = (attempt: number): Promise<RoomInfo> =>
       getRoom(roomId).then((room) => {
         const filling =
-          room.game === "poker" &&
+          (room.game === "poker" || room.game === "raub") &&
           room.status === "waiting" &&
           room.players.length < room.playerCount &&
           attempt < POKER_POLL_MAX;
@@ -72,7 +72,7 @@ export function MatchingScreen({ roomId }: { roomId: string }) {
     load(0)
       .then((room) => {
         if (cancelled) return;
-        if (room.game === "poker") setPace(PACE.poker);
+        if (room.game === "poker" || room.game === "raub") setPace(PACE.poker);
         // Sortiraj: vlastito sjedište uvijek prvo (ide na dno)
         const sorted = [...room.players].sort((a, b) => {
           if (a.id === session.playerId) return -1;

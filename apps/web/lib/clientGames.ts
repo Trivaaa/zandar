@@ -6,4 +6,4 @@ import type { GameId } from "@zandar/shared-types";
  * bez njih (APK 1.0–1.3) ne smije ući u poker sobu, jer bi poker stanje crtao
  * kao Žandar sto. Nova igra = red ovdje tek kad je njen ekran gotov.
  */
-export const CLIENT_GAMES: readonly GameId[] = ["zandar", "poker"];
+export const CLIENT_GAMES: readonly GameId[] = ["zandar", "poker", "raub"];

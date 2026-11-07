@@ -1302,3 +1302,20 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 
 **Zamke:**
 - Na Windowsu `TaskStop` ugasi `pnpm`, ali ne i `node` dijete — server ostane na portu. Gasi se po portu (`Get-NetTCPConnection … | Stop-Process`).
+
+## 127. Raub — sto (2026-11-07, `feat/raub-table`)
+
+**Povod:** S3 plana za Raub: ekran stola po tabli „UI · Raub — kompletan UI", na istom felt-u, podlogama, sjedištima, lepezi ruke, meniju, reakcijama i pauzi kao Žandar i Poker.
+
+**Izmjene:**
+- `components/raub/RaubScreen.tsx` + `RaubParts.tsx`: zaglavlje (faza „Licitacija" / „Idem?" / „Zamjena" / „Štih 2 od 4", adut „NUDI SE ♠" / „ADUT ♥" i ×2, „Refa ×N", dugme Tabela), talon sa špilom i „Karta N od 3" (ranije okrenute prigušene ispod), prostor štiha (karta ispred onog ko ju je bacio, zadnja sa svijetlim rubom; pun štih 1 s pa klizi ka pobjedniku), panel nad rukom (djelilac: Otvori karte / Raub naslijepo; licitacija: Dalje / Raub; sedmica za talon; višak; Idem / Ne idem; zamjena: Zadrži sve / Zamijeni N; štih: „Ti si na potezu" + zašto su karte zatamnjene; „Čeka se: …"), pregled ruke (kazne crvene sa „kazna", ×2 refa, „ne ide"), refa, tabela kao list odozdo, kraj meča sa bodovima (Igraj ponovo / Revanš / Tabela / Izađi), pauza i glasanje kroz postojeći `PauseAbandonOverlay`.
+- Sjedišta: bodovi ispod imena, natpis odgovora iznad avatara („Dalje", „Raub", „Idem", „Zamjena 3", „Bez zamjene"), D, nosilac „Raub · mora 2" + 1/2 u mesingu (gore i dolje uz avatar; na bočnim mjestima u redu ispod bodova — pločica uz avatar je ulazila u sto), „Ne ide" prigušeno, prsten 15 s.
+- `PlayerHand` (proširenje, Žandar netaknut): `selectedCardIds` (zamjena) i `lockedCardIds` (karta s talona, katanac). Djelilac prije odluke vidi poleđine.
+- `lib/raubView.ts` (čista logika prikaza, testirana), `sr.raub`, pravila (`RulesModal game="raub"`), `app/raub.css` (layer components, `[data-game="raub"]` / `rb-`, bez novih tokena), `CLIENT_GAMES` + `raub`, lobi i matching tretiraju Raub kao Poker (bez cilja/timova, prozor za prave igrače), `RoomScreen` → `RaubScreen` + `raub:action`, „Igraj ponovo" pravi novi Raub sto.
+- `/dev/raub?s=…&n=2|3|4`: stanja NISU ručno pisana — pravi motor i bot vode meč iz sjemena dok ne stignu do koraka (open, bid, bid2, discard, going, exchange, exchangeOpen, trick, declarer, handEnd, refa, table, end, pause, vote).
+
+**Mjereno (CDP, mobilna emulacija 360×740 i 360×640, 2P/3P/4P):** sve vidljivo bez skrola. Nađeno i popravljeno snimkom: dugme reakcija lijevo je pokrivalo „Dalje" (vraćeno na Žandar mjesto); uputa iznad panela je pokrivala tvoje bodove (traka nad rukom 4,6rem, uputa u njoj); oznaka aduta u uglu stola je na 360×640 pokrivala talon i štih (preseljena u zaglavlje); stub zvuk/vibracija/reakcije je na 640 ulazio u desno dugme panela (panel ostavlja 3,6rem desno; `px-3` uklonjen jer bi utility nadjačao CSS); tabela se otvarala ispod kartice kraja ruke (z-index 70); natpis bočnog igrača se sjekao na ivici; otvorena karta je bila velika kutija preko špila (sada čip „10♥ Goga · otvorena", samo za tuđu).
+
+**Provjereno:** web 189 testova (9 novih), typecheck, lint = osnovica (5/2).
+
+**Nije urađeno:** let karte iz ruke na sto (`flyAnimation`) — karta se pojavi na svom mjestu (opacity); zvuk i haptika za Raub događaje; ocjena na uređaju.
