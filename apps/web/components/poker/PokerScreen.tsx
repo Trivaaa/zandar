@@ -30,6 +30,7 @@ import {
   displayPots,
   handHint,
   positionTags,
+  showdownRows,
   sortedPlacements,
   summarizeHand,
   winningCardIds,
@@ -49,6 +50,7 @@ import {
   MatchEndCard,
   Pots,
   PositionTags,
+  ShowdownPanel,
   StreetBet,
 } from "./PokerParts";
 import { RaiseSheet } from "./RaiseSheet";
@@ -188,6 +190,14 @@ export function PokerScreen({
   const result = handOver || matchOver ? state.lastHandResult : null;
   const summary = result ? summarizeHand(result) : null;
   const showResult = Boolean(summary) && (!hold || hold.result === true);
+  // Ploča showdowna: čim se otvori prvi igrač, red po red; iznos tek kad
+  // žetoni stignu (pot isplaćen). Bez priče (osvježavanje u pauzi) — sve odmah.
+  const showdown = result && !result.uncontested ? result : null;
+  const sdRevealed = hold?.revealed ?? null;
+  const sdRows =
+    showdown && (!hold || (sdRevealed?.length ?? 0) > 0)
+      ? showdownRows(showdown, sdRevealed, !hold || hold.pot === 0 || hold.result === true)
+      : [];
   const winners = new Set(
     summary ? (summary.kind === "split" || summary.kind === "multi" ? summary.winners : [summary.winner]).map((w) => w.playerId) : [],
   );
@@ -368,7 +378,25 @@ export function PokerScreen({
           </div>
         </div>
 
-        {summary && showResult ? (
+        {sdRows.length > 0 ? (
+          <ShowdownPanel
+            key={`sd-${state.handNo}`}
+            rows={sdRows}
+            highlight={!hold || hold.highlight === true}
+            split={summary?.kind === "split"}
+            myPlayerId={state.myPlayerId}
+            playerOf={playerOf}
+            // Dva igrača: iznad tvog sjedišta (kao traka rezultata). Tri i više:
+            // spušta se do panela, da board sa pobjedničkih 5 ostane vidljiv —
+            // tvoj red je ionako u ploči („Ti").
+            style={{
+              bottom:
+                (showdown?.showdown.length ?? 0) > 2
+                  ? "calc(var(--stage-hand-top) + 0.25rem)"
+                  : "calc(var(--table-bottom) + 0.25rem)",
+            }}
+          />
+        ) : summary && showResult && !showdown ? (
           <HandResultBar
             key={`res-${state.handNo}`}
             summary={summary}

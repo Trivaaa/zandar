@@ -358,6 +358,8 @@ export const sr = {
     takesPot: (name: string) => `${name} uzima pot`,
     splitPot: "Podijeljen pot",
     handResult: "Rezultat ruke",
+    showdownTitle: "Ko je šta imao",
+    winner: "Pobjednik",
     won: (n: number) => `+${n}`,
     bustedTitle: "Bez žetona",
     bustedBody: (place: number) => `Tvoj plasman: ${place}. Možeš gledati do kraja ili sjesti za novi sto.`,

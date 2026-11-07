@@ -3894,3 +3894,117 @@
   font: 700 0.9375rem/1 var(--font-sans);
   font-variant-numeric: tabular-nums;
 }
+
+/* ------------------------------------------------------------------ *
+ * Ploča showdowna (7.11.2026, „ne vidim koje je karte imao igrač").
+ * Ista kartica kao `.pk-result`; ćelija po igraču koji je došao do kraja:
+ * ime, njegove dvije karte i kombinacija. Dvije kolone, pa i 4 igrača stanu
+ * u dva reda. Najjači dobija zlatnu ćeliju, ostali se priguše; karta koja ne
+ * učestvuje u kombinaciji potamni.
+ * ------------------------------------------------------------------ */
+
+.pk-sd {
+  left: 0.75rem;
+  right: 0.75rem;
+  gap: 0.4rem;
+  padding: 0.5rem 0.55rem 0.55rem;
+  /* Neprozirno: board iza ne smije provirivati kroz karte. */
+  background-color: var(--bg-mid);
+}
+.pk-sd__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+.pk-sd[data-count="1"] .pk-sd__grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pk-sd__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.35rem 0.45rem 0.4rem;
+  border-radius: 10px;
+  background-color: color-mix(in oklab, var(--text) 6%, transparent);
+  transition: opacity var(--t-pk-lift) var(--ease-out-soft);
+  animation: pk-fade var(--t-toast-in) var(--ease-out-soft) backwards;
+}
+.pk-sd__cell[data-winner] {
+  background-color: color-mix(in oklab, var(--turn-active) 16%, transparent);
+  box-shadow: inset 0 0 0 2px var(--turn-active);
+}
+.pk-sd__cell[data-dim] {
+  opacity: 0.55;
+}
+.pk-sd__head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.pk-sd .pk-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.6875rem;
+}
+.pk-sd__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 0.8125rem/1.1 var(--font-sans);
+  color: var(--card-face);
+}
+.pk-sd__won {
+  font: 400 0.9375rem/1 var(--font-display);
+  color: var(--turn-active);
+  white-space: nowrap;
+  animation: pk-fade var(--t-toast-in) var(--ease-out-soft) backwards;
+}
+.pk-sd__tag {
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  font: 700 0.625rem/1.1 var(--font-sans);
+  white-space: nowrap;
+}
+.pk-sd__body {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.pk-sd__cards {
+  display: flex;
+  gap: 3px;
+  flex: none;
+}
+.pk-sd__card {
+  transition: opacity var(--t-pk-lift) var(--ease-out-soft);
+}
+.pk-sd__card .card {
+  --card-w: 2.25rem;
+  --card-h: 3.19rem;
+  animation: pk-flip var(--t-pk-flip) var(--ease-out-soft) backwards;
+}
+.pk-sd__card[data-out] {
+  opacity: 0.4;
+}
+.pk-sd__cat {
+  min-width: 0;
+  font: 700 0.75rem/1.15 var(--font-sans);
+  color: var(--text-soft);
+}
+.pk-sd__cell[data-winner] .pk-sd__cat {
+  color: var(--turn-active);
+}
+
+@media (max-height: 700px) {
+  .pk-sd__card .card {
+    --card-w: 1.9rem;
+    --card-h: 2.7rem;
+  }
+}

@@ -177,6 +177,42 @@ function scenario(s: string, n: number, now: number): PokerGamePayload {
       v.seats = v.seats.map((x, i) => (i > 1 ? { ...x, folded: true, hasCards: false } : x));
       return v;
     }
+    case "F3w":
+    case "F4": {
+      // 3 ili 4 igrača na showdownu (ploča u dva reda); F3w ima i side pot.
+      const four = s === "F4";
+      v.phase = "hand_complete";
+      v.street = "river";
+      v.currentPlayerId = null;
+      v.board = [c("9h"), c("Kd"), c("4c"), c("Kh"), c("2s")];
+      v.potTotal = four ? 160 : 150;
+      const hands = [
+        { playerId: "p0", holeCards: [c("Qs"), c("As")], category: "pair" as const, bestCards: [c("Kd"), c("Kh"), c("As"), c("Qs"), c("9h")] },
+        { playerId: "p1", holeCards: [c("Ks"), c("9c")], category: "full_house" as const, bestCards: [c("Kd"), c("Kh"), c("Ks"), c("9h"), c("9c")] },
+        { playerId: "p2", holeCards: [c("4h"), c("4d")], category: "full_house" as const, bestCards: [c("4h"), c("4d"), c("4c"), c("Kd"), c("Kh")] },
+        { playerId: "p3", holeCards: [c("Jc"), c("10c")], category: "pair" as const, bestCards: [c("Kd"), c("Kh"), c("Jc"), c("10c"), c("9h")] },
+      ].slice(0, four ? 4 : 3);
+      v.lastHandResult = {
+        handNo: 3,
+        uncontested: false,
+        allInRunout: false,
+        pots: four
+          ? [{ amount: 160, eligiblePlayerIds: ["p0", "p1", "p2", "p3"] }]
+          : [
+              { amount: 90, eligiblePlayerIds: ["p0", "p1", "p2"] },
+              { amount: 60, eligiblePlayerIds: ["p0", "p1"] },
+            ],
+        awards: four
+          ? [{ potIndex: 0, playerId: "p1", amount: 160 }]
+          : [
+              { potIndex: 0, playerId: "p1", amount: 90 },
+              { potIndex: 1, playerId: "p1", amount: 60 },
+            ],
+        showdown: hands,
+      };
+      v.seats = v.seats.map((x, i) => (i >= hands.length ? { ...x, folded: true, hasCards: false } : x));
+      return v;
+    }
     case "G":
       v.street = "flop";
       v.board = [c("9h"), c("Kd"), c("4c")];

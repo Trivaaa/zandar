@@ -1394,3 +1394,29 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 - Nijedna greška u konzoli.
 
 **Nije provjereno na uređaju:** tempo okom, glatkoća na S10e i StrictMode-neutralan broj duhova u produkcijskom buildu.
+
+## 131. Poker — ploča showdowna: ko je šta imao, pa žetoni najjačem (2026-11-07, `feat/poker-core`)
+
+**Zašto:** vlasnik je poslije animacija (130) odigrao i rekao „dosta je bolje", ali na kraju ruke nije vidio koje je karte imao koji igrač. Otkrivene karte su bile mala lepeza uz avatar (preklapala je D/SB), a traka rezultata je pokazivala samo pobjednika.
+
+**Šta:**
+- Traka rezultata (tabla F) za showdown postaje **ploča**: ćelija po igraču koji je došao do kraja, sa imenom (ili „Ti"), **njegove dvije karte** (2.25rem) i kombinacijom.
+  - Ćelije stižu jedna po jedna, redom kojim server otkriva.
+  - Zatim se najjači istakne zlatno („Pobjednik" / „Podijeljen pot"), a ostali se priguše. Karta koja ne učestvuje u kombinaciji potamni.
+  - Tek tada pot leti pobjedniku, a u njegovoj ćeliji se pojavi „+iznos".
+- Kad svi ostali foldaju, ostaje stara traka „X uzima pot", bez karata.
+- Podaci ploče dolaze iz čiste funkcije `showdownRows` (`lib/pokerView.ts`, 3 testa). Komponenta je `ShowdownPanel` (`PokerParts.tsx`).
+- **Raspored:** sa 2 igrača ploča stoji iznad tvog sjedišta (kao traka). Sa 3–4 igrača spušta se do panela akcija, da board sa pobjedničkih 5 ostane vidljiv. Tvoj red je ionako u ploči. Pozadina je neprozirna. Dvije kolone, pa 4 igrača stanu u dva reda.
+- **Ritam** (`POKER_PACE`, isti za server i klijent, pa server sam produži pauzu):
+  - otkrivanje 550 → **900** ms po igraču;
+  - isticanje 1100 → **1500** ms;
+  - čitanje 2600 → **3500** ms.
+  - Showdown sa 2 igrača je ~2,4 s duži.
+- Stilovi su na kraju `felt.css` (ne novi fajl, zbog Vercel keša, vidi 130).
+- `/dev/poker?s=F3w|F4`: 3 i 4 igrača na showdownu.
+
+**Provjereno:**
+- game-core 371, server 236, web 201; typecheck; lint = osnovica.
+- CDP snimci 2P i 4P na 360×640 i 393×852: ploča staje, board ostaje vidljiv.
+- Filmska traka na lokalnom serveru: redovi stižu na ~0,9 s, pa isticanje; 0 grešaka.
+- **Nije provjereno na uređaju.**

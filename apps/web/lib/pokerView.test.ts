@@ -9,6 +9,7 @@ import {
   handHint,
   positionTags,
   raisePresets,
+  showdownRows,
   sortedPlacements,
   summarizeHand,
   winningCardIds,
@@ -190,4 +191,44 @@ test("sortedPlacements: po plasmanu, bez plasmana na kraj", () => {
     out.map((p) => p.playerId),
     ["b", "c", "a", "d"],
   );
+});
+
+describe("showdownRows — ploča showdowna", () => {
+  const result: PokerHandResult = {
+    handNo: 5,
+    uncontested: false,
+    allInRunout: false,
+    pots: [{ amount: 60, eligiblePlayerIds: ["a", "b", "c"] }],
+    awards: [{ potIndex: 0, playerId: "b", amount: 60 }],
+    showdown: [
+      { playerId: "a", holeCards: [card("Ks"), card("2h")], category: "pair", bestCards: [card("Ks"), card("Kd"), card("9c"), card("8c"), card("7h")] },
+      { playerId: "b", holeCards: [card("9s"), card("9h")], category: "three_of_a_kind", bestCards: [card("9s"), card("9h"), card("9c"), card("Kd"), card("8c")] },
+      { playerId: "c", holeCards: [card("Ac"), card("3d")], category: "high_card", bestCards: [card("Ac"), card("Kd"), card("9c"), card("8c"), card("7h")] },
+    ],
+  };
+
+  test("redovi prate otkrivanje, pobjednik je označen, iznos tek poslije isplate", () => {
+    assert.deepEqual(showdownRows(result, ["a"], false).map((r) => r.playerId), ["a"]);
+    const all = showdownRows(result, null, false);
+    assert.deepEqual(all.map((r) => [r.playerId, r.isWinner, r.amount]), [["a", false, null], ["b", true, null], ["c", false, null]]);
+    assert.equal(showdownRows(result, null, true).find((r) => r.isWinner)?.amount, 60);
+  });
+
+  test("karta koja ne učestvuje u kombinaciji je van `inBest`", () => {
+    const a = showdownRows(result, null, false)[0]!;
+    assert.equal(a.inBest.has("Ks"), true);
+    assert.equal(a.inBest.has("2h"), false);
+  });
+
+  test("podijeljen pot: oba pobjednika; svi foldali: nema ploče", () => {
+    const split: PokerHandResult = {
+      ...result,
+      awards: [
+        { potIndex: 0, playerId: "a", amount: 30 },
+        { potIndex: 0, playerId: "b", amount: 30 },
+      ],
+    };
+    assert.deepEqual(showdownRows(split, null, true).filter((r) => r.isWinner).map((r) => r.amount), [30, 30]);
+    assert.deepEqual(showdownRows({ ...result, uncontested: true }, null, true), []);
+  });
 });

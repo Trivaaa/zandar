@@ -5,7 +5,7 @@ import type { Card, PublicPlayer } from "@zandar/shared-types";
 
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { Avatar } from "@/components/profile/Avatar";
-import { POKER_CATEGORY_LABEL, type HandSummary, type PotChip } from "@/lib/pokerView";
+import { POKER_CATEGORY_LABEL, type HandSummary, type PotChip, type ShowdownRow } from "@/lib/pokerView";
 import { sr } from "@/lib/sr";
 
 function initial(name: string) {
@@ -169,6 +169,70 @@ export function HandResultBar({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Ploča showdowna (zahtjev vlasnika 7.11: „ne vidim koje je karte imao
+ * igrač"): po igraču koji je došao do kraja — ime, njegove dvije karte i šta je
+ * složio. Redovi stižu jedan po jedan (`rows` raste), pa se istakne najjači
+ * (`highlight`), pa mu odu žetoni (`amount` se pojavi). Ista kartica i mjesto
+ * kao traka rezultata (tabla F), samo sa kartama.
+ */
+export function ShowdownPanel({
+  rows,
+  highlight,
+  split,
+  myPlayerId,
+  playerOf,
+  style,
+}: {
+  rows: readonly ShowdownRow[];
+  highlight: boolean;
+  split: boolean;
+  myPlayerId: string;
+  playerOf: (id: string) => PublicPlayer | undefined;
+  style: CSSProperties;
+}) {
+  const title = !highlight ? sr.poker.showdownTitle : split ? sr.poker.splitPot : sr.poker.handResult;
+  return (
+    <div className="pk-result pk-sd" style={style} role="status" data-count={rows.length}>
+      <h5>{title}</h5>
+      <div className="pk-sd__grid">
+        {rows.map((r) => {
+          const player = playerOf(r.playerId);
+          const name = r.playerId === myPlayerId ? sr.poker.you : (player?.displayName ?? "");
+          return (
+            <div
+              key={r.playerId}
+              className="pk-sd__cell"
+              {...(highlight && r.isWinner ? { "data-winner": true } : {})}
+              {...(highlight && !r.isWinner ? { "data-dim": true } : {})}
+            >
+              <span className="pk-sd__head">
+                <PokerAvatar player={player} />
+                <b className="pk-sd__name">{name}</b>
+                {r.amount !== null ? (
+                  <span className="pk-sd__won">{sr.poker.won(r.amount)}</span>
+                ) : highlight && r.isWinner ? (
+                  <span className="pk-sd__tag">{sr.poker.winner}</span>
+                ) : null}
+              </span>
+              <span className="pk-sd__body">
+                <span className="pk-sd__cards">
+                  {r.holeCards.map((c) => (
+                    <span key={c.id} className="pk-sd__card" {...(highlight && !r.inBest.has(c.id) ? { "data-out": true } : {})}>
+                      <PlayingCard card={c} size="xs" />
+                    </span>
+                  ))}
+                </span>
+                <small className="pk-sd__cat">{POKER_CATEGORY_LABEL[r.category]}</small>
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -38,17 +38,17 @@ export const POKER_PACE = {
 
   /** All-in do kraja: pauza prije svake ulice koja se dijeli bez licitacije. */
   runoutPauseMs: 1000,
-  /** Showdown: okretanje karata jednog igrača. */
-  revealPerHandMs: 550,
-  /** Showdown: zadržavanje poslije okretanja, pa isticanje pobjedničkih karata. */
-  showdownHoldMs: 1100,
+  /** Showdown: red jednog igrača na ploči (karte + kombinacija). 7.11: 550 → 900, „ne vidim ko je šta imao". */
+  revealPerHandMs: 900,
+  /** Showdown: isticanje najjačeg prije nego mu odu žetoni. 7.11: 1100 → 1500. */
+  showdownHoldMs: 1500,
   /** Isplata jednog pota pobjedniku (ili dvojici kod podjele). */
   awardPerPotMs: 950,
   /** Sjedište igrača bez žetona se ugasi u konturu sa plasmanom. */
   bustMs: 550,
 
-  /** Čitanje trake rezultata poslije showdowna, prije sljedeće ruke. */
-  readMs: 2600,
+  /** Čitanje ploče showdowna poslije isplate, prije sljedeće ruke. 7.11: 2600 → 3500. */
+  readMs: 3500,
   /** Čitanje poslije ruke dobijene bez otkrivanja. */
   readShortMs: 1500,
   /** Kraj meča: mir poslije zadnje isplate, prije kartice kraja. */

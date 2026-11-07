@@ -199,6 +199,47 @@ export function winningCardIds(result: PokerHandResult | null): Set<string> {
   return ids;
 }
 
+export type ShowdownRow = {
+  playerId: string;
+  holeCards: Card[];
+  category: PokerHandCategory;
+  /** Karte (id) koje čine igračevu najbolju kombinaciju — ostale se prigušuju. */
+  inBest: Set<string>;
+  isWinner: boolean;
+  /** Dobitak, tek kad su žetoni stigli (`paid`); inače `null`. */
+  amount: number | null;
+};
+
+/**
+ * Redovi ploče showdowna: ko je imao koje karte i šta je složio, redom kojim
+ * server otkriva. `revealed` = koji su redovi već otkriveni (priča u toku);
+ * `null` = svi. Iznos pobjednika tek kad je pot isplaćen (`paid`).
+ */
+export function showdownRows(
+  result: PokerHandResult,
+  revealed: readonly string[] | null,
+  paid: boolean,
+): ShowdownRow[] {
+  if (result.uncontested) return [];
+  const summary = summarizeHand(result);
+  const winners = summary
+    ? summary.kind === "split" || summary.kind === "multi"
+      ? summary.winners
+      : [summary.winner]
+    : [];
+  const won = new Map(winners.map((w) => [w.playerId, w.amount]));
+  return result.showdown
+    .filter((h) => revealed === null || revealed.includes(h.playerId))
+    .map((h) => ({
+      playerId: h.playerId,
+      holeCards: h.holeCards,
+      category: h.category,
+      inBest: new Set(h.bestCards.map((c) => c.id)),
+      isWinner: won.has(h.playerId),
+      amount: paid && won.has(h.playerId) ? (won.get(h.playerId) ?? 0) : null,
+    }));
+}
+
 /** Plasman za prikaz: isti broj = dijele mjesto. Igrači bez plasmana (meč prekinut) idu na kraj. */
 export function sortedPlacements(
   view: Pick<PokerPlayerView, "placements" | "seats">,
