@@ -29,6 +29,7 @@ import {
   declarerTag,
   isDropped,
   overlayPhase,
+  lockedHandIds,
   panelFor,
   phaseLabel,
   seatCaptionText,
@@ -248,13 +249,7 @@ export function RaubScreen({
   const disabledIds = handCards.filter((c) => !selectable(c)).map((c) => c.id);
   // Zatamnjene su samo karte koje pravila zabranjuju u štihu (glavna pomoć početnicima).
   const dimmedIds = panel.kind === "play" ? handCards.filter((c) => !legal.has(c.id)).map((c) => c.id) : [];
-  const lockedIds = state.myCardsHidden
-    ? []
-    : panel.kind === "discard"
-      ? [...blocked]
-      : state.lockedCardId
-        ? [state.lockedCardId]
-        : [];
+  const lockedIds = lockedHandIds(state, panel.kind);
 
   function onCard(card: Card) {
     if (!selectable(card)) return;

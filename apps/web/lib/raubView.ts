@@ -96,6 +96,22 @@ export function panelFor(
 }
 
 /** Zašto su neke karte zatamnjene (ispod „Ti si na potezu"). */
+/**
+ * Karte sa katancem u mojoj ruci. Katanac znači samo „ne smiješ je odbaciti"
+ * (talon karta; pri višku i otvorena karta) — u štihovima se igra kao svaka
+ * druga, pa tamo katanca nema (ranije je zaključavao i potez: sedmica uzeta s
+ * talona nije mogla biti odigrana).
+ */
+export function lockedHandIds(
+  v: Pick<RaubPlayerView, "myCardsHidden" | "step" | "lockedCardId" | "openCard" | "myPlayerId">,
+  panelKind: RaubPanel["kind"],
+): string[] {
+  if (v.myCardsHidden || v.step === "tricks") return [];
+  const ids = v.lockedCardId ? [v.lockedCardId] : [];
+  if (panelKind === "discard" && v.openCard?.playerId === v.myPlayerId) ids.push(v.openCard.card.id);
+  return ids;
+}
+
 export function playHint(v: Pick<RaubPlayerView, "tricks" | "myCards" | "trumpSuit" | "legalCardIds">): string {
   const trick = v.tricks.at(-1);
   const plays = trick && trick.winnerId === null ? trick.plays : [];

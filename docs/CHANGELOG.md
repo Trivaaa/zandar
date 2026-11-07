@@ -1512,3 +1512,11 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Izmjena:** `RaubPlayerView.takenTalonCard` — karta uzeta s talona (sedmica, naslijepo, zamjena sedmice) dok je još u ruci onoga ko ju je uzeo, do početka štihova. Javna je (bila je licem nagore). Izvodi se iz `talonTakenBy` + `lockedCardId`, pa se oblik snapshota ne mijenja. `TalonPile` je crta na vrhu talona sa oznakom „Uzima: Ime" / „Uzimaš ti"; pri zamjeni sedmice data sedmica leži prigušena ispod. `/dev/raub?s=seven`.
 
 **Provjereno:** game-core 372 (novi test: svi gledaoci vide sedmicu, u štihovima `null`), web 201, typecheck web/server; snimak 360×740 `/dev/raub?s=seven`.
+
+## 134. Raub — katanac ne blokira potez u štihu (2026-11-07, `fix/raub-taken-talon`)
+
+**Povod:** vlasnik na S10e: u 4. štihu („Ti si na potezu — bilo koja karta") jedina karta, 7♣ uzeta s talona, stoji sa katancem i ne može se odigrati; slično i sa kraljem (talon karta iz zamjene sedmice / naslijepo). Partiju je spasio tek tajmer.
+
+**Uzrok:** `RaubScreen` je `lockedCardId` slao u `PlayerHand.lockedCardIds` i u štihovima, a `PlayerHand` zaključanu kartu tretira kao onemogućenu. Motor je ispravan — `CARD_LOCKED` važi samo za višak i zamjenu, a u štihu je talon karta obična karta (i jeste bila u `legalCardIds`).
+
+**Izmjena:** čista `lockedHandIds(view, panelKind)` u `lib/raubView.ts`: katanac samo prije štihova (talon karta; pri višku i moja otvorena karta), u koraku `tricks` nikad. Testirana (web 203).

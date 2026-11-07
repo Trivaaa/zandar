@@ -18,6 +18,7 @@ import {
   handRows,
   handSentence,
   leaderIds,
+  lockedHandIds,
   overlayPhase,
   panelFor,
   phaseLabel,
@@ -177,5 +178,21 @@ describe("raubView: rezultat", () => {
     assert.equal(overlayPhase({ phase: "playing", interruption: { kind: "paused", startedAt: 0, endsAt: 1 } }), "paused_for_reconnect");
     assert.equal(overlayPhase({ phase: "hand_complete", interruption: { kind: "vote", startedAt: 0, endsAt: 1 } }), "abandon_vote");
     assert.equal(overlayPhase({ phase: "abandoned", interruption: null }), "abandoned");
+  });
+});
+
+describe("raubView: katanac", () => {
+  const base = { myCardsHidden: false, lockedCardId: "clubs-7", openCard: null, myPlayerId: "p0" } as const;
+  test("katanac samo prije štihova; u štihu se talon karta igra kao svaka druga", () => {
+    assert.deepEqual(lockedHandIds({ ...base, step: "discard_extra" }, "discard"), ["clubs-7"]);
+    assert.deepEqual(lockedHandIds({ ...base, step: "exchange" }, "exchange"), ["clubs-7"]);
+    assert.deepEqual(lockedHandIds({ ...base, step: "tricks" }, "play"), []);
+    assert.deepEqual(lockedHandIds({ ...base, step: "tricks" }, "none"), []);
+  });
+  test("otvorena karta pri višku je zaključana samo meni, i samo dok odbacujem", () => {
+    const open = { playerId: "p0", card: { id: "spades-K", suit: "spades", rank: "K" } } as const;
+    const v = { ...base, lockedCardId: null, openCard: open };
+    assert.deepEqual(lockedHandIds({ ...v, step: "exchange" }, "discard"), ["spades-K"]);
+    assert.deepEqual(lockedHandIds({ ...v, step: "tricks" }, "play"), []);
   });
 });
