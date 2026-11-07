@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { GameSheet } from "@/components/home/GameSheet";
 import { TabBar } from "@/components/nav/TabBar";
-import { GAMES, homeLayout, type GameConfig, type GameSlug, type HomeHistory } from "@/lib/games";
+import { GAMES, gameBadge, homeLayout, type GameConfig, type GameSlug, type HomeHistory } from "@/lib/games";
 import { sr } from "@/lib/sr";
 import { useQueryParam } from "@/lib/useQuery";
 
@@ -36,7 +36,9 @@ export default function DevHomePage() {
   const { layout, history } = useMemo(() => {
     const order: GameSlug[] = ["zandar", "poker", "raub"];
     const games: GameConfig[] = GAMES.map((g) =>
-      order.indexOf(g.slug) < live ? { ...g, status: "live", releasedAt: g.releasedAt ?? "2026-10-20" } : g,
+      order.indexOf(g.slug) < live
+        ? { ...g, status: "live", releasedAt: g.releasedAt ?? "2026-10-20" }
+        : { ...g, status: "upcoming", releasedAt: null },
     );
     const h: HomeHistory = {
       pinned: games.some((g) => g.slug === pin && g.status === "live") ? (pin as GameSlug) : null,
@@ -69,6 +71,19 @@ export default function DevHomePage() {
             }
           : {})}
         className="screen--tabbed"
+        {...(layout.more.length > 0
+          ? {
+              list: {
+                items: [layout.main, ...layout.more].map((game) => ({
+                  game,
+                  badge: gameBadge(game, history, NOW),
+                })),
+                loadingSlug: err ? layout.main.slug : null,
+                onPlay: () => undefined,
+                onCreate: () => undefined,
+              },
+            }
+          : {})}
       />
       <TabBar />
       {open ? (

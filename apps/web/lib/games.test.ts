@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { GAMES, homeLayout, isNewGame, type GameConfig, type HomeHistory } from "./games";
+import { GAMES, gameBadge, homeLayout, isNewGame, type GameConfig, type HomeHistory } from "./games";
 
 const NONE: HomeHistory = { pinned: null, played: {} };
 const DAY = 24 * 60 * 60 * 1000;
@@ -90,5 +90,23 @@ describe("izgled igre (SPEC_POCETNA_V3 §4)", () => {
 
   test("glavna igra bez motiva crta karte pločice, nikad prazan sto", () => {
     for (const g of GAMES) assert.ok((g.heroCards ?? g.tileCards).length >= 2, g.slug);
+  });
+});
+
+describe("gameBadge (lista igara)", () => {
+  const live = withLive("zandar", "poker");
+  const zandar = live.find((g) => g.slug === "zandar")!;
+  const poker = { ...live.find((g) => g.slug === "poker")!, releasedAt: "2026-11-06" };
+  const now = Date.parse("2026-11-07");
+
+  test("zakačena ima prednost, pa nova, pa zadnje igrana", () => {
+    assert.equal(gameBadge(poker, { pinned: "poker", played: { zandar: 5 } }, now), "pinned");
+    assert.equal(gameBadge(poker, { pinned: null, played: { zandar: 5 } }, now), "new");
+    assert.equal(gameBadge(zandar, { pinned: null, played: { zandar: 5 } }, now), "last");
+  });
+
+  test("igra koja nije zadnja igrana nema oznaku", () => {
+    assert.equal(gameBadge(zandar, { pinned: null, played: { zandar: 5, poker: 9 } }, now), null);
+    assert.equal(gameBadge(zandar, NONE, now), null);
   });
 });

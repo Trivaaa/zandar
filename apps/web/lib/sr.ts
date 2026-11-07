@@ -243,6 +243,17 @@ export const sr = {
     /** „2 ili 4 igrača · ~10 min" */
     meta: (players: string, minutes: number) => `${players} · ~${minutes} min`,
     pinned: "Zakačeno",
+    lastPlayed: "Zadnje igrano",
+    /** Podnaslov igre na kartici liste (tabla „UI · Početna — opcija 1 Lista"). */
+    listSub: {
+      zandar: "2 ili 4 igrača · do 11 ili 21",
+      poker: "Texas Hold'em · 2–4 igrača",
+      remi: "2–4 igrača",
+      bela: "2–4 igrača",
+      raub: "2–4 igrača · od 21 do 0",
+    } as Record<string, string>,
+    playGame: (name: string) => `Igraj ${name}`,
+    createGame: (name: string) => `Napravi sto: ${name}`,
     more: "Još igara",
     isNew: "Novo",
     openGame: (name: string) => `${name} — više o igri`,

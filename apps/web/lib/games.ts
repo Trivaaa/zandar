@@ -82,6 +82,8 @@ export type GameConfig = {
   tint: GameTint;
   /** Dvije prave karte na pločici igre (i na stolu, kad igra nema `heroCards`). */
   tileCards: readonly [CardFace, CardFace];
+  /** Tri karte na slici kartice u listi igara (tabla „UI · Početna — opcija 1 Lista"). */
+  listCards: readonly [CardFace, CardFace, CardFace];
 };
 
 export type GameTint = "zandar" | "poker" | "raub";
@@ -100,6 +102,11 @@ export const GAMES: readonly GameConfig[] = [
     tileCards: [
       { rank: "J", suit: "spades" },
       { rank: "Q", suit: "hearts" },
+    ],
+    listCards: [
+      { rank: "J", suit: "spades" },
+      { rank: "Q", suit: "hearts" },
+      { rank: "K", suit: "diamonds" },
     ],
   },
   {
@@ -123,6 +130,11 @@ export const GAMES: readonly GameConfig[] = [
       { rank: "A", suit: "spades" },
       { rank: "K", suit: "spades" },
     ],
+    listCards: [
+      { rank: "A", suit: "spades" },
+      { rank: "A", suit: "clubs" },
+      { rank: "A", suit: "diamonds" },
+    ],
   },
   {
     slug: "raub",
@@ -137,6 +149,11 @@ export const GAMES: readonly GameConfig[] = [
     tileCards: [
       { rank: "7", suit: "clubs" },
       { rank: "A", suit: "diamonds" },
+    ],
+    listCards: [
+      { rank: "7", suit: "clubs" },
+      { rank: "A", suit: "spades" },
+      { rank: "K", suit: "diamonds" },
     ],
   },
 ];
@@ -194,6 +211,17 @@ export function homeLayout(games: readonly GameConfig[], history: HomeHistory): 
     ...rest.filter((g) => playedAt(g) === undefined),
   ];
   return { main, more, upcoming };
+}
+
+/** Oznaka na slici kartice u listi: zakačena, nova ili zadnje igrana (tabla „Lista"). */
+export type GameBadge = "pinned" | "last" | "new" | null;
+
+export function gameBadge(game: GameConfig, history: HomeHistory, now: number): GameBadge {
+  if (history.pinned === game.slug) return "pinned";
+  if (isNewGame(game, history, now)) return "new";
+  const played = Object.entries(history.played) as Array<[GameSlug, number]>;
+  const last = played.sort((a, b) => b[1] - a[1])[0];
+  return last && last[0] === game.slug ? "last" : null;
 }
 
 export const upcomingGamePath = (slug: UpcomingGameSlug) => `/igre/${slug}`;

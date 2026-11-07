@@ -1222,3 +1222,35 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
   - 0 grešaka u konzoli
 
 **Nije provjereno:** uređaj, `next build` + `build:mobile`, privatna soba sa dva prava igrača u pregledaču, poziv prijatelja za poker (tekst poziva u `InviteInbox` i pushu još kaže samo „partija").
+
+
+## 123. Početna — lista igara (2026-11-07, `feat/poker-core`)
+
+**Šta:** kad je živo više igara, početna je lista kartica po tabli „UI · Početna — opcija 1 Lista" (platno „Kartaonica · identitet", K1). Raub je izostavljen (dolazi kasnije): u listi se ne crta ni red „Uskoro". Dok je živ samo Žandar (produkcija bez `NEXT_PUBLIC_POKER=1`), ostaje sto K1 kao do sada.
+
+**Kartica igre** (`components/home/GameList.tsx`, stilovi `.home-list*` u `home.css`):
+- Slika u boji igre (`--game-*-1/2`), ime, podnaslov (`sr.home.listSub`) i tri prave karte (`GameConfig.listCards`).
+- Ispod Igraj i Napravi sto. Obje radnje su uvijek vidljive.
+- Oznaka: ZAKAČENO → NOVO → ZADNJE IGRANO (`gameBadge`, testiran).
+- Redoslijed daje postojeći `homeLayout`: zakačena → zadnje igrana → ostale.
+- Visina slike: 92 px na 360×740 i 116 px na 390×844, linearno po `dvh`, najmanje 80 px.
+
+**Radnje:**
+- Poker Igraj ide pravo za sto (odluka 3).
+- Žandar Igraj otvara izbor 2/4 · 11/21 · sto (odluka #96). Tabla kaže „jednim dodirom", ali je ta odluka vlasnika novija, pa je zadržana.
+- Izbor stola sad pripada igri čiji je list otvoren, a ne „glavnoj".
+- Napravi sto → `/create?game=…`.
+
+**Zamke:**
+- Na 360×640 oznaka je dirala kvačicu na „Ž".
+- Dug opis (greška traženja) se odsijecao u drugom redu.
+- Popravka: tekst je blok usidren za dno slike i raste nagore, a dok stoji greška oznaka se ne crta.
+
+**Nije urađeno:**
+- Stanje „Nedovršena partija" sa table (2): početna danas ne zna za partiju u toku.
+- Kačenje igre iz liste: list igre (H4) se iz liste ne otvara. Zakačena igra ostaje zakačena.
+
+**Provjereno:**
+- CDP snimci `/dev/home?live=2` na 360×740, 390×844 i 360×640, bez skrola.
+- Zakačen poker, greška traženja, i `live=1` = stara K1.
+- Web testovi 180, typecheck, lint = osnovica. **Nije provjereno na uređaju.**

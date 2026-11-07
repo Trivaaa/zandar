@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { BrandLockup } from "@/components/brand/BrandLockup";
 import { GameCard } from "@/components/home/GameCard";
+import { GameList, type GameListItem } from "@/components/home/GameList";
 import { GameTile, UpcomingTile } from "@/components/home/GameTile";
 import { isNewGame, type GameConfig, type HomeHistory, type HomeLayout } from "@/lib/games";
 import { isStaging } from "@/lib/platform";
@@ -30,6 +31,18 @@ export type HomeScreenProps = {
   legalSlot?: ReactNode;
   /** Ponuda aplikacije: traka na samom vrhu, iznad marke. */
   topSlot?: ReactNode;
+  /**
+   * Više živih igara (tabla „UI · Početna — opcija 1 Lista"): lista kartica
+   * umjesto stola i pločica. Bez nje (živa samo jedna igra) ostaje sto K1.
+   */
+  list?:
+    | {
+        items: readonly GameListItem[];
+        loadingSlug: string | null;
+        onPlay: (game: GameConfig) => void;
+        onCreate: (game: GameConfig) => void;
+      }
+    | undefined;
   className?: string | undefined;
 };
 
@@ -52,8 +65,31 @@ export function HomeScreen({
   onUpcomingViewed,
   legalSlot,
   topSlot,
+  list,
   className = "",
 }: HomeScreenProps) {
+  if (list) {
+    // Lista: najavljene igre (Raub) se ovdje ne prikazuju — dolaze kasnije.
+    return (
+      <main className={`screen home ${className}`}>
+        {topSlot}
+        <header className="home__top">
+          <BrandLockup showDomain={false} className="brand--home" />
+          {isStaging ? <span className="home__env">STAGING</span> : null}
+        </header>
+        <div className="home__col">
+          <GameList
+            items={list.items}
+            loadingSlug={list.loadingSlug}
+            error={error}
+            onPlay={list.onPlay}
+            onCreate={list.onCreate}
+          />
+          {legalSlot ? <footer className="home__legal">{legalSlot}</footer> : null}
+        </div>
+      </main>
+    );
+  }
   // Sto je niži samo kad ima „Još igara" (A3); pločice „Uskoro" su niže i
   // staju ispod punog stola (A1).
   const compact = layout.more.length > 0;

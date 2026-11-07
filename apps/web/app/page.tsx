@@ -14,7 +14,7 @@ import { SignupSheet } from "@/components/home/SignupSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { useBackHandler } from "@/lib/backHandlers";
 import { identityUi } from "@/lib/features";
-import { GAMES, homeLayout, type GameConfig, type GameSlug } from "@/lib/games";
+import { GAMES, gameBadge, homeLayout, type GameConfig, type GameSlug } from "@/lib/games";
 import { setPinnedGame, useHomeHistory } from "@/lib/homePrefs";
 import { isNative } from "@/lib/platform";
 import { readPlayerName, savePlayerName } from "@/lib/playerName";
@@ -41,7 +41,7 @@ const createPath = (game: GameSlug) => (game === "poker" ? "/create?game=poker" 
 
 type Sheet =
   | { kind: "name" }
-  | { kind: "setup" }
+  | { kind: "setup"; game: GameConfig }
   | { kind: "game"; game: GameConfig }
   | { kind: "signup" }
   | null;
@@ -54,15 +54,21 @@ export default function Home() {
   const history = useHomeHistory();
   const layout = useMemo(() => homeLayout(GAMES, history), [history]);
   const main = layout.main;
-  const prefs = useQuickPlayPrefs(main.slug);
-  const tableTheme = useTableTheme(main.slug);
+  // Više živih igara → lista kartica (tabla „Lista"); jedna → sto K1.
+  const listMode = layout.more.length > 0;
+  const [sheet, setSheet] = useState<Sheet>(null);
+  // Izbor stola (2/4 · 11/21 · podloga) pripada igri čiji je list otvoren.
+  const setupGame = sheet?.kind === "setup" ? sheet.game : main;
+  const prefs = useQuickPlayPrefs(setupGame.slug);
+  const tableTheme = useTableTheme(setupGame.slug);
   // „Sada" za oznaku NOVO — jednom po prikazu početne (render mora biti čist).
   const [now] = useState(() => Date.now());
 
-  const [sheet, setSheet] = useState<Sheet>(null);
   const [rulesFor, setRulesFor] = useState<GameSlug | null>(null);
   const rulesOpen = rulesFor !== null;
   const [playing, setPlaying] = useState(false);
+  // Za koju igru se traži sto (lista pokazuje „Tražim sto..." na toj kartici).
+  const [playingSlug, setPlayingSlug] = useState<string | null>(null);
   const [playError, setPlayError] = useState<string | null>(null);
   // `playing` gasi dugme tek na sljedećem renderu; brz dupli tap stigne prije.
   const busy = useRef(false);
@@ -77,6 +83,7 @@ export default function Home() {
     busy.current = true;
     setPlayError(null);
     setPlaying(true);
+    setPlayingSlug(game.slug);
     const chosen = choice ?? {
       prefs: readQuickPlayPrefs(game.slug),
       tableTheme: parseTableTheme(readTableThemeRaw(game.slug)),
@@ -117,11 +124,24 @@ export default function Home() {
   }
 
   function saveChoice(choice: Choice) {
-    saveQuickPlayPrefs(choice.prefs, main.slug);
-    saveTableTheme(choice.tableTheme, main.slug);
+    saveQuickPlayPrefs(choice.prefs, setupGame.slug);
+    saveTableTheme(choice.tableTheme, setupGame.slug);
   }
 
-  const mainName = sr.games[main.slug].name;
+  /**
+   * Igraj za igru. Poker: jedan dodir (odluka 3, 6.11.2026). Žandar: izbor
+   * 2/4 · 11/21 · sto sa zadnjim označenim (odluka #96).
+   */
+  function playGame(game: GameConfig) {
+    if (game.slug === "poker") void start(game);
+    else setSheet({ kind: "setup", game });
+  }
+
+  const listItems = listMode
+    ? [layout.main, ...layout.more].map((game) => ({ game, badge: gameBadge(game, history, now) }))
+    : [];
+
+  const setupName = sr.games[setupGame.slug].name;
   const sheetOpen = sheet !== null;
 
   return (
@@ -138,7 +158,7 @@ export default function Home() {
         // mijenja i u Postavke → Brza igra.
         // Poker: jedan dodir, bez izbora (odluka 3, 6.11.2026) — sto je uvijek
         // za 4, a izgled stola je zadnji zapamćen.
-        onPlay={() => (main.slug === "poker" ? void start(main) : setSheet({ kind: "setup" }))}
+        onPlay={() => playGame(main)}
         onCreate={() => router.push(createPath(main.slug))}
         onOpenGame={(game) => setSheet({ kind: "game", game })}
         onNotify={(game) => {
@@ -148,6 +168,16 @@ export default function Home() {
         onUpcomingViewed={() => track("upcoming_games_viewed")}
         {...(isNative ? {} : { legalSlot, topSlot: <AppOfferBar /> })}
         className={identityUi ? "screen--tabbed" : ""}
+        {...(listMode
+          ? {
+              list: {
+                items: listItems,
+                loadingSlug: (playing || playError) && !sheetOpen ? playingSlug : null,
+                onPlay: playGame,
+                onCreate: (game: GameConfig) => router.push(createPath(game.slug)),
+              },
+            }
+          : {})}
       />
       {identityUi ? <TabBar /> : null}
 
@@ -168,14 +198,14 @@ export default function Home() {
 
       {sheet?.kind === "setup" ? (
         <QuickPlaySettingsSheet
-          gameName={mainName}
+          gameName={setupName}
           prefs={prefs}
           tableTheme={tableTheme}
           onPlay={(nextPrefs, theme) => {
             const choice = { prefs: nextPrefs, tableTheme: theme };
             saveChoice(choice);
             setSheet(null);
-            void start(main, choice);
+            void start(setupGame, choice);
           }}
           onSave={(nextPrefs, theme) => {
             saveChoice({ prefs: nextPrefs, tableTheme: theme });
