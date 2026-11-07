@@ -399,6 +399,17 @@ export function RaubScreen({
               maxFlips={state.rules.maxTalonFlips}
               deckCount={state.deckCount}
               showCounter={biddingNow}
+              taken={
+                state.takenTalonCard && state.talonTakenBy
+                  ? {
+                      card: state.takenTalonCard,
+                      label:
+                        state.talonTakenBy === state.myPlayerId
+                          ? sr.raub.talonTakenMe
+                          : sr.raub.talonTaken(nameOf(state.talonTakenBy)),
+                    }
+                  : null
+              }
             />
           ) : null}
           {/* Tuđa otvorena karta (moja je već u ruci, sa katancem). */}

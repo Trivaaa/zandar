@@ -28,6 +28,7 @@ import { useQueryParam } from "@/lib/useQuery";
  *   /dev/raub?s=bid2          6 · druga karta na talonu, čeka se drugi
  *   /dev/raub?s=discard       7 · višak (5 karata, karta s talona zaključana)
  *   /dev/raub?s=going         Idem / Ne idem
+ *   /dev/raub?s=seven         sedmica uzeta s talona, ostaje na stolu
  *   /dev/raub?s=exchange      8 · zamjena, ti na potezu
  *   /dev/raub?s=exchangeOpen  8 · neko je zamijenio sve 4 (otvorena karta)
  *   /dev/raub?s=trick         9 · štih, moraš odgovoriti (zatamnjene karte)
@@ -68,6 +69,8 @@ const SCENARIOS: Record<string, Pred> = {
   bid2: (s) => s.phase === "playing" && s.step === "bidding" && s.talonFlips === 2 && s.currentPlayerId !== ME,
   discard: onMyTurn("discard_extra"),
   going: onMyTurn("going"),
+  // Sedmica na talonu: djelilac je uzima pri dijeljenju — mora ostati vidljiva.
+  seven: (s) => s.phase === "playing" && s.scenario === "seven" && s.step === "going" && s.dealerId !== ME,
   exchange: onMyTurn("exchange"),
   exchangeOpen: (s) => onMyTurn("exchange")(s) && s.openCard !== null && s.openCard.playerId !== ME,
   trick: (s) => {

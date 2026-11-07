@@ -3389,6 +3389,18 @@
   opacity: 0.4;
   transform: translate(calc(-0.6rem - var(--i) * 0.5rem), 0.35rem) rotate(-6deg);
 }
+/* Uzeta karta: ispod nje ko ju je uzeo (sedmica se inače ne bi ni vidjela). */
+.rb-talon__cards > .rb-talon__taken {
+  grid-area: 2 / 1;
+  justify-self: center;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--bg-mid) 80%, transparent);
+  font: 600 0.6875rem/1.2 var(--font-sans);
+  color: var(--accent);
+  white-space: nowrap;
+}
 .rb-talon__top {
   animation: rb-flip var(--t-card-flip) var(--ease-card) both;
 }

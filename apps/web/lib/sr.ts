@@ -421,6 +421,8 @@ export const sr = {
     talonCard: (n: number, max: number) => `Karta ${n} od ${max}`,
     deck: (n: number) => `Špil ${n}`,
     deckEmpty: "Špil je prazan",
+    talonTaken: (name: string) => `Uzima: ${name}`,
+    talonTakenMe: "Uzimaš ti",
     open: {
       hint: "Ti dijeliš. Karte još nisu otvorene.",
       open: "Otvori karte",

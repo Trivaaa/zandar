@@ -54,15 +54,18 @@ export function TalonPile({
   maxFlips,
   deckCount,
   showCounter,
+  taken,
 }: {
   talon: readonly Card[];
   flips: number;
   maxFlips: number;
   deckCount: number;
   showCounter: boolean;
+  /** Uzeta talon karta i ko ju je uzeo — ostaje na vrhu do štihova. */
+  taken?: { card: Card; label: string } | null;
 }) {
-  const current = talon.at(-1);
-  const earlier = talon.slice(0, -1);
+  const current = taken?.card ?? talon.at(-1);
+  const earlier = taken ? talon : talon.slice(0, -1);
   return (
     <div className="rb-talon">
       <div className="rb-talon__deck" data-deck>
@@ -79,6 +82,7 @@ export function TalonPile({
           <span key={current.id} className="rb-talon__top">
             <PlayingCard card={current} size="sm" />
           </span>
+          {taken ? <span className="rb-talon__taken">{taken.label}</span> : null}
         </div>
       ) : null}
       {showCounter ? <span className="rb-talon__flip">{sr.raub.talonCard(flips, maxFlips)}</span> : null}

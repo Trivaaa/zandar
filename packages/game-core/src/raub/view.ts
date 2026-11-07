@@ -1,4 +1,5 @@
 import type {
+  Card,
   RaubAction,
   RaubGameState,
   RaubPlayerView,
@@ -12,6 +13,16 @@ import { raubLegalCards, raubMaxExchange } from "./match";
  * tuđe ruke ni odbačene karte; djelilac ne vidi svoje karte prije odluke
  * (spec: „Raub naslijepo" je prije nego pogleda karte).
  */
+/** Uzeta talon karta dok je još u ruci onoga ko ju je uzeo, prije štihova. */
+function takenTalonCard(state: RaubGameState): Card | null {
+  if (state.phase !== "playing" || state.step === "tricks") return null;
+  if (!state.talonTakenBy || !state.lockedCardId) return null;
+  const card = state.seats
+    .find((s) => s.playerId === state.talonTakenBy)
+    ?.hand.find((c) => c.id === state.lockedCardId);
+  return card ? { ...card } : null;
+}
+
 export function getRaubView(state: RaubGameState, viewerId: string): RaubPlayerView {
   const me = state.seats.find((s) => s.playerId === viewerId);
   const myTurn = state.phase === "playing" && state.currentPlayerId === viewerId;
@@ -49,6 +60,7 @@ export function getRaubView(state: RaubGameState, viewerId: string): RaubPlayerV
     talon: state.talon.map((c) => ({ ...c })),
     talonFlips: state.talonFlips,
     talonTakenBy: state.talonTakenBy,
+    takenTalonCard: takenTalonCard(state),
     deckCount: state.deck.length,
     offeredSuit:
       state.phase === "playing" && state.trumpSuit === null ? (state.talon.at(-1)?.suit ?? null) : null,

@@ -1505,3 +1505,10 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 - Curl matrica protiv lokalnog servera: 200 / 400×3 / pokvaren token = gost / 413 / export 404 → CSV.
 - Headless Chrome 390×844, tok početna → Piši nam → 2 slike → loš e-mail (poruka, pa nestaje) → Pošalji → Hvala; zapis i 2 priloga na disku.
 - Slanje pravog mejla NIJE provjereno (nema ključa). **Nije provjereno na uređaju.**
+## 136. Raub — uzeta sedmica ostaje na stolu (2026-11-07, `fix/raub-taken-talon`)
+
+**Povod:** vlasnik na S10e (staging): faza „Idem?", adut ♠, „Tijana mora 1", a na stolu samo špil — nije se vidjelo koja je karta okrenuta. Scenarij 1: okrenuta sedmica ide djeliocu u ruku **u istom koraku kao dijeljenje** (`startRaubHand` → `takeTalon`), pa nijedan klijent nikad nije dobio stanje u kojem je sedmica na stolu. Isto važi i za raub naslijepo, samo se tamo karta bar vidjela dok je djelilac odlučivao.
+
+**Izmjena:** `RaubPlayerView.takenTalonCard` — karta uzeta s talona (sedmica, naslijepo, zamjena sedmice) dok je još u ruci onoga ko ju je uzeo, do početka štihova. Javna je (bila je licem nagore). Izvodi se iz `talonTakenBy` + `lockedCardId`, pa se oblik snapshota ne mijenja. `TalonPile` je crta na vrhu talona sa oznakom „Uzima: Ime" / „Uzimaš ti"; pri zamjeni sedmice data sedmica leži prigušena ispod. `/dev/raub?s=seven`.
+
+**Provjereno:** game-core 372 (novi test: svi gledaoci vide sedmicu, u štihovima `null`), web 201, typecheck web/server; snimak 360×740 `/dev/raub?s=seven`.

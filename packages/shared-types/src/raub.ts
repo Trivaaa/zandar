@@ -255,6 +255,12 @@ export interface RaubPlayerView {
   talon: Card[];
   talonFlips: number;
   talonTakenBy: string | null;
+  /**
+   * Karta koju je igrač uzeo s talona (sedmica, raub naslijepo, zamjena
+   * sedmice). Bila je okrenuta pa je javna; do štihova ostaje na stolu, inače
+   * se sedmica iz scenarija 1 nikad ne bi vidjela (uzima se pri dijeljenju).
+   */
+  takenTalonCard: Card | null;
   deckCount: number;
   /** Boja ponuđena u licitaciji (prije nego je adut određen). */
   offeredSuit: Suit | null;

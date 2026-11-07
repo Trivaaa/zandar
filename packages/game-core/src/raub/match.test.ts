@@ -181,6 +181,20 @@ describe("raub scenarij 1 — sedmica", () => {
     expect(after.step).toBe("going");
     expect(raubCardCount(after)).toBe(32);
   });
+
+  it("uzeta sedmica je javna do štihova (svi je vide na stolu), pa nestaje", () => {
+    const s = match({ hands: HANDS4, talon: D("7") });
+    for (const pid of ["a", "b", "c", "d"]) {
+      const v = getRaubView(s, pid);
+      expect(v.takenTalonCard).toEqual(D("7"));
+      expect(v.talonTakenBy).toBe("a");
+    }
+    let tricks = act(s, "a", { type: "discard", cardId: "spades-K" });
+    for (const id of ["b", "c", "d"]) tricks = act(tricks, id, { type: "go", go: true });
+    for (const id of ["a", "b", "c", "d"]) tricks = act(tricks, id, { type: "exchange", cardIds: [] });
+    expect(tricks.step).toBe("tricks");
+    expect(getRaubView(tricks, "b").takenTalonCard).toBeNull();
+  });
 });
 
 describe("raub scenarij 2 — raub naslijepo", () => {
