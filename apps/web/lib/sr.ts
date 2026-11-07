@@ -321,23 +321,50 @@ export const sr = {
   /* Po igri. Ključ je slug iz `@zandar/shared-types` — nova igra = novi blok.
      Velika slova daje CSS (text-transform) — citac ekrana ume da speluje
      naslov napisan velikim slovima, slovo po slovo. */
-  /** Poker (Texas Hold'em NL). Akcije i kombinacije na engleskom (odluka 6.11.2026), ostalo ijekavica. */
+  /**
+   * Poker (Texas Hold'em NL). Sve na našem (odluka vlasnika 7.11.2026 — ranije
+   * su akcije i kombinacije bile na engleskom). Izrazi kakvi se govore za
+   * stolom: kenta, boja, ful, poker, va-bank.
+   */
   poker: {
-    fold: "Fold",
-    check: "Check",
-    call: (n: number) => `Call ${n}`,
-    bet: "Bet",
-    raise: "Raise",
-    allIn: "All-in",
-    confirmBet: (n: number) => `Bet ${n}`,
-    confirmRaise: (n: number) => `Raise na ${n}`,
-    cancel: "Odustani",
+    fold: "Odustani",
+    check: "Dalje",
+    call: (n: number) => `Prati ${n}`,
+    bet: "Uloži",
+    raise: "Podigni",
+    allIn: "Va-bank",
+    confirmBet: (n: number) => `Uloži ${n}`,
+    confirmRaise: (n: number) => `Podigni na ${n}`,
+    /** Natpis iznad avatara — šta je igrač upravo uradio (bez roda). */
+    did: {
+      fold: "Odustaje",
+      check: "Dalje",
+      call: (n: number) => `Prati ${n}`,
+      bet: (n: number) => `Ulaže ${n}`,
+      raise: (n: number) => `Diže na ${n}`,
+      allin: "Va-bank",
+    },
+    /** Nazivi kombinacija, od najslabije. */
+    hands: {
+      high_card: "Visoka karta",
+      pair: "Par",
+      two_pair: "Dva para",
+      three_of_a_kind: "Triling",
+      straight: "Kenta",
+      flush: "Boja",
+      full_house: "Ful",
+      four_of_a_kind: "Poker",
+      straight_flush: "Kenta u boji",
+      royal_flush: "Rojal fleš",
+    },
+    // Ne „Odustani" — to je sad fold; ovo samo zatvara list.
+    cancel: "Nazad",
     raiseTitle: "Ulažeš",
     raiseTo: "ukupno u ovoj ulici",
     presetMin: "Min",
     presetHalf: "½ pota",
     presetPot: "Pot",
-    presetAllIn: "All-in",
+    presetAllIn: "Va-bank",
     less: "Manje",
     more: "Više",
     waitingFor: (name: string) => `Čeka se: ${name}`,

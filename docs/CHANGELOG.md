@@ -1420,3 +1420,17 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 - CDP snimci 2P i 4P na 360×640 i 393×852: ploča staje, board ostaje vidljiv.
 - Filmska traka na lokalnom serveru: redovi stižu na ~0,9 s, pa isticanje; 0 grešaka.
 - **Nije provjereno na uređaju.**
+
+## 132. Poker na našem jeziku (2026-11-07, `feat/poker-core`)
+
+**Šta:** vlasnik je tražio poker „na srpski". Akcije i kombinacije su bile na engleskom (odluka od 6.11.2026), a sad su na našem, uz izraze kakvi se govore za stolom. Tekst ostaje na ijekavici, kao ostatak aplikacije.
+
+- **Dugmad:** Odustani · Dalje · Prati N · Uloži / Podigni · Va-bank; potvrda „Uloži N" / „Podigni na N".
+- **Natpis iznad avatara:** Odustaje · Dalje · Prati N · Ulaže N · Diže na N · Va-bank. Bez roda, pa „Odustao/la" ne treba.
+- **Kombinacije:** Visoka karta · Par · Dva para · Triling · Kenta · Boja · Ful · Poker (četiri iste) · Kenta u boji · Rojal fleš.
+- **Pravila:** naši nazivi, a uz akcije u zagradi engleski (fold, check…), jer ih igrači sreću drugdje. „Side pot" je postao „Sporedni pot (side pot)".
+- **Zatvaranje raise lista** se zove „Nazad", ne „Odustani", jer je „Odustani" sada fold.
+- **Jedno mjesto za tekst:** natpisi (`sr.poker.did`) i kombinacije (`sr.poker.hands`) žive u `sr.ts`. `POKER_CATEGORY_LABEL` i `actionLabel` (`lib/pokerView.ts`) ih samo čitaju.
+- **Ostaje:** Pot, Blindovi, D/SB/BB.
+
+**Provjereno:** web 201 testova (natpisi i „Ful" u `pokerView.test.ts`), typecheck, lint = osnovica, snimak 360×740: „Odustani · Prati 10 · Podigni" i „Podigni na 22" staju bez prelamanja. **Nije provjereno na uređaju.**

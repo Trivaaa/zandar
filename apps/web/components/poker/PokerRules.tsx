@@ -4,7 +4,8 @@ import { sr } from "@/lib/sr";
 
 /**
  * Sadržaj pravila pokera — isti okvir i isti format kao „Pravila Žandara"
- * (`RulesModal`). Akcije i kombinacije na engleskom, kako se govori za stolom.
+ * (`RulesModal`). Sve na našem (7.11.2026); uz akcije u zagradi i engleski naziv,
+ * jer ga igrači sreću na drugim mjestima.
  */
 export function PokerRulesBody({ SectionTitle }: { SectionTitle: (p: { children: ReactNode }) => ReactNode }) {
   return (
@@ -31,12 +32,12 @@ export function PokerRulesBody({ SectionTitle }: { SectionTitle: (p: { children:
       <section>
         <SectionTitle>💬 Akcije</SectionTitle>
         <ul className="space-y-1 list-disc list-inside">
-          <li><strong>Fold</strong> — odustaješ od ruke</li>
-          <li><strong>Check</strong> — dalje, bez uloga (kad niko nije uložio)</li>
-          <li><strong>Call</strong> — izjednačavaš ulog</li>
-          <li><strong>Bet / Raise</strong> — ulažeš ili povećavaš; najmanje za veliki blind ili zadnje povećanje</li>
-          <li><strong>All-in</strong> — ulažeš sve što imaš</li>
-          <li>Na potez imaš <strong>20 sekundi</strong>; poslije toga igra se Check, a ako ima uloga Fold</li>
+          <li><strong>Odustani</strong> (fold) — odustaješ od ruke</li>
+          <li><strong>Dalje</strong> (check) — bez uloga, kad niko nije uložio</li>
+          <li><strong>Prati</strong> (call) — izjednačavaš ulog</li>
+          <li><strong>Uloži / Podigni</strong> (bet / raise) — ulažeš ili povećavaš; najmanje za veliki blind ili zadnje povećanje</li>
+          <li><strong>Va-bank</strong> (all-in) — ulažeš sve što imaš</li>
+          <li>Na potez imaš <strong>20 sekundi</strong>; poslije toga igra se Dalje, a ako ima uloga Odustani</li>
         </ul>
       </section>
 
@@ -44,7 +45,7 @@ export function PokerRulesBody({ SectionTitle }: { SectionTitle: (p: { children:
         <SectionTitle>🔘 Blindovi</SectionTitle>
         <ul className="space-y-1 list-disc list-inside">
           <li><strong>D</strong> je djelilac; prva dva lijevo od njega ulažu <strong>SB</strong> i <strong>BB</strong> prije karata</li>
-          <li>Kad igraju dvojica, djelilac ulaže small blind</li>
+          <li>Kad igraju dvojica, djelilac ulaže mali blind (SB)</li>
           <li>Blindovi rastu svakih nekoliko ruku — vidi se u zaglavlju stola</li>
         </ul>
       </section>
@@ -52,24 +53,24 @@ export function PokerRulesBody({ SectionTitle }: { SectionTitle: (p: { children:
       <section>
         <SectionTitle>🏆 Kombinacije, od najjače</SectionTitle>
         <ol className="space-y-1 list-decimal list-inside">
-          <li><strong>Royal flush</strong> — A K Q J 10 iste boje</li>
-          <li><strong>Straight flush</strong> — pet zaredom iste boje</li>
-          <li><strong>Four of a kind</strong> — četiri iste</li>
-          <li><strong>Full house</strong> — tri iste i par</li>
-          <li><strong>Flush</strong> — pet iste boje</li>
-          <li><strong>Straight</strong> — pet zaredom (A može biti i najniži: A 2 3 4 5)</li>
-          <li><strong>Three of a kind</strong> — tri iste</li>
-          <li><strong>Two pair</strong> — dva para</li>
-          <li><strong>Pair</strong> — par</li>
-          <li><strong>High card</strong> — najjača karta</li>
+          <li><strong>Rojal fleš</strong> — A K Q J 10 iste boje</li>
+          <li><strong>Kenta u boji</strong> — pet zaredom iste boje</li>
+          <li><strong>Poker</strong> — četiri iste</li>
+          <li><strong>Ful</strong> — tri iste i par</li>
+          <li><strong>Boja</strong> — pet iste boje</li>
+          <li><strong>Kenta</strong> — pet zaredom (A može biti i najniži: A 2 3 4 5)</li>
+          <li><strong>Triling</strong> — tri iste</li>
+          <li><strong>Dva para</strong></li>
+          <li><strong>Par</strong> — dvije iste</li>
+          <li><strong>Visoka karta</strong> — kad nema ništa, odlučuje najjača karta</li>
         </ol>
         <p className="text-muted mt-2">Iste kombinacije dijele pot.</p>
       </section>
 
       <section>
-        <SectionTitle>➗ Side pot</SectionTitle>
+        <SectionTitle>➗ Sporedni pot (side pot)</SectionTitle>
         <p>
-          Kad je neko all-in sa manje žetona, on može dobiti samo onoliko koliko je uložio od svakog. Ostatak ide u
+          Kad je neko va-bank sa manje žetona, on može dobiti samo onoliko koliko je uložio od svakog. Ostatak ide u
           poseban pot za koji igraju ostali.
         </p>
       </section>

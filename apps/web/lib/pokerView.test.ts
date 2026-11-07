@@ -88,10 +88,12 @@ test("positionTags: heads-up dealer je i small blind", () => {
 });
 
 test("actionLabel nosi ulog u ulici", () => {
-  assert.equal(actionLabel({ type: "call", amount: 12 }), "Call 12");
-  assert.equal(actionLabel({ type: "raise", amount: 30 }), "Raise 30");
-  assert.equal(actionLabel({ type: "allin", amount: 88 }), "All-in");
-  assert.equal(actionLabel({ type: "check", amount: 0 }), "Check");
+  assert.equal(actionLabel({ type: "call", amount: 12 }), "Prati 12");
+  assert.equal(actionLabel({ type: "raise", amount: 30 }), "Diže na 30");
+  assert.equal(actionLabel({ type: "bet", amount: 6 }), "Ulaže 6");
+  assert.equal(actionLabel({ type: "allin", amount: 88 }), "Va-bank");
+  assert.equal(actionLabel({ type: "check", amount: 0 }), "Dalje");
+  assert.equal(actionLabel({ type: "fold", amount: 0 }), "Odustaje");
 });
 
 describe("raisePresets", () => {
@@ -119,7 +121,7 @@ test("handHint: prije flopa opis karata, poslije kombinacija", () => {
   assert.equal(handHint([card("Qs"), card("As")], []), "A, Q iste boje");
   assert.equal(handHint([card("7h"), card("7d")], []), "Par 7");
   assert.equal(handHint([card("Kh"), card("2c")], []), "K, 2");
-  assert.equal(handHint([card("Kh"), card("Kc")], [card("Ks"), card("2d"), card("2h")]), "Full house");
+  assert.equal(handHint([card("Kh"), card("Kc")], [card("Ks"), card("2d"), card("2h")]), "Ful");
 });
 
 describe("summarizeHand", () => {

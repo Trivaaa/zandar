@@ -9,6 +9,8 @@ import type {
   PokerSeatView,
 } from "@zandar/shared-types";
 
+import { sr } from "./sr";
+
 /**
  * Prikaz poker stola — čiste funkcije od pogleda koji šalje server.
  *
@@ -17,19 +19,8 @@ import type {
  * server ih ionako provjerava ponovo.
  */
 
-/** Nazivi kombinacija ostaju na engleskom (odluka 6.11.2026, kako se govori u regionu). */
-export const POKER_CATEGORY_LABEL: Record<PokerHandCategory, string> = {
-  high_card: "High card",
-  pair: "Pair",
-  two_pair: "Two pair",
-  three_of_a_kind: "Three of a kind",
-  straight: "Straight",
-  flush: "Flush",
-  full_house: "Full house",
-  four_of_a_kind: "Four of a kind",
-  straight_flush: "Straight flush",
-  royal_flush: "Royal flush",
-};
+/** Nazivi kombinacija — tekst je u `sr.poker.hands` (na našem od 7.11.2026). */
+export const POKER_CATEGORY_LABEL: Record<PokerHandCategory, string> = sr.poker.hands;
 
 export type PotChip = { label: "main" | "side"; index: number; amount: number };
 
@@ -85,19 +76,20 @@ export function positionTags(
 
 /** Natpis zadnje akcije iznad avatara. `amount` je ulog u ulici POSLIJE akcije. */
 export function actionLabel(action: PokerLastAction): string {
+  const did = sr.poker.did;
   switch (action.type) {
     case "fold":
-      return "Fold";
+      return did.fold;
     case "check":
-      return "Check";
+      return did.check;
     case "call":
-      return `Call ${action.amount}`;
+      return did.call(action.amount);
     case "bet":
-      return `Bet ${action.amount}`;
+      return did.bet(action.amount);
     case "raise":
-      return `Raise ${action.amount}`;
+      return did.raise(action.amount);
     case "allin":
-      return "All-in";
+      return did.allin;
   }
 }
 
