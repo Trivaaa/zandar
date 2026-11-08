@@ -17,7 +17,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
 
       <section>
         <SectionTitle>🃏 Karte</SectionTitle>
-        <p>32 karte, od asa do sedmice. Jačina: A, K, Q, J, 10, 9, 8, 7 — ista za adut i za ostale boje.</p>
+        <p>32 mađarske karte u četiri boje: srce, list, žir i tikva. Jačina: A, K, O (iber), U (dečko), 10, 9, 8, 7 — ista za adut i za ostale boje.</p>
         <p className="mt-2">Svako dobija 4 karte, a jedna se okreće na sredinu stola (talon).</p>
       </section>
 

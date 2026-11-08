@@ -34,7 +34,7 @@ export function GameCard({ game, pinned, compact, loading, error, onPlay, onCrea
         <div className="game-fan" aria-hidden="true" style={{ "--n": cards.length } as React.CSSProperties}>
           {cards.map((face, i) => (
             <div key={`${face.rank}${face.suit}`} className="game-fan__slot" style={{ "--i": i } as React.CSSProperties}>
-              <PlayingCard card={{ id: `home-${face.rank}-${face.suit}`, ...face }} size="md" />
+              <PlayingCard card={{ id: `home-${face.rank}-${face.suit}`, ...face }} size="md" deck={game.deck} />
             </div>
           ))}
         </div>

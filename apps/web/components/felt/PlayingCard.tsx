@@ -1,5 +1,6 @@
 "use client";
 
+import { HU_SUIT_NAME, huAsset, huRankLabel, useCardDeck, type CardDeck } from "@/components/felt/cardDeck";
 import type { Card, CardSize, Suit } from "@/components/felt/types";
 
 const sizeClass: Record<CardSize, string> = {
@@ -59,6 +60,8 @@ export type PlayingCardProps = {
   dealIndex?: number | undefined;
   onSelect?: ((card: Card) => void) | undefined;
   className?: string | undefined;
+  /** Komplet; bez propa važi `CardDeckContext` (podrazumijevano francuski). */
+  deck?: CardDeck | undefined;
 };
 
 export function PlayingCard({
@@ -76,7 +79,10 @@ export function PlayingCard({
   dealIndex,
   onSelect,
   className = "",
+  deck: deckProp,
 }: PlayingCardProps) {
+  const deck = useCardDeck(deckProp);
+  const hu = deck === "hungarian";
   const interactive = selectable && !disabled;
   const motion = [
     animateDeal ? "card-deal" : "",
@@ -87,7 +93,12 @@ export function PlayingCard({
     .filter(Boolean)
     .join(" ");
 
-  const label = faceUp ? `${card.rank} ${suitLabel[card.suit]}` : "karta okrenuta nadole";
+  const label = !faceUp
+    ? "karta okrenuta nadole"
+    : hu
+      ? `${huRankLabel(card.rank)} ${HU_SUIT_NAME[card.suit]}`
+      : `${card.rank} ${suitLabel[card.suit]}`;
+  const art = hu ? `/cards/hu/${huAsset(card)}.webp` : `/cards/${assetId(card)}.webp`;
 
   return (
     <div
@@ -98,6 +109,7 @@ export function PlayingCard({
       data-dimmed={dimmed}
       data-disabled={disabled}
       data-card-id={card.id}
+      data-deck={hu ? "hungarian" : undefined}
       style={dealIndex === undefined ? undefined : ({ "--deal-index": dealIndex } as React.CSSProperties)}
       role={interactive ? "button" : "img"}
       aria-label={label}
@@ -124,7 +136,7 @@ export function PlayingCard({
             <div
               className="card-face"
               style={
-                { "--card-art": `url("/cards/${assetId(card)}.webp")` } as React.CSSProperties
+                { "--card-art": `url("${art}")` } as React.CSSProperties
               }
             />
           </div>

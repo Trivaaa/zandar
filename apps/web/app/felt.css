@@ -3297,11 +3297,17 @@
   min-width: 0;
 }
 
-.rb-suit {
-  color: inherit;
+/* Znak boje u tekstu: ikonica sa mađarice (odluka 12), visine slova. */
+.rb-suit-icon {
+  display: inline-block;
+  width: auto;
+  height: 1.15em;
+  margin-inline: 0.08em;
+  vertical-align: -0.22em;
 }
-.rb-suit[data-red] {
-  color: var(--danger-signal);
+/* Mađarice: poleđina iz istog kompleta (lice nosi `--card-art` iz PlayingCard). */
+[data-deck="hungarian"] .card-back {
+  --card-back-art: url("/cards/hu/back.webp");
 }
 
 /* ---- Stol: adut, talon, štih ------------------------------------------ */
@@ -3432,9 +3438,6 @@
   background-color: var(--card-face);
   color: var(--card-ink);
   font: 700 0.875rem/1.2 var(--font-sans);
-}
-.rb-open__card[data-red] {
-  color: var(--card-ink-red);
 }
 
 /* Štih: svaka karta ispred onog ko ju je bacio (tabla 9/10). */
@@ -3655,6 +3658,9 @@
   left: 50%;
   bottom: calc(100% + 0.3rem);
   transform: translateX(-50%);
+  /* Bez ovoga apsolutni oblačić sa left:50% dobija samo pola panela pa se
+     uputstvo siječe („Uzmeš li ♠, moraš 2 š…" na 360 px). */
+  width: max-content;
   max-width: 100%;
   margin: 0;
   padding: 0.3rem 0.7rem;

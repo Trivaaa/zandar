@@ -1,5 +1,6 @@
 "use client";
 
+import type { CardDeck } from "@/lib/hungarianDeck";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { BellIcon, SuitIcon } from "@/components/icons";
 import type { CardFace, GameConfig } from "@/lib/games";
@@ -21,12 +22,12 @@ export function gameMeta(game: GameConfig): string {
 }
 
 /** Dvije prave karte gore desno na pločici. Dekoracija. */
-function TileCards({ cards, prefix }: { cards: readonly CardFace[]; prefix: string }) {
+function TileCards({ cards, prefix, deck }: { cards: readonly CardFace[]; prefix: string; deck?: CardDeck | undefined }) {
   return (
     <span className="game-tile__cards" aria-hidden="true">
       {cards.map((face, i) => (
         <span key={`${face.rank}${face.suit}`} className="game-tile__card" style={{ "--i": i } as React.CSSProperties}>
-          <PlayingCard card={{ id: `${prefix}-${face.rank}-${face.suit}`, ...face }} size="sm" />
+          <PlayingCard card={{ id: `${prefix}-${face.rank}-${face.suit}`, ...face }} size="sm" deck={deck} />
         </span>
       ))}
     </span>
@@ -49,7 +50,7 @@ export function GameTile({ game, isNew, onOpen }: { game: GameConfig; isNew: boo
       aria-haspopup="dialog"
       aria-label={sr.home.openGame(name)}
     >
-      <TileCards cards={game.tileCards} prefix={`tile-${game.slug}`} />
+      <TileCards cards={game.tileCards} prefix={`tile-${game.slug}`} deck={game.deck} />
       {isNew ? <span className="game-tile__new">{sr.home.isNew}</span> : null}
       <span className="game-tile__name">{name}</span>
       <span className="game-tile__meta">{gameMeta(game)}</span>
@@ -72,7 +73,7 @@ export function UpcomingTile({ game, onNotify }: { game: GameConfig; onNotify: (
       aria-haspopup="dialog"
       aria-label={sr.home.notifyFor(name)}
     >
-      <TileCards cards={game.tileCards} prefix={`soon-${game.slug}`} />
+      <TileCards cards={game.tileCards} prefix={`soon-${game.slug}`} deck={game.deck} />
       <span className="game-tile__name">{name}</span>
       <span className="game-tile__bell" aria-hidden="true">
         <BellIcon className="game-tile__bell-icon" />

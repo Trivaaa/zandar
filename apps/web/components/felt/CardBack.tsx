@@ -1,5 +1,6 @@
 "use client";
 
+import { useCardDeck } from "@/components/felt/cardDeck";
 import type { CardSize } from "@/components/felt/types";
 
 const sizeClass: Record<CardSize, string> = {
@@ -29,9 +30,11 @@ export function CardBack({
   animateDeal = false,
   className = "",
 }: CardBackProps) {
+  const deck = useCardDeck();
   return (
     <div
       aria-hidden="true"
+      data-deck={deck === "hungarian" ? "hungarian" : undefined}
       className={`card ${sizeClass[size]} ${animateDeal ? "card-deal" : ""} ${className}`}
       style={dealIndex === undefined ? undefined : ({ "--deal-index": dealIndex } as React.CSSProperties)}
     >

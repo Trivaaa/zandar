@@ -37,6 +37,7 @@ import {
 } from "@/lib/raubView";
 import type { ActiveReaction } from "@/lib/reactions";
 import { arrangeSeats } from "@/lib/seating";
+import { CardDeckContext } from "@/components/felt/cardDeck";
 import { sr } from "@/lib/sr";
 import { useCountdown } from "@/lib/useCountdown";
 
@@ -336,8 +337,11 @@ export function RaubScreen({
         : "absolute inset-x-0 z-50 flex justify-center p-3 top-[calc(var(--safe-top)+var(--stage-header-h))]";
 
   return (
+    // Raub se igra mađaricama (odluka 12): sve karte ispod čitaju komplet iz konteksta.
+    <CardDeckContext.Provider value="hungarian">
     <div className="h-[100dvh] w-full bg-surface flex justify-center">
       <div
+        data-deck="hungarian"
         className="felt-stage relative h-full w-full max-w-[600px] overflow-hidden md:shadow-2xl md:ring-1 md:ring-black/40"
         data-game="raub"
         data-partner={seats.partner ? "true" : "false"}
@@ -547,5 +551,6 @@ export function RaubScreen({
         ) : null}
       </div>
     </div>
+    </CardDeckContext.Provider>
   );
 }

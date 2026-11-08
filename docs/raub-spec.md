@@ -27,7 +27,7 @@ Raub je igra na štihove sa 32 karte: svaki igrač dobija 4 karte, jedan igrač 
 
 - Bilo kakva ekonomija: žetoni, ulozi, nagrade.
 - Varijante mus i permus, 5 ili više igrača, timovi.
-- Mađarice kao poseban dizajn karata (V1 koristi postojeće karte `public/cards/`, samo A do 7; mađarice su faza 2).
+- ~~Mađarice kao poseban dizajn karata (faza 2)~~ — od 8.11.2026 Raub se igra mađaricama već u V1, bez izbora kompleta **(odluka 12)**.
 - Chat, statistika igrača, replay partije.
 - Preuzimanje mjesta botom kad igrač ode ili izgubi vezu **(odluka 3)**.
 
@@ -331,6 +331,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 9 | Idem / Ne idem | Uvedeno (pagat): poslije određivanja aduta svako osim nosioca bira da li igra; ko ne ide, ne boduje se; ako niko ne ide, nosilac −4 | Simulacija botova (7.11.2026) sa „svi igraju”: 2 igrača završe za ~11 ruku, 3 za ~23, a sa 4 igrača nijedan od 60 mečeva ni za 150 ruku — bodovi u prosjeku rastu +0,15 po ruci (4 štiha, a ~45 % igrača bez štiha dobija +2). Sa „Idem / Ne idem” 4 igrača završe za medijan ~21 ruku |
 | 10 | Tajmer poteza | 25 s umjesto 15 s | Vlasnik na uređaju (7.11.2026): 15 s ističe prije nego se stigne razmisliti; traženo bar 50 % duže. Botovi igraju za 1–3 s, pa tempo meča raste samo kad čovjek razmišlja |
 | 11 | Brzina botova | Nasumično 2,5–7 s po odluci (bilo 1–3 s) | Vlasnik (7.11.2026): da izgleda realnije. Simulacija: 4 igrača, medijan ~34 min (bilo ~20), p90 ~50 min — iznad ciljanih 15–25 min |
+| 12 | Mađarice | Raub se crta mađaricama (komplet vlasnika „Kartaonica_RAUB”, `public/cards/hu/`), i za stolom i na početnoj. Samo prikaz: pik → list, herc → srce, karo → tikva, tref → žir; J → U, Q → O. U tekstu znak boje je ikonica sa karte, figure kao na karti (U, O, K, A), četvrta boja „Tikva” | Vlasnik, 8.11.2026. Motor, server i `Card.id` ostaju francuski, pa nema promjene snapshota ni protokola |
 
 ## Metrike, acceptance i otvorena pitanja
 
@@ -369,7 +370,7 @@ Analitika ide kroz postojeće `match_started` / `match_ended` sa `game: "raub"` 
 - [ ] Da li je 15–25 min za partiju od 21 boda predugo? Opcija: brza partija od 11 bodova (u lobiju jedan red 21 / 11, kao Žandar).
 - [ ] Da li u V1 uvesti mus, s obzirom na to da ga dio igrača očekuje?
 - [ ] Da li uz Raub prikazivati kratko objašnjenje pravila pri prvoj partiji? Predlog sa table: pravila se sama otvore jednom, kao „Kako se igra Raub” u 3 kartice.
-- [ ] Mađarice kao alternativni izgled karata: faza 2.
+- [x] Mađarice: zamijenile francuske karte u Raubu (odluka 12). Izbor kompleta (francuske/mađarice) nije planiran.
 
 **Izvori pravila**
 

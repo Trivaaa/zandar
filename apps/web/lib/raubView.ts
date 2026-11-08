@@ -8,6 +8,7 @@ import type {
   Suit,
 } from "@zandar/shared-types";
 
+import { huRankLabel } from "@/lib/hungarianDeck";
 import { sr } from "@/lib/sr";
 
 /**
@@ -26,7 +27,11 @@ export const SUIT_SYMBOL: Record<Suit, string> = {
 /** Crvene boje se crtaju crveno i u tekstu. */
 export const isRedSuit = (s: Suit) => s === "hearts" || s === "diamonds";
 
-export const cardLabel = (c: Pick<Card, "rank" | "suit">) => `${c.rank}${SUIT_SYMBOL[c.suit]}`;
+/**
+ * „7♣", „U♥": rang kako piše na mađarici (J → U, Q → O, odluka 12), boja kao
+ * znak — ekran ga u tekstu zamjenjuje ikonicom sa karte (`withSuits`).
+ */
+export const cardLabel = (c: Pick<Card, "rank" | "suit">) => `${huRankLabel(c.rank)}${SUIT_SYMBOL[c.suit]}`;
 
 /** Natpis faze na vrhu stola: „Licitacija", „Idem?", „Zamjena", „Štih 2 od 4". */
 export function phaseLabel(v: Pick<RaubPlayerView, "phase" | "step" | "tricks">): string {

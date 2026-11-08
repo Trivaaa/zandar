@@ -55,7 +55,7 @@ export function GameList({
                     className="home-list__card-slot"
                     style={{ "--i": i } as React.CSSProperties}
                   >
-                    <PlayingCard card={{ id: `list-${game.slug}-${face.rank}-${face.suit}`, ...face }} size="sm" />
+                    <PlayingCard card={{ id: `list-${game.slug}-${face.rank}-${face.suit}`, ...face }} size="sm" deck={game.deck} />
                   </span>
                 ))}
               </span>

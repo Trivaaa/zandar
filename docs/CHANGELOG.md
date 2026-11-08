@@ -1560,3 +1560,19 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 - Traka ponude aplikacije (`topSlot`) i red „Piši nam" na početnoj ostaju.
 
 **⚠ Rizik:** Google OAuth provjera (prijava Googleom) može tražiti link na politiku privatnosti SA POČETNE. Ako Google to zatraži, red vratiti na početnu (`legalSlot` u `app/page.tsx`; `HomeScreen` prop je ostao).
+
+## 142. Raub — mađarice (2026-11-08, `feat/raub-hungarian`)
+
+**Povod:** vlasnik je isporučio komplet mađarica („Kartaonica_RAUB", ilustrovano izdanje, 32 lica + poleđina) i tražio zamjenu u Raubu — za stolom i na početnoj. **Odluka 12** u `docs/raub-spec.md` (znak boje u tekstu = ikonica sa karte, figure U/O/K/A, četvrta boja „Tikva").
+
+**Izmjene:**
+- `scripts/build-raub-cards.mjs` (jednokratno, izvor nije u repou): lica i poleđina 480×680 → 240×340 webp (ista širina kao francuski komplet; odnos 12:17 = naš 1,417) u `public/cards/hu/` — 529 KB za 33 slike. Četiri ikonice boje isječene sa vrha asa (`png/`, okvir izmjeren: x 255–465, y 55–235 — niže počinje pejzaž, koji je u prvom pokušaju ušao u list/žir/tikvu), krem papir → providno po udaljenosti boje, trim, 96 px.
+- `lib/hungarianDeck.ts` (čisto, testirano): `huAsset` (pik → list, herc → srce, karo → tikva/`bells`, tref → žir/`acorns`; J → `unter`, Q → `ober`), `huRankLabel`, `HU_SUIT_NAME`, `huSuitIcon`, tip `CardDeck`.
+- `components/felt/cardDeck.ts`: `CardDeckContext` (podrazumijevano francuski). `PlayingCard` (prop `deck` ili kontekst) bira sliku i `aria-label` („U žir"); `CardBack` nosi `data-deck`, a `[data-deck="hungarian"] .card-back` mijenja `--card-back-art`.
+- `RaubScreen` je umotan u `CardDeckContext.Provider value="hungarian"` + `data-deck` na `.felt-stage` → ruka, talon, štih, lepeze, špil i sažetak bez prosljeđivanja propova. Žandar i Poker netaknuti.
+- Tekst: `cardLabel` piše U/O; `withSuits` u `RaubParts` zamjenjuje ♠♥♦♣ ikonicom (`.rb-suit-icon`, 1,15 em) u oznaci adut, uputstvima panela, „Odgovori na boju", zamjeni sedmice i otvorenoj karti. `sr` stringovi nepromijenjeni. Crvena boja teksta (`isRedSuit`/`data-red`) više ne treba.
+- Početna: `GameConfig.deck`, Raub `"hungarian"`; `GameList`, `GameTile`, `GameCard` ga prosljeđuju. Iste vrijednosti kartica → VII žir, A list, K tikva.
+- `RaubRules`: „32 mađarske karte… A, K, O (iber), U (dečko), 10…".
+- Usput: `.rb-panel__hint` sa `left:50%` dobijao je samo pola širine panela i sjekao uputstvo — `width: max-content`.
+
+**Provjereno:** web 205 (novi `hungarianDeck.test.ts`), typecheck, lint; headless Chrome 360×740 `/dev/raub?s=bid|seven|exchangeOpen|trick` (lica, poleđine, ikonica u oznaci adut i uputstvima, zatamnjene karte) i početna 390 px.

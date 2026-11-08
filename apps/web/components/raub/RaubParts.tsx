@@ -1,18 +1,18 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { Card, PublicPlayer, RaubHandResult, RaubSeatView, Suit } from "@zandar/shared-types";
 
 import { CardBack } from "@/components/felt/CardBack";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { PokerAvatar } from "@/components/poker/PokerParts";
+import { HU_SUIT_NAME, huSuitIcon } from "@/lib/hungarianDeck";
 import {
   SUIT_SYMBOL,
   cardLabel,
   formatDelta,
   handRows,
   handSentence,
-  isRedSuit,
   leaderIds,
   scoreTable,
   type Dir,
@@ -20,12 +20,25 @@ import {
 } from "@/lib/raubView";
 import { sr } from "@/lib/sr";
 
+/** Znak boje u tekstu: ikonica sa mađarice (odluka 12), ne ♠♥♦♣. */
 function Suit({ suit }: { suit: Suit }) {
-  return (
-    <span className="rb-suit" data-red={isRedSuit(suit) || undefined}>
-      {SUIT_SYMBOL[suit]}
-    </span>
-  );
+  // eslint-disable-next-line @next/next/no-img-element -- mala statična ikonica, i u APK exportu
+  return <img className="rb-suit-icon" src={huSuitIcon(suit)} alt={HU_SUIT_NAME[suit]} draggable={false} />;
+}
+
+const SYMBOL_SUIT = Object.fromEntries(Object.entries(SUIT_SYMBOL).map(([s, sym]) => [sym, s])) as Record<string, Suit>;
+
+/**
+ * Tekst iz `sr`/`raubView` nosi boju kao ♠♥♦♣ (jedan izvor stringova, lako
+ * testiranje); ovdje se svaki znak zamijeni ikonicom mađarske boje.
+ */
+export function withSuits(text: string): ReactNode {
+  const parts = text.split(/([♠♥♦♣])/u);
+  if (parts.length === 1) return text;
+  return parts.map((p, i) => {
+    const suit = SYMBOL_SUIT[p];
+    return suit ? <Suit key={i} suit={suit} /> : p;
+  });
 }
 
 /** Oznaka aduta u zaglavlju: „NUDI SE ♥" u licitaciji, „ADUT ♥" kad je određen, ×2 posle refe. */
@@ -122,9 +135,7 @@ export function TrickArea({
 export function OpenCardNote({ card, name }: { card: Card; name: string }) {
   return (
     <div className="rb-open">
-      <b className="rb-open__card" data-red={isRedSuit(card.suit) || undefined}>
-        {cardLabel(card)}
-      </b>
+      <b className="rb-open__card">{withSuits(cardLabel(card))}</b>
       <span>
         {name} · {sr.raub.openCard}
       </span>
@@ -220,7 +231,7 @@ export function ActionPanel({
     case "bid":
       return (
         <div className="rb-panel">
-          <p className="rb-panel__hint">{sr.raub.bidHint(SUIT_SYMBOL[panel.suit])}</p>
+          <p className="rb-panel__hint">{withSuits(sr.raub.bidHint(SUIT_SYMBOL[panel.suit]))}</p>
           {btn("pass", sr.raub.bid.pass, () => onBid(false))}
           {btn("accent", sr.raub.bid.raub, () => onBid(true))}
         </div>
@@ -228,9 +239,9 @@ export function ActionPanel({
     case "swap":
       return (
         <div className="rb-panel">
-          <p className="rb-panel__hint">{sr.raub.swap.hint(cardLabel(panel.seven), cardLabel(panel.talon))}</p>
+          <p className="rb-panel__hint">{withSuits(sr.raub.swap.hint(cardLabel(panel.seven), cardLabel(panel.talon)))}</p>
           {btn("pass", sr.raub.swap.no, () => onSwap(false))}
-          {btn("accent", sr.raub.swap.yes(cardLabel(panel.seven)), () => onSwap(true))}
+          {btn("accent", withSuits(sr.raub.swap.yes(cardLabel(panel.seven))), () => onSwap(true))}
         </div>
       );
     case "discard":
@@ -244,7 +255,7 @@ export function ActionPanel({
       return (
         <div className="rb-panel">
           <p className="rb-panel__hint">
-            {sr.raub.go.hint(SUIT_SYMBOL[panel.trump], panel.declarerName, panel.required)}
+            {withSuits(sr.raub.go.hint(SUIT_SYMBOL[panel.trump], panel.declarerName, panel.required))}
           </p>
           {btn("pass", sr.raub.go.no, () => onGo(false))}
           {btn("accent", sr.raub.go.yes, () => onGo(true))}
@@ -267,7 +278,7 @@ export function ActionPanel({
       return (
         <div className="rb-panel" data-play>
           <span className="rb-panel__turn">{sr.raub.yourTurn}</span>
-          <span className="rb-panel__why">{panel.hint}</span>
+          <span className="rb-panel__why">{withSuits(panel.hint)}</span>
         </div>
       );
   }

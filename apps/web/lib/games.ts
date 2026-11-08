@@ -5,6 +5,7 @@ import {
   type UpcomingGameSlug,
 } from "@zandar/shared-types";
 
+import type { CardDeck } from "@/lib/hungarianDeck";
 import { pokerLive } from "@/lib/pokerRelease";
 import { raubLive } from "@/lib/raubRelease";
 import { sr } from "@/lib/sr";
@@ -81,6 +82,8 @@ export type GameConfig = {
   hasRules: boolean;
   /** Boja igre (SPEC_POCETNA_V3 §4) — ključ za `--game-<tint>-1/2`, ne heks. */
   tint: GameTint;
+  /** Komplet karata za slike igre (Raub: mađarice, odluka 12). Bez polja = francuski. */
+  deck?: CardDeck;
   /** Dvije prave karte na pločici igre (i na stolu, kad igra nema `heroCards`). */
   tileCards: readonly [CardFace, CardFace];
   /** Tri karte na slici kartice u listi igara (tabla „UI · Početna — opcija 1 Lista"). */
@@ -149,6 +152,7 @@ export const GAMES: readonly GameConfig[] = [
     heroCards: null,
     hasRules: true,
     tint: "raub",
+    deck: "hungarian",
     tileCards: [
       { rank: "7", suit: "clubs" },
       { rank: "A", suit: "diamonds" },
