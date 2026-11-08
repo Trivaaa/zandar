@@ -171,7 +171,8 @@ export function PlayerSeat({
               za kasniju kozmetiku; danas ga niko ne pali. */}
           {showCoins ? (
             <span className="seat__numbers">
-              <span className="seat__coins font-display text-num-sm">{coins}</span>
+              {/* Bez `text-num-sm`: veličinu drži felt.css (poker je manji, 8.11.2026). */}
+              <span className="seat__coins font-display">{coins}</span>
             </span>
           ) : null}
           {/* Status je izuzetak, ne ukras: "Na vezi" ispod svakog imena je sum.

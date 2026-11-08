@@ -1451,3 +1451,9 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 - Sve je u `felt.css` (ne novi importovani fajl, vidi 130).
 
 **Provjereno:** snimci 393×852 na suknu, drvu i stolnjaku „Kafana", bez bijelog ruba; uvećan isječak pilula; žeton u letu na lokalnom serveru; web 201 testova, typecheck, lint = osnovica. **Nije provjereno na uređaju.**
+
+## 134. Poker — manji broj žetona uz igrača (2026-11-08, `feat/poker-core`)
+
+Vlasnik: broj žetona uz igrača je za 10–20% prevelik. Sada je 20 → **17 px** (−15%), samo u pokeru (`.felt-stage[data-game="poker"] .seat__coins`).
+
+**Zamka:** `PlayerSeat` je veličinu nosio kroz utility klasu `text-num-sm`, a utility uvijek pobjeđuje `layer(components)`. Zato je klasa skinuta iz JSX-a, a veličinu drži `felt.css`: osnova `var(--type-num-sm)`, isto kao ranije, a poker 1.0625rem. Žandar žetone ne prikazuje, pa ga ovo ne dira.

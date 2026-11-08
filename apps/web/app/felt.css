@@ -727,6 +727,8 @@
    bijelog imena, pa se broj cita bez citanja labele. */
 .seat__coins {
   color: var(--accent);
+  font-size: var(--type-num-sm);
+  line-height: 1;
 }
 
 /* Lepeza poledjina stoji apsolutno IZA avatara i viri mu IZNAD glave.
@@ -2400,6 +2402,11 @@
   padding: 0.1rem 0.45rem 0.1rem 0.2rem;
   border-radius: 999px;
   background-color: color-mix(in oklab, var(--bg-mid) 80%, transparent);
+}
+/* Broj žetona ~15% manji od numeričkog poda (20 → 17px) — vlasnik 8.11.2026:
+   bio je najglasniji broj za stolom. */
+.felt-stage[data-game="poker"] .seat__coins {
+  font-size: 1.0625rem;
 }
 .felt-stage[data-game="poker"] .seat__numbers::before {
   content: "";
