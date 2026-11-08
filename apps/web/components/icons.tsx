@@ -245,6 +245,54 @@ export function ArrowLeftIcon({ className }: IconProps) {
   );
 }
 
+/** Utisak · Greška. */
+export function BugIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <rect x="7" y="7" width="10" height="13" rx="5" />
+      <path d="M9.5 7.5 8 4.5M14.5 7.5 16 4.5M12 11v9M7 12H3.5M20.5 12H17M7 16.5l-3 1.5M17 16.5l3 1.5" />
+    </svg>
+  );
+}
+
+/** Utisak · Prijedlog; i red „Piši nam" na početnoj. */
+export function ChatIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M4 5h16v11H9l-5 4z" />
+    </svg>
+  );
+}
+
+/** Utisak · Pohvala. */
+export function SmileIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8.5 14a4 4 0 0 0 7 0M9.5 9.5h0M14.5 9.5h0" />
+    </svg>
+  );
+}
+
+/** Prilog (slika). */
+export function ImageIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <circle cx="9" cy="10" r="1.5" />
+      <path d="m20.5 16-5-5-9 8.5" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
 const SUIT_SHAPES: Record<Suit, React.ReactNode> = {
   spades: <path d="M12 3C9 7 4 9.5 4 13.5a4 4 0 0 0 6.6 3L9.6 21h4.8l-1-4.5A4 4 0 0 0 20 13.5C20 9.5 15 7 12 3z" />,
   hearts: <path d="M12 20.5S3.5 15 3.5 9.2A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 8.5 2.2C20.5 15 12 20.5 12 20.5z" />,

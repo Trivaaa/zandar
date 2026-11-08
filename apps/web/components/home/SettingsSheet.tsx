@@ -108,6 +108,9 @@ export function SettingsSheet({
         <button type="button" className="gamemenu__item font-sans text-base" onClick={onRules}>
           {sr.settings.rules}
         </button>
+        <Link href="/utisak" className="gamemenu__item font-sans text-base">
+          {sr.settings.sendFeedback}
+        </Link>
         <Link href="/delete-account" className="gamemenu__item font-sans text-base">
           {sr.settings.deleteData}
         </Link>

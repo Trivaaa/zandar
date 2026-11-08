@@ -6,6 +6,7 @@ import { BrandLockup } from "@/components/brand/BrandLockup";
 import { GameCard } from "@/components/home/GameCard";
 import { GameList, type GameListItem } from "@/components/home/GameList";
 import { GameTile, UpcomingTile } from "@/components/home/GameTile";
+import { ChatIcon } from "@/components/icons";
 import { isNewGame, type GameConfig, type HomeHistory, type HomeLayout } from "@/lib/games";
 import { isStaging } from "@/lib/platform";
 import { sr } from "@/lib/sr";
@@ -24,6 +25,8 @@ export type HomeScreenProps = {
   onCreate: () => void;
   onOpenGame: (game: GameConfig) => void;
   onNotify: (game: GameConfig) => void;
+  /** „Greška ili ideja? Piši nam" (tabla D1) — otvara `/utisak`. */
+  onFeedback?: (() => void) | undefined;
   /** Prikaz reda „Uskoro" (analitika). Zove se jednom po prikazu. */
   onUpcomingViewed?: (() => void) | undefined;
   /** Privatnost / uslovi / o nama — samo web (Google OAuth traži link sa
@@ -62,6 +65,7 @@ export function HomeScreen({
   onCreate,
   onOpenGame,
   onNotify,
+  onFeedback,
   onUpcomingViewed,
   legalSlot,
   topSlot,
@@ -85,6 +89,7 @@ export function HomeScreen({
             onPlay={list.onPlay}
             onCreate={list.onCreate}
           />
+          {onFeedback ? <FeedbackRow onOpen={onFeedback} /> : null}
           {legalSlot ? <footer className="home__legal">{legalSlot}</footer> : null}
         </div>
       </main>
@@ -131,9 +136,23 @@ export function HomeScreen({
           <UpcomingSection games={layout.upcoming} onNotify={onNotify} onViewed={onUpcomingViewed} />
         ) : null}
 
+        {onFeedback ? <FeedbackRow onOpen={onFeedback} /> : null}
         {legalSlot ? <footer className="home__legal">{legalSlot}</footer> : null}
       </div>
     </main>
+  );
+}
+
+/** Tihi red ispod igara (D1): ne smeta nikom, a vidi ga ko skroluje do kraja. */
+function FeedbackRow({ onOpen }: { onOpen: () => void }) {
+  return (
+    <p className="home__feedback">
+      <ChatIcon className="home__feedback-icon" />
+      <span>{sr.feedback.homeAsk}</span>
+      <button type="button" className="home__feedback-link" onClick={onOpen}>
+        {sr.feedback.homeLink}
+      </button>
+    </p>
   );
 }
 

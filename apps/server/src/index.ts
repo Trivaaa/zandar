@@ -82,6 +82,8 @@ import {
   signupsToCsv,
   sweepExpiredSignups,
 } from "./signups";
+import { registerFeedbackRoutes, sweepExpiredFeedback } from "./feedback";
+import { mailer } from "./mail/resend";
 import { deviceStore, startDeviceSweeper } from "./push/devices";
 import { fcm } from "./push/fcm";
 import {
@@ -1496,6 +1498,36 @@ function sweepSignups(): void {
 }
 sweepSignups();
 setInterval(sweepSignups, 24 * 60 * 60 * 1000).unref();
+
+// ---- UTISCI („Pošalji utisak") ----
+
+registerFeedbackRoutes(fastify, {
+  mailer,
+  to: () => process.env.FEEDBACK_TO || undefined,
+  // Nalog je samo dopuna utiska: pokvaren ili istekao token = poruka gosta, ne greška.
+  resolveUser: async (authorization) => {
+    const result = await idTokens.verify(bearerToken(authorization));
+    if (!result.ok) return null;
+    const profile = await profileStore.getProfile(result.user.uid).catch(() => null);
+    return { uid: result.user.uid, ...(profile?.nickname ? { nickname: profile.nickname } : {}) };
+  },
+  track: (guestId, props) => track(guestId, "feedback_sent", props),
+  log: { info: (msg) => fastify.log.info(msg), error: (msg) => fastify.log.error(msg) },
+});
+fastify.log.info(
+  mailer.enabled && process.env.FEEDBACK_TO ? "💬 Utisci: e-pošta uključena" : "💬 Utisci: samo disk (nema RESEND_API_KEY/FEEDBACK_TO)",
+);
+
+/** Politika privatnosti: utisak se na serveru briše 12 mjeseci od slanja. */
+function sweepFeedback(): void {
+  sweepExpiredFeedback()
+    .then((n) => {
+      if (n > 0) fastify.log.info(`🧹 Obrisano ${n} isteklih utisaka`);
+    })
+    .catch((err) => fastify.log.error(`Istek utisaka nije uspio: ${err}`));
+}
+sweepFeedback();
+setInterval(sweepFeedback, 24 * 60 * 60 * 1000).unref();
 
 // ---- SOCKET.IO ----
 

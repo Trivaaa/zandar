@@ -1457,3 +1457,51 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 Vlasnik: broj žetona uz igrača je za 10–20% prevelik. Sada je 20 → **17 px** (−15%), samo u pokeru (`.felt-stage[data-game="poker"] .seat__coins`).
 
 **Zamka:** `PlayerSeat` je veličinu nosio kroz utility klasu `text-num-sm`, a utility uvijek pobjeđuje `layer(components)`. Zato je klasa skinuta iz JSX-a, a veličinu drži `felt.css`: osnova `var(--type-num-sm)`, isto kao ranije, a poker 1.0625rem. Žandar žetone ne prikazuje, pa ga ovo ne dira.
+## 135. Pošalji utisak — greška, prijedlog, pohvala → e-mail vlasniku (2026-11-08, `feat/feedback`)
+
+**Šta:** igrač šalje utisak sa početne ili iz Postavki. Svaki utisak stiže vlasniku e-poštom, sa slikama u prilogu. Izvor su table **D1** (tihi red ispod igara) i **A2** (forma).
+
+**Ulazi u formu:**
+- Početna: red „Greška ili ideja? **Piši nam**" ispod igara, i u listi i na stolu K1. `HomeScreen` prop `onFeedback`.
+- Profil → Postavke: „Pošalji utisak".
+
+**Forma `/utisak`** (`components/feedback/FeedbackForm.tsx`):
+- Ruta, a ne sheet, iz istog razloga kao `/ime`: Android nazad na `/` gasi aplikaciju.
+- Polja: vrsta (jedan dodir), tekst (najviše 2000 znakova) i do 3 slike. Slike se smanjuju u pregledaču (`lib/imageCompress.ts`: ≤1600 px, JPEG 0,8), pa fotografija od 5 MB postane ~200 KB.
+- E-mail za odgovor nije obavezan; prijavljenom igraču se popuni adresom naloga.
+- Verzija (`NEXT_PUBLIC_APP_VERSION`), platforma i user agent idu sami. U Android WebViewu UA nosi model telefona.
+- Token naloga ide ako postoji.
+
+**Server:**
+- `POST /api/feedback` (`src/feedback.ts`):
+  - Tijelo do 7 MB, samo na toj ruti.
+  - Tip slike se provjerava po prvim bajtovima, a ne po MIME-u koji piše klijent.
+  - Limit 10/h po IP-u i 5/h po guestId-u. Limit se broji tek poslije provjere tijela.
+  - `uid` i nadimak dolaze SAMO iz provjerenog ID tokena; pokvaren token = gost.
+- Zapis ide na disk `DATA_DIR/_feedback` (`<id>.json` + `<id>-<n>.jpg`; podfolder, kao `_signups`), pa e-pošta preko Resenda (`src/mail/resend.ts`, REST bez SDK-a, kao FCM).
+- Neuspjeh pošte ne obara zahtjev, jer je zapis već sačuvan.
+- `GET /api/feedback/export` (CSV) i `DELETE /api/feedback` (`{id}` ili `{email}`) su iza `ADMIN_TOKEN`-a, sa istim 404.
+- Istek je 12 mjeseci, dnevno.
+- Analitika `feedback_sent {kind, platform, has_attachments, has_email}`. Tekst i adresa nikad ne idu u log ni u analitiku.
+
+**Env (Railway, oba servisa):**
+- `RESEND_API_KEY` i `FEEDBACK_TO`. Bez njih utisci idu samo na disk, a log kaže „💬 Utisci: samo disk".
+- `FEEDBACK_FROM` je opcion. Podrazumijevano je `onboarding@resend.dev`: bez verifikovanog domena Resend šalje samo vlasniku naloga, a to je ovdje i potrebno.
+- `FEEDBACK_DIR` nadjačava folder.
+
+**Privatnost:** politika (8. 11. 2026.) i `/delete-account` sada opisuju:
+- utisak kao podatak;
+- Resend kao primaoca;
+- rok od 12 mjeseci i brisanje na zahtjev;
+- sliku iz sistemskog birača (bez dozvole za fotografije).
+
+Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opciono".
+
+**Zamka:** headless Chrome sa ISTIM `--user-data-dir` između pokretanja servira staru statiku iz PWA service workera (`public/sw.js`). Snimak se nije mijenjao ni poslije čistog `.next`; zato za svako mjerenje treba svjež profil.
+
+**Provjereno:**
+- Server testovi 235 (`feedback.test.ts` 18) i web testovi 183.
+- Typecheck; lint = osnovica.
+- Curl matrica protiv lokalnog servera: 200 / 400×3 / pokvaren token = gost / 413 / export 404 → CSV.
+- Headless Chrome 390×844, tok početna → Piši nam → 2 slike → loš e-mail (poruka, pa nestaje) → Pošalji → Hvala; zapis i 2 priloga na disku.
+- Slanje pravog mejla NIJE provjereno (nema ključa). **Nije provjereno na uređaju.**

@@ -23,7 +23,7 @@ import {
  */
 // Tekst o nalogu (SPEC_IDENTITET T8) važi tek kad nalog postoji — iza istog
 // prekidača kao i sam UI, da politika nikad ne opisuje nešto čega nema.
-export const PRIVACY_UPDATED = "31. oktobar 2026.";
+export const PRIVACY_UPDATED = "8. novembar 2026.";
 
 export function PrivacyPolicyBody() {
   return (
@@ -113,6 +113,15 @@ export function PrivacyPolicyBody() {
             obavještenja.
           </li>
           <li>
+            <strong>Utisak koji nam pošalješ</strong> — samo ako sam pošalješ
+            poruku kroz &bdquo;Pošalji utisak&ldquo;: vrsta (greška, prijedlog,
+            pohvala), tekst, slike koje sam priložiš i e-adresa za odgovor ako je
+            upišeš. Uz to idu verzija aplikacije, podaci o uređaju i pregledaču
+            (uključujući model telefona) i, ako imaš nalog, tvoj nadimak i
+            identifikator naloga. Tekst i adresu ne šaljemo u statistiku
+            korišćenja.
+          </li>
+          <li>
             <strong>Podaci za obavještenja</strong> — samo u Android aplikaciji
             i samo ako ih uključiš. Čuvamo registracioni token koji telefonu
             dodijeli Google (Firebase Cloud Messaging), vremensku zonu uređaja,
@@ -181,7 +190,12 @@ export function PrivacyPolicyBody() {
           <li>
             <strong>Railway</strong> (Sjedinjene Američke Države) — serveri same
             igre. Tu se vode partije, privremeno se čuvaju sobe i čuvaju se
-            prijave za obavještenje o budućim igrama.
+            prijave za obavještenje o budućim igrama i utisci koje pošalješ.
+          </li>
+          <li>
+            <strong>Resend</strong> (Sjedinjene Američke Države) — dostava
+            utiska koji pošalješ, kao e-mail našem timu: tekst, slike, e-adresa
+            za odgovor i podaci o uređaju navedeni gore.
           </li>
           <li>
             <strong>PostHog</strong> (Evropska unija) — statistika korišćenja,
@@ -277,6 +291,12 @@ export function PrivacyPolicyBody() {
             <strong>24 mjeseca</strong> od prijave. Ranije na zahtjev, vidi ispod.
           </li>
           <li>
+            <strong>Utiske</strong> na našem serveru brišemo automatski{" "}
+            <strong>12 mjeseci</strong> poslije slanja. Kopija koja stigne
+            e-poštom ostaje u našem sandučetu dok je ne obrišemo; na zahtjev je
+            brišemo ranije, vidi ispod.
+          </li>
+          <li>
             <strong>Podaci u PostHogu i Sentryju</strong> ostaju onoliko koliko
             traje rok čuvanja podešen kod tih servisa. Na zahtjev ih brišemo
             ranije — vidi ispod.
@@ -349,6 +369,8 @@ export function PrivacyPolicyBody() {
             identifikator se čita samo ako dozvoliš mjerenje reklama, a možeš ga
             promijeniti ili obrisati u podešavanjima telefona. Nema pristup
             lokaciji, kameri, mikrofonu, kontaktima, fotografijama ni datotekama.
+            Sliku za utisak biraš sam u sistemskom biraču, i aplikacija dobija
+            samo tu sliku.
           </li>
           <li>
             <strong>Android rezervne kopije.</strong> Aplikacija dozvoljava
@@ -387,6 +409,10 @@ export function PrivacyPolicyBody() {
           Prijavu za obavještenje možeš povući u bilo kom trenutku: piši na
           adresu ispod i navedi e-adresu koju si ostavio. Brišemo je za sve
           igre za koje si se prijavio.
+        </p>
+        <p>
+          Utisak koji si poslao brišemo na zahtjev: piši na adresu ispod i
+          navedi približno vrijeme slanja ili e-adresu koju si upisao.
         </p>
         {identityUi ? (
           <p>

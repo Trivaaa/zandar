@@ -137,6 +137,16 @@ export default function DeleteAccountPage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="Utisak koji si poslao">
+        <p>
+          Utisak poslan kroz &bdquo;Pošalji utisak&ldquo; brišemo na zahtjev
+          poslan na <strong>{CONTACT_EMAIL}</strong>: navedi približno vrijeme
+          slanja ili e-adresu koju si upisao. Brišemo ga sa servera i iz našeg
+          sandučeta u roku od 30 dana. Bez zahtjeva ga na serveru brišemo{" "}
+          <strong>12 mjeseci</strong> poslije slanja.
+        </p>
+      </LegalSection>
+
       <LegalSection title="Mjerenje reklama (Meta)">
         <p>
           Ako si u Android aplikaciji dozvolio mjerenje reklama, povlačiš ga

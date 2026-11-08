@@ -167,6 +167,7 @@ export default function Home() {
           setSheet({ kind: "signup" });
         }}
         onUpcomingViewed={() => track("upcoming_games_viewed")}
+        onFeedback={() => router.push("/utisak")}
         {...(isNative ? {} : { legalSlot, topSlot: <AppOfferBar /> })}
         className={identityUi ? "screen--tabbed" : ""}
         {...(listMode

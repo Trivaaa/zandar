@@ -2,6 +2,8 @@ import { CLIENT_GAMES } from "@/lib/clientGames";
 import { getGuestId } from "@/lib/guestId";
 import {
   CURRENT_CONSENT_TEXT_ID,
+  type FeedbackKind,
+  type FeedbackRequest,
   type GameId,
   type ProfileAvatar,
   type SignupListResponse,
@@ -373,6 +375,35 @@ export async function submitSignup(input: {
     throw new Error(err.error || "Greška");
   }
   return res.json();
+}
+
+/**
+ * „Pošalji utisak". Verzija, platforma i uređaj (user agent — u Android
+ * WebViewu nosi model telefona) idu sami; token naloga samo ako ga ima, pa
+ * server zna nadimak. Baca sa porukom servera (ijekavica) ili „Greška".
+ */
+export async function sendFeedback(input: {
+  kind: FeedbackKind;
+  text: string;
+  email?: string;
+  images: string[];
+}): Promise<void> {
+  const body: FeedbackRequest = {
+    ...input,
+    appVersion: process.env.NEXT_PUBLIC_APP_VERSION ?? "",
+    userAgent: typeof navigator === "undefined" ? "" : navigator.userAgent,
+    guestId: getGuestId(),
+    platform: isNative ? "native" : "web",
+  };
+  const res = await fetch(`${API_BASE}/api/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(res.status === 413 ? "Slike su prevelike." : err.error || "Greška");
+  }
 }
 
 /** Odgovor pregleda: 404 je i pogrešan token (ruta se ne odaje), pa `null` znači „nije prihvaćeno". */

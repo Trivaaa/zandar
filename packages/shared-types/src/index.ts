@@ -543,6 +543,40 @@ export function normalizeEmail(raw: unknown): string | null {
 export type SignupResponse = { created: boolean };
 
 // ====================================================
+// UTISCI („Pošalji utisak" — greška, prijedlog, pohvala)
+// ====================================================
+
+export const FEEDBACK_KINDS = ["bug", "idea", "praise"] as const;
+export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
+
+export function isFeedbackKind(value: unknown): value is FeedbackKind {
+  return typeof value === "string" && (FEEDBACK_KINDS as readonly string[]).includes(value);
+}
+
+/** Granice koje dijele forma (prije slanja) i server (odluka). */
+export const FEEDBACK_LIMITS = {
+  textMax: 2000,
+  imagesMax: 3,
+  /** Po slici, poslije dekodiranja. Klijent je smanjuje mnogo ispod ovoga. */
+  imageBytesMax: 1_500_000,
+} as const;
+
+export type FeedbackRequest = {
+  kind: FeedbackKind;
+  text: string;
+  /** Adresa za odgovor; nije obavezna. */
+  email?: string;
+  /** Data-URL-ovi (`data:image/jpeg;base64,…`), najviše `FEEDBACK_LIMITS.imagesMax`. */
+  images?: string[];
+  appVersion?: string;
+  userAgent?: string;
+  guestId?: string;
+  platform?: "web" | "native";
+};
+
+export type FeedbackResponse = { ok: true };
+
+// ====================================================
 // ANALITIKA (docs/analytics.md)
 // ====================================================
 
@@ -646,6 +680,13 @@ export type AnalyticsEvents = {
     botSeatShare: number;
   };
   signup_succeeded: { game: UpcomingGameSlug; platform: AnalyticsPlatform };
+  /** Igrač je poslao utisak. Tekst i adresa NIKAD ne idu u analitiku. */
+  feedback_sent: {
+    kind: FeedbackKind;
+    platform: AnalyticsPlatform;
+    has_attachments: boolean;
+    has_email: boolean;
+  };
   /** PRD §51 push. `type` je namjerno string, ne `PushType` — taj tip živi u apps/server/src/push. */
   push_sent: { type: string };
 };
