@@ -78,11 +78,7 @@ export function StreetBet({
       style={style}
       aria-label={sr.poker.chips(amount)}
     >
-      <span className="pk-stack" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </span>
+      <span className="pk-stack" aria-hidden="true" />
       {amount}
     </span>
   );

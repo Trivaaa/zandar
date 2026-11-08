@@ -35,15 +35,17 @@ const betEl = (id: string) => el(`[data-bet-anchor="${CSS.escape(id)}"]`);
 const potEl = () => el("[data-pot-anchor]");
 
 /**
- * Žeton kao duh. Stil je inline (duh živi na `body`-ju, van `.felt-stage`),
- * isti crtež kao `.pk-chip`: mesing sa tamnim i svijetlim prstenom.
+ * Žeton kao duh — isti crtež kao `.pk-chip` (`/chips/chip.webp`). Stil je
+ * inline (duh živi na `body`-ju, van `.felt-stage`); sjena je `drop-shadow`
+ * jer prati providne ivice slike, a ne kvadrat elementa.
  */
 function chipGhost(at: { x: number; y: number }): HTMLElement {
-  const g = makeGhost(at, CHIP_W, CHIP_H, { color: "var(--accent)", image: "none" });
+  const g = makeGhost(at, CHIP_W, CHIP_H, { color: "transparent", image: 'url("/chips/chip.webp")' });
   Object.assign(g.style, {
-    borderRadius: "999px",
-    boxShadow:
-      "inset 0 0 0 3px var(--accent-contrast), inset 0 0 0 6px var(--card-face), 0 3px 6px rgb(0 0 0 / 0.45)",
+    backgroundSize: "contain",
+    backgroundPosition: "center",
+    boxShadow: "none",
+    filter: "drop-shadow(0 3px 4px rgb(0 0 0 / 0.45))",
   } as Partial<CSSStyleDeclaration>);
   return g;
 }

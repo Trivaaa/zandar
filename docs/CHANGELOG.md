@@ -1434,3 +1434,20 @@ Vlasnik nije vidio ni interes za Poker i Raub ni adrese koje ljudi ostave.
 - **Ostaje:** Pot, Blindovi, D/SB/BB.
 
 **Provjereno:** web 201 testova (natpisi i „Ful" u `pokerView.test.ts`), typecheck, lint = osnovica, snimak 360×740: „Odustani · Prati 10 · Podigni" i „Podigni na 22" staju bez prelamanja. **Nije provjereno na uređaju.**
+
+## 133. Poker — žetoni iz asseta vlasnika (2026-11-08, `feat/poker-core`)
+
+**Zašto:** vlasnik: žetoni na stolu „baš ne izgledaju lijepo". Bili su CSS crteži (krug sa dva prstena, ulog kao tri žute elipse). Poslao je asset u stilu aplikacije: jedan žeton odozgo i stog od tri.
+
+**Šta:**
+- **`scripts/build-chips.mjs`** pravi slike iz izvora `apps/web/assets/chips-source.png` (2172×724 RGBA, u repou), po obrascu `build-cards.mjs` (sharp iz pnpm stabla).
+  - Sječe lijevu i desnu polovinu, uz `trim`, i daje `public/chips/chip.webp` (142×144, 7 KB) i `stack.webp` (144×136, 8 KB).
+  - Ako izvor stigne bez providnosti, bijelu pozadinu sam pretvara u providnu.
+- **Gdje se koristi:**
+  - `chip.webp` za broj žetona igrača (`.seat__numbers::before`), pot i rezultat (`.pk-chip`), i za žeton koji leti (`chipGhost`, sjena je `drop-shadow`, pa prati oblik);
+  - `stack.webp` za ulog ulice (`.pk-stack`; tri `<i>` iz `StreetBet` obrisana).
+  - Ikone su malo veće (1.1–1.45rem) i popunjavaju visinu pilule.
+- **Usput:** natpisi bočnih igrača se poravnavaju prema stolu, ne po sredini avatara. „Odustaje" je izlazio van ekrana na desnom sjedištu, jer su naše riječi duže od engleskih (132).
+- Sve je u `felt.css` (ne novi importovani fajl, vidi 130).
+
+**Provjereno:** snimci 393×852 na suknu, drvu i stolnjaku „Kafana", bez bijelog ruba; uvećan isječak pilula; žeton u letu na lokalnom serveru; web 201 testova, typecheck, lint = osnovica. **Nije provjereno na uređaju.**
