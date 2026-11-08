@@ -1546,3 +1546,17 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Izmjena:** `GameMenuSheet` sam nosi dva reda sa prekidačem (`role="switch"`, cijeli red 48 px) — Zvuk i Vibracija — iznad „Pravila igre", pa ih dobijaju Žandar, Poker i Raub bez izmjene poziva. Izgled prekidača je isti kao „Popuni prazna mjesta" u lobiju (`.gamemenu__track` u `overlay.css`). Uređaj bez vibracije: red onemogućen uz napomenu „Ovaj uređaj ne podržava vibraciju". `aboveFab={<FeedbackToggles stacked />}` uklonjen iz `GameScreen`, `PokerScreen` i `RaubScreen`; `FeedbackToggles` ostaje u Profilu (Postavke, uz 🔔). Podrazumijevano uključeno je već bilo (`lib/settings.ts`: samo upisana „0" gasi) — izbor koji je igrač već napravio se poštuje.
 
 **Provjereno:** typecheck, lint izmijenjenih fajlova; headless Chrome `/dev/raub` (360×640), `/dev/poker`, `/dev/game`: na stolu 0 preklopki, u meniju „Zvuk=uključeno", „Vibracija=uključeno".
+
+## 141. Pravni red sa početne u Profil (odluka vlasnika 2026-10-25, poslano na staging 2026-11-08)
+
+**Šta:**
+- Privatnost / Uslovi / O nama više nisu na dnu početne, ni na webu ni u aplikaciji.
+- Stoje kao tihi red na dnu Profila, i na webu i u aplikaciji.
+- Iz Postavki (`SettingsSheet`) je red skinut, jer ga Profil već ima.
+
+**Porijeklo:**
+- Izmjena je od 25. 10. stajala nekomitovana u glavnom folderu.
+- Prenesena je kao zakrpa na vrh `main`-a.
+- Traka ponude aplikacije (`topSlot`) i red „Piši nam" na početnoj ostaju.
+
+**⚠ Rizik:** Google OAuth provjera (prijava Googleom) može tražiti link na politiku privatnosti SA POČETNE. Ako Google to zatraži, red vratiti na početnu (`legalSlot` u `app/page.tsx`; `HomeScreen` prop je ostao).

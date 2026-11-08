@@ -37,6 +37,9 @@ import { sr } from "@/lib/sr";
 import { STORE_LINKS } from "@/lib/stores";
 import { useQueryParam } from "@/lib/useQuery";
 
+// Privatnost / uslovi / o nama — tihi red na dnu Profila, na webu i u
+// aplikaciji (odluka vlasnika 2026-10-25: skinut sa početne). ⚠ Google OAuth
+// provjera može tražiti link na politiku sa početne — tada ga vratiti tamo.
 const legalSlot = (
   <>
     <Link href="/privatnost">{sr.home.privacy}</Link>
@@ -170,6 +173,7 @@ export function ProfileScreen() {
   return (
     <main className="screen profile screen--tabbed">
       {body}
+      <footer className="home__legal">{legalSlot}</footer>
       <TabBar />
       {entry.sheet}
 
@@ -195,7 +199,6 @@ export function ProfileScreen() {
                 }}
                 onClose={() => setSheet(null)}
                 feedbackSlot={<FeedbackToggles showPush />}
-                legalSlot={legalSlot}
                 storeUrl={isNative ? null : STORE_LINKS["google-play"]}
               />
             </div>

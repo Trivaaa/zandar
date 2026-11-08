@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { HomeScreen } from "@/components/funnel/HomeScreen";
@@ -17,7 +16,6 @@ import { useQueryParam } from "@/lib/useQuery";
  *   &pin=poker    zakačena igra — H5
  *   &last=poker   zadnja igrana igra (bez nje niko nije igrao ništa)
  *   &err=1        greška traženja stola (stoji na mjestu mete)
- *   &web=0        bez pravnog reda (kao APK)
  * Dodir na red igre otvara pravi list igre (H4); Zakači/Otkači mijenja glavnu.
  */
 const NOW = Date.parse("2026-10-23");
@@ -29,7 +27,6 @@ export default function DevHomePage() {
   const [pinOverride, setPinOverride] = useState<string | null | undefined>(undefined);
   const pin = pinOverride === undefined ? pinParam : pinOverride;
   const [open, setOpen] = useState<GameConfig | null>(null);
-  const web = useQueryParam("web") !== "0";
   const last = useQueryParam("last");
   const err = useQueryParam("err") === "1";
 
@@ -59,17 +56,6 @@ export default function DevHomePage() {
         onCreate={() => undefined}
         onOpenGame={setOpen}
         onNotify={() => undefined}
-        {...(web
-          ? {
-              legalSlot: (
-                <>
-                  <Link href="/privatnost">{sr.home.privacy}</Link>
-                  <Link href="/uslovi">{sr.home.terms}</Link>
-                  <Link href="/o-nama">{sr.home.about}</Link>
-                </>
-              ),
-            }
-          : {})}
         className="screen--tabbed"
         {...(layout.more.length > 0
           ? {

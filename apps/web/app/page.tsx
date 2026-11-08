@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
 
@@ -24,17 +23,6 @@ import { sr } from "@/lib/sr";
 import { startQuickPlay } from "@/lib/startQuickPlay";
 import { readTableThemeRaw, saveTableTheme, useTableTheme } from "@/lib/tableTheme";
 import { track } from "@/lib/track";
-
-// Privatnost / uslovi / o nama — na webu jedan tihi red na dnu početne (Google
-// OAuth provjera traži link na politiku sa početne). Na Androidu ga nema: tamo
-// su u Postavkama (Profil).
-const legalSlot = (
-  <>
-    <Link href="/privatnost">{sr.home.privacy}</Link>
-    <Link href="/uslovi">{sr.home.terms}</Link>
-    <Link href="/o-nama">{sr.home.about}</Link>
-  </>
-);
 
 /** Nova soba za igru; Žandar ostaje na staroj adresi (linkovi, APK). */
 const createPath = (game: GameSlug) => (game === "zandar" ? "/create" : `/create?game=${game}`);
@@ -168,7 +156,7 @@ export default function Home() {
         }}
         onUpcomingViewed={() => track("upcoming_games_viewed")}
         onFeedback={() => router.push("/utisak")}
-        {...(isNative ? {} : { legalSlot, topSlot: <AppOfferBar /> })}
+        {...(isNative ? {} : { topSlot: <AppOfferBar /> })}
         className={identityUi ? "screen--tabbed" : ""}
         {...(listMode
           ? {
