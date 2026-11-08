@@ -1513,7 +1513,7 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 
 **Provjereno:** game-core 372 (novi test: svi gledaoci vide sedmicu, u štihovima `null`), web 201, typecheck web/server; snimak 360×740 `/dev/raub?s=seven`.
 
-## 134. Raub — katanac ne blokira potez u štihu (2026-11-07, `fix/raub-taken-talon`)
+## 137. Raub — katanac ne blokira potez u štihu (2026-11-07, `fix/raub-taken-talon`)
 
 **Povod:** vlasnik na S10e: u 4. štihu („Ti si na potezu — bilo koja karta") jedina karta, 7♣ uzeta s talona, stoji sa katancem i ne može se odigrati; slično i sa kraljem (talon karta iz zamjene sedmice / naslijepo). Partiju je spasio tek tajmer.
 
@@ -1521,7 +1521,7 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 
 **Izmjena:** čista `lockedHandIds(view, panelKind)` u `lib/raubView.ts`: katanac samo prije štihova (talon karta; pri višku i moja otvorena karta), u koraku `tricks` nikad. Testirana (web 203).
 
-## 135. Raub — rok poteza 25 s (2026-11-07, `fix/raub-taken-talon`)
+## 138. Raub — rok poteza 25 s (2026-11-07, `fix/raub-taken-talon`)
 
 **Povod:** vlasnik na S10e: 15 s ističe prije nego se stigne razmisliti; traženo bar 50 % duže. **Odluka 10** u `docs/raub-spec.md`.
 
@@ -1529,7 +1529,7 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 
 **Provjereno:** game-core 372, server 236, web 203.
 
-## 136. Raub — botovi razmišljaju 2,5–7 s (2026-11-07, `fix/raub-taken-talon`)
+## 139. Raub — botovi razmišljaju 2,5–7 s (2026-11-07, `fix/raub-taken-talon`)
 
 **Povod:** vlasnik: botovi igraju prebrzo i ujednačeno, treba da izgleda realnije. **Odluka 11** u `docs/raub-spec.md`.
 
@@ -1539,7 +1539,7 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 
 **Provjereno:** game-core 372, web 203.
 
-## 137. Zvuk i vibracija u meniju stola (2026-11-08, `feat/feedback-in-menu`)
+## 140. Zvuk i vibracija u meniju stola (2026-11-08, `feat/feedback-in-menu`)
 
 **Povod:** vlasnik: ikonice 🔊/📳 iznad dugmeta za reakcije zauzimaju sto (na Pokeru lijevo, preko sjedišta i ruke). Prebaciti ih u meni, na svim ekranima igre; podrazumijevano uključeno za sve.
 
