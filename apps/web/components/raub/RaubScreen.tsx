@@ -11,7 +11,6 @@ import type {
   TableTheme,
 } from "@zandar/shared-types";
 
-import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { ReactionFab } from "@/components/ReactionFab";
 import { RulesModal } from "@/components/RulesModal";
 import { FeltHeader } from "@/components/felt/FeltHeader";
@@ -451,7 +450,7 @@ export function RaubScreen({
         </div>
 
         {/* Isti položaj kao Žandar (iznad ruke, desno) — lijevo bi pokrio panel. */}
-        <ReactionFab onReact={onReact} disabled={interrupted} aboveFab={<FeedbackToggles stacked />} />
+        <ReactionFab onReact={onReact} disabled={interrupted} />
 
         {showSummary && !matchOver && state.lastHand ? (
           <HandSummaryCard

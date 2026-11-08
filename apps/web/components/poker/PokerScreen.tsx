@@ -11,7 +11,6 @@ import type {
   TableTheme,
 } from "@zandar/shared-types";
 
-import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { ReactionFab } from "@/components/ReactionFab";
 import { RulesModal } from "@/components/RulesModal";
 import { FeltHeader } from "@/components/felt/FeltHeader";
@@ -470,7 +469,6 @@ export function PokerScreen({
           onReact={onReact}
           side="left"
           style={{ bottom: "var(--stage-hand-top)" }}
-          aboveFab={<FeedbackToggles stacked />}
         />
 
         {menuOpen ? (

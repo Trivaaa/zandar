@@ -1538,3 +1538,11 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Mjerenje:** `simulate:raub` (10.000 × 4 igrača): medijan 34,4 min, p10 22, p90 50,4 (ranije ~20). Iznad ciljanih 15–25 min iz speca — ako bude predugo, spustiti gornju granicu ili ubrzati očigledne poteze (jedina dozvoljena karta, „Dalje" bez aduta).
 
 **Provjereno:** game-core 372, web 203.
+
+## 137. Zvuk i vibracija u meniju stola (2026-11-08, `feat/feedback-in-menu`)
+
+**Povod:** vlasnik: ikonice 🔊/📳 iznad dugmeta za reakcije zauzimaju sto (na Pokeru lijevo, preko sjedišta i ruke). Prebaciti ih u meni, na svim ekranima igre; podrazumijevano uključeno za sve.
+
+**Izmjena:** `GameMenuSheet` sam nosi dva reda sa prekidačem (`role="switch"`, cijeli red 48 px) — Zvuk i Vibracija — iznad „Pravila igre", pa ih dobijaju Žandar, Poker i Raub bez izmjene poziva. Izgled prekidača je isti kao „Popuni prazna mjesta" u lobiju (`.gamemenu__track` u `overlay.css`). Uređaj bez vibracije: red onemogućen uz napomenu „Ovaj uređaj ne podržava vibraciju". `aboveFab={<FeedbackToggles stacked />}` uklonjen iz `GameScreen`, `PokerScreen` i `RaubScreen`; `FeedbackToggles` ostaje u Profilu (Postavke, uz 🔔). Podrazumijevano uključeno je već bilo (`lib/settings.ts`: samo upisana „0" gasi) — izbor koji je igrač već napravio se poštuje.
+
+**Provjereno:** typecheck, lint izmijenjenih fajlova; headless Chrome `/dev/raub` (360×640), `/dev/poker`, `/dev/game`: na stolu 0 preklopki, u meniju „Zvuk=uključeno", „Vibracija=uključeno".

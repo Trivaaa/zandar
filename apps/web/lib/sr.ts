@@ -27,6 +27,9 @@ export const sr = {
   menu: {
     title: "Meni",
     rules: "Pravila igre",
+    sound: "Zvuk",
+    haptics: "Vibracija",
+    hapticsUnsupported: "Ovaj uređaj ne podržava vibraciju",
     leave: "Izađi na početnu",
     close: "Zatvori",
   },

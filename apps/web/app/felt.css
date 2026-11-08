@@ -3637,7 +3637,7 @@
   height: var(--stage-banner-h);
   display: flex;
   align-items: flex-end;
-  /* Desno ostaje stub dugmadi (zvuk, vibracija, reakcije): na niskim ekranima
+  /* Desno ostaje dugme za reakcije (zvuk i vibracija su od 8.11. u meniju): na niskim ekranima
      je viši od ruke i ulazi u visinu panela (izmjereno na 360×640). */
   padding-left: calc(0.75rem + var(--safe-left));
   padding-right: calc(3.6rem + var(--safe-right));

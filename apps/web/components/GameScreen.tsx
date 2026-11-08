@@ -28,7 +28,6 @@ import { isNative } from "@/lib/platform";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { SeatCaption } from "@/components/felt/SeatCaption";
 import { DeckPile } from "@/components/felt/DeckPile";
-import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { FeltHeader } from "@/components/felt/FeltHeader";
 import { ScoreBar } from "@/components/felt/ScoreBar";
 import { ScoreDetails } from "@/components/felt/ScoreDetails";
@@ -840,7 +839,6 @@ export function GameScreen({
       <ReactionFab
         onReact={onReact}
         disabled={reactionsDisabled}
-        aboveFab={<FeedbackToggles stacked />}
       />
 
       {/* Reakcije se sad prikazuju uz svako sjedište (seatReaction) — vidi gore. */}
