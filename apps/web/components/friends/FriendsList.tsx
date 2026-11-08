@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { FriendsIcon, WarningIcon } from "@/components/icons";
+import { WarningIcon } from "@/components/icons";
+import { FriendsEmptyArt } from "@/components/friends/FriendsEmptyArt";
 import { InviteSheet } from "@/components/friends/InviteSheet";
 import { PushPrompt } from "@/components/push/PushPrompt";
 import { Avatar } from "@/components/profile/Avatar";
@@ -148,9 +149,7 @@ export function FriendsList() {
       <div className="profile__col">
         {top}
         <div className="profile__empty">
-          <span className="profile__empty-icon" aria-hidden="true">
-            <FriendsIcon className="profile__empty-svg" />
-          </span>
+          <FriendsEmptyArt />
           <h2 className="profile__empty-title">{sr.friends.emptyTitle}</h2>
           <p className="profile__empty-body">{sr.friends.emptyBody}</p>
         </div>

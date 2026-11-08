@@ -1,6 +1,6 @@
 "use client";
 
-import { FriendsIcon } from "@/components/icons";
+import { FriendsEmptyArt } from "@/components/friends/FriendsEmptyArt";
 import { sr } from "@/lib/sr";
 
 /** Tab Prijatelji za gosta — F1: objašnjava zašto treba nalog. */
@@ -15,9 +15,7 @@ export function FriendsGuest({
     <div className="profile__col">
       <h1 className="profile__title">{sr.friends.title}</h1>
       <div className="profile__empty">
-        <span className="profile__empty-icon" aria-hidden="true">
-          <FriendsIcon className="profile__empty-svg" />
-        </span>
+        <FriendsEmptyArt />
         <h2 className="profile__empty-title">{sr.friends.guestTitle}</h2>
         <p className="profile__empty-body">{sr.friends.guestBody}</p>
       </div>

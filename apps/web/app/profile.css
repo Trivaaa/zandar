@@ -304,6 +304,22 @@
   color: var(--accent);
 }
 
+/* Ilustracija praznog stanja Prijatelja: ivice se maskom tope u pozadinu
+ * ekrana (slika već ima tamnu vinjetu), pa stoji kao dio ekrana, ne kao kartica.
+ * Visina je ograničena da tekst i dugme ostanu iznad trake i na niskom ekranu. */
+.friends__empty-art {
+  display: block;
+  width: min(100%, 22rem);
+  max-height: 34dvh;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 0.4rem;
+  -webkit-mask-image: radial-gradient(ellipse 72% 70% at 50% 46%, #000 58%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 70% at 50% 46%, #000 58%, transparent 100%);
+  user-select: none;
+  pointer-events: none;
+}
+
 .profile__empty-svg {
   width: 2.2rem;
   height: 2.2rem;
