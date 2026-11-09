@@ -15,6 +15,11 @@ export type PlayerHandProps = {
   lockedCardIds?: readonly string[] | undefined;
   disabledCardIds?: string[];
   dimmedCardIds?: string[];
+  /**
+   * Ruka je samo za gledanje (Raub: licitacija, tuđi potez). Karte ostaju
+   * neklikabilne, ali se NE prigušuju — inače se ne vidi šta imaš.
+   */
+  idle?: boolean;
   faceUp?: boolean;
   /** Defaults to `sm`: eight `sm` cards with the 18px overlap fit a 360px viewport. */
   size?: CardSize;
@@ -30,6 +35,7 @@ export function PlayerHand({
   lockedCardIds = [],
   disabledCardIds = [],
   dimmedCardIds = [],
+  idle = false,
   faceUp = true,
   size = "sm",
   animateDeal = false,
@@ -48,6 +54,7 @@ export function PlayerHand({
     <div
       className={`hand ${className}`}
       data-many={cards.length > 6}
+      {...(idle ? { "data-idle": true } : {})}
       role="group"
       aria-label="Tvoja ruka"
     >

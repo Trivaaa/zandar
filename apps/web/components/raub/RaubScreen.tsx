@@ -247,6 +247,8 @@ export function RaubScreen({
     return false;
   };
   const disabledIds = handCards.filter((c) => !selectable(c)).map((c) => c.id);
+  // Bira li se sad karta iz ruke? Ako ne, ruka je samo za gledanje: pune boje.
+  const picking = myTurn && (panel.kind === "play" || panel.kind === "exchange" || panel.kind === "discard");
   // Zatamnjene su samo karte koje pravila zabranjuju u štihu (glavna pomoć početnicima).
   const dimmedIds = panel.kind === "play" ? handCards.filter((c) => !legal.has(c.id)).map((c) => c.id) : [];
   const lockedIds = lockedHandIds(state, panel.kind);
@@ -448,6 +450,7 @@ export function RaubScreen({
               lockedCardIds={lockedIds}
               disabledCardIds={disabledIds}
               dimmedCardIds={dimmedIds}
+              idle={!picking}
               onSelect={onCard}
             />
           ) : null}

@@ -1576,3 +1576,11 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 - Usput: `.rb-panel__hint` sa `left:50%` dobijao je samo pola širine panela i sjekao uputstvo — `width: max-content`.
 
 **Provjereno:** web 205 (novi `hungarianDeck.test.ts`), typecheck, lint; headless Chrome 360×740 `/dev/raub?s=bid|seven|exchangeOpen|trick` (lica, poleđine, ikonica u oznaci adut i uputstvima, zatamnjene karte) i početna 390 px.
+
+## 143. Raub — ruka nije prigušena dok samo gledaš (2026-11-09)
+
+**Povod:** vlasnik na S10e (mađarice): u licitaciji su karte u ruci „kao providne", ne vidi se šta ima. `RaubScreen` je svaku kartu koja se trenutno ne bira slao u `disabledCardIds`, a `.card[data-disabled]` je `opacity: 0.4` — dakle cijela ruka na 40 % u licitaciji, Idem/Ne idem, zamjeni sedmice i tuđem potezu. Uz krem mađarice na zelenom suknu to je skoro nevidljivo.
+
+**Izmjena:** `PlayerHand` prop `idle` (`data-idle` na `.hand`) — karte ostaju neklikabilne, ali bez prigušenja. Raub ga pali kad se karta iz ruke ne bira (`picking` = moj potez i panel `play` / `exchange` / `discard`). U štihu i dalje su zatamnjene samo karte koje pravila zabranjuju; zaključana karta pri zamjeni ostaje prigušena uz katanac. Žandar i Poker ne koriste `idle`.
+
+**Provjereno:** typecheck, lint; snimak `/dev/raub?s=bid2` (pune boje) i `?s=trick` (zatamnjene samo nedozvoljene).

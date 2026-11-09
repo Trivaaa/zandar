@@ -231,6 +231,11 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+/* Ruka samo za gledanje (Raub licitacija / tuđi potez): bez prigušenja. */
+.hand[data-idle] .card[data-disabled="true"] {
+  opacity: 1;
+  cursor: default;
+}
 
 /* Pre-rendered glow, cross-faded on opacity only. */
 .card-glow {
