@@ -234,7 +234,7 @@ Sažetak iz changeloga — pravila koja su već koštala; detalji i mjerenja su 
 - **Server:** promjena oblika snapshota mora tolerisati stari oblik (deploy = restart = hidracija). Stari klijenti (Play 1.0.0) šalju `/api/quickplay` sa 4/21 ili bez cilja. Fastify ≥5.12 gasi brojčani `trustProxy` — koristi se `trustFirstHop`.
 - **Zavisnosti:** tranzitivne se osvježavaju sa `pnpm -r update --depth Infinity <paket>`, ne `overrides`-ima; `pnpm audit --prod` treba da ostane na 0.
 - **Lint osnovica:** `pnpm exec eslint --ignore-pattern "out-*/**" .` u `apps/web` → 5 grešaka, 2 upozorenja (zatečene). Goli `eslint` visi na ostacima builda.
-- **Izdanje za Play:** paket se gradi iz čistog worktree-a `C:\Users\User\projects\zandar-apk` (`pnpm --filter web aab:prod`), nikad iz foldera u kojem radi druga sesija. 1.2.1 = `versionCode 4` (nosi `@capacitor/share` — „Pošalji pozivnicu" stiže u aplikaciju tek njime). 1.3.0 = `versionCode 5` (rezultat uživo, Meta App Events, Google Analytics, lijevak pozivnice, pregled prijava; `release/1.3.0`). 1.3.1 = `versionCode 6` (`app_install_attributed`, kampanja iz Play referrera); sljedeći je 7.
+- **Izdanje za Play:** paket se gradi iz čistog worktree-a `C:\Users\User\projects\zandar-apk` (`pnpm --filter web aab:prod`), nikad iz foldera u kojem radi druga sesija. 1.2.1 = `versionCode 4` (nosi `@capacitor/share` — „Pošalji pozivnicu" stiže u aplikaciju tek njime). 1.3.0 = `versionCode 5` (rezultat uživo, Meta App Events, Google Analytics, lijevak pozivnice, pregled prijava; `release/1.3.0`). 1.3.1 = `versionCode 6` (`app_install_attributed`, kampanja iz Play referrera; nikad poslata na Play). 1.4.0 = `versionCode 7` (Poker, Raub, „Pošalji utisak“, QA 2026-11-09 B1–B3; prekidači `NEXT_PUBLIC_POKER/RAUB=1` upisani u `TARGETS.prod` u `build-mobile.mjs`); sljedeći je 8.
 - **CORS:** `@fastify/cors` podrazumijevano pušta samo `GET,HEAD,POST` — nova ruta sa drugim metodom pada na preflight-u pregledača, a `fastify.inject` testovi to NE vide. `methods` u `index.ts` sad nosi `PUT` i `DELETE`.
 - **`next dev` (Next 16) upisuje `apps/web/AGENTS.md` i `CLAUDE.md`** — brisati, ne komitovati. Lint (`react-hooks`) odbija `setState` sinhrono u efektu: vrijednost izvodi u renderu, URL parametar kroz `lib/useQuery.ts`.
 - **Paralelne sesije:** prije commita/builda u glavnom folderu provjeri `git status` i granu — tuđ nekomitovan rad se već nalazio u radnom stablu.
@@ -242,6 +242,8 @@ Sažetak iz changeloga — pravila koja su već koštala; detalji i mjerenja su 
 - **Posuđeni `next dev` (3107) zna prestati primati izmjene** — za CSS provjeri da serviran CSS sadrži novo pravilo, ili provjeravaj na `next build` + `next start`.
 
 ## Sljedeće
+
+**Stanje 2026-11-09:** `production` = `c1d1b22` (web i server živi: nova početna, „Pošalji utisak“, QA B1–B3). Poker i Raub su u kodu na produkciji, ali se na webu pale tek sa `NEXT_PUBLIC_POKER=1` i `NEXT_PUBLIC_RAUB=1` na Vercel projektu `zandar` (produkcija) + Redeploy — vlasnik upisuje. AAB 1.4.0 (`versionCode 7`, Poker + Raub) izgrađen iz `zandar-apk` @ `c1d1b22`, čeka upload; prije slanja na pregled: IARC upitnik (simulirano kockanje), Data safety (utisak), ciljna publika bez djece. Changelog 146.
 
 **Stanje 2026-10-31:** `production` = `main` = `9c25591` (P1 i P6 živi na webu). AAB 1.2.1 (`versionCode 4`) izgrađen iz `zandar-apk`, čeka upload na Play; status 1.2.0 (poslata na pregled 2026-10-24 22:06) ovdje nije provjeren. Staging APK: `pnpm --filter web apk:staging`, S10e je na `adb` preko Wi-Fi-ja (`192.168.100.30:<port>`, port se mijenja).
 
