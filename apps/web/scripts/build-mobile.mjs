@@ -28,6 +28,11 @@ export const TARGETS = {
     NEXT_PUBLIC_API_URL: "https://zandar-test.up.railway.app",
     NEXT_PUBLIC_WEB_URL: "https://kartaonica.com",
     NEXT_PUBLIC_APP_ENV: "production",
+    // Izdanje 1.4.0 (odluka vlasnika 2026-11-09): Poker i Raub u produkcijskoj
+    // aplikaciji. Poker traži ažuriran IARC upitnik (simulirano kockanje) prije
+    // slanja na pregled. Web isto pali `NEXT_PUBLIC_POKER/RAUB=1` na Vercelu.
+    NEXT_PUBLIC_POKER: "1",
+    NEXT_PUBLIC_RAUB: "1",
   },
   staging: {
     NEXT_PUBLIC_API_URL: "https://zandar-production.up.railway.app",
