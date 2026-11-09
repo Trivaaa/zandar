@@ -210,6 +210,7 @@ export function JoinFlow({
       players={room.players}
       playerCount={room.playerCount}
       targetScore={room.targetScore}
+      game={room.game ?? "zandar"}
       phase={phase}
       displayName={displayName}
       onDisplayName={setDraft}

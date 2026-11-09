@@ -52,12 +52,12 @@ describe("isMatchOpen", () => {
 });
 
 describe("afterLeave (QA B1)", () => {
-  test("partija teče, ostaje čovjek → odmah pauza", () => {
-    assert.equal(afterLeave(gs("playing", [gone, human])), "pause");
+  test("partija teče, ostaje čovjek → odmah glasanje, bez pauze (QA 2026-11-09 B3)", () => {
+    assert.equal(afterLeave(gs("playing", [gone, human])), "vote");
   });
 
-  test("gotova ruka → nova ruka pa pauza (host je možda otišao)", () => {
-    assert.equal(afterLeave(gs("hand_finished", [gone, human, bot])), "next_hand_then_pause");
+  test("gotova ruka → nova ruka pa glasanje (host je možda otišao)", () => {
+    assert.equal(afterLeave(gs("hand_finished", [gone, human, bot])), "next_hand_then_vote");
   });
 
   test("sto već stoji → samo javi", () => {

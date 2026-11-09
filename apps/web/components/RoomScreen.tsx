@@ -497,8 +497,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     const host = room.players.find((p) => p.isHost)?.displayName ?? "";
     const missing = Math.max(0, room.playerCount - room.players.length);
     const outcome = await shareInvite({
-      title: sr.share.title,
-      text: sr.share.msg(host, room.playerCount, missing, inviteUrl),
+      title: sr.share.title(room.game ?? "zandar"),
+      text: sr.share.msg(room.game ?? "zandar", host, room.playerCount, missing, inviteUrl),
       url: inviteUrl,
     });
     recordInviteShared(roomId, outcome);

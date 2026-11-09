@@ -2,6 +2,8 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
+import type { GameId } from "@zandar/shared-types";
+
 import { CardBack } from "@/components/felt/CardBack";
 import { ArrowLeftIcon, ArrowRightIcon } from "@/components/icons";
 import { isValidPlayerName } from "@/lib/playerName";
@@ -28,6 +30,8 @@ export type JoinRequestScreenProps = {
   players: JoinRoomPlayer[];
   playerCount: number;
   targetScore: number;
+  /** Igra stola — tekst poziva i red ispod njega. Bez nje: Žandar. */
+  game?: GameId | undefined;
   phase: JoinRequestPhase;
   displayName: string;
   onDisplayName: (value: string) => void;
@@ -58,6 +62,7 @@ export function JoinRequestScreen({
   players,
   playerCount,
   targetScore,
+  game = "zandar",
   phase,
   displayName,
   onDisplayName,
@@ -108,10 +113,10 @@ export function JoinRequestScreen({
           {host ? (
             <>
               {sr.join.inviteLead} <span className="joinreq__host">{host}</span>{" "}
-              {sr.join.inviteTail}
+              {sr.join.inviteTail(game)}
             </>
           ) : (
-            sr.join.inviteNoHost
+            sr.join.inviteNoHost(game)
           )}
         </h1>
 
@@ -130,7 +135,7 @@ export function JoinRequestScreen({
           ))}
         </ul>
         <p className="joinreq__meta">
-          {sr.lobby.meta(players.length, playerCount, targetScore)}
+          {sr.lobby.metaFor(game, players.length, playerCount, targetScore)}
         </p>
       </section>
 

@@ -115,9 +115,7 @@ export function LobbyScreen({
       <header className="lobby__head">
         <h1 className="lobby__title font-display text-2xl">{sr.lobby.title(roomId)}</h1>
         <p className="lobby__meta font-sans text-sm">
-          {poker
-            ? sr.lobby.metaPoker(seatsFilled, playerCount)
-            : sr.lobby.meta(seatsFilled, playerCount, targetScore)}
+          {sr.lobby.metaFor(game, seatsFilled, playerCount, targetScore)}
         </p>
       </header>
 

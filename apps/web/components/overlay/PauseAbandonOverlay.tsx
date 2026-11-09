@@ -79,7 +79,9 @@ export function PauseAbandonOverlay({
     return (
       <div className={`pause pause--modal ${className}`} data-phase={phase} role="dialog" aria-modal="true">
         <p className="pause__title font-display text-xl">{sr.pause.voteTitle}</p>
-        <p className="pause__body font-sans text-base text-muted">{sr.pause.voteBody}</p>
+        <p className="pause__body font-sans text-base text-muted">
+          {waitingLeft ? sr.pause.voteBodyLeft(waitingForName ?? sr.pause.unknownPlayer) : sr.pause.voteBody}
+        </p>
 
         <ul className="pause__list">
           {players.map((p) => {

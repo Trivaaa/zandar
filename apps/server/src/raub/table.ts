@@ -393,7 +393,7 @@ export class RaubTables {
 
   // ── Izlazak, veza, pauza (PRD v2 §32, odluka 3) ──────────────────────────
 
-  /** `room:leave`. U lobiju: kreator zatvara privatni sto. U meču: pauza za ostale. */
+  /** `room:leave`. U lobiju: kreator zatvara privatni sto. U meču: glasanje za ostale. */
   async leave(roomId: string, playerId: string): Promise<void> {
     this.clearGrace(roomId, playerId);
     const room = this.deps.getRoom(roomId);
@@ -418,11 +418,11 @@ export class RaubTables {
     this.deps.log.info(`🚪 Raub: ${playerId} napustio ${roomId} (${outcome})`);
 
     if (outcome === "abandon") await this.abandon(roomId);
-    else if (outcome === "pause") await this.pause(roomId);
-    else if (outcome === "next_hand_then_pause") {
+    else if (outcome === "vote") await this.vote(roomId);
+    else if (outcome === "next_hand_then_vote") {
       // Sljedeću ruku pokreće samo host; ako je otišao host, sto bi stao na rezultatu.
       this.dealNext(room);
-      await this.pause(roomId);
+      await this.vote(roomId);
     } else await this.broadcast(roomId);
   }
 

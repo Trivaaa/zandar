@@ -267,13 +267,16 @@ describe("raub: prekid veze, pauza i glasanje (odluka 3)", () => {
     assert.deepEqual(await t.waitMore(r.id), { ok: true });
   });
 
-  test("namjeran izlazak: ostali odmah dobijaju pauzu, bez roka", async () => {
+  test("namjeran izlazak: ostali odmah glasaju, bez pauze (QA 2026-11-09 B3)", async () => {
     const r = room([human("h", 0), human("g", 1)]);
     const { t } = setup(r);
     t.start(r);
     await t.leave(r.id, "g");
     assert.equal(r.players[1]!.left, true);
-    assert.equal(r.raub!.interruption?.kind, "paused");
+    assert.equal(r.raub!.interruption?.kind, "vote");
+    // Jedini preostali čovjek glasa „prekini" → meč je gotov odmah.
+    await t.castVote(r.id, "h", "end");
+    assert.equal(r.raub!.phase, "abandoned");
   });
 
   test("kreator izađe iz privatnog lobija: sto se zatvara", async () => {

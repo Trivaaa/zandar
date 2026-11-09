@@ -1,12 +1,29 @@
 // Serbo-Croatian (ijekavica), sentence case, plain verbs.
 // Single source for every visible string. No component hardcodes copy.
 
-import { CONSENT_TEXTS, CURRENT_CONSENT_TEXT_ID, type ProfileAvatar, type TableTheme } from "@zandar/shared-types";
+import {
+  CONSENT_TEXTS,
+  CURRENT_CONSENT_TEXT_ID,
+  type GameId,
+  type ProfileAvatar,
+  type TableTheme,
+} from "@zandar/shared-types";
 
 import { pluralForm } from "./plural";
 
 /** Broj mjesta koja fale, riječima — poruka se čita kao rečenica, ne kao brojač. */
 const MISSING_WORDS = ["", "jedan", "dva", "tri"] as const;
+
+/** Ime igre u genitivu — „partija Žandara / Pokera / Rauba". */
+const GAME_GENITIVE: Record<GameId, string> = { zandar: "Žandara", poker: "Pokera", raub: "Rauba" };
+const GAME_NAME: Record<GameId, string> = { zandar: "Žandar", poker: "Poker", raub: "Raub" };
+
+/** „jedan na jedan" / „dva na dva" (samo Žandar ima timove) / „u troje" / „u četvoro". */
+function lineupPhrase(game: GameId, players: number): string {
+  if (players === 2) return "jedan na jedan";
+  if (game === "zandar" && players === 4) return "dva na dva";
+  return players === 3 ? "u troje" : "u četvoro";
+}
 
 /** „fali još jedan" / „fale još dva" / „fale još tri". */
 function missingPhrase(n: number): string {
@@ -192,7 +209,13 @@ export const sr = {
     // „Sto", ne „Soba" (tabla Poker NL, odluka 9).
     title: (id: string) => `Sto ${id}`,
     meta: (n: number, of: number, pts: number) => `${n} / ${of} igrača · ${pts} poena`,
-    metaPoker: (n: number, of: number) => `${n} / ${of} igrača · Poker · 100 žetona`,
+    /** Red ispod naslova lobija i pozivnice, po igri (QA 2026-11-09 B1/B2). */
+    metaFor: (game: GameId, n: number, of: number, pts: number) =>
+      game === "poker"
+        ? `${n} / ${of} igrača · Poker · 100 žetona`
+        : game === "raub"
+          ? `${n} / ${of} igrača · Raub · od ${pts} do 0`
+          : `${n} / ${of} igrača · ${pts} poena`,
     invite: "Pozovi prijatelje:",
     copy: "Kopiraj",
     copied: "✓ Kopirano",
@@ -217,8 +240,8 @@ export const sr = {
   join: {
     /* „Hej, {host} te poziva na partiju Žandara" — ime hosta crta ekran između. */
     inviteLead: "Hej,",
-    inviteTail: "te poziva na partiju Žandara",
-    inviteNoHost: "Čeka te partija Žandara",
+    inviteTail: (game: GameId) => `te poziva na partiju ${GAME_GENITIVE[game]}`,
+    inviteNoHost: (game: GameId) => `Čeka te partija ${GAME_GENITIVE[game]}`,
     name: "Tvoje ime",
     namePlaceholder: "Marko",
     submit: "Sjedi za sto",
@@ -300,11 +323,17 @@ export const sr = {
     waitingFor: (name: string) => `${name} se ponovo povezuje`,
     left: (name: string) => `${name} više nije za stolom`,
     unknownPlayer: "Igrač",
-    body: "Igra je pauzirana dok se igrač ne vrati. Sačekaj ili pokreni glasanje o prekidu.",
+    /* Pauza je samo za puklu vezu; glasanje o prekidu se otvara samo kad rok
+       istekne, pa tekst ne smije obećavati dugme kojeg nema (QA 2026-11-09 B3). */
+    body: "Igra je pauzirana dok se igrač ne vrati. Ako se ne vrati do isteka vremena, glasate o prekidu.",
     seconds: (n: number) => `${n} s`,
     keepWaiting: "Sačekaj još",
     voteTitle: "Glasanje o prekidu",
     voteBody: "Igrač se ne vraća. Odluči hoćeš li čekati dalje ili prekinuti partiju.",
+    /** Glasanje odmah poslije namjernog izlaska (QA 2026-11-09 B3). Bez obećanja
+        povratka: Žandar ga dozvoljava preko linka, Raub ne. */
+    voteBodyLeft: (name: string) =>
+      `${name} više nije za stolom. Odluči hoćeš li čekati ili prekinuti partiju.`,
     voteWait: "Čekaj",
     voteEnd: "Prekini",
     voteNone: "Nije glasao",
@@ -976,10 +1005,10 @@ export const sr = {
   },
 
   share: {
-    title: "Pozivnica za Žandar",
-    msg: (host: string, players: number, missing: number, link: string) =>
-      `${host} te zove na partiju Žandara 🃏 Igramo ${
-        players === 2 ? "jedan na jedan" : "dva na dva"
-      }, ${missingPhrase(missing)}. Ništa ne instaliraš, samo otvori: ${link}`,
+    title: (game: GameId) => `Pozivnica za ${GAME_NAME[game]}`,
+    msg: (game: GameId, host: string, players: number, missing: number, link: string) =>
+      `${host} te zove na partiju ${GAME_GENITIVE[game]} 🃏 Igramo ${lineupPhrase(game, players)}, ${missingPhrase(
+        missing,
+      )}. Ništa ne instaliraš, samo otvori: ${link}`,
   },
 } as const;

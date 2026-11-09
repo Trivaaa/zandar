@@ -2722,10 +2722,10 @@ io.on("connection", (socket) => {
       }
 
       if (outcome === "abandon") await enterAbandoned(roomId);
-      else if (outcome === "pause") await enterPause(roomId);
-      else if (outcome === "next_hand_then_pause") {
+      else if (outcome === "vote") await enterVote(roomId);
+      else if (outcome === "next_hand_then_vote") {
         startNextHand(room);
-        await enterPause(roomId);
+        await enterVote(roomId);
       } else if (outcome === "mark_only") await broadcastGameState(roomId);
 
       ack?.({ ok: true });
