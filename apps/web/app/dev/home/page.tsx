@@ -29,6 +29,8 @@ export default function DevHomePage() {
   const [open, setOpen] = useState<GameConfig | null>(null);
   const last = useQueryParam("last");
   const err = useQueryParam("err") === "1";
+  // &name=Igor — pozdrav iznad liste (bez njega samo pitanje).
+  const name = useQueryParam("name");
 
   const { layout, history } = useMemo(() => {
     const order: GameSlug[] = ["zandar", "poker", "raub"];
@@ -67,6 +69,7 @@ export default function DevHomePage() {
                 loadingSlug: err ? layout.main.slug : null,
                 onPlay: () => undefined,
                 onCreate: () => undefined,
+                greetingName: name,
               },
             }
           : {})}

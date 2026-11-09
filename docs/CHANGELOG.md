@@ -1612,3 +1612,29 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Aplikacija:** 1.4.0 (`versionCode 7`), odluka vlasnika: Poker i Raub u paketu. Prekidači su upisani u `TARGETS.prod` (`build-mobile.mjs`) umjesto u shell, pa build ispisuje `NEXT_PUBLIC_POKER=1` / `NEXT_PUBLIC_RAUB=1` i paket je ponovljiv. AAB iz `zandar-apk` @ `c1d1b22`: potpisan upload ključem (`EA:71:38:…:13:0F`), `appEnv:"production"` i `flag:"1"` za obje igre potvrđeni u JS-u iz paketa, push uključen. 1.3.1 (`versionCode 6`) nikad nije poslata — 1.4.0 je nosi.
 
 **Prije slanja na pregled (Play Console):** IARC upitnik — simulirano kockanje (poker, žetoni bez vrijednosti); ciljna publika bez djece; Data safety dopuniti za „Pošalji utisak" (poruke, slike koje korisnik priloži, opciona e-adresa, model uređaja i verzija; opciono, ne dijeli se, brisanje na zahtjev, istek 12 mj.). **Nije provjereno na uređaju** — preporuka: interno testiranje pa produkcija.
+## 147. Početna — hero + redovi umjesto tri iste kartice (2026-11-09, `feat/home-list-k2`)
+
+**Zašto:** lista iz unosa 123 je imala tri iste kartice sa po dva dugmeta. Nije bilo hijerarhije, na ekranu je stajalo šest dugmadi, „Napravi sto" se lomio u dva reda, oznaka NOVO je dirala naslov, a vrh ekrana je bio prazan. Vlasnik je tražio atraktivniji izgled, bez Claude Design table.
+
+**Šta:**
+- **Hero kartica** (prva igra, redoslijed i dalje daje `homeLayout`: zakačena → zadnje igrana → Žandar):
+  - Slika u boji igre sa toplom „lampom" (mesingani radial odozgo).
+  - Lepeza od tri karte gore desno, srednja izlazi preko gornje ivice slike.
+  - Oznaka je pilula IZNAD imena, ime je 34 px.
+  - Igraj (mesingani prelaz i jednokratan odsjaj pri ulazu) + „Napravi sto" sa ikonom, u jednom redu.
+- **Ostale igre su redovi od 76 px:** mala slika sa kartama, ime + oznaka pored, opis, okrugla dugmad Napravi sto (ikona) i Igraj (strelica), 48 px. Imena radnji nose `aria-label` (isti tekst kao ranije).
+- **Pozdrav iznad liste:** „Zdravo, {ime}" / „Za koji sto sjedaš?". Ime dolazi iz `usePlayerName` (server snapshot `null`, pa nema hydration mismatcha). Bez imena stoji samo pitanje. Pozdrav po dobu dana je namjerno izostavljen: sat servera i klijenta se razlikuje, a to bi dalo mismatch.
+- **Ulaz:** stavke stižu redom (opacity + translateY), a lepeza se raširi. Sve je na `--t-*` tokenima (kolapsira pod reduced-motion), a odsjaj je pod reduced-motion ugašen.
+- `sr.home.listSub`: ispred „·" stoji neprelomni razmak, pa pri lomljenju tačka ostaje na kraju prvog reda. Opisi imaju `text-wrap: balance`.
+- Harness: `/dev/home?live=3&name=Igor`.
+
+**Zamke:**
+- Headless Chrome sa `--window-size=360,…` ne daje viewport od 360 px (prozor ima najmanju širinu), pa snimak izgleda kao da sadržaj prelijeva. Mjeri se samo kroz CDP `Emulation.setDeviceMetricsOverride`.
+- Lepeza dolje desno je sjekla opis: rotirana karta J izlazi lijevo van svoje kutije. Mjerenje kutija je bilo čisto, a greška se vidjela tek okom na snimku. Rješenje je lepeza gore desno, a tekst dolje lijevo.
+- `sed` sa ` ` u Git Bashu je pojeo backslash (`00a0` u stringu). Takve izmjene idu kroz Edit.
+
+**Provjereno:**
+- CDP snimci 360×740 (3 igre, ime), 390×844 (3 igre, bez pravnog reda), 360×740 (2 igre, zadnje igran poker) i 360×640 (zakačen poker + greška traženja). Nigdje nema horizontalnog ni vertikalnog skrola, sve je iznad trake, dugmad su ≥ 48 px, a NOVO ne dira naslov.
+- Web testovi 180, typecheck, lint = osnovica (5/2).
+
+**Nije provjereno na uređaju.**

@@ -16,7 +16,7 @@ import { identityUi } from "@/lib/features";
 import { GAMES, gameBadge, homeLayout, type GameConfig, type GameSlug } from "@/lib/games";
 import { setPinnedGame, useHomeHistory } from "@/lib/homePrefs";
 import { isNative } from "@/lib/platform";
-import { readPlayerName, savePlayerName } from "@/lib/playerName";
+import { readPlayerName, savePlayerName, usePlayerName } from "@/lib/playerName";
 import { fetchMe } from "@/lib/profile";
 import { readQuickPlayPrefs, saveQuickPlayPrefs, useQuickPlayPrefs, type QuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { sr } from "@/lib/sr";
@@ -51,6 +51,7 @@ export default function Home() {
   const tableTheme = useTableTheme(setupGame.slug);
   // „Sada" za oznaku NOVO — jednom po prikazu početne (render mora biti čist).
   const [now] = useState(() => Date.now());
+  const playerName = usePlayerName();
 
   const [rulesFor, setRulesFor] = useState<GameSlug | null>(null);
   const rulesOpen = rulesFor !== null;
@@ -165,6 +166,7 @@ export default function Home() {
                 loadingSlug: (playing || playError) && !sheetOpen ? playingSlug : null,
                 onPlay: playGame,
                 onCreate: (game: GameConfig) => router.push(createPath(game.slug)),
+                greetingName: playerName,
               },
             }
           : {})}

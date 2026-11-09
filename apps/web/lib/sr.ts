@@ -270,14 +270,18 @@ export const sr = {
     meta: (players: string, minutes: number) => `${players} · ~${minutes} min`,
     pinned: "Zakačeno",
     lastPlayed: "Zadnje igrano",
-    /** Podnaslov igre na kartici liste (tabla „UI · Početna — opcija 1 Lista"). */
+    /** Podnaslov igre na kartici liste. Ispred „·" je neprelomni razmak: kad se
+     * opis lomi, tačka ostaje na kraju prvog reda, ne na početku drugog. */
     listSub: {
-      zandar: "2 ili 4 igrača · do 11 ili 21",
-      poker: "Texas Hold'em · 2–4 igrača",
+      zandar: "2 ili 4 igrača · do 11 ili 21",
+      poker: "Texas Hold'em · 2–4 igrača",
       remi: "2–4 igrača",
       bela: "2–4 igrača",
-      raub: "2–4 igrača · od 21 do 0",
+      raub: "2–4 igrača · od 21 do 0",
     } as Record<string, string>,
+    /** Pozdrav iznad liste igara (ime iz `zandar_name`). */
+    hello: (name: string) => `Zdravo, ${name}`,
+    helloAsk: "Za koji sto sjedaš?",
     playGame: (name: string) => `Igraj ${name}`,
     createGame: (name: string) => `Napravi sto: ${name}`,
     more: "Još igara",

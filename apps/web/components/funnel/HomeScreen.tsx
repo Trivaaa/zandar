@@ -44,6 +44,8 @@ export type HomeScreenProps = {
         loadingSlug: string | null;
         onPlay: (game: GameConfig) => void;
         onCreate: (game: GameConfig) => void;
+        /** Sačuvano ime za pozdrav iznad liste; bez njega samo pitanje. */
+        greetingName?: string | null | undefined;
       }
     | undefined;
   className?: string | undefined;
@@ -81,6 +83,16 @@ export function HomeScreen({
           <BrandLockup showDomain={false} className="brand--home" />
           {isStaging ? <span className="home__env">STAGING</span> : null}
         </header>
+        <div className="home__hello">
+          {list.greetingName ? (
+            <>
+              <p className="home__hello-name">{sr.home.hello(list.greetingName)}</p>
+              <p className="home__hello-sub">{sr.home.helloAsk}</p>
+            </>
+          ) : (
+            <p className="home__hello-name">{sr.home.helloAsk}</p>
+          )}
+        </div>
         <div className="home__col">
           <GameList
             items={list.items}

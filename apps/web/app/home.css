@@ -1100,11 +1100,35 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Početna sa više igara — tabla „UI · Početna — opcija 1 Lista" (K1).
- * Svaka igra svoja kartica: slika u boji igre (`--game-*-1/2`), ime, opis i
- * tri prave karte; ispod Igraj i Napravi sto. Slika raste sa visinom ekrana
- * (92 px na 360×740, 116 px na 390×844 — linearno između), ostalo stoji.
+ * Početna sa više igara — hero + redovi (changelog 147; zamjenjuje tri iste
+ * kartice table „Opcija 1 Lista"). Prva igra je velika kartica: slika u boji
+ * igre (`--game-*-1/2`), topla „lampa" odozgo, lepeza od tri karte, Igraj +
+ * Napravi sto. Ostale igre su redovi od 4.75rem: mala slika sa kartama, ime +
+ * opis, ikone Napravi sto i Igraj. Slika heroja raste sa visinom ekrana
+ * (plafon 12rem), ostalo stoji.
  * ------------------------------------------------------------------ */
+
+.home__hello {
+  width: 100%;
+  max-width: var(--home-col);
+  margin: 0.875rem 0 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.home__hello-name {
+  margin: 0;
+  font: 400 1.375rem / 1.15 var(--font-display-stack);
+  color: var(--card-face);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home__hello-sub {
+  margin: 0;
+  font: 500 0.875rem / 1.3 var(--font-sans-stack);
+  color: var(--text-muted);
+}
 
 .home-list {
   display: flex;
@@ -1117,150 +1141,346 @@
   list-style: none;
 }
 
-.home-list__card {
+/* Ulaz: stavke stižu redom odozdo. Trajanja su tokeni (kolapsiraju pod
+   reduced-motion). */
+.home-list__item {
+  animation: home-rise var(--t-screen-fade) var(--ease-out-soft) both;
+  animation-delay: calc(var(--i) * var(--t-deal-stagger) * 1.5);
+}
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+.home-hero,
+.home-row {
   --tint-1: var(--game-zandar-1);
   --tint-2: var(--game-zandar-2);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  border-radius: 1.125rem;
-  background-color: color-mix(in oklab, var(--card-face) 4%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 28%, transparent);
 }
-.home-list__card[data-tint="poker"] {
+.home-hero[data-tint="poker"],
+.home-row[data-tint="poker"] {
   --tint-1: var(--game-poker-1);
   --tint-2: var(--game-poker-2);
 }
-.home-list__card[data-tint="raub"] {
+.home-hero[data-tint="raub"],
+.home-row[data-tint="raub"] {
   --tint-1: var(--game-raub-1);
   --tint-2: var(--game-raub-2);
 }
 
-.home-list__art {
-  position: relative;
-  height: clamp(5rem, calc(23.08dvh - 4.925rem), 8rem);
-  overflow: hidden;
-  border-radius: 0.75rem;
-  background: radial-gradient(ellipse at 75% 40%, var(--tint-1), var(--tint-2) 80%);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--card-face) 8%, transparent);
-}
-
+/* Oznaka: pilula IZNAD imena (hero) ili pored imena (red) — nikad preko. */
 .home-list__tag {
-  position: absolute;
-  left: 0.75rem;
-  top: 0.5rem;
-  z-index: 2;
+  flex: none;
+  align-self: flex-start;
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
-  background-color: color-mix(in oklab, var(--bg-mid) 75%, transparent);
+  background-color: color-mix(in oklab, var(--bg-mid) 70%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--card-face) 18%, transparent);
   color: var(--card-face);
   font: 700 0.625rem / 1.2 var(--font-sans-stack);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+.home-row__title .home-list__tag {
+  align-self: center;
 }
 .home-list__tag[data-badge="new"] {
   background-color: var(--accent);
+  box-shadow: none;
   color: var(--accent-contrast);
 }
 
-/* Ime i opis: blok usidren za dno slike, pa dug opis (greška traženja) raste
-   nagore i nikad se ne odsijeca. Desno su karte (~8.5rem). */
-.home-list__text {
-  position: absolute;
-  left: 0.875rem;
-  bottom: 0.75rem;
-  max-width: calc(100% - 10rem);
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.home-list__name {
-  margin: 0;
-  font: 400 1.625rem / 1 var(--font-display-stack);
-  color: var(--card-face);
-  text-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
-}
-
-.home-list__sub {
-  margin: 0;
-  font: 600 0.75rem / 1.15 var(--font-sans-stack);
-  color: color-mix(in oklab, var(--card-face) 80%, transparent);
-}
-.home-list__sub[data-error="true"] {
-  color: var(--danger-signal);
-}
-
-/* Tri karte desno, lepeza −12° / 0 / 12°, srednja malo više. */
-.home-list__cards {
-  position: absolute;
-  right: 1.75rem;
-  top: 50%;
-  display: flex;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-.home-list__card-slot {
-  margin-left: -1.125rem;
-  transform: rotate(calc((var(--i) - 1) * 12deg));
-}
-.home-list__card-slot:first-child {
-  margin-left: 0;
-}
-.home-list__card-slot:nth-child(2) {
-  transform: translateY(-0.25rem);
-}
-.home-list__card-slot .card {
-  --card-w: 2.75rem;
-  --card-h: 3.9rem;
-}
-
-.home-list__actions {
-  display: flex;
-  gap: 0.5rem;
-}
-.home-list__actions button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 3.125rem;
-  border: 0;
-  border-radius: 0.75rem;
-  cursor: pointer;
-  transition: transform var(--t-card-play) var(--ease-snap);
-}
-.home-list__actions button:active {
-  transform: scale(0.98);
-}
-.home-list__play {
-  flex: 1.35;
-  justify-content: space-between;
-  padding: 0 0.875rem;
-  background-color: var(--accent);
-  color: var(--accent-contrast);
-  font: 700 1rem / 1 var(--font-sans-stack);
-}
-.home-list__play:focus-visible {
-  outline-color: var(--text);
-}
-.home-list__play:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.home-list__create {
-  flex: 1;
-  justify-content: center;
-  padding: 0 0.625rem;
-  background: none;
-  color: var(--text);
-  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--text) 30%, transparent);
-  font: 700 0.9375rem / 1 var(--font-sans-stack);
-}
 .home-list__icon {
   flex: none;
   width: 1.25rem;
   height: 1.25rem;
+}
+
+.home-list button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  cursor: pointer;
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+.home-list button:active {
+  transform: scale(0.96);
+}
+.home-list button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ---- Hero ------------------------------------------------------------ */
+
+.home-hero {
+  --hero-art-h: clamp(8.5rem, calc(34dvh - 6rem), 12rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 1.375rem;
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--tint-1) 24%, transparent),
+    color-mix(in oklab, var(--card-face) 3%, transparent) 75%
+  );
+  box-shadow:
+    inset 0 0 0 1px var(--accent-line),
+    0 0.75rem 2rem -0.75rem rgb(0 0 0 / 0.6);
+}
+
+.home-hero__art {
+  position: relative;
+  height: var(--hero-art-h);
+  border-radius: 1rem;
+  /* Lampa iznad stola: topao mesingan sjaj odozgo, preko boje igre. */
+  background:
+    radial-gradient(ellipse 70% 65% at 74% 0%, color-mix(in oklab, var(--accent) 32%, transparent), transparent 72%),
+    radial-gradient(ellipse at 70% 45%, var(--tint-1), var(--tint-2) 85%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--card-face) 10%, transparent),
+    inset 0 -2.5rem 3rem -1.5rem rgb(0 0 0 / 0.45);
+}
+
+.home-hero__text {
+  position: absolute;
+  left: 1rem;
+  bottom: 0.875rem;
+  /* Lepeza je gore desno: ispod nje ima mjesta za ime i opis u jednom redu;
+     7rem čuva desni ugao za donje ivice karata kad greška raste nagore. */
+  max-width: calc(100% - 7rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.home-hero__name {
+  margin: 0;
+  font: 400 2.125rem / 0.95 var(--font-display-stack);
+  color: var(--card-face);
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.45);
+}
+
+.home-hero__sub {
+  margin: 0;
+  font: 600 0.8125rem / 1.2 var(--font-sans-stack);
+  color: color-mix(in oklab, var(--card-face) 82%, transparent);
+}
+/* Kad se opis lomi (uzan red, greška), lomi se ravnomjerno („2–4 igrača ·" /
+   „od 21 do 0"), ne ostavlja jednu riječ u drugom redu. */
+.home-hero__sub,
+.home-row__sub {
+  text-wrap: balance;
+}
+.home-hero__sub[data-error="true"],
+.home-row__sub[data-error="true"] {
+  color: var(--danger-signal);
+}
+
+/* Lepeza gore desno; srednja karta izlazi preko gornje ivice slike. Pri
+   ulazu se karte rašire iz složenog položaja. */
+.home-hero__fan {
+  position: absolute;
+  right: 1.125rem;
+  top: -0.5rem;
+  display: flex;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.home-hero__fan-slot {
+  --rot: calc((var(--i) - 1) * 14deg);
+  --lift: 0rem;
+  margin-left: -1.5rem;
+  transform-origin: 50% 120%;
+  transform: translateY(var(--lift)) rotate(var(--rot));
+  animation: hero-fan var(--t-jack-sweep) var(--ease-card) both;
+  animation-delay: calc(var(--t-deal-stagger) * 3);
+}
+.home-hero__fan-slot:first-child {
+  margin-left: 0;
+}
+.home-hero__fan-slot:nth-child(2) {
+  --lift: -0.875rem;
+  z-index: 1;
+}
+.home-hero__fan-slot .card {
+  --card-w: clamp(3.25rem, calc(var(--hero-art-h) * 0.4), 3.75rem);
+  --card-h: calc(var(--card-w) * 1.417);
+}
+@keyframes hero-fan {
+  from {
+    transform: translateY(0.5rem) rotate(0deg);
+  }
+}
+
+.home-hero__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.home-list .home-hero__play {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  justify-content: space-between;
+  min-height: 3.5rem;
+  padding: 0 1.125rem;
+  border-radius: 0.875rem;
+  background-image: linear-gradient(180deg, color-mix(in oklab, var(--card-face) 22%, var(--accent)), var(--accent) 55%);
+  color: var(--accent-contrast);
+  font: 800 1.125rem / 1 var(--font-sans-stack);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--card-face) 45%, transparent),
+    0 0.5rem 1.25rem -0.5rem color-mix(in oklab, var(--accent) 60%, transparent);
+}
+/* Jednokratan odsjaj preko dugmeta pri ulazu (reduced-motion ga gasi). */
+.home-hero__play::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in oklab, var(--card-face) 55%, transparent) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  animation: hero-shine var(--t-jack-sweep) var(--ease-out-soft) both;
+  animation-delay: calc(var(--t-jack-sweep) * 1.2);
+  pointer-events: none;
+}
+@keyframes hero-shine {
+  to {
+    transform: translateX(110%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-hero__play::after {
+    display: none;
+  }
+}
+.home-hero__play:focus-visible {
+  outline-color: var(--text);
+}
+
+.home-hero__create {
+  flex: none;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+  padding: 0 0.875rem;
+  border-radius: 0.875rem;
+  background-color: color-mix(in oklab, var(--card-face) 5%, transparent);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--text) 26%, transparent);
+  font: 700 0.875rem / 1 var(--font-sans-stack);
+  white-space: nowrap;
+}
+
+/* ---- Red ------------------------------------------------------------- */
+
+.home-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4.75rem;
+  padding: 0.5rem;
+  border-radius: 1.125rem;
+  background-color: color-mix(in oklab, var(--card-face) 4%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent);
+}
+
+.home-row__art {
+  flex: none;
+  position: relative;
+  width: 4.5rem;
+  height: 3.75rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: radial-gradient(ellipse at 50% 30%, var(--tint-1), var(--tint-2) 90%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--card-face) 10%, transparent);
+}
+
+.home-row__fan {
+  position: absolute;
+  left: 50%;
+  top: 0.5rem;
+  display: flex;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.home-row__fan-slot {
+  margin-left: -1rem;
+  transform-origin: 50% 110%;
+  transform: rotate(calc((var(--i) - 1) * 13deg));
+}
+.home-row__fan-slot:first-child {
+  margin-left: 0;
+}
+.home-row__fan-slot .card {
+  --card-w: 1.875rem;
+  --card-h: 2.65rem;
+}
+
+.home-row__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.home-row__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.home-row__name {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 1.25rem / 1.05 var(--font-display-stack);
+  color: var(--card-face);
+}
+
+.home-row__sub {
+  margin: 0;
+  font: 500 0.75rem / 1.25 var(--font-sans-stack);
+  color: var(--text-muted);
+}
+
+.home-row__actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.home-list .home-row__create,
+.home-list .home-row__play {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+}
+.home-row__create {
+  background: none;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--text) 24%, transparent);
+}
+.home-row__play {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: 0 0.375rem 1rem -0.375rem color-mix(in oklab, var(--accent) 60%, transparent);
+}
+.home-row__play:focus-visible {
+  outline-color: var(--text);
 }
 
 /* ------------------------------------------------------------------ *
