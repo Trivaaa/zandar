@@ -1584,3 +1584,11 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Izmjena:** `PlayerHand` prop `idle` (`data-idle` na `.hand`) — karte ostaju neklikabilne, ali bez prigušenja. Raub ga pali kad se karta iz ruke ne bira (`picking` = moj potez i panel `play` / `exchange` / `discard`). U štihu i dalje su zatamnjene samo karte koje pravila zabranjuju; zaključana karta pri zamjeni ostaje prigušena uz katanac. Žandar i Poker ne koriste `idle`.
 
 **Provjereno:** typecheck, lint; snimak `/dev/raub?s=bid2` (pune boje) i `?s=trick` (zatamnjene samo nedozvoljene).
+
+## 144. Raub — veće karte (2026-11-09)
+
+**Povod:** vlasnik na S10e: mađarice su sitne (ruka i talon 61,6 px na 360 px širine) — oznaka u uglu i figure se ne razaznaju.
+
+**Izmjena (samo `felt.css`, Raub blok):** `.felt-stage[data-game="raub"]` diže `--card-w-hand` na 5rem (80 px, +30 %) i `--stage-hand-h` za istu razliku visine (9,71 → 11,34rem; visina karte se izvodi iz `--card-w-hand`). `.rb-table` (talon, štih) 4,5rem = 72 px (+17 %): štih je krst od 4 karte unutar stola. Raub drži najviše 5 karata, pa ruka staje u širinu. Nizak ekran (`max-height: 700px`): ruka 4,5rem (traka 8,88rem), sto ostaje 3,85rem — sa većim, krst štiha je ulazio u gornje sjedište. Žandar i Poker netaknuti.
+
+**Izmjereno (headless, `/dev/raub` štih / zamjena sa otvorenom kartom / višak 5 karata):** 360×760 — bez preklapanja. 360×640 — gornja karta štiha i dalje dodiruje bodove gornjeg igrača, a napomena „otvorena" pada preko natpisa ispod talona; to je bilo i prije (karte stola tu nisu mijenjane), traka ruke je sad 0,92rem viša pa sto 15 px niži. Ostaje za nizak ekran.

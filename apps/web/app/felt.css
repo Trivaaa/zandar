@@ -3256,6 +3256,31 @@
   --seat-chip-h: 2.9rem;
 }
 
+/* Veće karte (vlasnik na S10e, 9.11.2026: mađarice su na 62 px sitne — oznaka
+   u uglu i figure se ne razaznaju). Raub drži najviše 5 karata u ruci, pa ima
+   mjesta: ruka 5rem (80 px, +30 %), talon i štih 4.5rem (72 px — štih je krst
+   od 4 karte unutar stola). Visina karte se izvodi iz `--card-w-hand`, pa se
+   traka ruke diže za istu razliku: (5 − 3.85) × 1.417 = 1.63rem. */
+.felt-stage[data-game="raub"] {
+  --card-w-hand: 5rem;
+  --stage-hand-h: 11.34rem;
+}
+.felt-stage[data-game="raub"] .rb-table {
+  --card-w-hand: 4.5rem;
+}
+/* Nizak ekran (360×640): sto je visinski zagušen — ruka raste manje
+   (4.5rem = 72 px), a talon i štih ostaju 3.85rem (izmjereno: veći krst
+   štiha ulazi u gornje sjedište). Traka: 1 + 4.5 × 1.417 + 1.5 = 8.88rem. */
+@media (max-height: 700px) {
+  .felt-stage[data-game="raub"] {
+    --card-w-hand: 4.5rem;
+    --stage-hand-h: 8.88rem;
+  }
+  .felt-stage[data-game="raub"] .rb-table {
+    --card-w-hand: 3.85rem;
+  }
+}
+
 /* ---- Zaglavlje ------------------------------------------------------- */
 
 .rb-head {
