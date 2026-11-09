@@ -1250,9 +1250,11 @@
   position: absolute;
   left: 1rem;
   bottom: 0.875rem;
-  /* Lepeza je gore desno: ispod nje ima mjesta za ime i opis u jednom redu;
-     7rem čuva desni ugao za donje ivice karata kad greška raste nagore. */
-  max-width: calc(100% - 7rem);
+  /* Lepeza je gore desno, ali donji lijevi ugao rotirane karte (mađarice su
+     više od francuskih) pada do visine opisa na niskoj slici. Zato tekst
+     nikad ne ide ispod karata: opis se radije lomi u dva reda. 9.5rem ≈
+     širina lepeze; ime najduže igre („Žandar") i dalje staje. */
+  max-width: calc(100% - 9.5rem);
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
