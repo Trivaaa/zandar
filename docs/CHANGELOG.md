@@ -1658,3 +1658,15 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 - Usput primijećeno: staging na hladnom startu početne baca React #418 (hidracija) i oporavi se. Nema `error.tsx` po rutama, pa svaka greška u renderu ruši cijelu aplikaciju bez puta nazad.
 
 **Provjereno:** web testovi 213/213, typecheck. Nije provjereno na uređaju.
+
+## 149. Nova slika za dijeljenje linka — „Ko je za jednu?" (2026-11-14)
+
+**Šta:** preview linka (WhatsApp, Viber, Facebook) za `kartaonica.com` i pozivnice `/room/…` pokazivao je staru zelenu sliku „Žandar — Igraj sa prijateljima online" i naslov „Žandar online", iako pozivnica već zove i na Raub. Sad je slika Play grafika „Ko je za jednu? Žandar • Raub • Poker", naslov „Kartaonica — Žandar, Raub, Poker".
+
+**Kako:** jedini izvor OG tagova je `metadata.openGraph` u `app/layout.tsx` (sobe nemaju svoj `generateMetadata`). Original (1774×887 PNG, 2,7 MB) stoji lokalno u `apps/web/store-assets/` (ignorisano u gitu); u `public/og-share.jpg` je verzija 1200×630 (cover crop, ~30 px po bočnoj ivici), JPEG ~127 KB. `og-image.png` obrisan. `<title>` stranice nije diran.
+
+**Zamke:**
+- **Novo ime fajla je namjerno:** WhatsApp/Facebook keširaju preview po URL-u slike — sa istim imenom stari bi ostao danima. Linkovi već poslati u nekom chatu zadržavaju stari preview; testira se novim linkom.
+- WhatsApp ne prikazuje sliku ako je prevelika (orijentaciono > 300 KB), zato JPEG, ne original PNG.
+
+**Objava:** commit direktno iznad `production` (kao 148), pa spojen u `main` — da na produkciju ne ode neobjavljeni redizajn početne. Aplikaciji ne treba ništa: preview pravi web (pozivnice su `kartaonica.com/room/…` linkovi), a `og-share.jpg` ulazi u sljedeći paket sam od sebe.
