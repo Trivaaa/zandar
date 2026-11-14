@@ -1638,3 +1638,23 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 - Web testovi 180, typecheck, lint = osnovica (5/2).
 
 **Nije provjereno na uređaju.**
+
+## 148. Poker — negativno trajanje leta rušilo aplikaciju (2026-11-14, `9111038` → `production` + `main`)
+
+**Šta:** produkcijska aplikacija 1.4.0 je dva puta pala na „Application error: a client-side exception has occurred" (bijel ekran, samo jedna poleđina karte). Sentry (`zandar-web`, production, 2026-11-13 20:58 UTC, `/room?id=…`):
+`TypeError: Failed to execute 'animate' on 'Element': duration must be non-negative or auto` u `runGhost` ← `pokerFly.ts` (fold) ← `usePokerBeat`.
+
+**Uzrok:** let karata kod odustajanja traje `stepMs - 140` (pot pobjedniku `stepMs - 150`). `usePokerBeat` sabija korake kad priča kasni za satom servera (`MIN_SCALE` 0,25) ili kad je tab u pozadini (0,01), pa korak padne ispod 140 ms i trajanje postane negativno. `animate()` baca iz React efekta i `global-error` obori cijelu aplikaciju. Duh je već bio na `body`-ju, otud usamljena poleđina na snimku.
+
+**Popravka:**
+- `runGhost` svodi trajanje i kašnjenje na ≥ 0 (`nonNegativeMs`), a ako `animate` ipak baci, duh se ukloni. Štiti i Žandar.
+- `runPokerFx` guta grešku: efekat je ukras.
+- `flyAnimation.test.ts` ponavlja slučaj iz Sentryja lažnim duhom koji baca kao pregledač.
+
+**Objava:** commit je napravljen direktno iznad `production` (`c1d1b22`) i spojen u `main`. Tako na produkciju nije otišao neobjavljeni redizajn početne (`29fe5f6`), a `production` ostaje tačka u istoriji `main`-a (`--ff-only`). **Aplikacija nije popravljena** dok ne izađe 1.4.1 (`versionCode 8`).
+
+**Zamke:**
+- Produkcijski APK ne piše konzolu u logcat. Na uređaju se vidi samo kada je aplikacija ubijena (`dumpsys activity exit-info`), a poruka greške postoji samo u Sentryju. Token iz `.env.sentry-build-plugin` nema pravo čitanja issue-a.
+- Usput primijećeno: staging na hladnom startu početne baca React #418 (hidracija) i oporavi se. Nema `error.tsx` po rutama, pa svaka greška u renderu ruši cijelu aplikaciju bez puta nazad.
+
+**Provjereno:** web testovi 213/213, typecheck. Nije provjereno na uređaju.

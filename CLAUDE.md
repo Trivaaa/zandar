@@ -243,6 +243,8 @@ Sažetak iz changeloga — pravila koja su već koštala; detalji i mjerenja su 
 
 ## Sljedeće
 
+**⚠ Sljedeći AAB (1.4.1, `versionCode 8`) MORA nositi popravku pada pokera** (`9111038`, changelog 148): produkcijska aplikacija 1.4.0 se ruši na „Application error" kad neko odustane (fold) dok je priča stola sabijena. Web je popravljen 2026-11-14; aplikacija tek novim paketom iz `zandar-apk` (`aab:prod`) — vlasnik ga pušta kad skupi još posla.
+
 **Stanje 2026-11-09:** `production` = `c1d1b22` (web i server živi: nova početna, „Pošalji utisak“, QA B1–B3). Poker i Raub su u kodu na produkciji, ali se na webu pale tek sa `NEXT_PUBLIC_POKER=1` i `NEXT_PUBLIC_RAUB=1` na Vercel projektu `zandar` (produkcija) + Redeploy — vlasnik upisuje. AAB 1.4.0 (`versionCode 7`, Poker + Raub) izgrađen iz `zandar-apk` @ `c1d1b22`, čeka upload; prije slanja na pregled: IARC upitnik (simulirano kockanje), Data safety (utisak), ciljna publika bez djece. Changelog 146.
 
 **Stanje 2026-10-31:** `production` = `main` = `9c25591` (P1 i P6 živi na webu). AAB 1.2.1 (`versionCode 4`) izgrađen iz `zandar-apk`, čeka upload na Play; status 1.2.0 (poslata na pregled 2026-10-24 22:06) ovdje nije provjeren. Staging APK: `pnpm --filter web apk:staging`, S10e je na `adb` preko Wi-Fi-ja (`192.168.100.30:<port>`, port se mijenja).
