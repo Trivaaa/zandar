@@ -1745,3 +1745,5 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **`build-raub-cards.mjs`** sveden na poleđinu, da ponovno pokretanje ne vrati AI lica.
 
 **Provjereno:** headless Chrome 390×844 `/dev/raub?s=bid|trick|exchangeOpen|seven` i x3 snimak ruke i talona. **Nije provjereno na uređaju.**
+
+**Dopuna (isti dan):** na S10e staging APK je i poslije instalacije crtao STARA lica. Uzrok: `public/sw.js` drži `.webp` cache-first zauvijek pod `zandar-static-v1`, a nova lica imaju ista imena. Isto bi pogodilo svaki pregledač koji je već otvorio Raub. Verzija keša podignuta na `v2` (`activate` briše stari). Pravilo za ubuduće: promjena sadržaja statike pod istim imenom = podići `CACHE` u `sw.js`.

@@ -6,7 +6,10 @@
  *    (pusti mreži). Tako nikad ne serviramo ustajao app/state.
  */
 
-const CACHE = "zandar-static-v1";
+/* Statika je cache-first ZAUVIJEK. Kad se sadržaj slike promijeni pod ISTIM
+ * imenom (npr. `public/cards/hu/*.webp`, changelog 153), verzija se MORA
+ * podići — `activate` tada briše stari keš. Bez toga i web i APK služe staro. */
+const CACHE = "zandar-static-v2";
 
 const PRECACHE = [
   "/icon-192.png",
