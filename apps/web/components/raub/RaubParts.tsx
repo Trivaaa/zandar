@@ -231,10 +231,10 @@ export function ActionPanel({
         ? sr.raub.bidHint(SUIT_SYMBOL[panel.card.suit])
         : panel.moja && panel.seven
           ? sr.raub.bidHintMoja(cardLabel(panel.seven), cardLabel(panel.card))
-          : sr.raub.bidHintNone(cardLabel(panel.card));
+          : null;
       return (
         <div className="rb-panel">
-          <p className="rb-panel__hint">{withSuits(hint)}</p>
+          {hint ? <p className="rb-panel__hint">{withSuits(hint)}</p> : null}
           {btn("pass", sr.raub.bid.pass, () => onBid("pass"))}
           {panel.moja && panel.seven
             ? btn(
