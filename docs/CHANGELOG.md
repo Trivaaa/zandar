@@ -1763,3 +1763,28 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Mjerenja:** simulacija 10.000 mečeva × 4 igrača, prije → poslije: refa 11,7 → 11,8 %, medijan 31,1 → 30,2 min (nosilac ima jaču ruku). Bez greške u kartama i štihovima, bez odbijenih akcija. Provjera talon karte na novom kodu: nijedna raubovana karta ne ostaje na talonu, a svaku uzetu kartu odigra uzimalac.
 
 **Provjereno:** game-core 384 testa (Raub 58, dva nova), server 255, web, typecheck. **Nije provjereno na uređaju.**
+
+## 155. Raub — štih staje u sto, bodovi 16 px, tvoje sjedište niže u štihovima (2026-11-14, `fix/raub-trick-fit`)
+
+**Prijava (vlasnik, S10e):** moj avatar prekriva moju kartu u štihu, a gornji igrač svoju. Uz to: broj bodova može biti sitniji, a ja i gornji igrač se možemo odmaknuti.
+
+**Uzrok:** `33ae967` je štihu dao fiksnih 4.5rem (72 px, visina ~102 px), pa je krst visok ~208 px. Sto na S10e (360×760, kamera 39 px) je imao 166 px. Uz to Raub je nasljeđivao Žandarove `--stage-partner-h`/`--stage-seat-h` (6rem), iako ima red bodova više. Sjedišta su bila 105–113 px, pa je sto već „posuđivao" 10–17 px ispod njih. Sjedišta su `z-20` iznad stola, zato avatar pokriva kartu. Isto (i gore) je važilo na 360×640.
+
+**Izmjena (samo Raub, `felt.css` + `data-tricks` na `.felt-stage`):**
+- `.rb-table` je `container-type: size`, a `.rb-trick` računa kartu kao `min(4.5rem, 100cqh / 2.9)`. Krst je 2.04 × visina = 2.9 × širina. Gornja granica je ista kao ranije: 4.5rem, odnosno 3.85rem ispod 700 px visine.
+- Bodovi na sjedištu su 16 px umjesto 20, pa je pilula 19.2 umjesto 23.2 px.
+- Visine sjedišta su izmjerene i upisane posebno za Raub: 6.25/6.85rem (360×760), 5.75/6.35rem (≤700 px), 6.8/7.35rem (≥48rem).
+- U štihovima traka nad rukom je 2.75rem umjesto 4.6rem, jer nosi samo „Ti si na potezu". Tvoje sjedište se spušta ~30 px, a sto raste. `--rim-bottom` ostaje na visini iz licitacije, da se podloga ne preskalira na početku štihova. Posljedica: u štihovima tvoj avatar stoji ispod oboda, ne na njemu.
+
+**Mjereno (CDP, `/dev/raub?s=trick|bid|declarer`):**
+
+| | sto u štihu | karta štiha | preklop sa sjedištem |
+|---|---|---|---|
+| S10e prije | 166 px | 72 px (krst 208) | gornja ulazi ~20 px pod bodove |
+| S10e poslije | 178 px | 61 px nominalno (mađarica 55 × 87) | 0 (6 px gore, 12 px dole) |
+| 360×640 poslije | 156 px | 54 nominalno | 0 |
+| 390×844 / 412×915 / 800×900 | 301 / 372 / 332 | 72 (neizmijenjeno) | 0 |
+
+Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
+
+**Provjereno:** typecheck, web 220/220, lint = osnovica. **Nije provjereno na uređaju.**

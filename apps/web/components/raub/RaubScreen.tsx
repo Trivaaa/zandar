@@ -349,6 +349,7 @@ export function RaubScreen({
         data-partner={seats.partner ? "true" : "false"}
         data-sides={hasSides ? "true" : "false"}
         data-table={tableTheme}
+        data-tricks={inTricks ? "true" : "false"}
       >
         <FeltHeader onMenu={() => setMenuOpen(true)}>
           <span className="rb-head">

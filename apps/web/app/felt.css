@@ -3254,6 +3254,13 @@
   --stage-banner-h: 4.6rem;
   /* Avatar + ime + bodovi (red više nego Žandar, isto kao Poker). */
   --seat-chip-h: 2.9rem;
+  /* Visine sjedišta IZMJERENE (CDP 360×760, bodovi 16 px), ne naslijeđene od
+     Žandara (6rem): Raub ima red bodova više, pa je sto „posuđivao" 10–14 px
+     ispod sjedišta i štih je ulazio pod avatare. Gornje: od vrha sjedišta do
+     dna pilule bodova 99.9 px. Tvoje: cijelo sjedište 109.5 px (prsten i
+     sjaj aktivnog avatara su unutar njega). */
+  --stage-partner-h: 6.25rem;
+  --stage-seat-h: 6.85rem;
 }
 
 /* Veće karte (vlasnik na S10e, 9.11.2026: mađarice su na 62 px sitne — oznaka
@@ -3267,6 +3274,18 @@
 }
 .felt-stage[data-game="raub"] .rb-table {
   --card-w-hand: 4.5rem;
+  --rb-trick-max: 4.5rem;
+  /* Query container za `.rb-trick` (isti obrazac kao `.felt-table`): kutija
+     ima zadat top/bottom/width, pa joj veličina ne zavisi od sadržaja. */
+  container-type: size;
+}
+/* Krst štiha mora stati u visinu stola. Gornja karta je od −1.02 do −0.02
+   visine od sredine, donja simetrično: krst = 2.04 × visina = 2.04 × 1.417 ×
+   širina ≈ 2.9 × širina. Sa fiksnih 4.5rem krst je bio 208 px, a sto na S10e
+   (360×760, kamera 39 px) 166 px — gornja i donja karta su ulazile pod
+   avatare (vlasnik, 14.11.2026). Gornja granica je ista kao ranije. */
+.felt-stage[data-game="raub"] .rb-trick {
+  --card-w-hand: min(var(--rb-trick-max), 100cqh / 2.9);
 }
 /* Nizak ekran (360×640): sto je visinski zagušen — ruka raste manje
    (4.5rem = 72 px), a talon i štih ostaju 3.85rem (izmjereno: veći krst
@@ -3275,10 +3294,35 @@
   .felt-stage[data-game="raub"] {
     --card-w-hand: 4.5rem;
     --stage-hand-h: 8.88rem;
+    /* Izmjereno na 360×640 (manji avatari): gornje do dna bodova 92 px,
+       tvoje 101.5 px. */
+    --stage-partner-h: 5.75rem;
+    --stage-seat-h: 6.35rem;
   }
   .felt-stage[data-game="raub"] .rb-table {
     --card-w-hand: 3.85rem;
+    --rb-trick-max: 3.85rem;
   }
+}
+/* Desktop (veći avatari), izmjereno na 800×900: gornje 108.7, tvoje 117.5 px. */
+@media (min-width: 48rem) {
+  .felt-stage[data-game="raub"] {
+    --stage-partner-h: 6.8rem;
+    --stage-seat-h: 7.35rem;
+  }
+}
+
+/* Štihovi: traka nad rukom nosi samo „Ti si na potezu / Čeka se" (min-height
+   2.75rem), ne licitaciju sa uputom (4.6rem). Razlika (~30 px) ide stolu:
+   tvoje sjedište visi o `--stage-banner-top`, pa se spušta, a sto raste.
+   Obod slike (`--rim-bottom`) ostaje na visini iz licitacije — inače bi se
+   cijela podloga preskalirala na početku štihova. */
+.felt-stage[data-game="raub"][data-tricks="true"] {
+  --stage-banner-h: 2.75rem;
+  --rim-bottom: calc(
+    var(--stage-hand-top) + var(--stage-gap) + 4.6rem + var(--seat-chip-h) +
+      var(--seat-avatar-me) / 2
+  );
 }
 
 /* ---- Zaglavlje ------------------------------------------------------- */
@@ -3543,6 +3587,11 @@
   background-color: color-mix(in oklab, var(--bg-mid) 80%, transparent);
   font-weight: 700;
 }
+/* Bodovi 16 px, ne 20 (vlasnik, 14.11.2026: broj je bio krupniji od imena i
+   jeo visinu stola). Od imena ih i dalje odvaja zlatna boja i pilula. */
+.felt-stage[data-game="raub"] .seat__coins {
+  font-size: var(--type-base);
+}
 
 /* Prsten 15 s: zeleno → narandžasto → crveno (iste tri boje kao Poker). */
 .felt-stage[data-game="raub"] .seat[data-countdown] {
@@ -3682,6 +3731,13 @@
      je viši od ruke i ulazi u visinu panela (izmjereno na 360×640). */
   padding-left: calc(0.75rem + var(--safe-left));
   padding-right: calc(3.6rem + var(--safe-right));
+}
+/* Traka sa tekstom („Ti si na potezu" / „Čeka se") je uska, pa se centrira
+   na ekranu: isti razmak lijevo kao desno (vlasnik, 14.11.2026 — bila je
+   pomjerena ulijevo za pola rezerve dugmeta reakcija). Dugmad licitacije
+   zadržavaju punu širinu. */
+.rb-panel-slot:has(.rb-panel[data-play], .rb-panel[data-wait]) {
+  padding-left: calc(3.6rem + var(--safe-left));
 }
 .rb-panel {
   position: relative;
