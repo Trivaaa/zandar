@@ -259,7 +259,7 @@ describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
     for (const r of ["A", "K", "Q", "J"] as Rank[]) {
       const hands = { ...HANDS4, b: [S("8"), H("8"), C("K"), D("9")] };
       const s = match({ hands, talon: c("hearts", r) });
-      expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: true });
+      expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: false });
       expect(act(s, "a", { type: "bid", bid: "raub" }).declarerId).toBe("a");
     }
     for (const r of ["10", "9", "8"] as Rank[]) {
@@ -300,11 +300,11 @@ describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
     expect(getRaubView(s, "d").takenTalonCard).toEqual(H("10"));
   });
 
-  it("Moja i Raub u istom krugu: prvi koji se javi nosi adut", () => {
+  it("odluka 16: na kartu za Raub djelilac samo Raub ili Dalje (i sa sedmicom); ostali Moja", () => {
     const hands = { ...HANDS4, a: [H("7"), S("K"), C("A"), D("8")] };
     const s = match({ hands, talon: H("J") });
-    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: true });
-    expect(act(s, "a", { type: "bid", bid: "moja" }).scenario).toBe("moja");
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: false });
+    expect(() => act(s, "a", { type: "bid", bid: "moja" })).toThrow("INVALID_ACTION");
     const passed = act(s, "a", { type: "bid", bid: "pass" });
     const moja = act(passed, "b", { type: "bid", bid: "moja" });
     expect(moja.declarerId).toBe("b");
@@ -313,7 +313,7 @@ describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
 
   it("odluka 15: Raub smije samo djelilac; ostali samo Moja ili Dalje", () => {
     let s = match({ hands: HANDS4, talon: H("Q") });
-    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: true });
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: false });
     s = act(s, "a", { type: "bid", bid: "pass" });
     expect(getRaubView(s, "b").bidOptions).toEqual({ raub: false, moja: true });
     expect(() => act(s, "b", { type: "bid", bid: "raub" })).toThrow("INVALID_ACTION");
@@ -344,7 +344,13 @@ describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
   it("parametar raubFirstFlipOnly false: Raub djelioca i na drugoj karti", () => {
     let s = match({ hands: HANDS4, talon: H("8"), next: [S("J")], rules: { raubFirstFlipOnly: false } });
     for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: false });
+  });
+
+  it("parametar dealerRaubOrPass false: djelilac smije i Moja na kartu za Raub", () => {
+    const s = match({ hands: HANDS4, talon: H("Q"), rules: { dealerRaubOrPass: false } });
     expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: true });
+    expect(act(s, "a", { type: "bid", bid: "moja" }).scenario).toBe("moja");
   });
 
   it("odluka 15: Moja bez sedmice — adut i mora 2, a karta ostaje na talonu", () => {

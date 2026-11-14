@@ -22,6 +22,8 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // i bez sedmice (tada karta ostaje na talonu). Raub samo na prvoj okrenutoj karti.
   raubDealerOnly: true,
   raubFirstFlipOnly: true,
+  // Odluka 16 (vlasnik, 14.11.2026): na kartu za Raub djelilac bira samo Raub ili Dalje.
+  dealerRaubOrPass: true,
   mojaNeedsSeven: false,
 };
 

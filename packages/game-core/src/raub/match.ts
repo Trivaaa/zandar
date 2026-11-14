@@ -100,6 +100,7 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     raubDealerOnly: state.rules.raubDealerOnly ?? DEFAULT_RAUB_RULES.raubDealerOnly!,
     raubFirstFlipOnly: state.rules.raubFirstFlipOnly ?? DEFAULT_RAUB_RULES.raubFirstFlipOnly!,
     mojaNeedsSeven: state.rules.mojaNeedsSeven ?? DEFAULT_RAUB_RULES.mojaNeedsSeven!,
+    dealerRaubOrPass: state.rules.dealerRaubOrPass ?? DEFAULT_RAUB_RULES.dealerRaubOrPass!,
   };
 }
 
@@ -128,12 +129,15 @@ export function raubHasSeven(state: RaubGameState, playerId: string): boolean {
 
 /**
  * Smije li igrač reći „Moja". Od odluke 15 svako, i bez sedmice; sa
- * `mojaNeedsSeven` (odluka 13) samo onaj ko drži sedmicu te boje.
+ * `mojaNeedsSeven` (odluka 13) samo onaj ko drži sedmicu te boje. Djelilac koji
+ * smije „Raub" bira samo Raub ili Dalje (odluka 16).
  */
 export function raubCanMoja(state: RaubGameState, playerId: string): boolean {
   const card = state.talon.at(-1);
   if (!card || isSeven(card)) return false;
-  return rulesV2(state).mojaNeedsSeven ? raubHasSeven(state, playerId) : true;
+  const rules = rulesV2(state);
+  if (rules.dealerRaubOrPass && raubCanRaub(state, playerId)) return false;
+  return rules.mojaNeedsSeven ? raubHasSeven(state, playerId) : true;
 }
 
 function draw(state: RaubGameState, count: number): Card[] {

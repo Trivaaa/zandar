@@ -1830,3 +1830,11 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Šta:** vlasnik ne želi tekst „karta ostaje · moraš 2” ispod „Moja”. Bez sedmice dugme sada nosi samo „Moja”. Sa sedmicom napomena „daješ 7♥” ostaje. `sr.raub.bidNote.mojaNoSeven` je obrisan, a spec je usklađen.
 
 **Provjereno:** typecheck, web testovi. **Nije provjereno na uređaju.**
+
+## 160. Raub — djelilac na kartu za Raub bira samo Raub ili Dalje (2026-11-14, `fix/raub-dealer-no-moja`)
+
+**Šta (odluka 16 u `docs/raub-spec.md`, po odluci vlasnika):** na stagingu je djeliocu na prvu kartu A, K, O ili U bila ponuđena i „Moja”, uz „Raub” i „Dalje”. Pravilo je da djelilac tada bira samo „Raub” ili „Dalje”, i to i kad ima sedmicu te boje. Ostali igrači u tom krugu i dalje smiju „Moja” ili „Dalje”.
+
+**Kako:** `raubCanMoja` vraća `false` kad isti igrač smije „Raub”, a uslov stoji iza parametra `RaubRules.dealerRaubOrPass` (opciono, podrazumijevano da, pa stari snapshot dobija novo pravilo). Bot i klijent već prate `bidOptions`, pa ih nije trebalo mijenjati. Ažurirani su tekst u pravilima igre i spec.
+
+**Provjereno:** game-core 392 (test za odluku 16 i test parametra), server, web, typecheck. **Nije provjereno na uređaju.**

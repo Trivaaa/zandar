@@ -47,6 +47,11 @@ export interface RaubRules {
    */
   raubFirstFlipOnly?: boolean;
   /**
+   * Kad djelilac smije „Raub", bira samo „Raub" ili „Dalje" — bez „Moja"
+   * (odluka 16). Ostali u tom krugu i dalje smiju „Moja". Bez polja = da.
+   */
+  dealerRaubOrPass?: boolean;
+  /**
    * „Moja" traži sedmicu boje ponuđene karte (odluka 13). Od odluke 15 ne traži:
    * bez sedmice karta ostaje na talonu. Bez polja = ne traži.
    */
