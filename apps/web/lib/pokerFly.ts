@@ -64,8 +64,21 @@ function fly(
   runGhost(make(a), b.x - a.x, b.y - a.y, { scale: 1, opacity: 1 }, end, delay, duration, EASE);
 }
 
-/** Izvede jedan efekat koraka. `stepMs` je trajanje koraka (let stane u njega). */
+/**
+ * Izvede jedan efekat koraka. `stepMs` je trajanje koraka (let stane u njega).
+ *
+ * Poziva se iz efekta u `usePokerBeat`: izuzetak odavde bi srušio cijelu
+ * aplikaciju (global-error), a efekat je samo ukras — zato se guta.
+ */
 export function runPokerFx(fx: BeatFx, stepMs: number): void {
+  try {
+    runPokerFxUnsafe(fx, stepMs);
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") console.error("[pokerFly]", err);
+  }
+}
+
+function runPokerFxUnsafe(fx: BeatFx, stepMs: number): void {
   if (typeof document === "undefined") return;
   if (fx.kind === "check") {
     // „Kuc" na avataru: kratak puls (transform), i pod prigušenim pokretom ništa.
