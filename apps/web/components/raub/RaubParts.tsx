@@ -275,14 +275,15 @@ export function ActionPanel({
           {panel.moja
             ? btn(
                 panel.raub ? "main" : "accent",
-                <span className="rb-panel__two">
-                  {sr.raub.bid.moja}
-                  <small>
-                    {panel.seven
-                      ? withSuits(sr.raub.bidNote.moja(cardLabel(panel.seven)))
-                      : sr.raub.bidNote.mojaNoSeven}
-                  </small>
-                </span>,
+                panel.seven ? (
+                  <span className="rb-panel__two">
+                    {sr.raub.bid.moja}
+                    <small>{withSuits(sr.raub.bidNote.moja(cardLabel(panel.seven)))}</small>
+                  </span>
+                ) : (
+                  // Bez sedmice samo „Moja" — bez napomene (vlasnik, 14.11.2026).
+                  sr.raub.bid.moja
+                ),
                 () => onBid("moja"),
               )
             : null}

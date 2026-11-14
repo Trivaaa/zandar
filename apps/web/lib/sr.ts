@@ -466,7 +466,6 @@ export const sr = {
     bidNote: {
       raub: "moraš 2 štiha",
       moja: (seven: string) => `daješ ${seven}`,
-      mojaNoSeven: "karta ostaje · moraš 2",
     },
     swap: {
       hint: (seven: string, talon: string) => `Imaš ${seven} — zamijeniti je za ${talon} s talona?`,

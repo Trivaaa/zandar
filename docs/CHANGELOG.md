@@ -1824,3 +1824,9 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Mjereno (CDP, `/dev/raub?n=4`):** na 360×740, 360×640 i 412×915 panel je 58 px od lijeve i 58 px od desne ivice. Dugme reakcija (x ≥ 312 na 360) ostaje van panela. Cijena: na 360 px dugmad licitacije su 76 px (Dalje / Moja / Raub), a „moraš 2 štiha” ispod „Raub” ide u dva reda. Dva dugmeta (Idem) su 118 px.
 
 **Provjereno:** samo CSS; snimci okom na 360×640 i 360×740. **Nije provjereno na uređaju.**
+
+## 159. Raub — dugme „Moja” bez napomene kad igrač nema sedmicu (2026-11-14, `fix/raub-moja-note`)
+
+**Šta:** vlasnik ne želi tekst „karta ostaje · moraš 2” ispod „Moja”. Bez sedmice dugme sada nosi samo „Moja”. Sa sedmicom napomena „daješ 7♥” ostaje. `sr.raub.bidNote.mojaNoSeven` je obrisan, a spec je usklađen.
+
+**Provjereno:** typecheck, web testovi. **Nije provjereno na uređaju.**

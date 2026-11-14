@@ -197,7 +197,7 @@ Raub koristi „kafanski sto” i postojeće komponente. Novo su faze koje Žand
 | Tajmer poteza | Preuzima se | Prsten oko avatara igrača na potezu (kao Poker), 25 s |
 | Meni, izlazak, reakcije, pauza | Preuzima se | `GameMenuSheet`, `LeaveTableSheet`, `ReactionFab`, `PauseAbandonOverlay` **(odluka 3)** |
 | Talon | Novo | Okrenuta karta na sredini stola, uz brojač „karta 1 od 3” i broj karata u špilu |
-| Panel licitacije | Novo | Dugmad „Dalje”, „Raub” (samo djelilac, samo na prvoj karti, samo na A, K, O, U) i „Moja” (svako; napomena „daješ 7” ili „karta ostaje”) **(odluka 15)**; kod sedmice na talonu djelilac bira „Štih” / „Dalje” **(odluka 13)** |
+| Panel licitacije | Novo | Dugmad „Dalje”, „Raub” (samo djelilac, samo na prvoj karti, samo na A, K, O, U) i „Moja” (svako; sa sedmicom napomena „daješ 7”, bez nje bez napomene) **(odluka 15)**; kod sedmice na talonu djelilac bira „Štih” / „Dalje” **(odluka 13)** |
 | Panel „Idem / Ne idem” | Novo | Dva dugmeta, uz adut i ugovor nosioca; ko ne ide, prigušen je do kraja ruke **(odluka 9)** |
 | Panel zamjene | Novo | Igrač tapom označi karte za odbacivanje, dugme „Zamijeni N” ili „Zadrži sve” |
 | Oznaka aduta | Novo | Simbol boje aduta stalno vidljiv u uglu stola; prije određivanja „nudi se” |
