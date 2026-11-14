@@ -1747,3 +1747,19 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Provjereno:** headless Chrome 390×844 `/dev/raub?s=bid|trick|exchangeOpen|seven` i x3 snimak ruke i talona. **Nije provjereno na uređaju.**
 
 **Dopuna (isti dan):** na S10e staging APK je i poslije instalacije crtao STARA lica. Uzrok: `public/sw.js` drži `.webp` cache-first zauvijek pod `zandar-static-v1`, a nova lica imaju ista imena. Isto bi pogodilo svaki pregledač koji je već otvorio Raub. Verzija keša podignuta na `v2` (`activate` briše stari). Pravilo za ubuduće: promjena sadržaja statike pod istim imenom = podići `CACHE` u `sw.js`.
+
+## 154. Raub — „Raub” uzima kartu s talona, sedmica nije potrebna (2026-11-14, `feat/raub-take-talon`)
+
+**Šta (odluka 14 u `docs/raub-spec.md`, svjesna promjena pravila po odluci vlasnika):** ko kaže „Raub” na A, K, Q (O) ili J (U), uzima tu kartu u ruku i odbacuje jednu (ne uzetu). Do sada je kartu dobijao samo ako je imao sedmicu te boje i pristao na zamjenu. Inače je karta ostajala na talonu, pa je za stolom izgledalo kao da je igrač raubovao, a karte kasnije nije bilo.
+
+**Prvo provjereno da nije kvar u motoru:** simulacija od 4.500 mečeva (2–4 igrača, botovi i istek roka) je pratila svaku kartu uzetu s talona (sedmica, raub naslijepo, zamjena sedmice). Uzeta karta je uvijek ostajala u ruci uzimaoca i on ju je odigrao, 0 grešaka. Uzrok je bilo pravilo iz speca v1.1, scenarij 3.
+
+**Kako:**
+- `match.ts`, grana `bid: "raub"`: `takeTalon` + `toDiscardExtra`, isti put kao Štih. Poslije odbacivanja `afterTrump` (Idem / Ne idem).
+- Korak `swap_seven` se više ne pravi, ali akcija ostaje za ruke hidrirane iz starog snapshota (deploy = restart). Nema promjene oblika stanja ni protokola, jer `raub:2` još nije objavljen, nego ide zajedno sa odlukom 13.
+- Bot i istek roka već znaju odbacivanje viška (najslabija karta koja nije adut ni karta s talona).
+- `RaubRules.tsx`: tekst za Raub i za višak.
+
+**Mjerenja:** simulacija 10.000 mečeva × 4 igrača, prije → poslije: refa 11,7 → 11,8 %, medijan 31,1 → 30,2 min (nosilac ima jaču ruku). Bez greške u kartama i štihovima, bez odbijenih akcija. Provjera talon karte na novom kodu: nijedna raubovana karta ne ostaje na talonu, a svaku uzetu kartu odigra uzimalac.
+
+**Provjereno:** game-core 384 testa (Raub 58, dva nova), server 255, web, typecheck. **Nije provjereno na uređaju.**

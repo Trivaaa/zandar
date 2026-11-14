@@ -30,8 +30,8 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
           </li>
           <li>
             <b>Raub:</b> samo kad je na talonu A, K, O ili U. Redom, od djelioca, svako kaže „Raub” ili „Dalje”. Prvi
-            koji kaže „Raub” nosi boju talona i mora 2 štiha. Nije obavezno. Ako ima sedmicu te boje, smije je
-            zamijeniti za talon kartu.
+            koji kaže „Raub” uzima kartu s talona, nosi tu boju i mora 2 štiha. Nije obavezno, a sedmica mu ne
+            treba.
           </li>
           <li>
             <b>Moja:</b> ko ima sedmicu boje talona, u istom krugu smije reći „Moja” (i na 10, 9 ili 8): daje sedmicu,
@@ -43,7 +43,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
           </li>
         </ul>
         <p className="text-muted mt-2">
-          Kod štiha djelilac ima 5 karata i odmah odbacuje jednu (ne sedmicu). Kod „Moja” i zamjene sedmice broj karata
+          Kod štiha i rauba igrač ima 5 karata i odmah odbacuje jednu (ne kartu uzetu s talona). Kod „Moja” broj karata
           ostaje 4.
         </p>
       </section>

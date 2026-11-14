@@ -1,6 +1,6 @@
 # Kartaonica — Raub modul (Spec v1.1)
 
-Nov 6, 2026 · @Igor · v1.1 usklađena sa produkcijom 7.11.2026 · v1.2 pravila po feedbacku igrača 14.11.2026 **(odluka 13)**
+Nov 6, 2026 · @Igor · v1.1 usklađena sa produkcijom 7.11.2026 · v1.2 pravila po feedbacku igrača 14.11.2026 **(odluka 13)**, Raub uzima kartu s talona **(odluka 14)**
 
 > Dizajn: tabla „UI · Raub — kompletan UI" (`UI_Raub.dc.html`) na Claude Design platnu „Kartaonica · identitet", https://claude.ai/artifact/1DkTrJNEv2148shhQUC3de. Gdje se tabla i ovaj tekst razilaze, važi tekst. Gdje se tabla i produkcija razilaze, važi produkcija (postojeći sto, komponente i tokovi Žandara i Pokera).
 > Jezik interfejsa: ijekavica, obraćanje na „ti", rodno neutralno. Riječi „bot", „računar" i „AI" se ne pojavljuju nigdje u UI-ju (HARD RULE 5).
@@ -54,7 +54,7 @@ Svaka ruka ima pet faza: dijeljenje, određivanje aduta, „Idem / Ne idem”, z
 | Način | Kada | Ko je nosilac | Talon karta | Mora uzeti |
 | --- | --- | --- | --- | --- |
 | 1. Štih | Prva okrenuta karta je 7; djelilac kaže „Štih” (nije obavezno) | Djelilac | Djelilac je uzima | 1 štih |
-| 2. Raub | Okrenuta karta je A, K, Q (O) ili J (U); igrač kaže „Raub” (nije obavezno) | Prvi koji kaže „Raub” | Samo zamjenom za sedmicu te boje iz ruke | 2 štiha |
+| 2. Raub | Okrenuta karta je A, K, Q (O) ili J (U); igrač kaže „Raub” (nije obavezno) | Prvi koji kaže „Raub” | Uzima je (sedmica nije potrebna) i odbacuje jednu **(odluka 14)** | 2 štiha |
 | 3. Moja | Igrač ima sedmicu boje okrenute karte i kaže „Moja” (na bilo koju kartu osim 7) | Prvi koji kaže „Moja” | Uzima je, a daje svoju sedmicu | 2 štiha |
 
 Raub naslijepo ne postoji (uklonjen odlukom 13). Djelilac vidi svoje karte odmah po dijeljenju.
@@ -71,7 +71,7 @@ Raub naslijepo ne postoji (uklonjen odlukom 13). Djelilac vidi svoje karte odmah
    - „Raub” samo kad je okrenuta karta A, K, Q ili J;
    - „Moja” samo igraču koji ima sedmicu te boje.
 2. Prvi koji kaže „Raub” ili „Moja” postaje nosilac i mora 2 štiha.
-   - Kod „Raub” karta ostaje na stolu. Ako ima sedmicu te boje, smije je zamijeniti za kartu s talona.
+   - Kod „Raub” nosilac uzima kartu s talona u ruku, bez obzira na to ima li sedmicu te boje **(odluka 14)**. Ako je ima, ona mu ostaje u ruci kao adut.
    - Kod „Moja” zamjena je dio izjave: sedmica ide na talon, a karta u ruku.
 3. Ako svi kažu „Dalje”, djelilac okreće sljedeću kartu sa špila i licitacija ide ponovo, za boju nove karte. Prethodna okrenuta karta ostaje prigušena ispod nove i van je igre do kraja ruke.
 4. Sedmica okrenuta kao druga ili treća karta je obična karta: na nju nema ni Štiha, ni Rauba, ni Moje, pa se okreće sljedeća.
@@ -79,7 +79,7 @@ Raub naslijepo ne postoji (uklonjen odlukom 13). Djelilac vidi svoje karte odmah
 
 **Višak karata**
 
-Kod Štiha djelilac ima 5 karata i odmah odbacuje jednu licem nadolje. Sedmica uzeta s talona se ne smije odbaciti. „Moja” i zamjena sedmice poslije Rauba nisu višak: igrač daje sedmicu i dobija talon kartu, pa ostaje na 4.
+Kod Štiha i Rauba nosilac ima 5 karata i odmah odbacuje jednu licem nadolje. Karta uzeta s talona se ne smije odbaciti. „Moja” nije višak: igrač daje sedmicu i dobija talon kartu, pa ostaje na 4.
 
 **Idem / Ne idem** **(odluka 9)**
 
@@ -262,13 +262,13 @@ Raub se uklapa u isti okvir kao Poker: `GameId` dobija `"raub"`, soba nosi `game
 
 **Faze ruke kao stanja**
 
-Ruka je mašina stanja: `dealing` → `trump_selection` (koraci `seven_choice`, `bidding`, `swap_seven`) → `discard_extra` (samo ako neko ima 5 karata) → `exchange` → `trick_1` … `trick_4` → `scoring`. Iz `trump_selection` ruka može otići i u `void` (refa). Svaka akcija je dozvoljena samo u svojoj fazi i samo igraču koji je na potezu.
+Ruka je mašina stanja: `dealing` → `trump_selection` (koraci `seven_choice`, `bidding`; `swap_seven` samo u rukama iz snapshota prije odluke 14) → `discard_extra` (samo ako neko ima 5 karata) → `exchange` → `trick_1` … `trick_4` → `scoring`. Iz `trump_selection` ruka može otići i u `void` (refa). Svaka akcija je dozvoljena samo u svojoj fazi i samo igraču koji je na potezu.
 
 **Validacija poteza**
 
 - Server računa listu dozvoljenih karata (boja, pa adut, pa bilo šta) i šalje je klijentu uz stanje. UI je koristi za zatamnjivanje, ali server provjerava ponovo.
 - U zamjeni server provjerava da igrač ne odbacuje kartu uzetu s talona i da ne traži više karata nego što ih ima u špilu.
-- Zamjena sedmice poslije Rauba dozvoljena je samo nosiocu koji drži sedmicu boje aduta.
+- Kod Rauba server stavlja kartu s talona u ruku nosioca i zaključava je: ne smije se odbaciti ni zamijeniti.
 - „Raub” server prima samo na A, K, Q, J, a „Moja” samo od igrača koji drži sedmicu te boje. Pogled igrača na potezu nosi `bidOptions`, pa UI crta samo dozvoljena dugmad.
 
 **Vidljivost podataka**
@@ -276,7 +276,7 @@ Ruka je mašina stanja: `dealing` → `trump_selection` (koraci `seven_choice`, 
 - Klijent vidi svoje karte, talon, odigrane karte i broj karata koje su drugi zamijenili.
 - Ne vidi tuđe karte, odbačene karte ni špil, ni na kraju ruke.
 - Otvorena karta kod prve zamjene sve 4 karte šalje se svima.
-- Karta uzeta s talona (Štih, Moja, zamjena sedmice) je javna i ostaje vidljiva na stolu do štihova.
+- Karta uzeta s talona (Štih, Raub, Moja) je javna i ostaje vidljiva na stolu do štihova.
 
 **Stari klijenti**
 
@@ -308,7 +308,7 @@ Meč se nikad ne zaustavlja zbog jednog poteza: ko ne odigra na vrijeme, server 
 | --- | --- |
 | Istekne tajmer u licitaciji | „Dalje” |
 | Istekne tajmer djeliocu kod sedmice na talonu | „Dalje” (bez štiha), okreće se nova karta |
-| Istekne tajmer kod zamjene sedmice za talon | Ne mijenja |
+| Istekne tajmer kod zamjene sedmice za talon (samo stari snapshot) | Ne mijenja |
 | Istekne tajmer kod „Idem / Ne idem” | „Ne idem” (bez kazne) |
 | Istekne tajmer u zamjeni | Igrač zadržava sve karte |
 | Istekne tajmer kod odbacivanja viška (5 karata) | Odbacuje se najslabija karta koja nije adut i nije karta s talona (ako su sve adut, najslabiji adut koji nije s talona) |
@@ -345,6 +345,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 11 | Brzina botova | Nasumično 2,5–7 s po odluci (bilo 1–3 s) | Vlasnik (7.11.2026): da izgleda realnije. Simulacija: 4 igrača, medijan ~34 min (bilo ~20), p90 ~50 min — iznad ciljanih 15–25 min |
 | 12 | Mađarice | Raub se crta mađaricama (komplet vlasnika „Kartaonica_RAUB”, `public/cards/hu/`), i za stolom i na početnoj. Samo prikaz: pik → list, herc → srce, karo → tikva, tref → žir; J → U, Q → O. U tekstu znak boje je ikonica sa karte, figure kao na karti (U, O, K, A), četvrta boja „Tikva” | Vlasnik, 8.11.2026. Motor, server i `Card.id` ostaju francuski, pa nema promjene snapshota ni protokola |
 | 13 | Pravila po feedbacku igrača | Raub samo na A, K, Q (O), J (U), nije obavezan, mora 2. Na 10, 9 i 8 nema rauba. „Moja”: igrač sa sedmicom boje okrenute karte je daje za tu kartu, nosi adut i mora 2 (kazne kao Raub); Raub, Moja i Dalje su u istom krugu, prvi koji se javi nosi adut. Sedmica na talonu nije obavezna: djelilac bira „Štih” (mora 1) ili „Dalje” (odmah nova karta, broji se u 3 okretanja). Raub naslijepo uklonjen. Pravila su parametri (`raubRanks`, `stihOptional`, `mojaRequiredTricks`) | Vlasnik, 14.11.2026, po feedbacku igrača. Simulacija 10.000 mečeva (botovi): refa 2 igrača 30,2 % (bilo 13,6 %), 3 igrača 18,6 % (5,5 %), 4 igrača 11,7 % (2,2 %); trajanje 4 igrača medijan ~31 min (~34). Refa raste jer na 10, 9 i 8 adut može uzeti samo igrač sa sedmicom te boje |
+| 14 | Raub uzima kartu s talona | Ko kaže „Raub” (A, K, Q, J) uzima okrenutu kartu u ruku, sedmica mu nije potrebna; ima 5 karata i odbacuje jednu, ali ne uzetu. Ponuda zamjene sedmice poslije Rauba je ukinuta (ostaje samo za ruke iz starog snapshota) | Vlasnik, 14.11.2026: v1.1 je kartu davao samo uz zamjenu sedmice, pa je igrač koji je raubovao bez sedmice za stolom izgledao kao da je kartu „izgubio”. Simulacija 10.000 mečeva × 4 igrača: refa 11,8 % (11,7 %), medijan 30,2 min (31,1); bez greške u kartama i štihovima |
 
 ## Metrike, acceptance i otvorena pitanja
 
@@ -365,7 +366,7 @@ Analitika ide kroz postojeće `match_started` / `match_ended` sa `game: "raub"` 
 
 **Acceptance kriteriji**
 
-- [ ] Sva tri scenarija aduta rade po pravilima iz ovog speca, uključujući zamjenu sedmice u scenariju 3.
+- [ ] Sva tri scenarija aduta rade po pravilima iz ovog speca, uključujući kartu s talona u ruci nosioca kod Rauba (odluka 14).
 - [ ] Refa se upisuje i duplira tačno onoliko narednih ruku koliko je refa bilo.
 - [ ] Bodovi tačni za svaki red tabele bodovanja, provjereno testovima.
 - [ ] Server odbija svaku kartu koja krši obavezu boje ili aduta.

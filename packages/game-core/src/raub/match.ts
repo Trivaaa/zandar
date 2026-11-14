@@ -540,14 +540,13 @@ export function applyRaubAction(
         break;
       }
       if (bid === "raub") {
-        // Scenarij 3: prvi koji kaže „Raub" nosi boju ponuđene karte, mora 2.
+        // Scenarij 3: prvi koji kaže „Raub" nosi boju ponuđene karte, mora 2, i
+        // uzima tu kartu u ruku (odluka 14 — sedmica nije potrebna): 5 karata,
+        // odbacuje jednu, ali ne uzetu.
         state.scenario = "bid";
         declare(state, playerId, 2);
-        const hasSeven = seat.hand.some((c) => isSeven(c) && c.suit === state.trumpSuit);
-        if (hasSeven) {
-          state.step = "swap_seven";
-          state.currentPlayerId = playerId;
-        } else afterTrump(state);
+        takeTalon(state, playerId);
+        toDiscardExtra(state, playerId);
         break;
       }
       if (state.seats.every((s) => s.bid === "pass")) {
@@ -558,6 +557,7 @@ export function applyRaubAction(
       break;
     }
     case "swap_seven": {
+      // Samo ruka iz snapshota prije odluke 14 (Raub više ne nudi zamjenu sedmice).
       if (step !== "swap_seven") throw new Error("INVALID_ACTION");
       if (request.swap) swapSeven(state, playerId);
       afterTrump(state);
