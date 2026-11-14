@@ -1728,3 +1728,20 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Šta:** vlasnik zasad ne želi novu početnu (hero + redovi, changelog 147). Na `main`-u je vraćena verzija koja je na produkciji: tri kartice igara, svaka sa „Igraj” i „Napravi sto”. Vraćeni su `29fe5f6` i popravka opisa ispod lepeze `513007d`, koja je važila samo za novi izgled. Fajlovi početne (`home.css`, `GameList.tsx`, `HomeScreen.tsx`, `app/page.tsx`, `/dev/home`) su bajt-za-bajt kao na `production`. `sr.ts` se razlikuje samo po Raub tekstovima (changelog 151).
 
 **Zašto ovako:** redizajn nije bio na produkciji, a prije objave je trebalo sve sa `main`-a da ide dalje. Kod je ostao u istoriji (`29fe5f6`, grana `feat/home-list-k2`) za kad se vlasnik predomisli.
+
+## 153. Raub — prave mađarice umjesto AI lica (2026-11-14, `feat/raub-real-cards`)
+
+**Povod:** vlasnik nije bio zadovoljan AI mađaricama (changelog 137) i nabavio je pravi špil (šema „Vilijam Tel", natpisi „Dečko Herc", „Dama Pik", asovi su godišnja doba). Mijenja se samo lice; poleđina ostaje stara.
+
+**Izvor:** 8 skenova A4 na 600 dpi, JPG, crna podloga, 4 karte po skenu (`Desktop/Kartaonica/Madjarice karte`, NIJE u repou). Obrađeni masteri 960×1508 sa alfom su u `…/Madjarice karte/obradjeno/`.
+
+**Alat** (`apps/web/scripts/raub-scan/`, Python + OpenCV, jednokratno; venv sa `opencv-python-headless numpy pillow`):
+- `detect.py` — prag na crnoj podlozi → kontura → `minAreaRect` → perspektivno ispravljanje, uspravno. Na svih 8 skenova našao tačno 32 karte, nijedna ne dodiruje ivicu; mjere 1497–1506 × 2341–2351 px.
+- `process.py` — 12 px odsječeno sa svake ivice (sjenka skenera uz rub), boja papira se čita iz bočnih margina (medijana svjetlijih 60%, bez prašine i okvirne linije; izmjereno 235–239) i skalira po kanalu na 250, maska ugla 7.5% širine (prava karta: dijagonala do papira 36 px ≈ r 123 px ≈ 8.2%, poslije odsijecanja ~7.6%). Izlaz 240×377 webp (q85) — 32 lica ≈ 790 KB (AI lica su bila ~530 KB). Ikonice boje (96 px) su znak iz gornjeg lijevog ugla DAME (jedini znak bez figure), najveća komponenta „mastila" po udaljenosti od papira.
+- Preslikavanje: Dečko → `unter` (J/U), Dama → `ober` (Q/O), godišnje doba → `ace`; bunda/tikva → `bells`. Mapa po fajlu skena je u `process.py`.
+
+**Odnos karte:** prava karta je 1.571, a sve karte u aplikaciji 1.417. Izabrano: ista VISINA, karta ~10% uža — `.card[data-deck="hungarian"] { width: calc(var(--card-h) / 1.571) }` + radijus po stvarnoj širini. Visina se ne dira jer je budžet visine Rauba izmjeren na njoj. Odbačeno: razvlačenje (lica 10% šira), sječenje gore/dole (pada tačno na okvirnu liniju). Pravilo važi i za `CardBack` (isti `data-deck`), pa se stara poleđina 1.417 crta suženo — šara to podnosi.
+
+**`build-raub-cards.mjs`** sveden na poleđinu, da ponovno pokretanje ne vrati AI lica.
+
+**Provjereno:** headless Chrome 390×844 `/dev/raub?s=bid|trick|exchangeOpen|seven` i x3 snimak ruke i talona. **Nije provjereno na uređaju.**

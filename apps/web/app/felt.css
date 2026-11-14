@@ -3339,6 +3339,14 @@
 [data-deck="hungarian"] .card-back {
   --card-back-art: url("/cards/hu/back.webp");
 }
+/* Mađarice su skenirane prave karte: odnos 1.571, ne 1.417. Visina ostaje
+   ista kao kod francuskog kompleta (budžet visine Rauba je izmjeren na njoj),
+   a karta je ~10% uža — lice se ne razvlači. Radijus prati stvarnu širinu:
+   7.5% je isto što `scripts/raub-scan/process.py` sječe u alpha. */
+.card[data-deck="hungarian"] {
+  width: calc(var(--card-h) / 1.571);
+  --card-radius: calc(var(--card-h) / 1.571 * 0.075);
+}
 
 /* ---- Stol: adut, talon, štih ------------------------------------------ */
 
