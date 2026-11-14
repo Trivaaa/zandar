@@ -77,6 +77,15 @@ export function makeGhost(
   return ghost;
 }
 
+/**
+ * `Element.animate` baca TypeError na negativno ili ne-konačno trajanje, a
+ * izuzetak iz efekta ruši cijelu aplikaciju (Sentry 2026-11-13, poker fold:
+ * `stepMs - 140` kad `usePokerBeat` sabije korak ispod 140 ms).
+ */
+export function nonNegativeMs(ms: number): number {
+  return Number.isFinite(ms) && ms > 0 ? ms : 0;
+}
+
 export function runGhost(
   ghost: HTMLElement,
   dx: number,
@@ -87,19 +96,26 @@ export function runGhost(
   durationMs: number,
   easing: string,
 ): void {
-  const anim = ghost.animate(
-    [
-      {
-        transform: `translate(-50%, -50%) translate(0, 0) scale(${from.scale})`,
-        opacity: from.opacity,
-      },
-      {
-        transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${to.scale})`,
-        opacity: to.opacity,
-      },
-    ],
-    { duration: durationMs, delay: delayMs, easing, fill: "forwards" },
-  );
+  let anim: Animation;
+  try {
+    anim = ghost.animate(
+      [
+        {
+          transform: `translate(-50%, -50%) translate(0, 0) scale(${from.scale})`,
+          opacity: from.opacity,
+        },
+        {
+          transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(${to.scale})`,
+          opacity: to.opacity,
+        },
+      ],
+      { duration: nonNegativeMs(durationMs), delay: nonNegativeMs(delayMs), easing, fill: "forwards" },
+    );
+  } catch {
+    // Let je ukras: ako ga pregledač odbije, duh nestane, a partija ide dalje.
+    ghost.remove();
+    return;
+  }
   const cleanup = () => ghost.remove();
   anim.onfinish = cleanup;
   anim.oncancel = cleanup;
