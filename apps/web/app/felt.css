@@ -3793,15 +3793,11 @@
   align-items: flex-end;
   /* Desno ostaje dugme za reakcije (zvuk i vibracija su od 8.11. u meniju): na niskim ekranima
      je viši od ruke i ulazi u visinu panela (izmjereno na 360×640). */
-  padding-left: calc(0.75rem + var(--safe-left));
-  padding-right: calc(3.6rem + var(--safe-right));
-}
-/* Traka sa tekstom („Ti si na potezu" / „Čeka se") je uska, pa se centrira
-   na ekranu: isti razmak lijevo kao desno (vlasnik, 14.11.2026 — bila je
-   pomjerena ulijevo za pola rezerve dugmeta reakcija). Dugmad licitacije
-   zadržavaju punu širinu. */
-.rb-panel-slot:has(.rb-panel[data-play], .rb-panel[data-wait]) {
+  /* Ista rezerva i lijevo, pa je panel centriran na ekranu (vlasnik, 14.11.2026:
+     prvo traka „Ti si na potezu" / „Čeka se", zatim i dugmad „Idem / Ne idem",
+     licitacije i zamjene — bila su pomjerena ulijevo za pola rezerve). */
   padding-left: calc(3.6rem + var(--safe-left));
+  padding-right: calc(3.6rem + var(--safe-right));
 }
 .rb-panel {
   position: relative;

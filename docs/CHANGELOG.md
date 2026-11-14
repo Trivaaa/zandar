@@ -1816,3 +1816,11 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Zamka:** mjerenje u `useLayoutEffect` se pod StrictMode-om izvrši dvaput, a drugi put vidi kartu već pomjerenu na špil (animacija čita `--draw-x`) → upisao bi 0. Zato se varijable skinu prije mjerenja. Uz to: ako je sto u prvom kadru neraspoređen (rect 0), mjeri se ponovo u sljedećem kadru.
 
 **Provjereno:** CDP na `/dev/raub?s=bid` i `?s=trick` (360×640): talon karta kreće sa špila (−72 px), klizi do ~800 ms, okret ~1,0–1,3 s, poleđina nestaje na pola; karte štiha kreću od svog igrača (desno +130 px, gore −86 px) i stignu za ~350 ms; pod reduced-motion sve odmah na mjestu. Web 220 testova, typecheck, lint = osnovica (5/2). **Nije provjereno na uređaju** — tempo ocijeniti okom.
+
+## 158. Raub — panel nad rukom centriran (2026-11-14, `fix/raub-panel-center`)
+
+**Šta:** vlasnik je na telefonu primijetio da su dugmad „Ne idem / Idem” pomjerena ulijevo. `.rb-panel-slot` je imao 0,75rem lijevo i 3,6rem desno (rezerva za dugme reakcija), pa je centrirana bila samo traka „Ti si na potezu” / „Čeka se”, koja je već imala izuzetak. Sada je rezerva od 3,6rem sa obje strane za sve panele (licitacija, sedmica, višak, Idem, zamjena), a izuzetak je uklonjen.
+
+**Mjereno (CDP, `/dev/raub?n=4`):** na 360×740, 360×640 i 412×915 panel je 58 px od lijeve i 58 px od desne ivice. Dugme reakcija (x ≥ 312 na 360) ostaje van panela. Cijena: na 360 px dugmad licitacije su 76 px (Dalje / Moja / Raub), a „moraš 2 štiha” ispod „Raub” ide u dva reda. Dva dugmeta (Idem) su 118 px.
+
+**Provjereno:** samo CSS; snimci okom na 360×640 i 360×740. **Nije provjereno na uređaju.**
