@@ -1722,3 +1722,9 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 - game-core Raub 56 testova, server 255, web 215. Typecheck je čist.
 - CDP snimci 360×740 i 360×640: `sevenChoice`, `bid`, `bidLow`, `bidNone`, `moja`.
 - **Nije provjereno na uređaju.**
+
+## 152. Početna — redizajn iz 147 vraćen, ostaje dosadašnja (2026-11-14)
+
+**Šta:** vlasnik zasad ne želi novu početnu (hero + redovi, changelog 147). Na `main`-u je vraćena verzija koja je na produkciji: tri kartice igara, svaka sa „Igraj” i „Napravi sto”. Vraćeni su `29fe5f6` i popravka opisa ispod lepeze `513007d`, koja je važila samo za novi izgled. Fajlovi početne (`home.css`, `GameList.tsx`, `HomeScreen.tsx`, `app/page.tsx`, `/dev/home`) su bajt-za-bajt kao na `production`. `sr.ts` se razlikuje samo po Raub tekstovima (changelog 151).
+
+**Zašto ovako:** redizajn nije bio na produkciji, a prije objave je trebalo sve sa `main`-a da ide dalje. Kod je ostao u istoriji (`29fe5f6`, grana `feat/home-list-k2`) za kad se vlasnik predomisli.
