@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type {
   AbandonVote,
   Card,
@@ -36,6 +36,8 @@ import {
   type Dir,
 } from "@/lib/raubView";
 import type { ActiveReaction } from "@/lib/reactions";
+import { faceArtOf } from "@/lib/flyAnimation";
+import { flyCard, snapshotTalonTop, type TalonSnapshot } from "@/lib/raubFly";
 import { arrangeSeats } from "@/lib/seating";
 import { CardDeckContext } from "@/components/felt/cardDeck";
 import { sr } from "@/lib/sr";
@@ -188,6 +190,36 @@ export function RaubScreen({
   const collectTo =
     !currentOpen && shownTrick?.winnerId && collecting === doneKey ? dirOf(shownTrick.winnerId) : null;
 
+  // ---- karta s talona leti nosiocu (Raub, Štih, Moja sa sedmicom) ----
+  // Samo na prelaz „niko → igrač" u ovoj sesiji: prvo crtanje, reconnect i
+  // hidracija ne lete (karta je već kod nosioca). Talon se mjeri na svakom
+  // crtanju, jer ga React ukloni u istom commitu u kojem stigne uzimanje.
+  const takeKey =
+    state.talonTakenBy && state.takenTalonCard
+      ? `${state.dealNo}:${state.talonTakenBy}:${state.takenTalonCard.id}`
+      : null;
+  const prevTakeKey = useRef<string | null | undefined>(undefined);
+  const talonSnap = useRef<TalonSnapshot | null>(null);
+  useLayoutEffect(() => {
+    const prev = prevTakeKey.current;
+    prevTakeKey.current = takeKey;
+    const snap = talonSnap.current;
+    talonSnap.current = snapshotTalonTop();
+    if (prev === undefined || !takeKey || takeKey === prev) return;
+    const card = state.takenTalonCard;
+    const by = state.talonTakenBy;
+    if (!card || !by || !snap || snap.cardId !== card.id) return;
+    const seatEl = document.querySelector(`[data-seat-id="${CSS.escape(by)}"]`);
+    const target =
+      by === state.myPlayerId
+        ? (document.querySelector(".hand__slot[data-locked]") ?? seatEl)
+        : (seatEl?.querySelector("[data-taken-card]") ?? seatEl);
+    if (target) flyCard(snap.rect, target, snap.art);
+    // „Moja" sa sedmicom: sedmica ide od nosioca na talon.
+    const seven = document.querySelector(".rb-talon__top[data-arrive]");
+    if (seven && seatEl) flyCard(seatEl.getBoundingClientRect(), seven, faceArtOf(seven));
+  });
+
   const requestLeave = () => {
     if (matchOver) onLeave();
     else setLeaveOpen(true);
@@ -300,6 +332,11 @@ export function RaubScreen({
         secondsRemaining={turnSeconds}
         totalSeconds={totalSeconds}
         cardCount={isMe || dropped ? 0 : seat.handCount}
+        shownCard={
+          !isMe && state.talonTakenBy === player.id && state.step !== "tricks" && !handOver
+            ? (state.takenTalonCard ?? undefined)
+            : undefined
+        }
         coins={seat.score}
         showCoins
         statusText={away ? sr.raub.seat.waitingConnection : dropped ? sr.raub.seat.dropped : sideDecl}
@@ -401,17 +438,7 @@ export function RaubScreen({
               maxFlips={state.rules.maxTalonFlips}
               deckCount={state.deckCount}
               showCounter={biddingNow}
-              taken={
-                state.takenTalonCard && state.talonTakenBy
-                  ? {
-                      card: state.takenTalonCard,
-                      label:
-                        state.talonTakenBy === state.myPlayerId
-                          ? sr.raub.talonTakenMe
-                          : sr.raub.talonTaken(nameOf(state.talonTakenBy)),
-                    }
-                  : null
-              }
+              taken={state.takenTalonCard && state.talonTakenBy ? (state.scenario === "moja" ? "seven" : "gone") : null}
             />
           ) : null}
           {/* Tuđa otvorena karta (moja je već u ruci, sa katancem). */}

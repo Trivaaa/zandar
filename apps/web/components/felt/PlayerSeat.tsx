@@ -47,6 +47,11 @@ export type PlayerSeatProps = {
   faceCards?: readonly Card[] | undefined;
   /** Karte iz `faceCards` koje čine pobjedničku kombinaciju / koje ne. */
   cardTone?: ((card: Card) => "hi" | "lo" | undefined) | undefined;
+  /**
+   * Jedna karta licem gore na kraju lepeze poleđina (Raub: karta uzeta s
+   * talona je javna do štihova). Sidro `data-taken-card` je cilj leta.
+   */
+  shownCard?: Card | undefined;
 };
 
 const statusLabel = {
@@ -82,6 +87,7 @@ export function PlayerSeat({
   adornment,
   faceCards,
   cardTone,
+  shownCard,
 }: PlayerSeatProps) {
   const team =
     teamTone ?? (player.teamId === undefined ? undefined : player.teamId === 0 ? "a" : "b");
@@ -212,11 +218,22 @@ export function PlayerSeat({
           aria-label={sr.seat.cards(cardCount)}
           style={{ "--fan-n": Math.min(cardCount, 8) } as React.CSSProperties}
         >
-          {Array.from({ length: Math.min(cardCount, 8) }, (_, i) => (
-            <span key={i} className="seat__fan-slot" style={{ "--fan-i": i } as React.CSSProperties}>
-              <CardBack size="xs" />
-            </span>
-          ))}
+          {Array.from({ length: Math.min(cardCount, 8) }, (_, i) =>
+            shownCard && i === Math.min(cardCount, 8) - 1 ? (
+              <span
+                key={shownCard.id}
+                className="seat__fan-slot"
+                data-taken-card
+                style={{ "--fan-i": i } as React.CSSProperties}
+              >
+                <PlayingCard card={shownCard} size="xs" />
+              </span>
+            ) : (
+              <span key={i} className="seat__fan-slot" style={{ "--fan-i": i } as React.CSSProperties}>
+                <CardBack size="xs" />
+              </span>
+            ),
+          )}
         </div>
       )}
     </div>

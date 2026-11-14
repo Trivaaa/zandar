@@ -74,11 +74,15 @@ export function TalonPile({
   maxFlips: number;
   deckCount: number;
   showCounter: boolean;
-  /** Uzeta talon karta i ko ju je uzeo — ostaje na vrhu do štihova. */
-  taken?: { card: Card; label: string } | null;
+  /**
+   * Karta je uzeta s talona (odletjela je nosiocu i stoji u njegovoj lepezi):
+   * `gone` — talon nosi samo ranije okrenute karte; `seven` — „Moja" sa
+   * sedmicom: sedmica je na vrhu, bez izvlačenja sa špila.
+   */
+  taken?: "gone" | "seven" | null;
 }) {
-  const current = taken?.card ?? talon.at(-1);
-  const earlier = taken ? talon : talon.slice(0, -1);
+  const current = taken === "gone" ? undefined : talon.at(-1);
+  const earlier = taken === "gone" ? talon : talon.slice(0, -1);
   const deckRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLSpanElement>(null);
   // Okrenuta karta kreće sa špila: razlika centara se mjeri prije prvog crtanja
@@ -124,14 +128,14 @@ export function TalonPile({
             key={current.id}
             ref={topRef}
             className="rb-talon__top"
-            {...(taken ? { "data-static": true } : earlier.length === 0 ? { "data-first": true } : {})}
+            data-card-id={current.id}
+            {...(taken ? { "data-static": true, "data-arrive": true } : earlier.length === 0 ? { "data-first": true } : {})}
           >
             <PlayingCard card={current} size="sm" />
             <span className="rb-talon__back">
               <CardBack size="sm" />
             </span>
           </span>
-          {taken ? <span className="rb-talon__taken">{taken.label}</span> : null}
         </div>
       ) : null}
       {showCounter ? <span className="rb-talon__flip">{sr.raub.talonCard(flips, maxFlips)}</span> : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   applyRaubAction,
   createRaubMatch,
@@ -80,6 +80,19 @@ const SCENARIOS: Record<string, Pred> = {
     return o?.raub === false && o.moja === false;
   },
   moja: (s) => s.phase === "playing" && s.scenario === "moja" && s.step === "going" && s.declarerId !== ME,
+  // Za `then=raub` / `then=moja`: drugi igrač je na potezu i smije to reći.
+  raubOther: (s) =>
+    s.phase === "playing" && s.step === "bidding" && s.currentPlayerId !== ME &&
+    getRaubView(s, s.currentPlayerId!).bidOptions?.raub === true,
+  mojaSevenOther: (s) => {
+    if (s.phase !== "playing" || s.step !== "bidding" || s.currentPlayerId === ME) return false;
+    const offered = s.talon.at(-1);
+    const seat = s.seats.find((x) => x.playerId === s.currentPlayerId)!;
+    return (
+      getRaubView(s, s.currentPlayerId!).bidOptions?.moja === true &&
+      !!offered && seat.hand.some((c) => c.rank === "7" && c.suit === offered.suit)
+    );
+  },
   bid2: (s) => s.phase === "playing" && s.step === "bidding" && s.talonFlips === 2 && s.currentPlayerId !== ME,
   discard: onMyTurn("discard_extra"),
   going: onMyTurn("going"),
@@ -124,7 +137,8 @@ function drive(n: number, seed: number, pred: Pred): RaubGameState {
   return s;
 }
 
-function scenario(name: string, n: number, seed: number, now: number): RaubGamePayload {
+/** Stanje scenarija (prije `then` koraka). */
+function scenarioState(name: string, n: number, seed: number): RaubGameState {
   const key = name === "pause" || name === "vote" ? "bid" : name;
   const pred = SCENARIOS[key] ?? SCENARIOS.bid!;
   let s: RaubGameState | null = null;
@@ -134,6 +148,12 @@ function scenario(name: string, n: number, seed: number, now: number): RaubGameP
     if (pred(candidate)) s = candidate;
   }
   s ??= drive(n, seed, () => false);
+  return s;
+}
+
+function scenario(name: string, n: number, seed: number, now: number, then: string | null): RaubGamePayload {
+  let s = scenarioState(name, n, seed);
+  if (then === "raub" || then === "moja") s = applyRaubAction(s, s.currentPlayerId!, { type: "bid", bid: then });
   const away = name === "pause" || name === "vote" ? `p${Math.min(2, n - 1)}` : undefined;
   return {
     ...getRaubView(s, ME),
@@ -156,7 +176,15 @@ export default function RaubDevPage() {
   const table = parseTableTheme(useQueryParam("table"));
   // Rok poteza od trenutka otvaranja stranice (render mora biti čist).
   const [now] = useState(() => Date.now());
-  const view = useMemo(() => scenario(s, n, seed, now), [s, n, seed, now]);
+  // `then=raub|moja`: poslije 1,5 s igrač na potezu to kaže (provjera leta karte).
+  const then = useQueryParam("then");
+  const [stepped, setStepped] = useState(false);
+  useEffect(() => {
+    if (!then) return;
+    const t = setTimeout(() => setStepped(true), 1500);
+    return () => clearTimeout(t);
+  }, [then]);
+  const view = useMemo(() => scenario(s, n, seed, now, stepped ? then : null), [s, n, seed, now, stepped, then]);
   const log = (label: string) => async (...args: unknown[]) => console.info(`[raub dev] ${label}`, ...args);
   return (
     <RaubScreen

@@ -3477,18 +3477,6 @@
   opacity: 0.4;
   transform: translate(calc(-0.6rem - var(--i) * 0.5rem), 0.35rem) rotate(-6deg);
 }
-/* Uzeta karta: ispod nje ko ju je uzeo (sedmica se inače ne bi ni vidjela). */
-.rb-talon__cards > .rb-talon__taken {
-  grid-area: 2 / 1;
-  justify-self: center;
-  margin-top: 0.25rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
-  background-color: color-mix(in oklab, var(--bg-mid) 80%, transparent);
-  font: 600 0.6875rem/1.2 var(--font-sans);
-  color: var(--accent);
-  white-space: nowrap;
-}
 /* Okretanje s talona: karta krene sa špila licem nadolje, klizne na svoje
    mjesto i okrene se (`TalonPile` izmjeri --draw-x/-y od špila). Prva karta
    ruke ima zadršku i duži pokret — inače je „već tu" čim se uđe za sto. */
@@ -3731,6 +3719,19 @@
   left: auto;
   right: calc(50% + var(--seat-avatar) / 2 - 0.5rem);
   flex-direction: row-reverse;
+}
+/* Karta uzeta s talona u lepezi nosioca: licem gore, malo veća, ispred
+   poleđina i sa mesing rubom — tu sleti let s talona (vlasnik, 14.11.2026:
+   „ne vidi se dovoljno kad neko raubuje"). `scale`/`translate` se slažu sa
+   `transform` (nagib lepeze). */
+.felt-stage[data-game="raub"] .seat__fan-slot[data-taken-card] {
+  position: relative;
+  z-index: 1;
+  scale: 1.35;
+  translate: 0 -0.15rem;
+}
+.felt-stage[data-game="raub"] .seat__fan-slot[data-taken-card] .card-face {
+  box-shadow: 0 0 0 1.5px var(--accent);
 }
 /* „Raub · mora 2" + 1/2 u mesingu — stalno vidljivo, bez tapa (tabla 10). */
 .rb-decl {

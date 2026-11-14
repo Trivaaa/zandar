@@ -39,7 +39,7 @@ export type GhostArt = { color: string; image: string };
  * pravila (postoji u `PlayingCard`, i u `felt.css` za poleđinu) duh pročita
  * crtež koji karta VEĆ nosi na `.card-face`. Jedan izvor, nula parsiranja.
  */
-function faceArtOf(cardEl: Element): GhostArt {
+export function faceArtOf(cardEl: Element): GhostArt {
   const face = cardEl.querySelector(".card-face");
   if (!face) return BACK_ART;
   const image = getComputedStyle(face).backgroundImage;

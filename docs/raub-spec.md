@@ -202,6 +202,7 @@ Raub koristi „kafanski sto” i postojeće komponente. Novo su faze koje Žand
 | Panel zamjene | Novo | Igrač tapom označi karte za odbacivanje, dugme „Zamijeni N” ili „Zadrži sve” |
 | Oznaka aduta | Novo | Simbol boje aduta stalno vidljiv u uglu stola; prije određivanja „nudi se” |
 | Oznaka nosioca | Novo | Kod avatara nosioca: „Raub · mora 2” i trenutni broj uzetih štihova (1/2) |
+| Let karte s talona | Novo | Kad neko uzme kartu s talona (Raub, Štih, Moja sa sedmicom), karta odleti nosiocu (~750 ms, na pola puta naraste) i ostaje otvorena u njegovoj lepezi do štihova; kod „Moja” sedmica odleti od nosioca na talon. Reconnect i reduced-motion: bez leta |
 | Prostor štiha | Novo | Do 4 karte u sredini, svaka ispred igrača koji ju je bacio |
 | Brojač štihova | Novo | Ispod svakog avatara bodovi i broj uzetih štihova u ovoj ruci |
 | Tabela rezultata | Novo | List odozdo: bodovi svih igrača po rukama, refa kao red, ×2 ruke označene, refe koje čekaju |
@@ -277,7 +278,7 @@ Ruka je mašina stanja: `dealing` → `trump_selection` (koraci `seven_choice`, 
 - Klijent vidi svoje karte, talon, odigrane karte i broj karata koje su drugi zamijenili.
 - Ne vidi tuđe karte, odbačene karte ni špil, ni na kraju ruke.
 - Otvorena karta kod prve zamjene sve 4 karte šalje se svima.
-- Karta uzeta s talona (Štih, Raub, Moja) je javna i ostaje vidljiva na stolu do štihova.
+- Karta uzeta s talona (Štih, Raub, Moja) je javna do štihova: odleti sa talona nosiocu i stoji otvorena u njegovoj lepezi iznad avatara (kod mene: u ruci, sa katancem).
 
 **Stari klijenti**
 

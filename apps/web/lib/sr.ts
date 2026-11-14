@@ -453,8 +453,6 @@ export const sr = {
     talonCard: (n: number, max: number) => `Karta ${n} od ${max}`,
     deck: (n: number) => `Špil ${n}`,
     deckEmpty: "Špil je prazan",
-    talonTaken: (name: string) => `Uzima: ${name}`,
-    talonTakenMe: "Uzimaš ti",
     seven: {
       hint: (card: string) => `Na stolu je ${card} — štih nije obavezan.`,
       take: "Štih",

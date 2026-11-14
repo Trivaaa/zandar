@@ -1848,3 +1848,33 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Simulacija (10.000 mečeva × 4, seed 1), prije → poslije:** raub 81.841 → 88.460, moja 111.655 → 107.994, refa 2,2 % → 2,1 %, medijan trajanja 32,4 → 33,0 min; 0 grešaka u kartama i štihovima, 0 odbijenih akcija.
 
 **Provjereno:** game-core 393 (novi test: svaki djelilac na asu raubuje, vremena u [1000, 8000] i raspon se koristi; ostalo 2,5–7 s), server 255, typecheck game-core i server. **Nije provjereno na stagingu.**
+
+## 162. Raub — karta s talona leti nosiocu (2026-11-14, `fix/raub-take-fly`)
+
+**Zašto:** vlasnik kaže da se za stolom ne vidi dovoljno jasno kad neko raubuje. Uzeta karta je ostajala na talonu sa sitnim natpisom „Uzima: Ivana”. Od ponuđenih ideja (pečat „RAUB!”, let karte, zvuk, isticanje nosioca) izabran je samo let karte.
+
+**Šta:**
+- Kad neko uzme kartu s talona (Raub, Štih, Moja sa sedmicom), karta odleti nosiocu. Traje 750 ms, na 40 % puta naraste 1,35 puta, pa se smanji na mjesto.
+- Kod drugog igrača karta sleti u njegovu lepezu iznad avatara i tamo ostaje otvorena do štihova: zadnja karta lepeze, 1,35 puta veća, ispred poleđina, sa mesing rubom.
+- Kod mene sleti na zaključanu kartu u ruci.
+- Kod „Moja” sa sedmicom istovremeno sedmica odleti od nosioca na talon.
+- Talon se poslije uzimanja prazni, pa ostaje samo špil. Natpis „Uzima: …” / „Uzimaš ti” je uklonjen.
+
+**Kako:**
+- `lib/raubFly.ts`: `snapshotTalonTop`, `flyCard`. Koristi `makeGhost`, a `faceArtOf` je sad izvezen iz `flyAnimation.ts`. Duh je na `document.body`. Cilj je sakriven dok duh ne sleti.
+- `RaubScreen` mjeri vrh talona na svakom crtanju (`useLayoutEffect` bez zavisnosti), jer React kartu ukloni u istom commitu u kojem stigne uzimanje. Let se pokreće samo na prelaz `talonTakenBy` niko → igrač u sesiji: prvo crtanje i reconnect ne lete. Karta mora biti ista kao izmjerena (`data-card-id`).
+- `PlayerSeat.shownCard` (opciono, Žandar i Poker netaknuti) crta zadnju kartu lepeze licem gore, sa sidrom `data-taken-card`.
+- `TalonPile.taken` je sada `"gone" | "seven"`.
+- `/dev/raub?then=raub|moja` pušta pravi korak poslije 1,5 s. Novi scenariji: `raubOther`, `mojaSevenOther`.
+
+**Mjereno (CDP, headless Chrome, rAF unutar stranice):**
+- Raub drugog igrača, 360×640: duh od talona (216, 230) do lepeze (330, 169), širina 45 → 61 (vrh) → 29 px, kraj na ~700 ms.
+- Moj Raub, 360×740: duh sleti na zaključanu kartu u ruci.
+- Moja sa sedmicom: dva leta istovremeno.
+- Reduced-motion: bez leta, stanje odmah tačno.
+
+**Zamke:**
+- Profil headless Chrome-a je keširao stari CSS, pa je mjerenje pokazivalo 22 px umjesto 29. Svjež profil je pokazao ispravno.
+- `taskkill /IM chrome.exe` bi ubio i vlasnikov Chrome (klasifikator ga je odbio). Gasi se samo vlastiti proces.
+
+**Provjereno:** web testovi, typecheck, lint na izmijenjenim fajlovima. **Nije provjereno na uređaju** — tempo leta ocijeniti na telefonu.
