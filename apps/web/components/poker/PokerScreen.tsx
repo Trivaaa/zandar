@@ -28,6 +28,7 @@ import {
   actionTone,
   displayPots,
   handHint,
+  arrangePokerSeats,
   positionTags,
   showdownRows,
   sortedPlacements,
@@ -35,7 +36,6 @@ import {
   winningCardIds,
 } from "@/lib/pokerView";
 import type { ActiveReaction } from "@/lib/reactions";
-import { arrangeSeats } from "@/lib/seating";
 import { sr } from "@/lib/sr";
 import { useCountdown } from "@/lib/useCountdown";
 import { usePokerBeat } from "@/lib/usePokerBeat";
@@ -185,7 +185,7 @@ export function PokerScreen({
   }
 
   // ---- izvedeno za crtanje ----
-  const seats = arrangeSeats(state.players, state.myPlayerId);
+  const seats = arrangePokerSeats(state.players, state.seats, state.myPlayerId);
   const result = handOver || matchOver ? state.lastHandResult : null;
   const summary = result ? summarizeHand(result) : null;
   const showResult = Boolean(summary) && (!hold || hold.result === true);

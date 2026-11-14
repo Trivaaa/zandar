@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import type { Card, PokerHandResult, PokerSeatView } from "@zandar/shared-types";
+import type { Card, PokerHandResult, PokerSeatView, PublicPlayer } from "@zandar/shared-types";
 
 import {
   actionLabel,
+  arrangePokerSeats,
   displayPots,
   handHint,
   positionTags,
@@ -232,5 +233,64 @@ describe("showdownRows — ploča showdowna", () => {
     };
     assert.deepEqual(showdownRows(split, null, true).filter((r) => r.isWinner).map((r) => r.amount), [30, 30]);
     assert.deepEqual(showdownRows({ ...result, uncontested: true }, null, true), []);
+  });
+});
+
+describe("arrangePokerSeats", () => {
+  const pl = (id: string, seatIndex: number) => ({ id, seatIndex, displayName: id }) as PublicPlayer;
+  // Lobi: a0 b1 c2 d3. Meč je promiješao mjesta: c0 a1 d2 b3.
+  const lobby = [pl("a", 0), pl("b", 1), pl("c", 2), pl("d", 3)];
+  const match = [
+    { playerId: "c", seatNo: 0 },
+    { playerId: "a", seatNo: 1 },
+    { playerId: "d", seatNo: 2 },
+    { playerId: "b", seatNo: 3 },
+  ];
+  const where = (arr: ReturnType<typeof arrangePokerSeats>, id: string) =>
+    (["me", "oppL", "partner", "oppR"] as const).find((k) => arr[k]?.id === id);
+
+  test("raspored ide po mjestima iz meča, ne iz lobija", () => {
+    const arr = arrangePokerSeats(lobby, match, "a");
+    assert.equal(arr.me?.id, "a");
+    assert.equal(arr.oppL?.id, "d"); // seatNo 2 — sljedeći poslije mene
+    assert.equal(arr.partner?.id, "b");
+    assert.equal(arr.oppR?.id, "c");
+  });
+
+  test("button ide u smjeru kazaljke: dole → lijevo → gore → desno", () => {
+    const arr = arrangePokerSeats(lobby, match, "a");
+    const bySeat = [...match].sort((x, y) => x.seatNo - y.seatNo).map((s) => s.playerId);
+    // Button od mene (seatNo 1) pa +1 kao u motoru.
+    const path = [1, 2, 3, 0].map((n) => where(arr, bySeat[n]!));
+    assert.deepEqual(path, ["me", "oppL", "partner", "oppR"]);
+  });
+
+  test("tri igrača: sljedeći lijevo, prethodni desno", () => {
+    const arr = arrangePokerSeats(lobby.slice(0, 3), [
+      { playerId: "b", seatNo: 0 },
+      { playerId: "c", seatNo: 1 },
+      { playerId: "a", seatNo: 2 },
+    ], "a");
+    assert.equal(arr.oppL?.id, "b");
+    assert.equal(arr.oppR?.id, "c");
+    assert.equal(arr.partner, undefined);
+  });
+
+  test("dva igrača: protivnik gore", () => {
+    const arr = arrangePokerSeats(lobby.slice(0, 2), [
+      { playerId: "b", seatNo: 0 },
+      { playerId: "a", seatNo: 1 },
+    ], "a");
+    assert.equal(arr.partner?.id, "b");
+  });
+
+  test("igrač iz sobe koji nije u meču ne dobija mjesto", () => {
+    const arr = arrangePokerSeats([...lobby.slice(0, 3), pl("x", 3)], [
+      { playerId: "a", seatNo: 0 },
+      { playerId: "b", seatNo: 1 },
+      { playerId: "c", seatNo: 2 },
+    ], "a");
+    assert.equal(arr.playerCount, 3);
+    assert.equal(where(arr, "x"), undefined);
   });
 });

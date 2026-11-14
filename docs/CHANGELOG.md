@@ -1670,3 +1670,15 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 - WhatsApp ne prikazuje sliku ako je prevelika (orijentaciono > 300 KB), zato JPEG, ne original PNG.
 
 **Objava:** commit direktno iznad `production` (kao 148), pa spojen u `main` — da na produkciju ne ode neobjavljeni redizajn početne. Aplikaciji ne treba ništa: preview pravi web (pozivnice su `kartaonica.com/room/…` linkovi), a `og-share.jpg` ulazi u sljedeći paket sam od sebe.
+
+## 150. Poker — button ide u smjeru kazaljke (2026-11-14, `fix/poker-seat-order`)
+
+**Prijava igrača:** rotacija dealera ne ide kao kazaljka na satu.
+
+**Uzrok (dva):**
+- Motor na startu meča nasumično miješa mjesta (`seatNo`), a button, blindovi i potezi idu `seatNo + 1`. Ekran je crtao igrače po `seatIndex`-u iz lobija (`arrangeSeats(state.players)`), pa za 3–4 igrača button skače preko stola. `/dev/poker` to nije pokazivao jer tamo je `seatIndex === seatNo`.
+- I kad se redovi poklope, `arrangeSeats` stavlja sljedećeg igrača DESNO (dole → desno → gore → lijevo), a to je smjer suprotan kazaljci. Poker-spec traži „lijevo od buttona".
+
+**Popravka:** `arrangePokerSeats` u `lib/pokerView.ts` raspoređuje po `seatNo` iz pogleda meča i zamjenjuje lijevu i desnu stranu, pa je sljedeći igrač lijevo. Motor i server su netaknuti, a snapshot se nije mijenjao. Žandar (`GameScreen`) i dalje koristi `arrangeSeats` bez izmjene.
+
+**Provjereno:** 5 novih testova (raspored po mjestima iz meča, put buttona dole → lijevo → gore → desno, 3P, 2P, igrač bez mjesta u meču), web testovi 218, typecheck, lint na izmijenjenim fajlovima. **Nije provjereno na uređaju.**

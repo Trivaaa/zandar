@@ -7,8 +7,10 @@ import type {
   PokerLegalActions,
   PokerPlayerView,
   PokerSeatView,
+  PublicPlayer,
 } from "@zandar/shared-types";
 
+import { arrangeSeats, type SeatArrangement } from "./seating";
 import { sr } from "./sr";
 
 /**
@@ -58,6 +60,31 @@ export function displayPots(view: Pick<PokerPlayerView, "potTotal" | "seats">): 
   const sum = amounts.reduce((a, b) => a + b, 0);
   if (sum !== view.potTotal || amounts.length === 1) return [{ label: "main", index: 0, amount: view.potTotal }];
   return amounts.map((amount, index) => ({ label: index === 0 ? "main" : "side", index, amount }));
+}
+
+/**
+ * Raspored poker stola: po redu mjesta iz MEČA (`seatNo`), ne iz lobija.
+ *
+ * Motor na startu meča nasumično miješa mjesta, a button, blindovi i potezi idu
+ * `seatNo + 1`. `seatIndex` iz lobija je drugi red — crtan po njemu, button je
+ * skakao preko stola umjesto da ide u krug.
+ *
+ * Smjer: poker se igra u smjeru kazaljke („lijevo od buttona", poker-spec §3).
+ * Gledano odozgo sa mnom dole, to je dole → lijevo → gore → desno, pa sljedeći
+ * igrač sjedi LIJEVO. `arrangeSeats` (Žandar) stavlja sljedećeg desno, zato se
+ * strane ovdje zamjenjuju.
+ */
+export function arrangePokerSeats(
+  players: readonly PublicPlayer[],
+  seats: readonly Pick<PokerSeatView, "playerId" | "seatNo">[],
+  myPlayerId: string,
+): SeatArrangement {
+  const seatNoOf = new Map(seats.map((s) => [s.playerId, s.seatNo]));
+  const atTable = players
+    .filter((p) => seatNoOf.has(p.id))
+    .map((p) => ({ ...p, seatIndex: seatNoOf.get(p.id)! }));
+  const arr = arrangeSeats(atTable, myPlayerId);
+  return { ...arr, oppL: arr.oppR, oppR: arr.oppL };
 }
 
 /** Pločice uz sjedište. Heads-up: dealer je i small blind, pa dobija obje. */
