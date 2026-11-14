@@ -68,8 +68,8 @@ describe("raubView: faza i panel", () => {
     assert.equal(phaseLabel({ ...base, phase: "match_finished", step: null }), "Kraj partije");
   });
 
-  test("panel: djelilac prije otvaranja, licitacija, idem, zamjena, štih, čekanje", () => {
-    assert.equal(panelFor(getRaubView(until(mine("await_open")), "p0"), name).kind, "open");
+  test("panel: sedmica (Štih), licitacija, idem, zamjena, štih, čekanje", () => {
+    assert.equal(panelFor(getRaubView(until(mine("seven_choice")), "p0"), name).kind, "seven");
     const bid = panelFor(getRaubView(until(mine("bidding")), "p0"), name);
     assert.equal(bid.kind, "bid");
     const going = until(mine("going"));
@@ -92,6 +92,30 @@ describe("raubView: faza i panel", () => {
       return !!led && v.legalCardIds!.length < v.myCards.length && v.myCards.some((c) => c.suit === led);
     });
     assert.match(playHint(getRaubView(follow, "p0")), /Odgovori na boju/);
+  });
+
+  test("licitacija (odluka 13): dugmad prate bidOptions servera", () => {
+    const raub = until((s) => mine("bidding")(s) && getRaubView(s, "p0").bidOptions?.raub === true);
+    const rp = panelFor(getRaubView(raub, "p0"), name);
+    assert.ok(rp.kind === "bid" && rp.raub);
+    const low = until((s) => {
+      if (!mine("bidding")(s)) return false;
+      const o = getRaubView(s, "p0").bidOptions;
+      return o?.raub === false && o.moja === true;
+    });
+    const lp = panelFor(getRaubView(low, "p0"), name);
+    assert.ok(lp.kind === "bid" && !lp.raub && lp.moja);
+    if (lp.kind === "bid") {
+      assert.equal(lp.seven?.rank, "7");
+      assert.equal(lp.seven?.suit, lp.card.suit);
+    }
+  });
+
+  test("Moja: natpis iznad avatara i oznaka nosioca", () => {
+    const s = until((x) => x.phase === "playing" && x.scenario === "moja" && x.step !== "tricks");
+    const v = getRaubView(s, "p0");
+    const decl = v.seats.find((t) => t.playerId === v.declarerId)!;
+    assert.equal(declarerTag(v, decl)!.label, "Moja · mora 2");
   });
 });
 

@@ -13,6 +13,11 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   allowDrop: true,
   // Odluka 10: 15 s je bilo prekratko za razmišljanje (igra na uređaju).
   turnTimeoutSeconds: 25,
+  // Odluka 13 (feedback igrača, 14.11.2026): Raub samo na A, K, Q, J; sedmica
+  // na talonu nije obavezna („Štih" / „Dalje"); „Moja" (sedmica te boje) mora 2.
+  raubRanks: ["A", "K", "Q", "J"],
+  stihOptional: true,
+  mojaRequiredTricks: 2,
 };
 
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */

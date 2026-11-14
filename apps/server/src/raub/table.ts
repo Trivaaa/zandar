@@ -9,6 +9,7 @@ import {
   raubBotThinkMs,
   selectRaubBotAction,
   startRaubHand,
+  upgradeRaubState,
 } from "@zandar/game-core";
 import type {
   AbandonVote,
@@ -85,12 +86,12 @@ export function parseRaubAction(raw: unknown): RaubActionRequest | null {
   const r = raw as Record<string, unknown>;
   let out: RaubActionRequest;
   switch (r.type) {
-    case "open":
-    case "blind":
-      out = { type: r.type };
+    case "stih":
+      if (typeof r.take !== "boolean") return null;
+      out = { type: "stih", take: r.take };
       break;
     case "bid":
-      if (r.bid !== "raub" && r.bid !== "pass") return null;
+      if (r.bid !== "raub" && r.bid !== "moja" && r.bid !== "pass") return null;
       out = { type: "bid", bid: r.bid };
       break;
     case "swap_seven":
@@ -603,8 +604,10 @@ export class RaubTables {
       this.closeMatching(room.id);
       return;
     }
+    if (!room.raub || room.status !== "playing") return;
+    // Snapshot prije odluke 13 može stati u `await_open` (raub naslijepo).
+    room.raub = upgradeRaubState(room.raub);
     const s = room.raub;
-    if (!s || room.status !== "playing") return;
     for (const p of room.players) {
       if (p.isBot || p.left === true || p.connectionStatus === "abandoned") continue;
       p.connectionStatus = "reconnecting";

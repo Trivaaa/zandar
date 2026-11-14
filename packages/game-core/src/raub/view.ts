@@ -1,18 +1,14 @@
 import type {
   Card,
   RaubAction,
+  RaubBidOptions,
   RaubGameState,
   RaubPlayerView,
   RaubSwapOffer,
 } from "@zandar/shared-types";
 import { isSeven, raubRankValue, weakestCard } from "./cards";
-import { raubLegalCards, raubMaxExchange } from "./match";
+import { raubCanMoja, raubCanRaub, raubLegalCards, raubMaxExchange } from "./match";
 
-/**
- * Pogled jednog igrača (i bota — bot odlučuje SAMO iz ovoga). Nikad špil,
- * tuđe ruke ni odbačene karte; djelilac ne vidi svoje karte prije odluke
- * (spec: „Raub naslijepo" je prije nego pogleda karte).
- */
 /** Uzeta talon karta dok je još u ruci onoga ko ju je uzeo, prije štihova. */
 function takenTalonCard(state: RaubGameState): Card | null {
   if (state.phase !== "playing" || state.step === "tricks") return null;
@@ -23,10 +19,19 @@ function takenTalonCard(state: RaubGameState): Card | null {
   return card ? { ...card } : null;
 }
 
+/**
+ * Pogled jednog igrača (i bota — bot odlučuje SAMO iz ovoga). Nikad špil,
+ * tuđe ruke ni odbačene karte.
+ */
 export function getRaubView(state: RaubGameState, viewerId: string): RaubPlayerView {
   const me = state.seats.find((s) => s.playerId === viewerId);
   const myTurn = state.phase === "playing" && state.currentPlayerId === viewerId;
+  // Stari snapshot (raub naslijepo): djelilac u `await_open` još ne vidi karte.
   const hidden = !!me && viewerId === state.dealerId && !state.dealerOpened && state.phase === "playing";
+  const bidOptions: RaubBidOptions | null =
+    myTurn && state.step === "bidding" && me
+      ? { raub: raubCanRaub(state), moja: raubCanMoja(state, viewerId) }
+      : null;
 
   let swapOffer: RaubSwapOffer | null = null;
   if (myTurn && state.step === "swap_seven" && me) {
@@ -81,6 +86,7 @@ export function getRaubView(state: RaubGameState, viewerId: string): RaubPlayerV
       me && me.hand.some((c) => c.id === state.lockedCardId) ? state.lockedCardId : null,
     legalCardIds:
       myTurn && state.step === "tricks" ? raubLegalCards(state, viewerId).map((c) => c.id) : null,
+    bidOptions,
     swapOffer,
     maxExchange: myTurn && state.step === "exchange" ? raubMaxExchange(state, viewerId) : 0,
     // Upisani redovi istorije se ne mijenjaju (vidi `clone` u match.ts).
@@ -99,8 +105,9 @@ export function getRaubAutoAction(state: RaubGameState, playerId: string): RaubA
   const seat = state.seats.find((s) => s.playerId === playerId);
   if (!seat) return null;
   switch (state.step) {
-    case "await_open":
-      return { type: "open" };
+    case "seven_choice":
+      // Pasivno, kao i ostali rokovi: bez štiha, okreće se nova karta.
+      return { type: "stih", take: false };
     case "bidding":
       return { type: "bid", bid: "pass" };
     case "swap_seven":

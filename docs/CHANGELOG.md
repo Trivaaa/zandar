@@ -1682,3 +1682,43 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 **Popravka:** `arrangePokerSeats` u `lib/pokerView.ts` raspoređuje po `seatNo` iz pogleda meča i zamjenjuje lijevu i desnu stranu, pa je sljedeći igrač lijevo. Motor i server su netaknuti, a snapshot se nije mijenjao. Žandar (`GameScreen`) i dalje koristi `arrangeSeats` bez izmjene.
 
 **Provjereno:** 5 novih testova (raspored po mjestima iz meča, put buttona dole → lijevo → gore → desno, 3P, 2P, igrač bez mjesta u meču), web testovi 218, typecheck, lint na izmijenjenim fajlovima. **Nije provjereno na uređaju.**
+
+## 151. Raub — pravila po feedbacku igrača: Raub samo na A/K/O/U, „Moja”, Štih nije obavezan (2026-11-14, `feat/raub-rules-v2`)
+
+**Šta (odluka 13 u `docs/raub-spec.md`, svjesna promjena pravila po odluci vlasnika):**
+- „Raub” je dozvoljen samo kad je okrenuta karta A, K, Q (O) ili J (U). I dalje nije obavezan i nosilac mora 2 štiha.
+- Nova izjava „Moja”: igrač sa sedmicom boje okrenute karte je daje za tu kartu, nosi adut i mora 2 štiha. Kazne su iste kao kod Rauba.
+  - Raub, Moja i Dalje idu u istom krugu, a adut nosi prvi koji se javi.
+  - Na 10, 9 i 8 adut se može uzeti samo „Mojom”.
+- Sedmica na talonu više nije automatska. Djelilac bira „Štih” (mora 1) ili „Dalje”, pa se odmah okreće nova karta, koja se broji u 3 okretanja prije refe.
+- Raub naslijepo je uklonjen. Djelilac vidi karte odmah.
+
+**Kako:**
+- Pravila su parametri u `RaubRules`: `raubRanks`, `stihOptional`, `mojaRequiredTricks`. Opcioni su, pa stari snapshot dobija podrazumijevane vrijednosti (`rulesV2` u `match.ts`).
+- Novi korak `seven_choice`, akcija `stih {take}` i bid `moja`. Izvučeni su `swapSeven` i `flipNext`.
+- Pogled igrača na potezu nosi `bidOptions`, pa UI crta samo dugmad koja server prima (HARD RULE 1).
+- `upgradeRaubState` (poziva ga `RaubTables.rearm`) prevodi ruku zatečenu u `await_open` u licitaciju.
+- Bot: Štih po snazi uz šum. Kod licitacije kaže Raub ili Moja, šta je dozvoljeno, po istoj procjeni snage.
+- **Stari klijenti:** `clientSupportsGame` za Raub traži i `"raub:2"` (`GAME_PROTOCOL`). APK 1.4.0 zna Raub, ali ne i nove korake, pa dobija „Za ovu igru ažuriraj aplikaciju.”, a ne sto na kojem ne može odigrati sedmicu ni Moju. Web se deploya zajedno sa serverom.
+- UI: panel sedmice (Štih / Dalje), licitacija sa „Moja · daješ 7…”, natpisi „Moja”, oznake „Štih · mora 1” i „Moja · mora 2”, pravila u `RaubRules`, dev stanja `sevenChoice`, `bidLow`, `bidNone` i `moja`.
+
+**Mjerenja (simulacija botova, staro → novo):**
+
+| Igrača | Refa | Trajanje (medijan) |
+|---|---|---|
+| 2 | 13,6 % → 30,2 % | 7,6 → 7,0 min |
+| 3 | 5,5 % → 18,6 % | 17,6 → 15,9 min |
+| 4 | 2,2 % → 11,7 % | 34,1 → 31,1 min |
+
+- Uzorci: staro 2.000 mečeva, novo 10.000.
+- Bez greške u kartama i štihovima, bez odbijenih akcija.
+- Refa raste jer na 10, 9 i 8 adut uzima samo igrač sa sedmicom te boje. Kod 2 igrača je iznad praga od 20 % iz speca. Odluka o tome je na vlasniku, pragovi bota nisu dirani.
+
+**Zamke:**
+- Serverski anti-leak test je povremeno padao. Botovi igraju dok test čita stanje, pa karta koja je u snimku bila javna (talon, „Moja”) završi u ruci bota. Javne karte su isključene iz provjere.
+- Upute iznad dugmadi su jedan red (`max-content`). Duže rečenice se sijeku na 360 px, pa su skraćene.
+
+**Provjereno:**
+- game-core Raub 56 testova, server 255, web 215. Typecheck je čist.
+- CDP snimci 360×740 i 360×640: `sevenChoice`, `bid`, `bidLow`, `bidNone`, `moja`.
+- **Nije provjereno na uređaju.**

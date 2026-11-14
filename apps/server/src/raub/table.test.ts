@@ -104,7 +104,11 @@ const lastState = (s: { log: Emitted[] }) =>
 
 describe("raub: parseRaubAction", () => {
   test("prima ispravne namjere", () => {
-    assert.deepEqual(parseRaubAction({ type: "open" }), { type: "open" });
+    assert.deepEqual(parseRaubAction({ type: "stih", take: true }), { type: "stih", take: true });
+    assert.deepEqual(parseRaubAction({ type: "bid", bid: "moja" }), { type: "bid", bid: "moja" });
+    assert.equal(parseRaubAction({ type: "open" }), null);
+    assert.equal(parseRaubAction({ type: "blind" }), null);
+    assert.equal(parseRaubAction({ type: "stih" }), null);
     assert.deepEqual(parseRaubAction({ type: "bid", bid: "raub" }), { type: "bid", bid: "raub" });
     assert.deepEqual(parseRaubAction({ type: "go", go: false }), { type: "go", go: false });
     assert.deepEqual(parseRaubAction({ type: "exchange", cardIds: ["hearts-7"], clientKnownStateVersion: 3 }), {
@@ -141,7 +145,10 @@ describe("raub: igra i stari klijent", () => {
     assert.equal(parseGameId("RAUB"), "zandar");
     assert.equal(clientSupportsGame(undefined, "raub"), false);
     assert.equal(clientSupportsGame(["zandar", "poker"], "raub"), false);
-    assert.equal(clientSupportsGame(["zandar", "poker", "raub"], "raub"), true);
+    // APK 1.4.0 zna Raub, ali ne pravila v2 (odluka 13).
+    assert.equal(clientSupportsGame(["zandar", "poker", "raub"], "raub"), false);
+    assert.equal(clientSupportsGame(["zandar", "poker", "raub", "raub:2"], "raub"), true);
+    assert.equal(clientSupportsGame(["zandar", "poker"], "poker"), true);
   });
 });
 
@@ -174,9 +181,19 @@ describe("raub: sto", () => {
     assert.ok(!json.includes("teamId"));
     assert.ok(!("deck" in p));
     assert.ok(!("discarded" in p));
+    // Botovi igraju dalje dok test čita: karta koja je u snimku bila javna
+    // (talon, uzeta sa talona — npr. „Moja") može sad biti u ruci bota.
+    const shown = new Set([
+      ...p.talon.map((c) => c.id),
+      ...(p.takenTalonCard ? [p.takenTalonCard.id] : []),
+      ...(p.openCard ? [p.openCard.card.id] : []),
+      ...p.tricks.flatMap((tr) => tr.plays.map((pl) => pl.card.id)),
+    ]);
     for (const seat of r.raub!.seats) {
       if (seat.playerId === "h") continue;
-      for (const c of seat.hand) assert.ok(!json.includes(`"${c.id}"`), `curi ${c.id}`);
+      for (const c of seat.hand) {
+        if (!shown.has(c.id)) assert.ok(!json.includes(`"${c.id}"`), `curi ${c.id}`);
+      }
     }
     for (const c of r.raub!.deck) assert.ok(!json.includes(`"${c.id}"`), `curi špil ${c.id}`);
     assert.ok(typeof p.turnDeadline === "number");
@@ -211,7 +228,7 @@ describe("raub: sto", () => {
     const { t } = setup(r);
     t.start(r);
     const notOnTurn = r.raub!.currentPlayerId === "h" ? "g" : "h";
-    assert.deepEqual(await t.act(r.id, notOnTurn, { type: "open" }), { ok: false, error: "NOT_YOUR_TURN" });
+    assert.deepEqual(await t.act(r.id, notOnTurn, { type: "bid", bid: "pass" }), { ok: false, error: "NOT_YOUR_TURN" });
     assert.deepEqual(await t.act(r.id, "h", { type: "fold" }), { ok: false, error: "INVALID_PAYLOAD" });
   });
 });
@@ -237,7 +254,7 @@ describe("raub: prekid veze, pauza i glasanje (odluka 3)", () => {
     await until(() => r.raub!.interruption?.kind === "paused");
     assert.equal(raubPausePhase(r.raub!), "paused_for_reconnect");
     const pid = r.raub!.currentPlayerId!;
-    assert.deepEqual(await t.act(r.id, pid, { type: "open" }), { ok: false, error: "GAME_PAUSED" });
+    assert.deepEqual(await t.act(r.id, pid, { type: "bid", bid: "pass" }), { ok: false, error: "GAME_PAUSED" });
     await t.onSubscribe(r.id, "g", fakeSocket("g"));
     assert.equal(r.players[1]!.connectionStatus, "connected");
     assert.equal(r.raub!.interruption, null);
@@ -297,6 +314,17 @@ describe("raub: prekid veze, pauza i glasanje (odluka 3)", () => {
     t.rearm(r);
     assert.equal(r.players[0]!.connectionStatus, "reconnecting");
     await until(() => r.raub!.interruption?.kind === "vote");
+  });
+
+  test("hidracija: ruka iz starog snapshota u await_open ide u licitaciju (odluka 13)", () => {
+    const r = room([human("h", 0), human("g", 1)]);
+    const { t } = setup(r);
+    t.start(r);
+    r.raub = { ...r.raub!, step: "await_open", dealerOpened: false, currentPlayerId: r.raub!.dealerId };
+    t.rearm(r);
+    assert.equal(r.raub!.step, "bidding");
+    assert.equal(r.raub!.dealerOpened, true);
+    t.dispose();
   });
 });
 

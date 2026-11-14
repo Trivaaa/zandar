@@ -326,7 +326,7 @@ export function RaubScreen({
 
   const hasSides = Boolean(seats.oppL || seats.oppR);
   const inTricks = state.step === "tricks" || handOver;
-  const biddingNow = state.phase === "playing" && (state.step === "await_open" || state.step === "bidding" || state.step === "swap_seven");
+  const biddingNow = state.phase === "playing" && (state.step === "seven_choice" || state.step === "bidding" || state.step === "swap_seven");
   const showSummary = handOver && !holding && state.lastHand !== null;
   const mode: "quick" | "host" | "guest" = isQuickPlay ? "quick" : me?.isHost ? "host" : "guest";
   const host = state.players.find((p) => p.isHost);
@@ -426,9 +426,8 @@ export function RaubScreen({
               busy={busy}
               selectedCount={picked.length}
               deckCount={state.deckCount}
-              onOpen={() => void act({ type: "open" })}
-              onBlind={() => void act({ type: "blind" })}
-              onBid={(raub) => void act({ type: "bid", bid: raub ? "raub" : "pass" })}
+              onStih={(take) => void act({ type: "stih", take })}
+              onBid={(bid) => void act({ type: "bid", bid })}
               onSwap={(swap) => void act({ type: "swap_seven", swap })}
               onDiscard={() => picked[0] && void act({ type: "discard", cardId: picked[0] })}
               onGo={(go) => void act({ type: "go", go })}

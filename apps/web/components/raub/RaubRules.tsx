@@ -25,21 +25,27 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
         <SectionTitle>👑 Ko nosi adut</SectionTitle>
         <ul className="list-disc pl-5 space-y-1">
           <li>
-            <b>Sedmica na talonu:</b> djelilac nosi tu boju, uzima sedmicu i mora 1 štih.
+            <b>Štih:</b> kad je na talonu sedmica, djelilac smije reći „Štih”: uzima je, nosi tu boju i mora 1 štih.
+            Nije obavezno — ako kaže „Dalje”, okreće se nova karta.
           </li>
           <li>
-            <b>Raub naslijepo:</b> djelilac, prije nego pogleda karte, uzme talon kartu i mora 2 štiha.
+            <b>Raub:</b> samo kad je na talonu A, K, O ili U. Redom, od djelioca, svako kaže „Raub” ili „Dalje”. Prvi
+            koji kaže „Raub” nosi boju talona i mora 2 štiha. Nije obavezno. Ako ima sedmicu te boje, smije je
+            zamijeniti za talon kartu.
           </li>
           <li>
-            <b>Licitacija:</b> redom, od djelioca, svako kaže „Raub” ili „Dalje”. Prvi koji kaže „Raub” nosi boju
-            talona i mora 2 štiha. Ako ima sedmicu te boje, smije je zamijeniti za talon kartu.
+            <b>Moja:</b> ko ima sedmicu boje talona, u istom krugu smije reći „Moja” (i na 10, 9 ili 8): daje sedmicu,
+            uzima talon kartu, nosi tu boju i mora 2 štiha.
           </li>
           <li>
             Ako svi kažu „Dalje”, okreće se nova karta (najviše 3). Ako niko ne uzme ni treću, to je <b>refa</b>: ruka
             se poništava, a sljedeća se boduje duplo.
           </li>
         </ul>
-        <p className="text-muted mt-2">Ko uzme talon kartu, ima 5 karata i odmah odbacuje jednu (ne tu kartu).</p>
+        <p className="text-muted mt-2">
+          Kod štiha djelilac ima 5 karata i odmah odbacuje jednu (ne sedmicu). Kod „Moja” i zamjene sedmice broj karata
+          ostaje 4.
+        </p>
       </section>
 
       <section>
@@ -73,7 +79,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
         <ul className="list-disc pl-5 space-y-1">
           <li>Svaki štih: −1.</li>
           <li>Bez ijednog štiha: +2.</li>
-          <li>Sedmica (mora 1) bez štiha: +3.</li>
+          <li>Štih (mora 1) bez štiha: +3.</li>
           <li>Nosilac koji mora 2: jedan štih +3, nijedan +4.</li>
           <li>„Ne idem”: 0.</li>
           <li>Poslije refe sljedeća odigrana ruka ide duplo. Svaka refa duplira po jednu ruku.</li>

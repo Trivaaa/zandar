@@ -264,5 +264,14 @@ export interface PokerGamePayload extends PokerPlayerView {
  */
 export function clientSupportsGame(games: unknown, game: GameId): boolean {
   if (game === "zandar") return true;
-  return Array.isArray(games) && games.includes(game);
+  if (!Array.isArray(games) || !games.includes(game)) return false;
+  const protocol = GAME_PROTOCOL[game];
+  return protocol === undefined || games.includes(protocol);
 }
+
+/**
+ * Oznaka verzije pravila koju klijent mora javiti uz igru. Raub 2 = odluka 13
+ * (Štih / Moja, bez rauba naslijepo): APK 1.4.0 zna Raub, ali ne i nove
+ * korake, pa dobija „ažuriraj aplikaciju" umjesto stola koji ne radi.
+ */
+export const GAME_PROTOCOL: Partial<Record<GameId, string>> = { raub: "raub:2" };

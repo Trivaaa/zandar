@@ -10,6 +10,7 @@ import type {
 } from "@zandar/shared-types";
 import { shuffleWith } from "../shuffle";
 import { beats, createRaubDeck, isSeven, trickWinnerIndex } from "./cards";
+import { DEFAULT_RAUB_RULES } from "./config";
 
 /** Generator u [0, 1). Server daje kriptografski, testovi seeded. */
 export type RaubRng = () => number;
@@ -85,6 +86,31 @@ function firstBidderId(state: RaubGameState): string {
   return state.rules.firstBidder === "dealer"
     ? state.dealerId
     : nextRaubPlayerId(state, state.dealerId);
+}
+
+/**
+ * Pravila odluke 13 sa podrazumijevanim vrijednostima: stari snapshot (prije
+ * 14.11.2026) nema ta polja u `state.rules`.
+ */
+function rulesV2(state: Pick<RaubGameState, "rules">) {
+  return {
+    raubRanks: state.rules.raubRanks ?? DEFAULT_RAUB_RULES.raubRanks!,
+    stihOptional: state.rules.stihOptional ?? DEFAULT_RAUB_RULES.stihOptional!,
+    mojaRequiredTricks: state.rules.mojaRequiredTricks ?? DEFAULT_RAUB_RULES.mojaRequiredTricks!,
+  };
+}
+
+/** Smije li se na ponuđenu kartu reći „Raub" (odluka 13: A, K, Q, J). */
+export function raubCanRaub(state: Pick<RaubGameState, "rules" | "talon">): boolean {
+  const card = state.talon.at(-1);
+  return !!card && !isSeven(card) && rulesV2(state).raubRanks.includes(card.rank);
+}
+
+/** Smije li igrač reći „Moja": drži sedmicu boje ponuđene karte. */
+export function raubCanMoja(state: RaubGameState, playerId: string): boolean {
+  const card = state.talon.at(-1);
+  if (!card) return false;
+  return seatOf(state, playerId).hand.some((c) => isSeven(c) && c.suit === card.suit);
 }
 
 function draw(state: RaubGameState, count: number): Card[] {
@@ -216,17 +242,18 @@ function startHand(
   state.talonFlips = 1;
   for (const id of order) seatOf(state, id).hand.push(...draw(state, 2));
 
+  // Nema više rauba naslijepo (odluka 13): djelilac odmah vidi svoje karte.
+  state.dealerOpened = true;
   const offered = state.talon[0]!;
   if (isSeven(offered)) {
-    // Scenarij 1: sedmica — djelilac automatski nosi adut i mora 1 štih.
-    state.scenario = "seven";
-    state.dealerOpened = true;
-    declare(state, state.dealerId, 1);
-    takeTalon(state, state.dealerId);
-    toDiscardExtra(state, state.dealerId);
+    if (rulesV2(state).stihOptional) {
+      // Sedmica: djelilac bira „Štih" (mora 1) ili „Dalje" (nova karta).
+      state.step = "seven_choice";
+      state.currentPlayerId = state.dealerId;
+    } else takeStih(state);
   } else {
-    state.step = "await_open";
-    state.currentPlayerId = state.dealerId;
+    state.step = "bidding";
+    state.currentPlayerId = firstBidderId(state);
   }
   state.stateVersion += 1;
   return state;
@@ -250,6 +277,42 @@ function takeTalon(state: RaubGameState, playerId: string): void {
   seatOf(state, playerId).hand.push(card);
   state.talonTakenBy = playerId;
   state.lockedCardId = card.id;
+}
+
+/** Scenarij 1: djelilac uzima sedmicu s talona, nosi adut i mora 1 štih. */
+function takeStih(state: RaubGameState): void {
+  state.scenario = "seven";
+  declare(state, state.dealerId, 1);
+  takeTalon(state, state.dealerId);
+  toDiscardExtra(state, state.dealerId);
+}
+
+/** Sedmica boje ponuđene karte iz ruke ide na talon, a ponuđena karta u ruku (zaključana). */
+function swapSeven(state: RaubGameState, playerId: string): void {
+  const seat = seatOf(state, playerId);
+  const suit = offeredCard(state).suit;
+  const i = seat.hand.findIndex((c) => isSeven(c) && c.suit === suit);
+  if (i < 0) throw new Error("INVALID_ACTION");
+  const [seven] = seat.hand.splice(i, 1);
+  takeTalon(state, playerId);
+  // Sedmica ide na mjesto uzete karte — svi su je ionako vidjeli kao zamjenu.
+  state.talon.push(seven!);
+}
+
+/**
+ * Niko nije uzeo ponuđenu kartu: nova karta na talon (prethodna ostaje
+ * prigušena ispod), a poslije `maxTalonFlips` karata refa.
+ */
+function flipNext(state: RaubGameState): void {
+  if (state.talonFlips >= state.rules.maxTalonFlips) {
+    voidHand(state);
+    return;
+  }
+  state.talon.push(...draw(state, 1));
+  state.talonFlips += 1;
+  for (const s of state.seats) s.bid = null;
+  state.step = "bidding";
+  state.currentPlayerId = firstBidderId(state);
 }
 
 function toDiscardExtra(state: RaubGameState, playerId: string): void {
@@ -454,28 +517,29 @@ export function applyRaubAction(
   const step = state.step;
 
   switch (request.type) {
-    case "open": {
-      if (step !== "await_open") throw new Error("INVALID_ACTION");
-      state.dealerOpened = true;
-      state.step = "bidding";
-      state.currentPlayerId = firstBidderId(state);
-      break;
-    }
-    case "blind": {
-      if (step !== "await_open") throw new Error("INVALID_ACTION");
-      // Scenarij 2: raub naslijepo — djelilac uzima talon i mora 2 štiha.
-      state.scenario = "blind";
-      state.dealerOpened = true;
-      declare(state, playerId, 2);
-      takeTalon(state, playerId);
-      toDiscardExtra(state, playerId);
+    case "stih": {
+      if (step !== "seven_choice") throw new Error("INVALID_ACTION");
+      if (typeof request.take !== "boolean") throw new Error("INVALID_ACTION");
+      if (request.take) takeStih(state);
+      else flipNext(state);
       break;
     }
     case "bid": {
       if (step !== "bidding") throw new Error("INVALID_ACTION");
-      if (request.bid !== "raub" && request.bid !== "pass") throw new Error("INVALID_ACTION");
-      seat.bid = request.bid;
-      if (request.bid === "raub") {
+      const bid = request.bid;
+      if (bid !== "raub" && bid !== "moja" && bid !== "pass") throw new Error("INVALID_ACTION");
+      if (bid === "raub" && !raubCanRaub(state)) throw new Error("INVALID_ACTION");
+      if (bid === "moja" && !raubCanMoja(state, playerId)) throw new Error("INVALID_ACTION");
+      seat.bid = bid;
+      if (bid === "moja") {
+        // „Moja": sedmica te boje za kartu s talona; nosi adut, mora 2 (odluka 13).
+        state.scenario = "moja";
+        declare(state, playerId, rulesV2(state).mojaRequiredTricks);
+        swapSeven(state, playerId);
+        afterTrump(state);
+        break;
+      }
+      if (bid === "raub") {
         // Scenarij 3: prvi koji kaže „Raub" nosi boju ponuđene karte, mora 2.
         state.scenario = "bid";
         declare(state, playerId, 2);
@@ -487,15 +551,7 @@ export function applyRaubAction(
         break;
       }
       if (state.seats.every((s) => s.bid === "pass")) {
-        if (state.talonFlips >= state.rules.maxTalonFlips) {
-          voidHand(state);
-          break;
-        }
-        // Svi „Dalje": nova karta na talon (prethodna ostaje prigušena ispod).
-        state.talon.push(...draw(state, 1));
-        state.talonFlips += 1;
-        for (const s of state.seats) s.bid = null;
-        state.currentPlayerId = firstBidderId(state);
+        flipNext(state);
       } else {
         state.currentPlayerId = nextRaubPlayerId(state, playerId);
       }
@@ -503,14 +559,7 @@ export function applyRaubAction(
     }
     case "swap_seven": {
       if (step !== "swap_seven") throw new Error("INVALID_ACTION");
-      if (request.swap) {
-        const i = seat.hand.findIndex((c) => isSeven(c) && c.suit === state.trumpSuit);
-        if (i < 0) throw new Error("INVALID_ACTION");
-        const [seven] = seat.hand.splice(i, 1);
-        takeTalon(state, playerId);
-        // Sedmica ide na mjesto uzete karte — svi su je ionako vidjeli kao zamjenu.
-        state.talon.push(seven!);
-      }
+      if (request.swap) swapSeven(state, playerId);
       afterTrump(state);
       break;
     }
@@ -600,6 +649,21 @@ export function applyRaubAction(
       throw new Error("INVALID_ACTION");
   }
 
+  state.stateVersion += 1;
+  return state;
+}
+
+/**
+ * Stanje iz snapshota prije odluke 13 (deploy = restart = hidracija). Ruka
+ * zatečena u `await_open` (djelilac još bira raub naslijepo) ide pravo u
+ * licitaciju, sa otvorenim kartama. Novo stanje se vraća bez izmjene.
+ */
+export function upgradeRaubState(prev: RaubGameState): RaubGameState {
+  if (prev.phase !== "playing" || prev.step !== "await_open") return prev;
+  const state = clone(prev);
+  state.dealerOpened = true;
+  state.step = "bidding";
+  state.currentPlayerId = firstBidderId(state);
   state.stateVersion += 1;
   return state;
 }

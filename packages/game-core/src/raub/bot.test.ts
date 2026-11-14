@@ -42,6 +42,38 @@ describe("raub bot", () => {
     expect(s.phase).toBe("match_finished");
   });
 
+  it("odluka 13: Raub samo kad je dozvoljen, Moja samo sa sedmicom, Štih ponekad", () => {
+    const rng = makeLcg(21);
+    const seen = { raub: 0, moja: 0, stihYes: 0, stihNo: 0 };
+    for (let m = 0; m < 30; m++) {
+      let s = createRaubMatch({ roomId: "r", matchId: `m${m}`, playerIds: ["a", "b", "c", "d"], rules: createRaubRules(4), rng });
+      for (let i = 0; i < 3000 && s.phase !== "match_finished"; i++) {
+        if (s.phase === "hand_complete") {
+          s = startRaubHand(s, rng);
+          continue;
+        }
+        const pid = s.currentPlayerId!;
+        const view = getRaubView(s, pid);
+        const action = selectRaubBotAction(view, DEFAULT_RAUB_BOT_CONFIG, rng);
+        if (action.type === "bid" && action.bid === "raub") {
+          expect(["A", "K", "Q", "J"]).toContain(view.talon.at(-1)!.rank);
+          seen.raub += 1;
+        }
+        if (action.type === "bid" && action.bid === "moja") {
+          const offered = view.talon.at(-1)!;
+          expect(view.myCards.some((c) => c.rank === "7" && c.suit === offered.suit)).toBe(true);
+          seen.moja += 1;
+        }
+        if (action.type === "stih") seen[action.take ? "stihYes" : "stihNo"] += 1;
+        s = applyRaubAction(s, pid, action);
+      }
+    }
+    expect(seen.raub).toBeGreaterThan(0);
+    expect(seen.moja).toBeGreaterThan(0);
+    expect(seen.stihYes).toBeGreaterThan(0);
+    expect(seen.stihNo).toBeGreaterThan(0);
+  });
+
   it("baca grešku kad nije na potezu", () => {
     const s = createRaubMatch({
       roomId: "r",

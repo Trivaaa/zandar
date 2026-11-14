@@ -38,6 +38,7 @@ export function phaseLabel(v: Pick<RaubPlayerView, "phase" | "step" | "tricks">)
   if (v.phase === "match_finished" || v.phase === "abandoned") return sr.raub.phase.matchEnd;
   if (v.phase === "hand_complete") return sr.raub.phase.handEnd;
   switch (v.step) {
+    case "seven_choice":
     case "await_open":
     case "bidding":
     case "swap_seven":
@@ -57,8 +58,9 @@ export function phaseLabel(v: Pick<RaubPlayerView, "phase" | "step" | "tricks">)
 
 /** Šta se crta u panelu nad rukom. */
 export type RaubPanel =
-  | { kind: "open" }
-  | { kind: "bid"; suit: Suit }
+  | { kind: "seven"; card: Card }
+  /** `raub`/`moja`: šta server dozvoljava (`bidOptions`); `seven` je moja sedmica te boje. */
+  | { kind: "bid"; card: Card; raub: boolean; moja: boolean; seven: Card | null }
   | { kind: "swap"; seven: Card; talon: Card }
   | { kind: "discard" }
   | { kind: "going"; trump: Suit; declarerName: string; required: number }
@@ -74,11 +76,18 @@ export function panelFor(
   if (v.phase !== "playing" || !v.currentPlayerId) return { kind: "none" };
   if (v.currentPlayerId !== v.myPlayerId) return { kind: "wait", name: nameOf(v.currentPlayerId) };
   switch (v.step) {
-    case "await_open":
-      return { kind: "open" };
+    case "seven_choice": {
+      const seven = v.talon.at(-1);
+      return seven ? { kind: "seven", card: seven } : { kind: "none" };
+    }
     case "bidding": {
       const offered = v.talon.at(-1);
-      return offered ? { kind: "bid", suit: offered.suit } : { kind: "none" };
+      if (!offered) return { kind: "none" };
+      const options = v.bidOptions ?? { raub: false, moja: false };
+      const seven = options.moja
+        ? (v.myCards.find((c) => c.rank === "7" && c.suit === offered.suit) ?? null)
+        : null;
+      return { kind: "bid", card: offered, raub: options.raub, moja: options.moja && seven !== null, seven };
     }
     case "swap_seven":
       return v.swapOffer ? { kind: "swap", ...v.swapOffer } : { kind: "none" };
@@ -138,6 +147,7 @@ export function seatCaptionText(v: RaubPlayerView, seat: RaubSeatView): string |
   if (v.phase !== "playing") return null;
   if (v.step === "await_open" || v.step === "bidding") {
     if (seat.bid === "raub") return sr.raub.bid.raub;
+    if (seat.bid === "moja") return sr.raub.bid.moja;
     if (seat.bid === "pass") return sr.raub.bid.pass;
     return null;
   }
@@ -153,10 +163,15 @@ export function seatCaptionText(v: RaubPlayerView, seat: RaubSeatView): string |
   return null;
 }
 
-/** Oznaka nosioca uz avatar: „Raub · mora 2" (ili „Sedmica · mora 1") i uzeto/obaveza. */
+/** Oznaka nosioca uz avatar: „Raub · mora 2" („Štih · mora 1", „Moja · mora 2") i uzeto/obaveza. */
 export function declarerTag(v: RaubPlayerView, seat: RaubSeatView): { label: string; progress: string | null } | null {
   if (seat.playerId !== v.declarerId || v.phase === "match_finished" || v.phase === "abandoned") return null;
-  const label = v.scenario === "seven" ? sr.raub.declarer.seven(v.requiredTricks) : sr.raub.declarer.raub(v.requiredTricks);
+  const label =
+    v.scenario === "seven"
+      ? sr.raub.declarer.seven(v.requiredTricks)
+      : v.scenario === "moja"
+        ? sr.raub.declarer.moja(v.requiredTricks)
+        : sr.raub.declarer.raub(v.requiredTricks);
   const progress = v.step === "tricks" || v.phase === "hand_complete" ? `${seat.tricks}/${v.requiredTricks}` : null;
   return { label, progress };
 }

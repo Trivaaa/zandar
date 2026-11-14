@@ -33,7 +33,7 @@ const pct = (xs: number[], p: number) => sorted(xs)[Math.min(xs.length - 1, Math
 const hands = r.matches.map((m) => m.hands);
 const totalHands = hands.reduce((a, b) => a + b, 0);
 const voids = r.matches.reduce((a, m) => a + m.voidHands, 0);
-const sum = (k: "seven" | "blind" | "bid") => r.matches.reduce((a, m) => a + m[k], 0);
+const sum = (k: "seven" | "blind" | "bid" | "moja") => r.matches.reduce((a, m) => a + m[k], 0);
 const minutes = r.matches.map((m) => {
   const actionsPerSeat = m.actions / players;
   const humanMs = actionsPerSeat * HUMAN_MS;
@@ -44,5 +44,5 @@ const minutes = r.matches.map((m) => {
 console.log(`Raub: ${matches} mečeva × ${players} igrača, seed ${seed} (${elapsed} ms)`);
 console.log(`greške karata ${r.cardErrors} · greške štihova ${r.trickErrors} · odbijene akcije ${r.illegalActions} · zaglavljeni ${r.stuck}`);
 console.log(`ruke po meču: medijan ${pct(hands, 0.5)}, p10 ${pct(hands, 0.1)}, p90 ${pct(hands, 0.9)}`);
-console.log(`refa: ${((voids / totalHands) * 100).toFixed(1)}% ruku · sedmica ${sum("seven")} · naslijepo ${sum("blind")} · licitacija ${sum("bid")}`);
+console.log(`refa: ${((voids / totalHands) * 100).toFixed(1)}% ruku · štih ${sum("seven")} · raub ${sum("bid")} · moja ${sum("moja")}`);
 console.log(`procjena trajanja (min): medijan ${pct(minutes, 0.5).toFixed(1)}, p10 ${pct(minutes, 0.1).toFixed(1)}, p90 ${pct(minutes, 0.9).toFixed(1)}`);

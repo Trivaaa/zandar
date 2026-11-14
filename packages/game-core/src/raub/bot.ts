@@ -10,11 +10,11 @@ import { beats, isSeven, raubRankValue, trickWinnerIndex, weakestCard } from "./
  * (HARD RULE 7).
  */
 export interface RaubBotConfig {
-  /** Raub naslijepo: samo uz A ili K na talonu i kad je bot ovoliko bodova iza vodećeg. */
-  blindBehindBy: number;
-  /** Vjerovatnoća rauba naslijepo kad su uslovi ispunjeni. */
-  blindP: number;
-  /** Licitacija: najmanje aduta (uz talon kartu ako je dobija zamjenom sedmice). */
+  /** Štih na sedmicu: najmanje aduta računajući i tu sedmicu (ili as/kralj sa strane). */
+  stihMinTrumps: number;
+  /** Vjerovatnoća štiha i sa slabom rukom (mora samo 1). */
+  stihLooseP: number;
+  /** Licitacija (Raub i Moja): najmanje aduta (uz talon kartu ako je dobija zamjenom sedmice). */
   bidMinTrumps: number;
   /** Ili jedan jak adut (A, K) i ovoliko aseva sa strane. */
   bidStrongTrumpSideAces: number;
@@ -35,8 +35,8 @@ export interface RaubBotConfig {
 }
 
 export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
-  blindBehindBy: 4,
-  blindP: 0.6,
+  stihMinTrumps: 2,
+  stihLooseP: 0.25,
   bidMinTrumps: 2,
   bidStrongTrumpSideAces: 1,
   lastFlipLeniency: 0,
@@ -51,10 +51,6 @@ export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
 };
 
 const isHigh = (c: Card) => c.rank === "A" || c.rank === "K";
-
-function myScore(view: RaubPlayerView): number {
-  return view.seats.find((s) => s.playerId === view.myPlayerId)?.score ?? 0;
-}
 
 /** Procjena ruke za boju `suit`: broj aduta i da li uz jak adut ima as sa strane. */
 function strengthFor(hand: readonly Card[], suit: Suit, talon: Card | null) {
@@ -86,20 +82,26 @@ export function selectRaubBotAction(
   const hand = view.myCards;
 
   switch (view.step) {
-    case "await_open": {
-      const offered = view.talon.at(-1);
-      const best = Math.min(...view.seats.map((s) => s.score));
-      const behind = myScore(view) - best >= config.blindBehindBy;
-      if (offered && isHigh(offered) && behind && rng() < config.blindP) return { type: "blind" };
-      return { type: "open" };
+    case "seven_choice": {
+      // Sedmica na talonu: sa njom u ruci, mora samo 1 štih.
+      const seven = view.talon.at(-1)!;
+      const trumps = hand.filter((c) => c.suit === seven.suit).length + 1;
+      const sideHigh = hand.some((c) => c.suit !== seven.suit && isHigh(c));
+      const take = trumps >= config.stihMinTrumps || sideHigh || rng() < config.stihLooseP;
+      return { type: "stih", take };
     }
     case "bidding": {
+      // Server kaže šta je dozvoljeno (Raub samo na A/K/Q/J, Moja samo sa sedmicom).
+      const options = view.bidOptions ?? { raub: false, moja: false };
+      if (!options.raub && !options.moja) return { type: "bid", bid: "pass" };
       const offered = view.talon.at(-1)!;
       const s = strengthFor(hand, offered.suit, offered);
       const lastFlip = view.talonFlips >= view.rules.maxTalonFlips;
       const need = config.bidMinTrumps - (lastFlip ? config.lastFlipLeniency : 0) + jitter(rng, config.noiseP);
       const strong = s.strongTrump && s.sideAces >= config.bidStrongTrumpSideAces;
-      return { type: "bid", bid: s.trumps >= Math.max(1, need) || strong ? "raub" : "pass" };
+      if (!(s.trumps >= Math.max(1, need) || strong)) return { type: "bid", bid: "pass" };
+      // Isti ugovor (mora 2); Raub uz sedmicu ionako nudi zamjenu poslije.
+      return { type: "bid", bid: options.raub ? "raub" : "moja" };
     }
     case "swap_seven":
       // Talon karta je uvijek jača od sedmice iste boje.
@@ -181,7 +183,7 @@ function choosePlay(view: RaubPlayerView, config: RaubBotConfig, rng: () => numb
   return winners.filter((c) => c.suit === winners[0]!.suit).sort(byRank).at(-1)!;
 }
 
-/** Vrijeme odluke 1–3 s, nasumično (spec). */
+/** Vrijeme odluke, nasumično (odluka 11: 2,5–7 s). */
 export function raubBotThinkMs(
   config: RaubBotConfig = DEFAULT_RAUB_BOT_CONFIG,
   rng: () => number = Math.random,

@@ -34,6 +34,7 @@ export interface RaubSimMatch {
   seven: number;
   blind: number;
   bid: number;
+  moja: number;
 }
 
 export interface RaubSimResult {
@@ -70,7 +71,7 @@ export function simulateRaubMatches(opts: RaubSimOptions): RaubSimResult {
       rules: createRaubRules(opts.players),
       rng,
     });
-    const rec: RaubSimMatch = { hands: 0, voidHands: 0, actions: 0, thinkMs: 0, seven: 0, blind: 0, bid: 0 };
+    const rec: RaubSimMatch = { hands: 0, voidHands: 0, actions: 0, thinkMs: 0, seven: 0, blind: 0, bid: 0, moja: 0 };
     check(s);
 
     while (!isRaubMatchFinished(s)) {

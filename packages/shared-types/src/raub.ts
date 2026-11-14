@@ -3,7 +3,7 @@
 // Spec: docs/raub-spec.md
 // ====================================================
 
-import type { AbandonVote, Card, PublicPlayer, Suit } from "./index";
+import type { AbandonVote, Card, PublicPlayer, Rank, Suit } from "./index";
 
 /**
  * Pravila stola. Izbori iz tabele „Gdje se izvori razilaze" su parametri
@@ -30,6 +30,15 @@ export interface RaubRules {
    */
   allowDrop: boolean;
   turnTimeoutSeconds: number;
+  /**
+   * Rangovi na koje se smije reći „Raub" (odluka 13: samo A, K, Q, J).
+   * Opciono: stari snapshot ga nema → podrazumijevano iz `DEFAULT_RAUB_RULES`.
+   */
+  raubRanks?: Rank[];
+  /** Sedmica na talonu: djelilac bira „Štih" ili „Dalje" (odluka 13). Bez polja = da. */
+  stihOptional?: boolean;
+  /** Koliko štihova mora igrač koji kaže „Moja" (odluka 13). Bez polja = 2. */
+  mojaRequiredTricks?: number;
 }
 
 /**
@@ -41,12 +50,15 @@ export interface RaubRules {
 export type RaubPhase = "playing" | "hand_complete" | "match_finished" | "abandoned";
 
 /**
- * Korak ruke. `await_open`: djelilac bira Otvori karte / Raub naslijepo.
+ * Korak ruke. `seven_choice`: sedmica je na talonu, djelilac bira Štih / Dalje.
+ * `await_open`: SAMO stari snapshot (raub naslijepo je uklonjen, odluka 13) —
+ * hidracija ga prevodi u `bidding`, motor ga više ne pravi.
  * `swap_seven`: nosilac iz licitacije bira zamjenu sedmice za talon.
  * `discard_extra`: igrač sa 5 karata odbacuje jednu.
  * `going`: igrači osim nosioca biraju Idem / Ne idem.
  */
 export type RaubStep =
+  | "seven_choice"
   | "await_open"
   | "bidding"
   | "swap_seven"
@@ -55,15 +67,18 @@ export type RaubStep =
   | "exchange"
   | "tricks";
 
-/** 1 = sedmica na talonu, 2 = raub naslijepo, 3 = licitacija. */
-export type RaubScenario = "seven" | "blind" | "bid";
+/**
+ * `seven` = Štih na sedmicu (mora 1), `bid` = Raub (mora 2), `moja` = sedmica
+ * te boje zamijenjena za kartu sa talona (mora 2). `blind` (raub naslijepo)
+ * je uklonjen (odluka 13) i ostaje samo u istoriji starih mečeva.
+ */
+export type RaubScenario = "seven" | "blind" | "bid" | "moja";
 
-export type RaubBid = "raub" | "pass";
+export type RaubBid = "raub" | "moja" | "pass";
 
 /** Namjera klijenta (socket `raub:action`). */
 export type RaubAction =
-  | { type: "open" }
-  | { type: "blind" }
+  | { type: "stih"; take: boolean }
   | { type: "bid"; bid: RaubBid }
   | { type: "swap_seven"; swap: boolean }
   | { type: "go"; go: boolean }
@@ -185,7 +200,10 @@ export interface RaubGameState {
   talonTakenBy: string | null;
   /** Karta s talona u ruci — ne smije se odbaciti. */
   lockedCardId: string | null;
-  /** Djelilac je otvorio karte (ili raubovao naslijepo, ili je sedmica). */
+  /**
+   * Nasljeđe rauba naslijepo (djelilac je otvorio karte). Od odluke 13 uvijek
+   * `true` u novim rukama; ostaje zbog oblika snapshota.
+   */
   dealerOpened: boolean;
 
   trumpSuit: Suit | null;
@@ -229,6 +247,13 @@ export interface RaubSeatView {
   place: number | null;
 }
 
+export interface RaubBidOptions {
+  /** Karta na talonu je A, K, Q ili J. */
+  raub: boolean;
+  /** Gledalac drži sedmicu boje karte na talonu. */
+  moja: boolean;
+}
+
 /** Ponuda zamjene sedmice nosiocu (scenarij 3). */
 export interface RaubSwapOffer {
   seven: Card;
@@ -237,7 +262,7 @@ export interface RaubSwapOffer {
 
 /**
  * Ono što jedan igrač (ili bot) smije vidjeti. Nikad špil, tuđe ruke ni
- * odbačene karte. Djelilac ne dobija svoje karte dok ih ne otvori.
+ * odbačene karte.
  */
 export interface RaubPlayerView {
   game: "raub";
@@ -278,13 +303,18 @@ export interface RaubPlayerView {
 
   myPlayerId: string;
   myCards: Card[];
-  /** Djelilac prije otvaranja: karte su tu, ali licem nadolje. */
+  /** Uvijek `false` od odluke 13 (nema više rauba naslijepo); polje ostaje za stare klijente. */
   myCardsHidden: boolean;
   /** Moja karta s talona (zaključana). */
   lockedCardId: string | null;
 
   /** Samo kad je gledalac na potezu u štihu. */
   legalCardIds: string[] | null;
+  /**
+   * Šta gledalac smije reći u licitaciji; samo kad je na potezu u `bidding`.
+   * Server je sudija — UI samo crta dugmad koja su ovdje dozvoljena.
+   */
+  bidOptions: RaubBidOptions | null;
   /** Samo nosiocu u koraku `swap_seven`. */
   swapOffer: RaubSwapOffer | null;
   /** Najviše karata koje gledalac smije zamijeniti (ograničeno špilom i zaključanom kartom). */

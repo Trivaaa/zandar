@@ -459,14 +459,16 @@ export const sr = {
     deckEmpty: "Špil je prazan",
     talonTaken: (name: string) => `Uzima: ${name}`,
     talonTakenMe: "Uzimaš ti",
-    open: {
-      hint: "Ti dijeliš. Karte još nisu otvorene.",
-      open: "Otvori karte",
-      blind: "Raub naslijepo",
-      blindNote: "moraš 2 štiha",
+    seven: {
+      hint: (card: string) => `Na stolu je ${card} — štih nije obavezan.`,
+      take: "Štih",
+      takeNote: "moraš 1 štih",
     },
     bidHint: (suit: string) => `Uzmeš li ${suit}, moraš 2 štiha.`,
-    bid: { raub: "Raub", pass: "Dalje" },
+    bidHintMoja: (seven: string, card: string) => `Imaš ${seven} — „Moja” uzima ${card}.`,
+    bidHintNone: (card: string) => `Na ${card} nema rauba (samo A, K, O, U).`,
+    bid: { raub: "Raub", moja: "Moja", pass: "Dalje", stih: "Štih" },
+    bidNote: { raub: "moraš 2 štiha", moja: (seven: string) => `daješ ${seven}` },
     swap: {
       hint: (seven: string, talon: string) => `Imaš ${seven} — zamijeniti je za ${talon} s talona?`,
       no: "Ne",
@@ -502,7 +504,8 @@ export const sr = {
     },
     declarer: {
       raub: (n: number) => `Raub · mora ${n}`,
-      seven: (n: number) => `Sedmica · mora ${n}`,
+      seven: (n: number) => `Štih · mora ${n}`,
+      moja: (n: number) => `Moja · mora ${n}`,
       short: (n: number) => `Mora ${n}`,
     },
     seat: {

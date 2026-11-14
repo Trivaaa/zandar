@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import type { Card, PublicPlayer, RaubHandResult, RaubSeatView, Suit } from "@zandar/shared-types";
+import type { Card, PublicPlayer, RaubBid, RaubHandResult, RaubSeatView, Suit } from "@zandar/shared-types";
 
 import { CardBack } from "@/components/felt/CardBack";
 import { PlayingCard } from "@/components/felt/PlayingCard";
@@ -177,8 +177,7 @@ export function ActionPanel({
   busy,
   selectedCount,
   deckCount,
-  onOpen,
-  onBlind,
+  onStih,
   onBid,
   onSwap,
   onDiscard,
@@ -190,9 +189,8 @@ export function ActionPanel({
   /** Označene karte (zamjena / odbacivanje). */
   selectedCount: number;
   deckCount: number;
-  onOpen: () => void;
-  onBlind: () => void;
-  onBid: (raub: boolean) => void;
+  onStih: (take: boolean) => void;
+  onBid: (bid: RaubBid) => void;
   onSwap: (swap: boolean) => void;
   onDiscard: () => void;
   onGo: (go: boolean) => void;
@@ -213,29 +211,54 @@ export function ActionPanel({
           <span className="rb-panel__wait">{sr.raub.waitingFor(panel.name)}</span>
         </div>
       );
-    case "open":
+    case "seven":
       return (
         <div className="rb-panel">
-          <p className="rb-panel__hint">{sr.raub.open.hint}</p>
-          {btn("pass", sr.raub.open.open, onOpen)}
+          <p className="rb-panel__hint">{withSuits(sr.raub.seven.hint(cardLabel(panel.card)))}</p>
+          {btn("pass", sr.raub.bid.pass, () => onStih(false))}
           {btn(
             "accent",
             <span className="rb-panel__two">
-              {sr.raub.open.blind}
-              <small>{sr.raub.open.blindNote}</small>
+              {sr.raub.seven.take}
+              <small>{sr.raub.seven.takeNote}</small>
             </span>,
-            onBlind,
+            () => onStih(true),
           )}
         </div>
       );
-    case "bid":
+    case "bid": {
+      const hint = panel.raub
+        ? sr.raub.bidHint(SUIT_SYMBOL[panel.card.suit])
+        : panel.moja && panel.seven
+          ? sr.raub.bidHintMoja(cardLabel(panel.seven), cardLabel(panel.card))
+          : sr.raub.bidHintNone(cardLabel(panel.card));
       return (
         <div className="rb-panel">
-          <p className="rb-panel__hint">{withSuits(sr.raub.bidHint(SUIT_SYMBOL[panel.suit]))}</p>
-          {btn("pass", sr.raub.bid.pass, () => onBid(false))}
-          {btn("accent", sr.raub.bid.raub, () => onBid(true))}
+          <p className="rb-panel__hint">{withSuits(hint)}</p>
+          {btn("pass", sr.raub.bid.pass, () => onBid("pass"))}
+          {panel.moja && panel.seven
+            ? btn(
+                panel.raub ? "main" : "accent",
+                <span className="rb-panel__two">
+                  {sr.raub.bid.moja}
+                  <small>{withSuits(sr.raub.bidNote.moja(cardLabel(panel.seven)))}</small>
+                </span>,
+                () => onBid("moja"),
+              )
+            : null}
+          {panel.raub
+            ? btn(
+                "accent",
+                <span className="rb-panel__two">
+                  {sr.raub.bid.raub}
+                  <small>{sr.raub.bidNote.raub}</small>
+                </span>,
+                () => onBid("raub"),
+              )
+            : null}
         </div>
       );
+    }
     case "swap":
       return (
         <div className="rb-panel">

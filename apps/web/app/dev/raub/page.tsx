@@ -23,8 +23,11 @@ import { useQueryParam } from "@/lib/useQuery";
  * sjemena dok ne stignu do traženog koraka, pa je svako stanje moguće u igri.
  * Ti si uvijek `p0` (dolje).
  *
- *   /dev/raub?s=open&n=4      4 · djelilac prije otvaranja (n = 2 | 3 | 4)
- *   /dev/raub?s=bid           5 · licitacija, ti na potezu
+ *   /dev/raub?s=sevenChoice&n=4  sedmica na talonu, ti dijeliš: Štih / Dalje (n = 2 | 3 | 4)
+ *   /dev/raub?s=bid           5 · licitacija, ti na potezu (Raub dozvoljen)
+ *   /dev/raub?s=bidLow        licitacija na 10/9/8, imaš sedmicu: samo Moja / Dalje
+ *   /dev/raub?s=bidNone       licitacija na 10/9/8 bez sedmice: samo Dalje
+ *   /dev/raub?s=moja          neko je rekao „Moja” (oznaka nosioca, uzeta karta na stolu)
  *   /dev/raub?s=bid2          6 · druga karta na talonu, čeka se drugi
  *   /dev/raub?s=discard       7 · višak (5 karata, karta s talona zaključana)
  *   /dev/raub?s=going         Idem / Ne idem
@@ -64,8 +67,19 @@ const onMyTurn = (step: RaubGameState["step"]): Pred => (s) =>
   s.phase === "playing" && s.step === step && s.currentPlayerId === ME;
 
 const SCENARIOS: Record<string, Pred> = {
-  open: onMyTurn("await_open"),
-  bid: (s) => onMyTurn("bidding")(s) && s.talonFlips === 1,
+  sevenChoice: onMyTurn("seven_choice"),
+  bid: (s) => onMyTurn("bidding")(s) && s.talonFlips === 1 && getRaubView(s, ME).bidOptions?.raub === true,
+  bidLow: (s) => {
+    if (!onMyTurn("bidding")(s)) return false;
+    const o = getRaubView(s, ME).bidOptions;
+    return o?.raub === false && o.moja === true;
+  },
+  bidNone: (s) => {
+    if (!onMyTurn("bidding")(s) || s.talon.at(-1)?.rank === "7") return false;
+    const o = getRaubView(s, ME).bidOptions;
+    return o?.raub === false && o.moja === false;
+  },
+  moja: (s) => s.phase === "playing" && s.scenario === "moja" && s.step === "going" && s.declarerId !== ME,
   bid2: (s) => s.phase === "playing" && s.step === "bidding" && s.talonFlips === 2 && s.currentPlayerId !== ME,
   discard: onMyTurn("discard_extra"),
   going: onMyTurn("going"),
