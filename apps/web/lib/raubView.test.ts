@@ -94,7 +94,7 @@ describe("raubView: faza i panel", () => {
     assert.match(playHint(getRaubView(follow, "p0")), /Odgovori na boju/);
   });
 
-  test("licitacija (odluka 13): dugmad prate bidOptions servera", () => {
+  test("licitacija (odluka 15): dugmad prate bidOptions servera", () => {
     const raub = until((s) => mine("bidding")(s) && getRaubView(s, "p0").bidOptions?.raub === true);
     const rp = panelFor(getRaubView(raub, "p0"), name);
     assert.ok(rp.kind === "bid" && rp.raub);
@@ -105,9 +105,19 @@ describe("raubView: faza i panel", () => {
     });
     const lp = panelFor(getRaubView(low, "p0"), name);
     assert.ok(lp.kind === "bid" && !lp.raub && lp.moja);
-    if (lp.kind === "bid") {
-      assert.equal(lp.seven?.rank, "7");
-      assert.equal(lp.seven?.suit, lp.card.suit);
+    // „Moja" i bez sedmice: panel je nudi, a `seven` je null.
+    const hasSeven = (s: Parameters<typeof getRaubView>[0], want: boolean) => {
+      const v = getRaubView(s, "p0");
+      const offered = v.talon.at(-1);
+      return !!offered && v.myCards.some((c) => c.rank === "7" && c.suit === offered.suit) === want;
+    };
+    const noSeven = panelFor(getRaubView(until((s) => mine("bidding")(s) && hasSeven(s, false)), "p0"), name);
+    assert.ok(noSeven.kind === "bid" && noSeven.moja && noSeven.seven === null);
+    const withSeven = panelFor(getRaubView(until((s) => mine("bidding")(s) && hasSeven(s, true)), "p0"), name);
+    assert.ok(withSeven.kind === "bid" && withSeven.moja);
+    if (withSeven.kind === "bid") {
+      assert.equal(withSeven.seven?.rank, "7");
+      assert.equal(withSeven.seven?.suit, withSeven.card.suit);
     }
   });
 

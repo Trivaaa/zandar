@@ -22,6 +22,7 @@ export {
   raubMaxExchange,
   raubCanRaub,
   raubCanMoja,
+  raubHasSeven,
   upgradeRaubState,
   raubPlacements,
   raubScoreDelta,

@@ -18,6 +18,10 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   raubRanks: ["A", "K", "Q", "J"],
   stihOptional: true,
   mojaRequiredTricks: 2,
+  // Odluka 15 (vlasnik, 14.11.2026): „Raub" smije samo djelilac; „Moja" svako,
+  // i bez sedmice (tada karta ostaje na talonu).
+  raubDealerOnly: true,
+  mojaNeedsSeven: false,
 };
 
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */

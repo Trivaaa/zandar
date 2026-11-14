@@ -29,13 +29,13 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
             Nije obavezno — ako kaže „Dalje”, okreće se nova karta.
           </li>
           <li>
-            <b>Raub:</b> samo kad je na talonu A, K, O ili U. Redom, od djelioca, svako kaže „Raub” ili „Dalje”. Prvi
-            koji kaže „Raub” uzima kartu s talona, nosi tu boju i mora 2 štiha. Nije obavezno, a sedmica mu ne
-            treba.
+            <b>Raub:</b> smije samo djelilac, i to kad je na talonu A, K, O ili U. Uzima kartu s talona, nosi tu boju
+            i mora 2 štiha. Nije obavezno, a sedmica mu ne treba.
           </li>
           <li>
-            <b>Moja:</b> ko ima sedmicu boje talona, u istom krugu smije reći „Moja” (i na 10, 9 ili 8): daje sedmicu,
-            uzima talon kartu, nosi tu boju i mora 2 štiha.
+            <b>Moja:</b> licitira se redom, od djelioca, i svako smije reći „Moja” ili „Dalje”, na svaku kartu. Ko kaže
+            „Moja”, nosi boju talona i mora 2 štiha. Ako ima sedmicu te boje, daje je i uzima talon kartu; ako je
+            nema, karta ostaje na stolu.
           </li>
           <li>
             Ako svi kažu „Dalje”, okreće se nova karta (najviše 3). Ako niko ne uzme ni treću, to je <b>refa</b>: ruka

@@ -114,10 +114,12 @@ function autoToHandEnd(s: RaubGameState): RaubGameState {
   return s;
 }
 
-/** Herc adut, b nosilac iz licitacije (uzme Q, odbaci K), svi idu, niko ne mijenja → štihovi. */
+/**
+ * Herc adut, b dijeli i rauba (uzme Q, odbaci K — samo djelilac smije, odluka 15),
+ * svi idu, niko ne mijenja → štihovi.
+ */
 function toTricks(): RaubGameState {
-  let s = match({ hands: HANDS4, talon: H("Q") });
-  s = act(s, "a", { type: "bid", bid: "pass" });
+  let s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
   s = raubBy(s, "b", "hearts-K");
   for (const id of ["c", "d", "a"]) s = act(s, id, { type: "go", go: true });
   for (const id of ["b", "c", "d", "a"]) s = act(s, id, { type: "exchange", cardIds: [] });
@@ -257,13 +259,13 @@ describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
     for (const r of ["A", "K", "Q", "J"] as Rank[]) {
       const hands = { ...HANDS4, b: [S("8"), H("8"), C("K"), D("9")] };
       const s = match({ hands, talon: c("hearts", r) });
-      expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: false });
+      expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: true });
       expect(act(s, "a", { type: "bid", bid: "raub" }).declarerId).toBe("a");
     }
     for (const r of ["10", "9", "8"] as Rank[]) {
       const hands = { ...HANDS4, d: [S("9"), C("10"), C("9"), D("10")] };
       const s = match({ hands, talon: c("hearts", r) });
-      expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: false });
+      expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: true });
       expect(() => act(s, "a", { type: "bid", bid: "raub" })).toThrow("INVALID_ACTION");
       expect(act(s, "a", { type: "bid", bid: "pass" }).currentPlayerId).toBe("b");
     }
@@ -278,8 +280,6 @@ describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
   it("Moja: sedmica te boje za kartu s talona, zaključana; nosi adut i mora 2", () => {
     const hands = { ...HANDS4, b: [H("7"), H("K"), C("K"), D("9")] };
     let s = match({ hands, talon: H("10") });
-    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: false });
-    expect(() => act(s, "a", { type: "bid", bid: "moja" })).toThrow("INVALID_ACTION");
     s = act(s, "a", { type: "bid", bid: "pass" });
     expect(getRaubView(s, "b").bidOptions).toEqual({ raub: false, moja: true });
     s = act(s, "b", { type: "bid", bid: "moja" });
@@ -306,9 +306,47 @@ describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
     expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: true });
     expect(act(s, "a", { type: "bid", bid: "moja" }).scenario).toBe("moja");
     const passed = act(s, "a", { type: "bid", bid: "pass" });
-    const raub = raubBy(passed, "b", "clubs-K");
-    expect(raub.declarerId).toBe("b");
-    expect(() => act(raub, "c", { type: "bid", bid: "moja" })).toThrow("INVALID_ACTION");
+    const moja = act(passed, "b", { type: "bid", bid: "moja" });
+    expect(moja.declarerId).toBe("b");
+    expect(() => act(moja, "c", { type: "bid", bid: "moja" })).toThrow("INVALID_ACTION");
+  });
+
+  it("odluka 15: Raub smije samo djelilac; ostali samo Moja ili Dalje", () => {
+    let s = match({ hands: HANDS4, talon: H("Q") });
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: true });
+    s = act(s, "a", { type: "bid", bid: "pass" });
+    expect(getRaubView(s, "b").bidOptions).toEqual({ raub: false, moja: true });
+    expect(() => act(s, "b", { type: "bid", bid: "raub" })).toThrow("INVALID_ACTION");
+  });
+
+  it("odluka 15: Moja bez sedmice — adut i mora 2, a karta ostaje na talonu", () => {
+    let s = match({ hands: HANDS4, talon: H("8") });
+    s = act(s, "a", { type: "bid", bid: "pass" });
+    s = act(s, "b", { type: "bid", bid: "moja" });
+    expect(s.scenario).toBe("moja");
+    expect(s.declarerId).toBe("b");
+    expect(s.trumpSuit).toBe("hearts");
+    expect(s.requiredTricks).toBe(2);
+    expect(s.talon).toEqual([H("8")]);
+    expect(s.seats[1]!.hand.map((x) => x.id).sort()).toEqual(["clubs-K", "diamonds-9", "hearts-A", "hearts-K"]);
+    expect(s.talonTakenBy).toBeNull();
+    expect(s.lockedCardId).toBeNull();
+    expect(getRaubView(s, "c").takenTalonCard).toBeNull();
+    expect(s.step).toBe("going");
+    expect(s.currentPlayerId).toBe("c");
+    expect(raubCardCount(s)).toBe(32);
+    s = autoToHandEnd(s);
+    expect(s.lastHand!.scenario).toBe("moja");
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("parametri raubDealerOnly false i mojaNeedsSeven true: pravilo odluke 13", () => {
+    const rules = { raubDealerOnly: false, mojaNeedsSeven: true };
+    let s = match({ hands: HANDS4, talon: H("Q"), rules });
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: false });
+    s = act(s, "a", { type: "bid", bid: "pass" });
+    expect(getRaubView(s, "b").bidOptions).toEqual({ raub: true, moja: false });
+    expect(raubBy(s, "b", "clubs-K").declarerId).toBe("b");
   });
 
   it("Moja boduje kao Raub: jedan štih +3, nijedan +4", () => {
@@ -347,11 +385,9 @@ describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
 });
 
 describe("raub scenarij 3 — licitacija", () => {
-  it("djelilac licitira prvi, pa redom; prvi Raub je nosilac i mora 2", () => {
-    let s = match({ hands: HANDS4, talon: H("Q") });
+  it("djelilac licitira prvi, pa redom; Raub djelioca: nosilac je i mora 2", () => {
+    let s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
     expect(s.step).toBe("bidding");
-    expect(s.currentPlayerId).toBe("a");
-    s = act(s, "a", { type: "bid", bid: "pass" });
     expect(s.currentPlayerId).toBe("b");
     s = act(s, "b", { type: "bid", bid: "raub" });
     expect(s.declarerId).toBe("b");
@@ -377,8 +413,7 @@ describe("raub scenarij 3 — licitacija", () => {
   });
 
   it("uzeta karta ostaje u ruci nosioca i on je odigra u štihu", () => {
-    let s = match({ hands: HANDS4, talon: H("Q"), rules: { allowDrop: false } });
-    s = act(s, "a", { type: "bid", bid: "pass" });
+    let s = match({ hands: HANDS4, talon: H("Q"), rules: { allowDrop: false }, dealer: "b" });
     s = act(s, "b", { type: "bid", bid: "raub" });
     s = autoToHandEnd(s);
     const played = s.tricks.flatMap((t) => t.plays).find((p) => p.card.id === "hearts-Q");
@@ -387,8 +422,7 @@ describe("raub scenarij 3 — licitacija", () => {
 
   it("Raub sa sedmicom aduta u ruci: nema ponude zamjene, sedmica ostaje kao adut", () => {
     const hands = { ...HANDS4, b: [H("7"), H("K"), C("K"), D("9")] };
-    let s = match({ hands, talon: H("Q") });
-    s = act(s, "a", { type: "bid", bid: "pass" });
+    let s = match({ hands, talon: H("Q"), dealer: "b" });
     s = act(s, "b", { type: "bid", bid: "raub" });
     expect(s.step).toBe("discard_extra");
     expect(getRaubView(s, "b").swapOffer).toBeNull();
@@ -478,8 +512,7 @@ describe("raub scenarij 3 — licitacija", () => {
 
 describe("raub idem / ne idem (odluka 9)", () => {
   it("ko ne ide odlaže karte i ne boduje se; zamjena i štihovi bez njega", () => {
-    let s = match({ hands: HANDS4, talon: H("Q") });
-    s = act(s, "a", { type: "bid", bid: "pass" });
+    let s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
     s = raubBy(s, "b", "hearts-K");
     s = act(s, "c", { type: "go", go: false });
     expect(s.seats[2]!.hand).toHaveLength(0);
@@ -497,8 +530,7 @@ describe("raub idem / ne idem (odluka 9)", () => {
   });
 
   it("niko ne ide: nosilac upisuje sva 4 štiha", () => {
-    let s = match({ hands: HANDS4, talon: H("Q") });
-    s = act(s, "a", { type: "bid", bid: "pass" });
+    let s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
     s = raubBy(s, "b", "hearts-K");
     for (const id of ["c", "d", "a"]) s = act(s, id, { type: "go", go: false });
     expect(s.phase).toBe("hand_complete");
@@ -507,8 +539,7 @@ describe("raub idem / ne idem (odluka 9)", () => {
   });
 
   it("bez parametra svi igraju i nema koraka going", () => {
-    let s = match({ hands: HANDS4, talon: H("Q"), rules: { allowDrop: false } });
-    s = act(s, "a", { type: "bid", bid: "pass" });
+    let s = match({ hands: HANDS4, talon: H("Q"), rules: { allowDrop: false }, dealer: "b" });
     s = raubBy(s, "b", "hearts-K");
     expect(s.step).toBe("exchange");
     expect(s.currentPlayerId).toBe("b");
@@ -519,8 +550,7 @@ describe("raub idem / ne idem (odluka 9)", () => {
 
 describe("raub zamjena", () => {
   function toExchange(next: Card[] = []) {
-    let s = match({ hands: HANDS4, talon: H("Q"), next });
-    s = act(s, "a", { type: "bid", bid: "pass" });
+    let s = match({ hands: HANDS4, talon: H("Q"), next, dealer: "b" });
     s = raubBy(s, "b", "hearts-K");
     for (const id of ["c", "d", "a"]) s = act(s, id, { type: "go", go: true });
     return s;
@@ -640,8 +670,7 @@ describe("raub štihovi", () => {
       c: [C("Q"), C("J"), D("A"), D("K")],
       d: [H("9"), S("9"), C("9"), D("10")],
     };
-    let s = match({ hands, talon: H("Q") });
-    s = act(s, "a", { type: "bid", bid: "pass" });
+    let s = match({ hands, talon: H("Q"), dealer: "b" });
     s = raubBy(s, "b", "hearts-K");
     for (const id of ["c", "d", "a"]) s = act(s, id, { type: "go", go: true });
     for (const id of ["b", "c", "d", "a"]) s = act(s, id, { type: "exchange", cardIds: [] });
@@ -706,8 +735,7 @@ describe("raub bodovanje", () => {
       b: [S("A"), D("8"), D("9"), C("9")],
       c: [S("7"), S("8"), D("7"), C("7")],
     };
-    let s = match({ ids: ["a", "b", "c"], dealer: "c", hands: hands3, talon: H("Q") });
-    s = act(s, "c", { type: "bid", bid: "pass" });
+    let s = match({ ids: ["a", "b", "c"], dealer: "a", hands: hands3, talon: H("Q") });
     s = raubBy(s, "a", "hearts-J"); // uzme Q s talona, odbaci J
     s = act(s, "b", { type: "go", go: true });
     s = act(s, "c", { type: "go", go: true });
@@ -824,10 +852,9 @@ describe("raub pogled (anti-leak)", () => {
 
 describe("raub istek roka", () => {
   it("najsigurnija akcija po koraku", () => {
-    let s = match({ hands: HANDS4, talon: H("Q") });
-    expect(getRaubAutoAction(s, "b")).toBeNull();
-    expect(getRaubAutoAction(s, "a")).toEqual({ type: "bid", bid: "pass" });
-    s = act(s, "a", { type: "bid", bid: "pass" });
+    let s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
+    expect(getRaubAutoAction(s, "a")).toBeNull();
+    expect(getRaubAutoAction(s, "b")).toEqual({ type: "bid", bid: "pass" });
     s = act(s, "b", { type: "bid", bid: "raub" });
     expect(getRaubAutoAction(s, "b")).toEqual({ type: "discard", cardId: "diamonds-9" });
     s = act(s, "b", { type: "discard", cardId: "diamonds-9" });

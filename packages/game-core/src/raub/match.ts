@@ -97,20 +97,40 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     raubRanks: state.rules.raubRanks ?? DEFAULT_RAUB_RULES.raubRanks!,
     stihOptional: state.rules.stihOptional ?? DEFAULT_RAUB_RULES.stihOptional!,
     mojaRequiredTricks: state.rules.mojaRequiredTricks ?? DEFAULT_RAUB_RULES.mojaRequiredTricks!,
+    raubDealerOnly: state.rules.raubDealerOnly ?? DEFAULT_RAUB_RULES.raubDealerOnly!,
+    mojaNeedsSeven: state.rules.mojaNeedsSeven ?? DEFAULT_RAUB_RULES.mojaNeedsSeven!,
   };
 }
 
-/** Smije li se na ponuđenu kartu reći „Raub" (odluka 13: A, K, Q, J). */
-export function raubCanRaub(state: Pick<RaubGameState, "rules" | "talon">): boolean {
+/**
+ * Smije li igrač reći „Raub": ponuđena karta je A, K, Q ili J (odluka 13), a
+ * igrač je djelilac (odluka 15).
+ */
+export function raubCanRaub(
+  state: Pick<RaubGameState, "rules" | "talon" | "dealerId">,
+  playerId: string,
+): boolean {
   const card = state.talon.at(-1);
-  return !!card && !isSeven(card) && rulesV2(state).raubRanks.includes(card.rank);
+  const rules = rulesV2(state);
+  if (rules.raubDealerOnly && playerId !== state.dealerId) return false;
+  return !!card && !isSeven(card) && rules.raubRanks.includes(card.rank);
 }
 
-/** Smije li igrač reći „Moja": drži sedmicu boje ponuđene karte. */
-export function raubCanMoja(state: RaubGameState, playerId: string): boolean {
+/** Drži li igrač sedmicu boje ponuđene karte. */
+export function raubHasSeven(state: RaubGameState, playerId: string): boolean {
   const card = state.talon.at(-1);
   if (!card) return false;
   return seatOf(state, playerId).hand.some((c) => isSeven(c) && c.suit === card.suit);
+}
+
+/**
+ * Smije li igrač reći „Moja". Od odluke 15 svako, i bez sedmice; sa
+ * `mojaNeedsSeven` (odluka 13) samo onaj ko drži sedmicu te boje.
+ */
+export function raubCanMoja(state: RaubGameState, playerId: string): boolean {
+  const card = state.talon.at(-1);
+  if (!card || isSeven(card)) return false;
+  return rulesV2(state).mojaNeedsSeven ? raubHasSeven(state, playerId) : true;
 }
 
 function draw(state: RaubGameState, count: number): Card[] {
@@ -528,14 +548,16 @@ export function applyRaubAction(
       if (step !== "bidding") throw new Error("INVALID_ACTION");
       const bid = request.bid;
       if (bid !== "raub" && bid !== "moja" && bid !== "pass") throw new Error("INVALID_ACTION");
-      if (bid === "raub" && !raubCanRaub(state)) throw new Error("INVALID_ACTION");
+      if (bid === "raub" && !raubCanRaub(state, playerId)) throw new Error("INVALID_ACTION");
       if (bid === "moja" && !raubCanMoja(state, playerId)) throw new Error("INVALID_ACTION");
       seat.bid = bid;
       if (bid === "moja") {
-        // „Moja": sedmica te boje za kartu s talona; nosi adut, mora 2 (odluka 13).
+        // „Moja": nosi adut, mora 2 (odluka 13). Sa sedmicom te boje je daje za
+        // kartu s talona; bez nje karta ostaje na talonu (odluka 15).
         state.scenario = "moja";
+        const hasSeven = raubHasSeven(state, playerId);
         declare(state, playerId, rulesV2(state).mojaRequiredTricks);
-        swapSeven(state, playerId);
+        if (hasSeven) swapSeven(state, playerId);
         afterTrump(state);
         break;
       }

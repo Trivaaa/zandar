@@ -463,7 +463,11 @@ export const sr = {
     bidHint: (suit: string) => `Uzmeš li ${suit}, moraš 2 štiha.`,
     bidHintMoja: (seven: string, card: string) => `Imaš ${seven} — „Moja” uzima ${card}.`,
     bid: { raub: "Raub", moja: "Moja", pass: "Dalje", stih: "Štih" },
-    bidNote: { raub: "moraš 2 štiha", moja: (seven: string) => `daješ ${seven}` },
+    bidNote: {
+      raub: "moraš 2 štiha",
+      moja: (seven: string) => `daješ ${seven}`,
+      mojaNoSeven: "karta ostaje · moraš 2",
+    },
     swap: {
       hint: (seven: string, talon: string) => `Imaš ${seven} — zamijeniti je za ${talon} s talona?`,
       no: "Ne",

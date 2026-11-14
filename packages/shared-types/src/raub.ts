@@ -39,6 +39,13 @@ export interface RaubRules {
   stihOptional?: boolean;
   /** Koliko štihova mora igrač koji kaže „Moja" (odluka 13). Bez polja = 2. */
   mojaRequiredTricks?: number;
+  /** „Raub" smije reći samo djelilac (odluka 15). Bez polja = da. */
+  raubDealerOnly?: boolean;
+  /**
+   * „Moja" traži sedmicu boje ponuđene karte (odluka 13). Od odluke 15 ne traži:
+   * bez sedmice karta ostaje na talonu. Bez polja = ne traži.
+   */
+  mojaNeedsSeven?: boolean;
 }
 
 /**

@@ -236,12 +236,16 @@ export function ActionPanel({
         <div className="rb-panel">
           {hint ? <p className="rb-panel__hint">{withSuits(hint)}</p> : null}
           {btn("pass", sr.raub.bid.pass, () => onBid("pass"))}
-          {panel.moja && panel.seven
+          {panel.moja
             ? btn(
                 panel.raub ? "main" : "accent",
                 <span className="rb-panel__two">
                   {sr.raub.bid.moja}
-                  <small>{withSuits(sr.raub.bidNote.moja(cardLabel(panel.seven)))}</small>
+                  <small>
+                    {panel.seven
+                      ? withSuits(sr.raub.bidNote.moja(cardLabel(panel.seven)))
+                      : sr.raub.bidNote.mojaNoSeven}
+                  </small>
                 </span>,
                 () => onBid("moja"),
               )
@@ -368,7 +372,9 @@ export function HandSummaryCard({
                           <small>
                             {result.scenario === "seven"
                               ? sr.raub.declarer.seven(result.requiredTricks)
-                              : sr.raub.declarer.raub(result.requiredTricks)}
+                              : result.scenario === "moja"
+                                ? sr.raub.declarer.moja(result.requiredTricks)
+                                : sr.raub.declarer.raub(result.requiredTricks)}
                           </small>
                         ) : null}
                       </span>

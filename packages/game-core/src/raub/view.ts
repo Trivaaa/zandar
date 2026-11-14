@@ -30,7 +30,7 @@ export function getRaubView(state: RaubGameState, viewerId: string): RaubPlayerV
   const hidden = !!me && viewerId === state.dealerId && !state.dealerOpened && state.phase === "playing";
   const bidOptions: RaubBidOptions | null =
     myTurn && state.step === "bidding" && me
-      ? { raub: raubCanRaub(state), moja: raubCanMoja(state, viewerId) }
+      ? { raub: raubCanRaub(state, viewerId), moja: raubCanMoja(state, viewerId) }
       : null;
 
   let swapOffer: RaubSwapOffer | null = null;

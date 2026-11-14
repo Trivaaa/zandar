@@ -1788,3 +1788,16 @@ Play Data safety za sljedeće izdanje: „Poruke u aplikaciji / fotografije, opc
 Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 
 **Provjereno:** typecheck, web 220/220, lint = osnovica. **Nije provjereno na uređaju.**
+
+## 156. Raub — „Raub” smije samo djelilac, „Moja” i bez sedmice (2026-11-14, `feat/raub-dealer-only`)
+
+**Šta (odluka 15 u `docs/raub-spec.md`, svjesna promjena pravila po odluci vlasnika):** vlasnik je u testiranju dobio ponudu „Raub · moraš 2 štiha” iako nije djelilac. Pravilo: „Raub” (A, K, O, U) smije reći samo djelilac. Ostali u licitaciji kažu „Moja” ili „Dalje”, na svaku kartu, a djelilac smije i „Moja”. „Moja” više ne traži sedmicu. Sa sedmicom te boje igrač je daje i uzima kartu s talona, kao do sada. Bez nje boja postaje adut, a karta ostaje na talonu. Nosilac mora 2 u oba slučaja.
+
+**Kako:**
+- `RaubRules.raubDealerOnly` / `mojaNeedsSeven` (opciono; stari snapshot bez njih dobija novo pravilo kroz `rulesV2`). `raubCanRaub(state, playerId)` sada zna igrača, a `raubHasSeven` je izdvojen. Grana „moja” radi `swapSeven` samo uz sedmicu.
+- Bot: snaga se računa po opciji (`strengthFor(..., "add" | "swap" | "none")`). Kod Rauba se karta s talona dodaje, kod Moje sa sedmicom mijenja sedmicu, a kod Moje bez sedmice se ne računa.
+- Web: dugme „Moja” kad god server dozvoli. Napomena je „daješ 7♥” ili „karta ostaje · moraš 2”. Tabela rezultata za ruku sa „Moja” više ne piše „Raub”. `RaubRules.tsx` je ažuriran.
+
+**Mjerenja:** simulacija 10.000 mečeva (`simulate:raub`, seed 1). Refa je 2 igrača 5,6 % (bilo 30,2 %), 3 igrača 2,6 % (18,6 %), 4 igrača 1,2 % (11,8 %). Trajanje 4 igrača: medijan 32,8 min (30,2), p90 48,4. Nema greške u kartama ni štihovima, odbijenih akcija ni zaglavljenih mečeva. Refa je pala jer „Moja” sada može reći svako.
+
+**Provjereno:** game-core 387 (tri nova testa za odluku 15; testovi zamjene, štihova i bodovanja sada rauba djelilac), server 255, web 215, typecheck. **Nije provjereno na uređaju ni u pregledaču.**

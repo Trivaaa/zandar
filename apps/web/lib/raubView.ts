@@ -59,7 +59,7 @@ export function phaseLabel(v: Pick<RaubPlayerView, "phase" | "step" | "tricks">)
 /** Šta se crta u panelu nad rukom. */
 export type RaubPanel =
   | { kind: "seven"; card: Card }
-  /** `raub`/`moja`: šta server dozvoljava (`bidOptions`); `seven` je moja sedmica te boje. */
+  /** `raub`/`moja`: šta server dozvoljava (`bidOptions`); `seven` je moja sedmica te boje (ili `null`). */
   | { kind: "bid"; card: Card; raub: boolean; moja: boolean; seven: Card | null }
   | { kind: "swap"; seven: Card; talon: Card }
   | { kind: "discard" }
@@ -87,7 +87,8 @@ export function panelFor(
       const seven = options.moja
         ? (v.myCards.find((c) => c.rank === "7" && c.suit === offered.suit) ?? null)
         : null;
-      return { kind: "bid", card: offered, raub: options.raub, moja: options.moja && seven !== null, seven };
+      // Odluka 15: „Moja" i bez sedmice (karta tada ostaje na talonu).
+      return { kind: "bid", card: offered, raub: options.raub, moja: options.moja, seven };
     }
     case "swap_seven":
       return v.swapOffer ? { kind: "swap", ...v.swapOffer } : { kind: "none" };

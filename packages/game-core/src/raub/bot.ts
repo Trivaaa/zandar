@@ -52,12 +52,20 @@ export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
 
 const isHigh = (c: Card) => c.rank === "A" || c.rank === "K";
 
+/**
+ * Kako karta s talona ulazi u ruku za procjenu: `add` (Raub, odluka 14 — ide u
+ * ruku), `swap` (Moja sa sedmicom — zamjenjuje sedmicu), `none` (ostaje na stolu).
+ */
+type TalonUse = "add" | "swap" | "none";
+
 /** Procjena ruke za boju `suit`: broj aduta i da li uz jak adut ima as sa strane. */
-function strengthFor(hand: readonly Card[], suit: Suit, talon: Card | null) {
+function strengthFor(hand: readonly Card[], suit: Suit, talon: Card | null, use: TalonUse) {
   let trumps = hand.filter((c) => c.suit === suit);
-  // Sedmica aduta se može zamijeniti za kartu s talona: računaj talon umjesto nje.
-  if (talon && talon.suit === suit && trumps.some(isSeven)) {
-    trumps = [...trumps.filter((c) => !isSeven(c)), talon];
+  if (talon && talon.suit === suit) {
+    if (use === "add") trumps = [...trumps, talon];
+    else if (use === "swap" && trumps.some(isSeven)) {
+      trumps = [...trumps.filter((c) => !isSeven(c)), talon];
+    }
   }
   const sideAces = hand.filter((c) => c.suit !== suit && c.rank === "A").length;
   return { trumps: trumps.length, strongTrump: trumps.some(isHigh), sideAces };
@@ -91,17 +99,22 @@ export function selectRaubBotAction(
       return { type: "stih", take };
     }
     case "bidding": {
-      // Server kaže šta je dozvoljeno (Raub samo na A/K/Q/J, Moja samo sa sedmicom).
+      // Server kaže šta je dozvoljeno (Raub samo djelilac na A/K/Q/J, Moja svako).
       const options = view.bidOptions ?? { raub: false, moja: false };
       if (!options.raub && !options.moja) return { type: "bid", bid: "pass" };
       const offered = view.talon.at(-1)!;
-      const s = strengthFor(hand, offered.suit, offered);
+      const hasSeven = hand.some((c) => isSeven(c) && c.suit === offered.suit);
       const lastFlip = view.talonFlips >= view.rules.maxTalonFlips;
       const need = config.bidMinTrumps - (lastFlip ? config.lastFlipLeniency : 0) + jitter(rng, config.noiseP);
-      const strong = s.strongTrump && s.sideAces >= config.bidStrongTrumpSideAces;
-      if (!(s.trumps >= Math.max(1, need) || strong)) return { type: "bid", bid: "pass" };
-      // Isti ugovor (mora 2); Raub uz sedmicu ionako nudi zamjenu poslije.
-      return { type: "bid", bid: options.raub ? "raub" : "moja" };
+      const enough = (s: ReturnType<typeof strengthFor>) =>
+        s.trumps >= Math.max(1, need) || (s.strongTrump && s.sideAces >= config.bidStrongTrumpSideAces);
+      // Isti ugovor (mora 2): bira se ono što ruci daje više.
+      const raub = options.raub ? strengthFor(hand, offered.suit, offered, "add") : null;
+      const moja = options.moja ? strengthFor(hand, offered.suit, offered, hasSeven ? "swap" : "none") : null;
+      if (raub && enough(raub) && (!moja || raub.trumps >= moja.trumps)) return { type: "bid", bid: "raub" };
+      if (moja && enough(moja)) return { type: "bid", bid: "moja" };
+      if (raub && enough(raub)) return { type: "bid", bid: "raub" };
+      return { type: "bid", bid: "pass" };
     }
     case "swap_seven":
       // Talon karta je uvijek jača od sedmice iste boje.
