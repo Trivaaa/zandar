@@ -76,6 +76,47 @@ describe("raub bot", () => {
     expect(seen.stihNo).toBeGreaterThan(0);
   });
 
+  it("odluka 17: djelilac na prvoj karti as uvijek kaže Raub, i za 1–8 s", () => {
+    const rng = makeLcg(17);
+    let aces = 0;
+    let raubChoices = 0;
+    let fastest = Infinity;
+    let slowest = 0;
+    for (let m = 0; m < 40; m++) {
+      let s = createRaubMatch({ roomId: "r", matchId: `m${m}`, playerIds: ["a", "b", "c", "d"], rules: createRaubRules(4), rng });
+      for (let i = 0; i < 3000 && s.phase !== "match_finished"; i++) {
+        if (s.phase === "hand_complete") {
+          s = startRaubHand(s, rng);
+          continue;
+        }
+        const pid = s.currentPlayerId!;
+        const view = getRaubView(s, pid);
+        const ms = raubBotThinkMs(DEFAULT_RAUB_BOT_CONFIG, rng, view);
+        if (view.step === "bidding" && view.bidOptions?.raub) {
+          raubChoices += 1;
+          expect(ms).toBeGreaterThanOrEqual(1000);
+          expect(ms).toBeLessThanOrEqual(8000);
+          fastest = Math.min(fastest, ms);
+          slowest = Math.max(slowest, ms);
+        } else {
+          expect(ms).toBeGreaterThanOrEqual(2500);
+          expect(ms).toBeLessThanOrEqual(7000);
+        }
+        const action = selectRaubBotAction(view, DEFAULT_RAUB_BOT_CONFIG, rng);
+        if (view.step === "bidding" && view.bidOptions?.raub && view.talon.at(-1)!.rank === "A") {
+          aces += 1;
+          expect(action).toEqual({ type: "bid", bid: "raub" });
+        }
+        s = applyRaubAction(s, pid, action);
+      }
+    }
+    expect(aces).toBeGreaterThan(10);
+    expect(raubChoices).toBeGreaterThan(40);
+    // Raspon se stvarno koristi, nije uvijek isto vrijeme.
+    expect(fastest).toBeLessThan(2000);
+    expect(slowest).toBeGreaterThan(7000);
+  });
+
   it("baca grešku kad nije na potezu", () => {
     const s = createRaubMatch({
       roomId: "r",

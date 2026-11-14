@@ -1,6 +1,6 @@
 # Kartaonica — Raub modul (Spec v1.1)
 
-Nov 6, 2026 · @Igor · v1.1 usklađena sa produkcijom 7.11.2026 · v1.2 pravila po feedbacku igrača 14.11.2026 **(odluka 13)**, Raub uzima kartu s talona **(odluka 14)**, Raub samo djelilac i samo na prvoj karti, „Moja” bez sedmice **(odluka 15)**
+Nov 6, 2026 · @Igor · v1.1 usklađena sa produkcijom 7.11.2026 · v1.2 pravila po feedbacku igrača 14.11.2026 **(odluka 13)**, Raub uzima kartu s talona **(odluka 14)**, Raub samo djelilac i samo na prvoj karti, „Moja” bez sedmice **(odluka 15)**, bot-djelilac na asu uvijek „Raub” **(odluka 17)**
 
 > Dizajn: tabla „UI · Raub — kompletan UI" (`UI_Raub.dc.html`) na Claude Design platnu „Kartaonica · identitet", https://claude.ai/artifact/1DkTrJNEv2148shhQUC3de. Gdje se tabla i ovaj tekst razilaze, važi tekst. Gdje se tabla i produkcija razilaze, važi produkcija (postojeći sto, komponente i tokovi Žandara i Pokera).
 > Jezik interfejsa: ijekavica, obraćanje na „ti", rodno neutralno. Riječi „bot", „računar" i „AI" se ne pojavljuju nigdje u UI-ju (HARD RULE 5).
@@ -239,12 +239,12 @@ Botovi omogućavaju trenutni Quick Play, isto kao u Pokeru: svako mjesto koje u 
 **Ponašanje V1 (pravila, bez učenja)**
 
 - Štih: sa sedmicom u ruci ima bar 2 aduta, ili A/K sa strane; ponekad i sa slabijom rukom (mora samo 1).
-- Licitacija: procjena snage ruke za ponuđenu boju. Karta s talona se računa samo ako je igrač dobija (Raub, Moja sa sedmicom). Npr. „Raub” ili „Moja” (šta server dozvoli) ako bi imao 2 ili više aduta, ili 1 jak adut (A, K) i 1 as sa strane.
+- Licitacija: procjena snage ruke za ponuđenu boju. Karta s talona se računa samo ako je igrač dobija (Raub, Moja sa sedmicom). Npr. „Raub” ili „Moja” (šta server dozvoli) ako bi imao 2 ili više aduta, ili 1 jak adut (A, K) i 1 as sa strane. Izuzetak: djelilac na prvoj karti as **uvijek** kaže „Raub”, bez procjene ruke **(odluka 17)**.
 - Idem / Ne idem: ide sa 2 ili više aduta ili sa asom sa strane, ponekad i sa slabijom rukom.
 - Zamjena: zadržava adute i aseve, mijenja ostale karte. Kao nosilac nikad ne mijenja sve 4.
 - Igranje: otvara jakim adutom kad mu trebaju štihovi; kad ne može uzeti štih, baca najslabiju dozvoljenu kartu; ne troši jak adut na štih koji već nosi drugi igrač.
 - Nasumičnost u pragovima, da bot ne bude predvidiv.
-- Vrijeme odluke 2,5–7 sekundi, nasumično **(odluka 11)**.
+- Vrijeme odluke 2,5–7 sekundi, nasumično **(odluka 11)**. Djelilac na prvoj karti na koju smije „Raub” odlučuje (Raub ili Dalje) za 1–8 s od okretanja karte, nasumično **(odluka 17)**.
 - Svi pragovi i šum su u konfiguraciji (`DEFAULT_RAUB_BOT_CONFIG`), ne u kodu (HARD RULE 7).
 
 **Ograničenja**
@@ -349,6 +349,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 14 | Raub uzima kartu s talona | Ko kaže „Raub” (A, K, Q, J) uzima okrenutu kartu u ruku, sedmica mu nije potrebna; ima 5 karata i odbacuje jednu, ali ne uzetu. Ponuda zamjene sedmice poslije Rauba je ukinuta (ostaje samo za ruke iz starog snapshota) | Vlasnik, 14.11.2026: v1.1 je kartu davao samo uz zamjenu sedmice, pa je igrač koji je raubovao bez sedmice za stolom izgledao kao da je kartu „izgubio”. Simulacija 10.000 mečeva × 4 igrača: refa 11,8 % (11,7 %), medijan 30,2 min (31,1); bez greške u kartama i štihovima |
 | 15 | Raub samo djelilac i samo na prvoj karti, „Moja” bez sedmice | „Raub” smije reći samo djelilac (A, K, Q, J), i to samo na prvoj okrenutoj karti; na drugoj i trećoj ni djelilac nema Raub. Ostali u licitaciji kažu „Moja” ili „Dalje”; djelilac smije i „Moja”. „Moja” ne traži sedmicu: sa sedmicom te boje igrač je daje i uzima kartu, bez nje karta ostaje na talonu. Nosilac mora 2 u oba slučaja. Parametri `raubDealerOnly`, `raubFirstFlipOnly`, `mojaNeedsSeven` (stari snapshot bez njih = novo pravilo) | Vlasnik, 14.11.2026, po testiranju: nedjeliocu je nuđen „Raub” iako ga smije reći samo djelilac, a djeliocu i na drugoj karti („Karta 2 od 3”). Simulacija 10.000 mečeva, refa: 2 igrača 10,8 % (30,2 % po odluci 13), 3 igrača 4,9 % (18,6 %), 4 igrača 2,2 % (11,8 % po odluci 14); trajanje 4 igrača medijan 32,4 min (30,2). Bez ograničenja na prvu kartu refa je bila 5,6 / 2,6 / 1,2 %. Bez greške u kartama i štihovima, bez odbijenih akcija |
 | 16 | Djelilac na kartu za Raub: samo Raub ili Dalje | Kad djelilac smije „Raub” (prva karta A, K, Q, J), nudi mu se samo „Raub” ili „Dalje”, bez „Moja” (ni sa sedmicom). Ostali u tom krugu i dalje „Moja” ili „Dalje”. Parametar `dealerRaubOrPass` (stari snapshot bez njega = da) | Vlasnik, 14.11.2026, po testiranju na stagingu: djeliocu je na herc dami bilo ponuđeno i „Moja” |
+| 17 | Bot-djelilac na asu uvijek „Raub”, odluka za 1–8 s | Bot koji je djelilac i na prvoj okrenutoj karti vidi asa uvijek kaže „Raub”, bez procjene ruke (`alwaysRaubRanks`, podrazumijevano `["A"]`; na K, O, U procjena ostaje). Svaku odluku djelioca na prvoj karti na koju smije „Raub” (Raub ili Dalje) bot donosi 1–8 s od okretanja karte, nasumično (`raubThinkMinMs`/`raubThinkMaxMs`); ostale odluke ostaju 2,5–7 s. Samo izbor bota među dozvoljenim potezima — pravila igre netaknuta | Vlasnik, 14.11.2026: as je jaka karta, a bot ga je ponekad propuštao; vrijeme da odluka ne bude providna ni jednoobrazna. Simulacija 10.000 mečeva × 4 igrača: raub 88.460 (81.841), moja 107.994 (111.655), refa 2,1 % (2,2 %), medijan 33,0 min (32,4); bez greške u kartama i štihovima, bez odbijenih akcija |
 
 ## Metrike, acceptance i otvorena pitanja
 

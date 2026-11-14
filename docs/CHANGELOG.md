@@ -1838,3 +1838,13 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Kako:** `raubCanMoja` vraća `false` kad isti igrač smije „Raub”, a uslov stoji iza parametra `RaubRules.dealerRaubOrPass` (opciono, podrazumijevano da, pa stari snapshot dobija novo pravilo). Bot i klijent već prate `bidOptions`, pa ih nije trebalo mijenjati. Ažurirani su tekst u pravilima igre i spec.
 
 **Provjereno:** game-core 392 (test za odluku 16 i test parametra), server, web, typecheck. **Nije provjereno na uređaju.**
+
+## 161. Raub — bot-djelilac na asu uvijek raubuje, odluka za 1–8 s (2026-11-14, `feat/raub-bot-ace`)
+
+**Šta (odluka 17 u `docs/raub-spec.md`, po odluci vlasnika):** bot-djelilac je na prvoj karti as ponekad govorio „Dalje”. Uzrok: licitacija je i za Raub tražila 2 aduta (as s talona se računa) ili jak adut + as sa strane, uz šum `noiseP`; djelilac sa asom na talonu i bez drugog aduta ili asa sa strane je propuštao. Sad djelilac na asu uvijek kaže „Raub” (`RaubBotConfig.alwaysRaubRanks`, podrazumijevano `["A"]`; K, O, U i dalje kroz procjenu ruke).
+
+**Vrijeme:** odluka djelioca na prvoj karti na koju smije „Raub” — i Raub i Dalje, da brzina ne oda kartu — sad je 1–8 s od okretanja karte, uniformno nasumično (`raubThinkMinMs`/`raubThinkMaxMs`). `raubBotThinkMs` dobija opcioni `view`; server (`raub/table.ts` → `route`) ga prosljeđuje. Ostale bot odluke ostaju 2,5–7 s. Sat poteza (25 s) i AFK netaknuti.
+
+**Simulacija (10.000 mečeva × 4, seed 1), prije → poslije:** raub 81.841 → 88.460, moja 111.655 → 107.994, refa 2,2 % → 2,1 %, medijan trajanja 32,4 → 33,0 min; 0 grešaka u kartama i štihovima, 0 odbijenih akcija.
+
+**Provjereno:** game-core 393 (novi test: svaki djelilac na asu raubuje, vremena u [1000, 8000] i raspon se koristi; ostalo 2,5–7 s), server 255, typecheck game-core i server. **Nije provjereno na stagingu.**

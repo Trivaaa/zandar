@@ -1,4 +1,4 @@
-import type { Card, RaubAction, RaubPlayerView, Suit } from "@zandar/shared-types";
+import type { Card, RaubAction, RaubPlayerView, Rank, Suit } from "@zandar/shared-types";
 import { beats, isSeven, raubRankValue, trickWinnerIndex, weakestCard } from "./cards";
 
 /**
@@ -18,6 +18,11 @@ export interface RaubBotConfig {
   bidMinTrumps: number;
   /** Ili jedan jak adut (A, K) i ovoliko aseva sa strane. */
   bidStrongTrumpSideAces: number;
+  /**
+   * Djelilac na prvoj karti ovog ranga UVIJEK kaže „Raub”, bez procjene ruke
+   * (odluka 17: as je jaka karta, propušten raub na asu izgleda glupo).
+   */
+  alwaysRaubRanks: Rank[];
   /** Na zadnjoj okrenutoj karti bot je hrabriji: prag aduta manje za ovoliko (refa je skupa za sve). */
   lastFlipLeniency: number;
   /** Nasumični pomak praga aduta (± cijeli broj sa ovom vjerovatnoćom). */
@@ -32,6 +37,12 @@ export interface RaubBotConfig {
   keepSideRank: number;
   thinkMinMs: number;
   thinkMaxMs: number;
+  /**
+   * Odluka djelioca na prvoj karti kad smije „Raub” (i kad raubuje i kad kaže
+   * „Dalje”): širi raspon, da brzina ne oda kartu ni odluku (odluka 17).
+   */
+  raubThinkMinMs: number;
+  raubThinkMaxMs: number;
 }
 
 export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
@@ -39,6 +50,7 @@ export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
   stihLooseP: 0.25,
   bidMinTrumps: 2,
   bidStrongTrumpSideAces: 1,
+  alwaysRaubRanks: ["A"],
   lastFlipLeniency: 0,
   noiseP: 0.15,
   goMinTrumps: 2,
@@ -48,6 +60,9 @@ export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
   // Odluka 11: 2,5–7 s, nasumično (1–3 s je djelovalo mašinski).
   thinkMinMs: 2500,
   thinkMaxMs: 7000,
+  // Odluka 17: od 1 s poslije okretanja prve karte do 8 s, nasumično.
+  raubThinkMinMs: 1000,
+  raubThinkMaxMs: 8000,
 };
 
 const isHigh = (c: Card) => c.rank === "A" || c.rank === "K";
@@ -103,6 +118,7 @@ export function selectRaubBotAction(
       const options = view.bidOptions ?? { raub: false, moja: false };
       if (!options.raub && !options.moja) return { type: "bid", bid: "pass" };
       const offered = view.talon.at(-1)!;
+      if (options.raub && config.alwaysRaubRanks.includes(offered.rank)) return { type: "bid", bid: "raub" };
       const hasSeven = hand.some((c) => isSeven(c) && c.suit === offered.suit);
       const lastFlip = view.talonFlips >= view.rules.maxTalonFlips;
       const need = config.bidMinTrumps - (lastFlip ? config.lastFlipLeniency : 0) + jitter(rng, config.noiseP);
@@ -196,10 +212,17 @@ function choosePlay(view: RaubPlayerView, config: RaubBotConfig, rng: () => numb
   return winners.filter((c) => c.suit === winners[0]!.suit).sort(byRank).at(-1)!;
 }
 
-/** Vrijeme odluke, nasumično (odluka 11: 2,5–7 s). */
+/**
+ * Vrijeme odluke, nasumično (odluka 11: 2,5–7 s). Djelilac koji na prvoj karti
+ * smije „Raub” odlučuje za 1–8 s (odluka 17) — kad je `view` dat.
+ */
 export function raubBotThinkMs(
   config: RaubBotConfig = DEFAULT_RAUB_BOT_CONFIG,
   rng: () => number = Math.random,
+  view?: RaubPlayerView,
 ): number {
-  return Math.round(config.thinkMinMs + (config.thinkMaxMs - config.thinkMinMs) * rng());
+  const raubChoice = view?.step === "bidding" && view.bidOptions?.raub === true;
+  const min = raubChoice ? config.raubThinkMinMs : config.thinkMinMs;
+  const max = raubChoice ? config.raubThinkMaxMs : config.thinkMaxMs;
+  return Math.round(min + (max - min) * rng());
 }

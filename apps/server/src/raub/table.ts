@@ -269,7 +269,7 @@ export class RaubTables {
       this.deadlines.set(room.id, Date.now() + this.deps.timing.turnMs);
       const player = room.players.find((p) => p.id === pid);
       if (player?.isBot) {
-        const delay = this.deps.botThinkMs?.() ?? raubBotThinkMs(DEFAULT_RAUB_BOT_CONFIG, this.rng);
+        const delay = this.deps.botThinkMs?.() ?? raubBotThinkMs(DEFAULT_RAUB_BOT_CONFIG, this.rng, getRaubView(s, pid));
         this.actTimers.set(room.id, setTimeout(() => this.botAct(room.id, pid), delay));
       } else {
         this.actTimers.set(room.id, setTimeout(() => this.autoAct(room.id, pid), this.deps.timing.turnMs));
