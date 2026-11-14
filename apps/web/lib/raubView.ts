@@ -256,5 +256,27 @@ export function overlayPhase(p: Pick<RaubGamePayload, "phase" | "interruption">)
   return null;
 }
 
+/** Šta treba za odluku o letu zamjene: broj ruke i `exchanged` po sjedištu. */
+export type ExchangeSnapshot = {
+  dealNo: number;
+  seats: ReadonlyArray<Pick<RaubSeatView, "playerId" | "exchanged">>;
+};
+
+/**
+ * Kome u ovom crtanju lete karte iz špila (zamjena): samo prelaz `null → N > 0`
+ * u istoj ruci. Ko je tražio 0 ili je odustao (ostaje `null`) ne dobija ništa;
+ * prvo crtanje, reconnect i nova ruka ne puštaju stare letove.
+ */
+export function exchangeFlights(
+  prev: ExchangeSnapshot | undefined,
+  next: ExchangeSnapshot,
+): { playerId: string; count: number }[] {
+  if (!prev || prev.dealNo !== next.dealNo) return [];
+  const before = new Map(prev.seats.map((s) => [s.playerId, s.exchanged]));
+  return next.seats
+    .filter((s) => before.get(s.playerId) === null && s.exchanged !== null && s.exchanged > 0)
+    .map((s) => ({ playerId: s.playerId, count: s.exchanged! }));
+}
+
 /** Pravac sa koga je karta bačena — za položaj u prostoru štiha. */
 export type Dir = "top" | "left" | "right" | "bottom";

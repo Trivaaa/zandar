@@ -41,6 +41,8 @@ import { useQueryParam } from "@/lib/useQuery";
  *   /dev/raub?s=table         13 · tabela rezultata
  *   /dev/raub?s=end           14 · kraj partije (&quick=0 → Revanš)
  *   /dev/raub?s=pause | vote  prekid veze (pauza / glasanje)
+ *   /dev/raub?s=exchange&then=exchange&ex=2  zamjena teče: svakih 1,5 s jedan igrač
+ *                            (ti mijenjaš `ex` karata, botovi po svom) — provjera leta iz špila
  *   /dev/raub?table=wood|cloth · &seed=N
  *
  * URL je osnova (headless Chrome ne klikće); akcije samo pišu u konzolu.
@@ -151,9 +153,31 @@ function scenarioState(name: string, n: number, seed: number): RaubGameState {
   return s;
 }
 
-function scenario(name: string, n: number, seed: number, now: number, then: string | null): RaubGamePayload {
+function scenario(
+  name: string,
+  n: number,
+  seed: number,
+  now: number,
+  then: string | null,
+  steps = 0,
+  ex = 2,
+): RaubGamePayload {
   let s = scenarioState(name, n, seed);
   if (then === "raub" || then === "moja") s = applyRaubAction(s, s.currentPlayerId!, { type: "bid", bid: then });
+  if (then === "exchange") {
+    const rng = createSeededRandom(seed);
+    for (let i = 0; i < steps && s.phase === "playing" && (s.step === "exchange" || s.step === "discard_extra"); i++) {
+      const pid = s.currentPlayerId!;
+      const v = getRaubView(s, pid);
+      s =
+        pid === ME && s.step === "exchange"
+          ? applyRaubAction(s, pid, {
+              type: "exchange",
+              cardIds: v.myCards.filter((c) => c.id !== s.lockedCardId).slice(0, Math.min(ex, v.maxExchange)).map((c) => c.id),
+            })
+          : applyRaubAction(s, pid, selectRaubBotAction(v, undefined, rng));
+    }
+  }
   const away = name === "pause" || name === "vote" ? `p${Math.min(2, n - 1)}` : undefined;
   return {
     ...getRaubView(s, ME),
@@ -179,12 +203,22 @@ export default function RaubDevPage() {
   // `then=raub|moja`: poslije 1,5 s igrač na potezu to kaže (provjera leta karte).
   const then = useQueryParam("then");
   const [stepped, setStepped] = useState(false);
+  const [steps, setSteps] = useState(0);
+  const ex = Math.max(0, Math.min(4, Number(useQueryParam("ex") ?? 2) || 0));
   useEffect(() => {
     if (!then) return;
     const t = setTimeout(() => setStepped(true), 1500);
-    return () => clearTimeout(t);
+    // `then=exchange`: jedan potez zamjene svakih 1,5 s.
+    const iv = then === "exchange" ? setInterval(() => setSteps((k) => k + 1), 1500) : null;
+    return () => {
+      clearTimeout(t);
+      if (iv) clearInterval(iv);
+    };
   }, [then]);
-  const view = useMemo(() => scenario(s, n, seed, now, stepped ? then : null), [s, n, seed, now, stepped, then]);
+  const view = useMemo(
+    () => scenario(s, n, seed, now, stepped ? then : null, steps, ex),
+    [s, n, seed, now, stepped, then, steps, ex],
+  );
   const log = (label: string) => async (...args: unknown[]) => console.info(`[raub dev] ${label}`, ...args);
   return (
     <RaubScreen

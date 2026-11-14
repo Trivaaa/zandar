@@ -26,6 +26,7 @@ import { useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
 import { isNative } from "@/lib/platform";
 import {
   declarerTag,
+  exchangeFlights,
   isDropped,
   overlayPhase,
   lockedHandIds,
@@ -34,10 +35,18 @@ import {
   seatCaptionText,
   sortedRaubPlacements,
   type Dir,
+  type ExchangeSnapshot,
 } from "@/lib/raubView";
 import type { ActiveReaction } from "@/lib/reactions";
 import { faceArtOf } from "@/lib/flyAnimation";
-import { flyCard, snapshotTalonTop, type TalonSnapshot } from "@/lib/raubFly";
+import {
+  flyCard,
+  flyFromDeck,
+  snapshotDeck,
+  snapshotTalonTop,
+  type DeckSnapshot,
+  type TalonSnapshot,
+} from "@/lib/raubFly";
 import { arrangeSeats } from "@/lib/seating";
 import { CardDeckContext } from "@/components/felt/cardDeck";
 import { sr } from "@/lib/sr";
@@ -218,6 +227,42 @@ export function RaubScreen({
     // „Moja" sa sedmicom: sedmica ide od nosioca na talon.
     const seven = document.querySelector(".rb-talon__top[data-arrive]");
     if (seven && seatEl) flyCard(seatEl.getBoundingClientRect(), seven, faceArtOf(seven));
+  });
+
+  // ---- zamjena: iz špila igraču onoliko karata koliko je tražio ----
+  // Ko je tražio 0 ili je odustao ne dobija let (`exchangeFlights`). Izvor je
+  // PRETHODNI snimak špila: kad zadnji zamijeni, isti commit prelazi u štihove
+  // i talon sa špilom nestaje.
+  const prevExchange = useRef<ExchangeSnapshot | undefined>(undefined);
+  const prevHandIds = useRef<ReadonlySet<string>>(new Set());
+  const deckSnap = useRef<DeckSnapshot | null>(null);
+  useLayoutEffect(() => {
+    const next: ExchangeSnapshot = {
+      dealNo: state.dealNo,
+      seats: state.seats.map((s) => ({ playerId: s.playerId, exchanged: s.exchanged })),
+    };
+    const flights = exchangeFlights(prevExchange.current, next);
+    const handBefore = prevHandIds.current;
+    const from = deckSnap.current;
+    prevExchange.current = next;
+    prevHandIds.current = new Set(state.myCards.map((c) => c.id));
+    deckSnap.current = snapshotDeck();
+    if (!from) return;
+    for (const f of flights) {
+      if (f.playerId === state.myPlayerId && !state.myCardsHidden) {
+        const openId = state.openCard?.playerId === state.myPlayerId ? state.openCard.card.id : null;
+        const fresh = state.myCards
+          .filter((c) => !handBefore.has(c.id) && c.id !== openId)
+          .map((c) => document.querySelector(`.hand [data-card-id="${CSS.escape(c.id)}"]`)?.closest(".hand__slot"))
+          .filter((el): el is Element => el != null);
+        if (fresh.length > 0) {
+          flyFromDeck(from, fresh, f.count, true);
+          continue;
+        }
+      }
+      const seatEl = document.querySelector(`[data-seat-id="${CSS.escape(f.playerId)}"]`);
+      if (seatEl) flyFromDeck(from, [seatEl], f.count, false);
+    }
   });
 
   const requestLeave = () => {

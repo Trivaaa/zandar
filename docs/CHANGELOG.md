@@ -1906,3 +1906,25 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Kako:** `RaubBotConfig.idleThinkMinMs/idleThinkMaxMs` (800/2000, config — HARD RULE 7); `raubBotThinkMs(config, rng, view, idle = false)`; čista `raubNoHumanInHand(state, humanIds)` u game-core (`going === false` za sve ljude; `null` u licitaciji = nije; sto bez ljudi = nije). Server (`raub/table.ts` `route()`) računa `idle` iz `room.players` (`!isBot`) i prosljeđuje ga. Ništa od toga ne ide klijentu (HARD RULE 3); oblik snapshota netaknut. Simulacija se ne mijenja — tamo su svi botovi.
 
 **Provjereno:** game-core 398 testova (+5: idle raspon i `raubNoHumanInHand`), server 255, typecheck. **Nije provjereno na uređaju** ni u živoj partiji — tempo okom tek tamo.
+
+## 166. Raub — zamjena: iz špila igraču leti onoliko karata koliko je tražio (2026-11-14, `feat/raub-exchange-fly`)
+
+**Šta:**
+- Kad igrač potvrdi zamjenu, iz špila poleti tačno onoliko karata koliko je tražio (poleđine, mađarica), jedna za drugom (razmak 120 ms, let 600 ms).
+- Kod drugog igrača karte lete do sjedišta i tamo se smanje i nestanu (vidljive cijelim putem, blijede tek u zadnjih 20 %).
+- Kod mene sleću u nove karte u ruci; nove karte su skrivene dok duh ne sleti.
+- Ko je tražio 0 karata ili je rekao „Ne idem" ne dobija ništa.
+- Prva zamjena sve 4 (server izvuče 5, jedna otvorena): leti 4 — onoliko koliko je traženo.
+
+**Kako:**
+- `lib/raubView.ts` `exchangeFlights(prev, next)` — čista odluka: samo prelaz `exchanged: null → N > 0` u istoj ruci. Odustali nisu u `exchangeOrder`, pa im `exchanged` ostaje `null`. Prvo crtanje, reconnect i nova ruka ne lete. +5 testova.
+- `lib/raubFly.ts` `snapshotDeck` (`.rb-talon__deck`, ne `[data-deck]` koji nose i `.felt-stage` i `CardBack`; poleđina se čita sa prave `.card-back`) i `flyFromDeck` (`fill: both`, pa duhovi koji čekaju red stoje na špilu).
+- `RaubScreen`: `useLayoutEffect` bez zavisnosti, izvor je PRETHODNI snimak špila — kad zadnji zamijeni, isti commit prelazi u štihove i špil nestaje.
+- Server, game-core i snapshot netaknuti.
+- `/dev/raub?s=exchange&then=exchange&ex=N` — zamjena teče sama, svakih 1,5 s jedan potez.
+
+**Mjereno (CDP, headless Chrome 390×844, brojanje duhova u stranici):** ja 3 → 3 duha, Milica 2 → 2, Goga 1 (zadnja, prelaz u štihove) → 1, Marko „Ne ide" → 0.
+
+**Zamka:** portovi 3217 i 3291 su držali `next dev` drugih sesija (`zandar-raub-trick*`) — prvo mjerenje je tiho gađalo tuđi server. Prije mjerenja provjeri `netstat` za port.
+
+**Provjereno:** web testovi 225/225, typecheck, lint na izmijenjenim fajlovima. **Nije provjereno na uređaju.**

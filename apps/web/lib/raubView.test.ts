@@ -14,6 +14,7 @@ import type { RaubGameState, RaubHandResult, RaubPlayerView } from "@zandar/shar
 
 import {
   declarerTag,
+  exchangeFlights,
   formatDelta,
   handRows,
   handSentence,
@@ -233,5 +234,35 @@ describe("raubView: katanac", () => {
     const v = { ...base, lockedCardId: null, openCard: open };
     assert.deepEqual(lockedHandIds({ ...v, step: "exchange" }, "discard"), ["spades-K"]);
     assert.deepEqual(lockedHandIds({ ...v, step: "tricks" }, "play"), []);
+  });
+});
+
+describe("raubView: let zamjene", () => {
+  const snap = (dealNo: number, ex: Array<number | null>) => ({
+    dealNo,
+    seats: ex.map((exchanged, i) => ({ playerId: `p${i}`, exchanged })),
+  });
+  test("prvo crtanje (reconnect, hidracija) ne leti", () => {
+    assert.deepEqual(exchangeFlights(undefined, snap(1, [2, null, null, null])), []);
+  });
+  test("leti tačno onoliko karata koliko je traženo", () => {
+    for (const n of [1, 2, 3, 4]) {
+      assert.deepEqual(exchangeFlights(snap(1, [null, null, null, null]), snap(1, [n, null, null, null])), [
+        { playerId: "p0", count: n },
+      ]);
+    }
+  });
+  test("0 karata i odustali (ostaje null) — ništa", () => {
+    assert.deepEqual(exchangeFlights(snap(1, [null, null, null, null]), snap(1, [0, null, null, null])), []);
+    assert.deepEqual(exchangeFlights(snap(1, [2, null, null, null]), snap(1, [2, 0, null, null])), []);
+  });
+  test("već zamijenjeni ne lete ponovo; dva u istom crtanju lete oba", () => {
+    assert.deepEqual(exchangeFlights(snap(1, [2, null, null, null]), snap(1, [2, 3, 1, null])), [
+      { playerId: "p1", count: 3 },
+      { playerId: "p2", count: 1 },
+    ]);
+  });
+  test("nova ruka ne leti", () => {
+    assert.deepEqual(exchangeFlights(snap(1, [null, null, null, null]), snap(2, [2, null, null, null])), []);
   });
 });
