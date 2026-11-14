@@ -29,9 +29,19 @@ export const metadata: Metadata = {
   description:
     "Tradicionalna kartaška igra. Pozovi 1–3 prijatelja preko linka i odigraj partiju u browseru.",
   openGraph: {
-    title: "Žandar online",
-    description: "Pozovi prijatelje i odigraj partiju Žandara",
-    images: ["/og-image.png"],
+    title: "Kartaonica — Žandar, Raub, Poker",
+    description:
+      "Ko je za jednu? Pozovi prijatelje i igraj online — besplatno, bez instalacije.",
+    // Novo ime fajla namjerno: WhatsApp/Facebook keširaju preview po URL-u slike.
+    // JPEG < 300 KB — WhatsApp ne prikazuje preview za velike slike.
+    images: [
+      {
+        url: "/og-share.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Ko je za jednu? Žandar, Raub, Poker",
+      },
+    ],
     type: "website",
     locale: "bs_BA",
   },
