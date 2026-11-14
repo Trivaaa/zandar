@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import type { Card, PublicPlayer, RaubBid, RaubHandResult, RaubSeatView, Suit } from "@zandar/shared-types";
 
 import { CardBack } from "@/components/felt/CardBack";
@@ -79,9 +79,37 @@ export function TalonPile({
 }) {
   const current = taken?.card ?? talon.at(-1);
   const earlier = taken ? talon : talon.slice(0, -1);
+  const deckRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLSpanElement>(null);
+  // Okrenuta karta kreće sa špila: razlika centara se mjeri prije prvog crtanja
+  // (animacija tad još stoji na 0 jer --draw-x/-y nisu postavljene), pa važi i
+  // kad se red talona prelomi na uskom ekranu. Sto zna u prvom kadru biti još
+  // neraspoređen (rect 0×0) — tad se mjeri u sljedećem, dok traje zadrška.
+  useLayoutEffect(() => {
+    let frame = 0;
+    let tries = 0;
+    const measure = () => {
+      const deck = deckRef.current?.firstElementChild;
+      const top = topRef.current;
+      if (!deck || !top) return;
+      // Ponovljen efekat (StrictMode) bi inače izmjerio kartu već pomjerenu na špil.
+      top.style.removeProperty("--draw-x");
+      top.style.removeProperty("--draw-y");
+      const d = deck.getBoundingClientRect();
+      const t = top.getBoundingClientRect();
+      if ((d.width === 0 || t.width === 0) && tries++ < 20) {
+        frame = requestAnimationFrame(measure);
+        return;
+      }
+      top.style.setProperty("--draw-x", `${d.left + d.width / 2 - (t.left + t.width / 2)}px`);
+      top.style.setProperty("--draw-y", `${d.top + d.height / 2 - (t.top + t.height / 2)}px`);
+    };
+    measure();
+    return () => cancelAnimationFrame(frame);
+  }, [current?.id]);
   return (
     <div className="rb-talon">
-      <div className="rb-talon__deck" data-deck>
+      <div ref={deckRef} className="rb-talon__deck" data-deck>
         {deckCount > 0 ? <CardBack size="sm" /> : <span className="rb-talon__empty" />}
         <span className="rb-talon__count">{deckCount > 0 ? sr.raub.deck(deckCount) : sr.raub.deckEmpty}</span>
       </div>
@@ -92,8 +120,16 @@ export function TalonPile({
               <PlayingCard card={c} size="sm" />
             </span>
           ))}
-          <span key={current.id} className="rb-talon__top">
+          <span
+            key={current.id}
+            ref={topRef}
+            className="rb-talon__top"
+            {...(taken ? { "data-static": true } : earlier.length === 0 ? { "data-first": true } : {})}
+          >
             <PlayingCard card={current} size="sm" />
+            <span className="rb-talon__back">
+              <CardBack size="sm" />
+            </span>
           </span>
           {taken ? <span className="rb-talon__taken">{taken.label}</span> : null}
         </div>

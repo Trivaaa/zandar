@@ -3489,15 +3489,60 @@
   color: var(--accent);
   white-space: nowrap;
 }
+/* Okretanje s talona: karta krene sa špila licem nadolje, klizne na svoje
+   mjesto i okrene se (`TalonPile` izmjeri --draw-x/-y od špila). Prva karta
+   ruke ima zadršku i duži pokret — inače je „već tu" čim se uđe za sto. */
 .rb-talon__top {
-  animation: rb-flip var(--t-card-flip) var(--ease-card) both;
+  position: relative;
+  animation: rb-draw var(--t-rb-draw) var(--ease-card) both;
 }
-@keyframes rb-flip {
+.rb-talon__top[data-first] {
+  animation-duration: var(--t-rb-draw-first);
+  animation-delay: var(--t-rb-draw-delay);
+}
+.rb-talon__back {
+  position: absolute;
+  inset: 0;
+  animation: rb-draw-back var(--t-rb-draw) linear both;
+}
+.rb-talon__top[data-first] > .rb-talon__back {
+  animation-duration: var(--t-rb-draw-first);
+  animation-delay: var(--t-rb-draw-delay);
+}
+.rb-talon__top[data-static],
+.rb-talon__top[data-static] > .rb-talon__back {
+  animation: none;
+}
+.rb-talon__top[data-static] > .rb-talon__back {
+  opacity: 0;
+}
+@keyframes rb-draw {
   0% {
-    transform: scaleX(0);
+    translate: var(--draw-x, 0px) var(--draw-y, 0px);
+    scale: 1 1;
+  }
+  55% {
+    translate: 0 0;
+    scale: 1 1;
+  }
+  77% {
+    translate: 0 0;
+    scale: 0 1;
   }
   100% {
-    transform: scaleX(1);
+    translate: 0 0;
+    scale: 1 1;
+  }
+}
+/* Poleđina nestaje tačno na pola okreta (kad je karta „na ivici"). */
+@keyframes rb-draw-back {
+  0%,
+  77% {
+    opacity: 1;
+  }
+  77.1%,
+  100% {
+    opacity: 0;
   }
 }
 
@@ -3523,39 +3568,58 @@
 }
 
 /* Štih: svaka karta ispred onog ko ju je bacio (tabla 9/10). */
+/* Karta doleti od ivice stola na kojoj sjedi igrač: cqw/cqh se računaju od
+   `.rb-table` (query container, ista veličina kao `.rb-trick`). Kupljenje je
+   20 % sporije od Žandarovog. */
 .rb-trick {
   position: absolute;
   inset: 0;
   transition:
-    transform var(--t-card-collect) var(--ease-card),
-    opacity var(--t-card-collect) var(--ease-card);
+    transform calc(var(--t-card-collect) * 1.2) var(--ease-card),
+    opacity calc(var(--t-card-collect) * 1.2) var(--ease-card);
 }
 .rb-trick__card {
   position: absolute;
   left: 50%;
   top: 50%;
-  animation: rb-play var(--t-card-play) var(--ease-card) both;
+  animation: rb-play calc(var(--t-card-play) * 1.4) var(--ease-card) both;
 }
 .rb-trick__card[data-dir="bottom"] {
   transform: translate(-50%, 2%);
+  --fly-x: 0px;
+  --fly-y: 70cqh;
 }
 .rb-trick__card[data-dir="top"] {
   transform: translate(-50%, -102%);
+  --fly-x: 0px;
+  --fly-y: -60cqh;
 }
 .rb-trick__card[data-dir="left"] {
   transform: translate(-150%, -50%) rotate(-4deg);
+  --fly-x: -60cqw;
+  --fly-y: 0px;
 }
 .rb-trick__card[data-dir="right"] {
   transform: translate(50%, -50%) rotate(4deg);
+  --fly-x: 60cqw;
+  --fly-y: 0px;
 }
 .rb-trick__card[data-last] .card-face {
   box-shadow: 0 0 0 2.5px var(--turn-active);
 }
+/* `translate`/`scale` se slažu sa `transform` iznad (položaj + nagib po smjeru). */
 @keyframes rb-play {
   from {
+    translate: var(--fly-x, 0px) var(--fly-y, 0px);
+    scale: 0.85;
     opacity: 0;
   }
+  30% {
+    opacity: 1;
+  }
   to {
+    translate: 0 0;
+    scale: 1;
     opacity: 1;
   }
 }

@@ -155,6 +155,11 @@
   --t-pk-board:      440ms;
   --t-pk-flip:       300ms;
   --t-pk-lift:       320ms;
+  /* Raub: okretanje karte s talona (sa špila → mjesto → okret). Prva karta
+     ruke čeka i traje duže, da se vidi da je djelilac izvlači. */
+  --t-rb-draw:       600ms;
+  --t-rb-draw-first: 1000ms;
+  --t-rb-draw-delay: 400ms;
 
   /* Feedback blicevi u play-zoni. Vrijednosti su ISTE kao ranija hardkodirana
      trajanja (0.55s / 0.77s) — ovo je tokenizacija, ne promjena tempa. */
@@ -400,6 +405,9 @@
     --t-pk-board:     1ms;
     --t-pk-flip:      1ms;
     --t-pk-lift:      1ms;
+    --t-rb-draw:       1ms;
+    --t-rb-draw-first: 1ms;
+    --t-rb-draw-delay: 1ms;
     --t-capture-flash: 1ms;
     --t-jack-sweep:    1ms;
     --t-turn-pulse:   0s;

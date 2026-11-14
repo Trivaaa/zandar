@@ -1803,3 +1803,16 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Dopuna — „Raub” samo na prvoj okrenutoj karti:** vlasnik je na „Karta 2 od 3” (Dama) kao djelilac dobio ponudu „Raub · moraš 2 štiha”. Pravilo: Raub postoji samo na prvoj okrenutoj karti; na drugoj i trećoj ni djelilac nema Raub, nego „Moja” (sa sedmicom uzima kartu, bez nje karta ostaje na talonu) ili „Dalje”. Ako je prva karta sedmica i djelilac kaže „Dalje”, sljedeća je već druga. `RaubRules.raubFirstFlipOnly` (opciono, bez polja = da), provjera u `raubCanRaub` (`talonFlips > 1`), pa je i server i `bidOptions` i bot dobijaju bez druge izmjene. Četiri nova testa (druga karta, sedmica pa Dalje, parametar isključen, stari snapshot), postojeći test treće karte prelazi na „Moja”. Simulacija 10.000 mečeva (seed 1) sa dopunom: refa 2 igrača 10,8 %, 3 igrača 4,9 %, 4 igrača 2,2 %; trajanje 4 igrača medijan 32,4 min, p90 48,0; bez grešaka, odbijenih akcija i zaglavljenih mečeva. Provjereno: game-core 391, server 255, web 220, typecheck. **Nije provjereno na uređaju.**
 
 **Provjereno:** game-core 387 (tri nova testa za odluku 15; testovi zamjene, štihova i bodovanja sada rauba djelilac), server 255, web 215, typecheck. **Nije provjereno na uređaju ni u pregledaču.**
+
+## 157. Raub — karta leti od igrača, sporije kupljenje, izvlačenje s talona (2026-11-14, `feat/raub-card-motion`)
+
+**Zašto:** feedback sa stola — kad drugi bacaju karte, karta se samo pojavi u štihu (`rb-play` je bio goli fade). Kupljenje se vidi, ali je prebrzo. Prva karta koju djelilac okrene s talona je „već tu" čim se uđe za sto (200 ms scaleX na mjestu), pa igrači ne primijete da se nešto desilo.
+
+**Kako (samo klijent):**
+- **Bacanje:** svaka karta polazi sa ivice stola na kojoj sjedi igrač (`--fly-x/-y` u `cqw/cqh` od `.rb-table`, kontejnera iz 155: lijevo/desno ±60cqw, gore −60cqh, ja +70cqh iz ruke). `rb-play` animira individualna svojstva `translate`/`scale` + `opacity`, pa se slaže sa `transform`-om koji drži položaj i nagib po smjeru — jedan keyframe za sva četiri smjera. Trajanje `--t-card-play × 1,4` (≈365 ms).
+- **Kupljenje 20 % sporije:** `--t-card-collect × 1,2` (320 → 384 ms) samo za Raub; `TRICK_COLLECT_MS` 350 → 420 da štih ne nestane prije kraja pokreta. Žandarov token netaknut.
+- **Talon:** `TalonPile` izmjeri razliku centara špila i nove karte (`--draw-x/-y`), karta krene sa špila licem nadolje (sloj `CardBack` nestaje tačno na pola okreta), klizne na mjesto i okrene se. Prva karta ruke: 400 ms zadrške + 1 s pokret; kasnije okrenute karte 600 ms bez zadrške; uzeta karta (`data-static`) se ne animira. Novi tokeni `--t-rb-draw*` kolapsiraju pod reduced-motion.
+
+**Zamka:** mjerenje u `useLayoutEffect` se pod StrictMode-om izvrši dvaput, a drugi put vidi kartu već pomjerenu na špil (animacija čita `--draw-x`) → upisao bi 0. Zato se varijable skinu prije mjerenja. Uz to: ako je sto u prvom kadru neraspoređen (rect 0), mjeri se ponovo u sljedećem kadru.
+
+**Provjereno:** CDP na `/dev/raub?s=bid` i `?s=trick` (360×640): talon karta kreće sa špila (−72 px), klizi do ~800 ms, okret ~1,0–1,3 s, poleđina nestaje na pola; karte štiha kreću od svog igrača (desno +130 px, gore −86 px) i stignu za ~350 ms; pod reduced-motion sve odmah na mjestu. Web 220 testova, typecheck, lint = osnovica (5/2). **Nije provjereno na uređaju** — tempo ocijeniti okom.

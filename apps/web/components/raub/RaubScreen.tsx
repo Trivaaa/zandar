@@ -61,7 +61,8 @@ const TOAST_MS = 3500;
 const QUIET_ERRORS = new Set(["NOT_YOUR_TURN", "STALE_STATE", "INVALID_GAME_PHASE", "INVALID_ACTION", "INVALID_PHASE"]);
 /** Pun štih ostaje vidljiv (spec: 1 s), pa karte klize ka pobjedniku. */
 const TRICK_HOLD_MS = 1000;
-const TRICK_COLLECT_MS = 350;
+/** Pokriva CSS prelaz kupljenja (`--t-card-collect` × 1,2 = 384 ms). */
+const TRICK_COLLECT_MS = 420;
 
 export type RaubScreenProps = {
   state: RaubGamePayload;
