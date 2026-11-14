@@ -42,6 +42,11 @@ export interface RaubRules {
   /** „Raub" smije reći samo djelilac (odluka 15). Bez polja = da. */
   raubDealerOnly?: boolean;
   /**
+   * „Raub" samo na prvoj okrenutoj karti; na drugoj i trećoj samo „Moja" ili
+   * „Dalje", i djeliocu (odluka 15). Bez polja = da.
+   */
+  raubFirstFlipOnly?: boolean;
+  /**
    * „Moja" traži sedmicu boje ponuđene karte (odluka 13). Od odluke 15 ne traži:
    * bez sedmice karta ostaje na talonu. Bez polja = ne traži.
    */

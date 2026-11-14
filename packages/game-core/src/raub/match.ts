@@ -98,21 +98,24 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     stihOptional: state.rules.stihOptional ?? DEFAULT_RAUB_RULES.stihOptional!,
     mojaRequiredTricks: state.rules.mojaRequiredTricks ?? DEFAULT_RAUB_RULES.mojaRequiredTricks!,
     raubDealerOnly: state.rules.raubDealerOnly ?? DEFAULT_RAUB_RULES.raubDealerOnly!,
+    raubFirstFlipOnly: state.rules.raubFirstFlipOnly ?? DEFAULT_RAUB_RULES.raubFirstFlipOnly!,
     mojaNeedsSeven: state.rules.mojaNeedsSeven ?? DEFAULT_RAUB_RULES.mojaNeedsSeven!,
   };
 }
 
 /**
- * Smije li igrač reći „Raub": ponuđena karta je A, K, Q ili J (odluka 13), a
- * igrač je djelilac (odluka 15).
+ * Smije li igrač reći „Raub": ponuđena karta je A, K, Q ili J (odluka 13), igrač
+ * je djelilac i karta je prva okrenuta (odluka 15). Na drugoj i trećoj karti ni
+ * djelilac nema Raub — samo „Moja" ili „Dalje".
  */
 export function raubCanRaub(
-  state: Pick<RaubGameState, "rules" | "talon" | "dealerId">,
+  state: Pick<RaubGameState, "rules" | "talon" | "dealerId" | "talonFlips">,
   playerId: string,
 ): boolean {
   const card = state.talon.at(-1);
   const rules = rulesV2(state);
   if (rules.raubDealerOnly && playerId !== state.dealerId) return false;
+  if (rules.raubFirstFlipOnly && state.talonFlips > 1) return false;
   return !!card && !isSeven(card) && rules.raubRanks.includes(card.rank);
 }
 

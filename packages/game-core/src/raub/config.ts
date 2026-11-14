@@ -19,8 +19,9 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   stihOptional: true,
   mojaRequiredTricks: 2,
   // Odluka 15 (vlasnik, 14.11.2026): „Raub" smije samo djelilac; „Moja" svako,
-  // i bez sedmice (tada karta ostaje na talonu).
+  // i bez sedmice (tada karta ostaje na talonu). Raub samo na prvoj okrenutoj karti.
   raubDealerOnly: true,
+  raubFirstFlipOnly: true,
   mojaNeedsSeven: false,
 };
 

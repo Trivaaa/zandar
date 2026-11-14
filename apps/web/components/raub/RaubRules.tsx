@@ -29,8 +29,9 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
             Nije obavezno — ako kaže „Dalje”, okreće se nova karta.
           </li>
           <li>
-            <b>Raub:</b> smije samo djelilac, i to kad je na talonu A, K, O ili U. Uzima kartu s talona, nosi tu boju
-            i mora 2 štiha. Nije obavezno, a sedmica mu ne treba.
+            <b>Raub:</b> smije samo djelilac, samo na prvoj okrenutoj karti, i to kad je A, K, O ili U. Uzima kartu s
+            talona, nosi tu boju i mora 2 štiha. Nije obavezno, a sedmica mu ne treba. Na drugoj i trećoj karti ni
+            djelilac nema Raub — samo „Moja” ili „Dalje”.
           </li>
           <li>
             <b>Moja:</b> licitira se redom, od djelioca, i svako smije reći „Moja” ili „Dalje”, na svaku kartu. Ko kaže
