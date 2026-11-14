@@ -3274,22 +3274,27 @@
 }
 .felt-stage[data-game="raub"] .rb-table {
   --card-w-hand: 4.5rem;
-  --rb-trick-max: 4.5rem;
+  --rb-trick-max: 5.4rem;
   /* Query container za `.rb-trick` (isti obrazac kao `.felt-table`): kutija
      ima zadat top/bottom/width, pa joj veličina ne zavisi od sadržaja. */
   container-type: size;
 }
-/* Krst štiha mora stati u visinu stola. Gornja karta je od −1.02 do −0.02
-   visine od sredine, donja simetrično: krst = 2.04 × visina = 2.04 × 1.417 ×
-   širina ≈ 2.9 × širina. Sa fiksnih 4.5rem krst je bio 208 px, a sto na S10e
-   (360×760, kamera 39 px) 166 px — gornja i donja karta su ulazile pod
-   avatare (vlasnik, 14.11.2026). Gornja granica je ista kao ranije. */
+/* Krst štiha mora stati u visinu stola. Gornja i donja karta se preklapaju
+   za trećinu visine (kao na pravom stolu; kasnija karta leži preko, a mađarice
+   nose oznaku u oba ugla): gornja je od −0.83 do +0.17 visine od sredine,
+   donja simetrično, pa je krst 1.66 × visina = 1.66 × 1.417 × širina ≈ 2.35 ×
+   širina (zaokruženo 2.4). Ranije krst bez preklapanja (2.9 × širina) — na
+   S10e (sto 166 px) karte su bile ~57 px, „sitno" (vlasnik, 14.11.2026);
+   preklapanje daje istu visinu krsta za 2.9 / 2.4 = 1.21× veće karte.
+   Po širini: bočne karte od −1.3 do +1.3 širine (zalaze 0.2 širine pod
+   gornju i donju), uz nagib ≈ 2.7 × širina. Izmjereno (14.11): S10e 55 → 67 px,
+   360×640 49 → 59, 390×844 65 → 75, desktop 65 → 78 px. */
 .felt-stage[data-game="raub"] .rb-trick {
-  --card-w-hand: min(var(--rb-trick-max), 100cqh / 2.9);
+  --card-w-hand: min(var(--rb-trick-max), 100cqh / 2.4, 100cqw / 2.8);
 }
 /* Nizak ekran (360×640): sto je visinski zagušen — ruka raste manje
-   (4.5rem = 72 px), a talon i štih ostaju 3.85rem (izmjereno: veći krst
-   štiha ulazi u gornje sjedište). Traka: 1 + 4.5 × 1.417 + 1.5 = 8.88rem. */
+   (4.5rem = 72 px), a talon ostaje 3.85rem; štih je do 4.6rem, a stvarno ga
+   drži visina stola (vidi `.rb-trick` gore). Traka: 1 + 4.5 × 1.417 + 1.5 = 8.88rem. */
 @media (max-height: 700px) {
   .felt-stage[data-game="raub"] {
     --card-w-hand: 4.5rem;
@@ -3301,7 +3306,7 @@
   }
   .felt-stage[data-game="raub"] .rb-table {
     --card-w-hand: 3.85rem;
-    --rb-trick-max: 3.85rem;
+    --rb-trick-max: 4.6rem;
   }
 }
 /* Desktop (veći avatari), izmjereno na 800×900: gornje 108.7, tvoje 117.5 px. */
@@ -3573,22 +3578,22 @@
   animation: rb-play calc(var(--t-card-play) * 1.4) var(--ease-card) both;
 }
 .rb-trick__card[data-dir="bottom"] {
-  transform: translate(-50%, 2%);
+  transform: translate(-50%, -17%);
   --fly-x: 0px;
   --fly-y: 70cqh;
 }
 .rb-trick__card[data-dir="top"] {
-  transform: translate(-50%, -102%);
+  transform: translate(-50%, -83%);
   --fly-x: 0px;
   --fly-y: -60cqh;
 }
 .rb-trick__card[data-dir="left"] {
-  transform: translate(-150%, -50%) rotate(-4deg);
+  transform: translate(-130%, -50%) rotate(-4deg);
   --fly-x: -60cqw;
   --fly-y: 0px;
 }
 .rb-trick__card[data-dir="right"] {
-  transform: translate(50%, -50%) rotate(4deg);
+  transform: translate(30%, -50%) rotate(4deg);
   --fly-x: 60cqw;
   --fly-y: 0px;
 }

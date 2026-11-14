@@ -1878,3 +1878,13 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 - `taskkill /IM chrome.exe` bi ubio i vlasnikov Chrome (klasifikator ga je odbio). Gasi se samo vlastiti proces.
 
 **Provjereno:** web testovi, typecheck, lint na izmijenjenim fajlovima. **Nije provjereno na uređaju** — tempo leta ocijeniti na telefonu.
+
+## 163. Raub — karte u štihu ~20 % veće (2026-11-14, `fix/raub-trick-bigger`)
+
+**Šta:** vlasnik (snimak sa S10e): karte u štihu su sitne. Veličinu je držala visina stola — krst bez preklapanja je visok 2,04 visine karte (`100cqh / 2.9`), a gornji i donji avatar ga ne puštaju dalje (popravka iz istog dana).
+
+**Kako (`felt.css`, samo štih):** gornja i donja karta se sad preklapaju za trećinu visine (`-83%` / `-17%` umjesto `-102%` / `2%`), kao na pravom stolu — kasnija karta leži preko, a mađarice nose oznaku u oba ugla. Krst je 1,66 visine, pa je granica `100cqh / 2.4` (2,9 / 2,4 = 1,21×). Bočne karte su bliže (`-130%` / `30%`), uz novu granicu po širini `100cqw / 2.8`. Gornje granice +20 %: `--rb-trick-max` 4.5 → 5.4rem, nizak ekran 3.85 → 4.6rem. Talon i let karte u štih nisu dirani (let čita `cqh`/`cqw`, kupljenje je relativno).
+
+**Izmjereno (CDP, `/dev/raub?s=trick`, četvrta karta dodata kloniranjem; širina lica karte):** 360×760 sa kamerom 39 px (S10e) 55 → 67 px (+21 %), 360×640 49 → 59 (+21 %), 390×844 65 → 75 (+16 %), 800×900 65 → 78 (+20 %). Razmak gornje karte do gornjeg sjedišta ≥ 2 px, donje do tvog avatara ≥ 13 px, bočne ≥ 28 px od bočnih igrača — nigdje ne ulaze pod avatare (prije je gornji razmak na S10e bio 0). **Zamka:** headless Chrome sa trajnim `--user-data-dir` je servirao stari CSS iz keša — mjerenje je izgledalo kao da izmjena ne djeluje; brisati profil ili `--disable-cache`.
+
+**Nije provjereno na uređaju.**
