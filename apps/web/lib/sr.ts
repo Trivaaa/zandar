@@ -502,7 +502,9 @@ export const sr = {
     hint: {
       lead: "Otvaraš štih — bilo koja karta",
       follow: (suit: string) => `Odgovori na boju ${suit}`,
+      followBeat: (suit: string) => `Odgovori na boju ${suit} i nadjačaj`,
       trump: "Nemaš boju — baci adut",
+      trumpBeat: "Nemaš boju — nadjačaj adutom",
       any: "Bilo koja karta",
     },
     declarer: {

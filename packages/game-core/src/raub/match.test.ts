@@ -831,16 +831,50 @@ describe("raub štihovi", () => {
     expect(raubLegalCards(s, "a")).toHaveLength(4);
   });
 
-  it("u V1 ne mora nadjačati; uz parametar mora kad može", () => {
+  it("mora nadjačati kad može (odluka 21); bez toga smije baciti bilo koju kartu boje", () => {
     let s = toTricks();
     s = act(s, "b", { type: "play", cardId: "diamonds-9" });
+    // oba karoa nose štih → oba dozvoljena
     expect(raubLegalCards(s, "c").map((x) => x.id).sort()).toEqual(["diamonds-A", "diamonds-K"]);
-    const strict = { ...s, rules: { ...s.rules, mustOvertrump: true } };
     s = act(s, "c", { type: "play", cardId: "diamonds-A" });
-    const strict2 = { ...s, rules: { ...s.rules, mustOvertrump: true } };
     // d ima samo 10 karo, ne može nadjačati asa → smije baciti boju
-    expect(raubLegalCards(strict2, "d").map((x) => x.id)).toEqual(["diamonds-10"]);
-    expect(raubLegalCards(strict, "c").map((x) => x.id).sort()).toEqual(["diamonds-A", "diamonds-K"]);
+    expect(raubLegalCards(s, "d").map((x) => x.id)).toEqual(["diamonds-10"]);
+  });
+
+  describe("nadjačavanje (odluka 21)", () => {
+    const hands = {
+      a: [S("A"), S("K"), S("Q"), S("J")],
+      b: [H("A"), H("8"), C("K"), D("9")],
+      c: [H("K"), H("9"), C("A"), C("9")],
+      d: [H("10"), H("7"), S("7"), S("8")],
+    };
+    const start = (rules?: Parameters<typeof createRaubRules>[1]) => {
+      let s = match({ hands, talon: H("Q"), dealer: "b", rules });
+      s = raubBy(s, "b");
+      for (const id of ["c", "d", "a"]) s = act(s, id, { type: "go", go: true });
+      for (const id of ["b", "c", "d", "a"]) s = ex(s, id, [], "hearts-8");
+      return s;
+    };
+
+    it("u boji: samo karta koja nosi štih (X na stolu, IX i figura u ruci → figura)", () => {
+      let s = start();
+      s = act(s, "b", { type: "play", cardId: "hearts-Q" });
+      expect(raubLegalCards(s, "c").map((x) => x.id)).toEqual(["hearts-K"]);
+      expect(() => act(s, "c", { type: "play", cardId: "hearts-9" })).toThrow("ILLEGAL_CARD");
+    });
+
+    it("bez boje: jači adut kad ga ima", () => {
+      let s = start();
+      s = act(s, "b", { type: "play", cardId: "diamonds-9" });
+      s = act(s, "c", { type: "play", cardId: "hearts-9" });
+      expect(raubLegalCards(s, "d").map((x) => x.id)).toEqual(["hearts-10"]);
+    });
+
+    it("parametar isključen: stara pravila (i stari snapshoti)", () => {
+      let s = start({ mustOvertrump: false });
+      s = act(s, "b", { type: "play", cardId: "hearts-Q" });
+      expect(raubLegalCards(s, "c").map((x) => x.id).sort()).toEqual(["hearts-9", "hearts-K"]);
+    });
   });
 
   it("odbija potez van reda i zastarjelo stanje", () => {

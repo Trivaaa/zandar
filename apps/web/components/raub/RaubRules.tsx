@@ -69,7 +69,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
         <SectionTitle>⚔️ Štihovi</SectionTitle>
         <ul className="list-disc pl-5 space-y-1">
           <li>Prvi štih otvara nosilac. Sljedeći otvara ko je uzeo prethodni.</li>
-          <li>Moraš odgovoriti na boju. Ako je nemaš, moraš baciti adut. Ako nemaš ni adut, baci bilo šta.</li>
+          <li>Moraš odgovoriti na boju i nadjačati kartu na stolu ako možeš. Ako nemaš boju, moraš baciti adut, i to jači ako ga imaš. Ako nemaš ni adut, baci bilo šta.</li>
           <li>Štih nosi najjači adut, a bez aduta najjača karta tražene boje.</li>
           <li>Karte koje ne smiješ baciti su zatamnjene.</li>
         </ul>

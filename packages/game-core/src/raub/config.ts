@@ -9,7 +9,8 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   maxTalonFlips: 3,
   firstBidder: "dealer",
   direction: 1,
-  mustOvertrump: false,
+  // Odluka 21 (vlasnik, 15.11.2026): mora nadjačati štih kad može (pagat.com).
+  mustOvertrump: true,
   allowDrop: true,
   // Odluka 10: 15 s je bilo prekratko za razmišljanje (igra na uređaju).
   turnTimeoutSeconds: 25,

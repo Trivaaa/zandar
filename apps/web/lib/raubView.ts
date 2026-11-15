@@ -138,8 +138,12 @@ export function playHint(v: Pick<RaubPlayerView, "tricks" | "myCards" | "trumpSu
   const legal = new Set(v.legalCardIds ?? []);
   const legalCards = v.myCards.filter((c) => legal.has(c.id));
   if (legalCards.length === v.myCards.length) return sr.raub.hint.any;
-  if (legalCards.every((c) => c.suit === led)) return sr.raub.hint.follow(SUIT_SYMBOL[led]);
-  if (v.trumpSuit && legalCards.every((c) => c.suit === v.trumpSuit)) return sr.raub.hint.trump;
+  // Odluka 21: kad server suzi izbor na jače karte, uputa kaže „nadjačaj".
+  const held = (suit: string) => v.myCards.filter((c) => c.suit === suit).length;
+  if (legalCards.every((c) => c.suit === led))
+    return legalCards.length < held(led) ? sr.raub.hint.followBeat(SUIT_SYMBOL[led]) : sr.raub.hint.follow(SUIT_SYMBOL[led]);
+  if (v.trumpSuit && legalCards.every((c) => c.suit === v.trumpSuit))
+    return legalCards.length < held(v.trumpSuit) ? sr.raub.hint.trumpBeat : sr.raub.hint.trump;
   return sr.raub.hint.any;
 }
 

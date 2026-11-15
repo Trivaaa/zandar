@@ -110,6 +110,18 @@ describe("raubView: faza i panel", () => {
     assert.match(playHint(getRaubView(follow, "p0")), /Odgovori na boju/);
   });
 
+  test("uputa kaže „nadjačaj” kad server suzi izbor na jače karte (odluka 21)", () => {
+    const card = (suit: "hearts" | "spades", rank: "9" | "10" | "K" | "7") => ({ id: `${suit}-${rank}`, suit, rank });
+    const led = { playerId: "p1", card: card("hearts", "10") };
+    const myCards = [card("hearts", "9"), card("hearts", "K"), card("spades", "7")];
+    const base = { tricks: [{ plays: [led], winnerId: null }], myCards, trumpSuit: "hearts" } as unknown as Pick<
+      RaubPlayerView,
+      "tricks" | "myCards" | "trumpSuit" | "legalCardIds"
+    >;
+    assert.match(playHint({ ...base, legalCardIds: ["hearts-K"] }), /i nadjačaj/);
+    assert.doesNotMatch(playHint({ ...base, legalCardIds: ["hearts-9", "hearts-K"] }), /nadjačaj/);
+  });
+
   test("licitacija (odluke 15 i 16): dugmad prate bidOptions servera", () => {
     const raub = until((s) => mine("bidding")(s) && getRaubView(s, "p0").bidOptions?.raub === true);
     const rp = panelFor(getRaubView(raub, "p0"), name);

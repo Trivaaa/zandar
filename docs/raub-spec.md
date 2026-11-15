@@ -103,7 +103,7 @@ Kod Štiha i Rauba karta s talona pripada nosiocu, ali **ostaje na stolu** (sa n
 2. Igrač mora odgovoriti na boju ako je ima.
 3. Ako nema traženu boju, mora baciti adut ako ga ima.
 4. Ako nema ni boju ni adut, baca bilo koju kartu.
-5. U V1 igrač ne mora nadjačati kartu na stolu.
+5. Igrač mora nadjačati kartu koja nosi štih ako može, u okviru pravila 2 i 3 **(odluka 21)**.
 6. Štih nosi najjači adut. Ako adut nije bačen, štih nosi najjača karta tražene boje.
 7. Ruka se završava nakon 4 štiha.
 
@@ -116,7 +116,7 @@ Izbore je vlasnik potvrdio 7.11.2026 **(odluka 5)**, osim ispadanja iz ruke, koj
 | Smjer igre | Na desno | Na lijevo |
 | Ko prvi licitira u scenariju 3 | Djelilac | Igrač desno od djelioca |
 | Broj okrenutih karata prije refe | 3 | 2 |
-| Obaveza nadjačavanja štiha | Nema | Mora nadjačati ako može |
+| Obaveza nadjačavanja štiha | Mora nadjačati ako može **(odluka 21)** | Nema |
 | Ispadanje iz ruke („ne idem”) | Igrač može odustati i ne boduje se **(odluka 9)** | Nema, svi igraju |
 | Pobjeda | Prvi s 0 ili manje bodova | Mora pogoditi tačno 0 |
 
@@ -354,6 +354,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 18 | Brži botovi kad nijedan čovjek ne igra ruku | Kad je svaki čovjek za stolom u ruci rekao „Ne idem”, botovi odlučuju za 0,8–2 s umjesto 2,5–7 s (`idleThinkMinMs`/`idleThinkMaxMs`, `raubNoHumanInHand`). Vrijeme je i dalje nasumično po potezu, pa botovi ne odigraju svi odjednom. Dok čovjek igra, tempo je nepromijenjen (odluke 11 i 17). Samo tempo bota — pravila igre netaknuta | QA 2026-11-15 P5, vlasnik 15.11.2026: van ruke se 45–60 s gleda prazan hod, a to je trenutak kad se aplikacija zatvara. Ubrzanje samo tih ruku, ne cijele igre |
 | 19 | Zadnji upitani mora ići | Ako su kod „Idem / Ne idem” svi prije zadnjeg upitanog rekli „Ne idem”, zadnji mora ići; nosilac nikad ne igra sam. Zamjenjuje dio odluke 9 „ako niko ne ide, nosilac −4”. U 2P protivnik uvijek ide. `raubMustGo`, pogled `mustGo`, „Ne idem” od njega server odbija | Prijava igrača 15.11.2026: svi osim nosioca su odustali. Simulacija 10.000 × 4P: medijan 22 → 23 ruke, 0 grešaka |
 | 20 | Karta s talona čeka do zamjene nosioca | Kod Rauba i Štiha karta s talona ostaje na stolu sa natpisom „Uzima: Ime” (vraćen, changelog 162 ga je uklonio). Nosilac prvo zamijeni (do 4; za sve 4 dobija tačno 4, bez pete i otvorene), pa uzme kartu sa stola i odbaci bilo koju iz ruke. „Moja” bez promjene. Snapshot bez novog polja: karta čeka kad je zaključana a još na vrhu talona (`raubTalonPending`) | Vlasnik 15.11.2026 sa stola: karta je odmah išla u ruku i nosilac je odbacivao prije zamjene |
+| 21 | Obavezno nadjačavanje | Igrač mora nadjačati kartu koja nosi štih kad može: u boji jačom kartom te boje, bez boje jačim adutom. Ako ne može, igra bilo koju kartu iz dozvoljenog skupa (boja, pa adut, pa bilo šta). Zamjenjuje izbor „Nema” iz tabele razilaženja (odluka 5). Parametar `mustOvertrump`, sada `true`; partije počete prije izmjene igraju do kraja po starom | Vlasnik (15.11.2026), sa stola: IX žira je bio dozvoljen iako je u ruci bila figura koja nosi štih. Pagat (varijanta koju već koristimo za „Idem / Ne idem”) traži nadjačavanje. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke, isto kao prije |
 
 ## Metrike, acceptance i otvorena pitanja
 

@@ -2025,3 +2025,17 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 **Stari APK (≤ 1.4.1):** dobija `discard_extra` poslije zamjene i radi; samo nema natpisa ispod karte.
 
 **Nije provjereno na uređaju.**
+
+## 171. Raub — obavezno nadjačavanje štiha (2026-11-15, `fix/raub-must-overtrump`)
+
+**Povod:** vlasnik sa stola (snimak): otvoren X žira (žir adut), u ruci IX žira i jača figura žira; aplikacija je pustila IX. Nije greška u kodu: pravilo je od početka parametar `mustOvertrump`, isključen odlukom 5. Vlasnik ga uključuje (odluka 21 u `docs/raub-spec.md`), po pagat.com varijanti.
+
+**Šta:**
+- `game-core/raub/config.ts`: `mustOvertrump: true`. Logika (`raubLegalCards`) je već postojala i bila testirana. Bot bira samo iz `legalCardIds`, pa se ne mijenja.
+- Back-compat: pravila žive u stanju sobe, pa hidrirane partije igraju do kraja sa `false`. Klijent ne odlučuje o dozvoljenim kartama, pa i APK 1.4.1 dobija pravilo bez novog paketa (samo bez nove upute).
+- Web: uputa „Odgovori na boju ♣ i nadjačaj” / „Nemaš boju — nadjačaj adutom” kad server suzi izbor (`playHint`), pravila u aplikaciji dopunjena.
+- Testovi: slučaj sa snimka (samo figura), jači adut bez boje, parametar isključen.
+
+**Mjerenje:** game-core 406, server 262, web 228, typecheck. `simulate:raub` 10.000 × 4P: 0 grešaka, medijan 23 ruke (35 min), refa 2,1 % — trajanje isto kao prije.
+
+**Nije provjereno na uređaju.**
