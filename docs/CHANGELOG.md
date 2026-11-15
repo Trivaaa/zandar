@@ -1960,3 +1960,35 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 - game-core 21 fajl, server 262, web 222 testa; typecheck svih paketa.
 - Curl na lokalnom serveru: ime 123/{} → 400, cilj 99 → 400, Raub sa ciljem 99 → 200, stari klijent 4/21 i bez cilja → 200, Raub i Poker brza igra → 200, ime od 40 znakova → 24.
 - Ranija verzija na starom `main`-u: approve → reject → kick pa restart; izbačeni se ne vraća, zahtjev ostaje `rejected`.
+
+## 168. Izdanje 1.4.1 — web, server i AAB (2026-11-15, `17f8b7e` → `main` → `production`)
+
+**Ušlo** (26 commitova sa `main`-a + tri grane):
+- Raub pravila v2 i prave mađarice (151–163), let pri zamjeni (166), brži botovi kad čovjek ne igra ruku (165).
+- Poker button u smjeru kazaljke (150); vraćena dosadašnja početna (152).
+- QA 15.11. B1, izbor nošenja (164); server P0 (167).
+
+**Produkcija:**
+- `git merge --ff-only` (provjereno `merge-base --is-ancestor`), push `6b0dfc7..17f8b7e`.
+- Server novi kod nakon ~105 s; `/health` → `production`.
+- Curl: cilj 99 → 400; stari klijent 4/21 i bez cilja → 200; Raub i Poker brza igra → 200; kartaonica.com 200.
+
+**Staging:** isti commit, provjeren istom matricom prije produkcije.
+
+**AAB 1.4.1 (`versionCode 8`):**
+- Izgrađen iz čistog `zandar-apk` @ `17f8b7e` (`aab:prod`).
+- U manifestu `1.4.1` / `com.kartaonica.zandar`, potpis `KARTAONI` (upload ključ).
+- Nosi popravku pada pokera (148), koju aplikacija 1.4.0 nema.
+- Native sloj od 1.4.0 je nepromijenjen (samo verzija), pa se Data safety i IARC ne diraju.
+
+**Zamka:**
+- `apk:prod` izlazi kao `app-debug.apk` sa debug potpisom, pa se ne može instalirati preko 1.4.0 sa Play-a.
+- Proba ažuriranja ide preko Play internog testa ili postepenog puštanja.
+
+**Nije provjereno na uređaju** (S10e nije bio povezan): staging APK je izgrađen, a provjera je ostala vlasniku.
+
+**Preostaje u dashboardima:**
+- Vercel staging: `NEXT_PUBLIC_WEB_URL` (QA B12).
+- Vercel, oba projekta: `NEXT_PUBLIC_POKER/RAUB=1` eksplicitno.
+- Railway, oba servisa: `ADMIN_TOKEN`, `RESEND_API_KEY`, `FEEDBACK_*`.
+- Railway produkcija: postavke iz `railway.json` u dashboard prije 1.12.2026.
