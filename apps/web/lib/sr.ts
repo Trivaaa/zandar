@@ -475,6 +475,8 @@ export const sr = {
     },
     discard: {
       hint: "Imaš 5 karata. Odbaci jednu.",
+      /** Odluka 22: nosilac Rauba/Štiha odbacuje, a karta sa stola tek onda dolazi u ruku. */
+      hintClaim: "Odbaci jednu kartu — zatim uzimaš kartu sa stola.",
       button: "Odbaci",
       pick: "Izaberi kartu",
     },
@@ -489,7 +491,7 @@ export const sr = {
     exchange: {
       hint: "Dodirni karte koje mijenjaš.",
       /** Nosilac Rauba/Štiha: prvo zamjena, pa uzima kartu sa stola i odbacuje jednu (odluka 20). */
-      hintClaim: "Dodirni karte koje mijenjaš — zatim uzimaš kartu sa stola i odbacuješ jednu.",
+      hintClaim: "Dodirni karte koje mijenjaš — zatim odbacuješ jednu i uzimaš kartu sa stola.",
       empty: "Špil je prazan — zamjene nema.",
       keep: "Zadrži sve",
       button: (n: number) => `Zamijeni ${n}`,

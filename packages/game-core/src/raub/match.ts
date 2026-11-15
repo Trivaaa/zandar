@@ -323,11 +323,6 @@ export function raubTalonPending(state: Pick<RaubGameState, "talonTakenBy" | "lo
   return !!state.talonTakenBy && !!state.lockedCardId && state.talon.at(-1)?.id === state.lockedCardId;
 }
 
-/** Nosilac uzima kartu koja ga čeka na talonu i odbacuje jednu (odluka 20). */
-function takePendingTalon(state: RaubGameState, playerId: string): void {
-  takeTalon(state, playerId);
-  toDiscardExtra(state, playerId);
-}
 
 /** Scenarij 1: djelilac uzima sedmicu s talona, nosi adut i mora 1 štih. */
 function takeStih(state: RaubGameState): void {
@@ -440,8 +435,8 @@ function continueExchange(state: RaubGameState): void {
     }
     seatOf(state, id).exchanged = 0;
     if (id === state.talonTakenBy && raubTalonPending(state)) {
-      // Špil prazan, a nosiocu karta još čeka na stolu: uzima je i odbacuje.
-      takePendingTalon(state, id);
+      // Špil prazan, a nosiocu karta još čeka na stolu: odbacuje jednu, pa je uzima.
+      toDiscardExtra(state, id);
       return;
     }
     state.exchangeIndex += 1;
@@ -653,6 +648,9 @@ export function applyRaubAction(
         throw new Error("CARD_LOCKED");
       }
       state.discarded.push(...seat.hand.splice(i, 1));
+      // Odluka 22: karta Rauba/Štiha prelazi s talona u ruku tek poslije odbacivanja.
+      // (Stari snapshot sa kartom već u ruci ovdje nije „pending" i ide starim putem.)
+      if (playerId === state.talonTakenBy && raubTalonPending(state)) takeTalon(state, playerId);
       if (state.exchangeOrder === null) afterTrump(state);
       else {
         state.exchangeIndex += 1;
@@ -677,9 +675,10 @@ export function applyRaubAction(
 
       if (playerId === state.talonTakenBy && raubTalonPending(state)) {
         // Nosilac Rauba/Štiha (odluka 20): onoliko novih koliko je dao, i za
-        // sve 4 bez pete i bez otvorene; zatim karta sa stola u ruku i višak.
+        // sve 4 bez pete i bez otvorene. Odluka 22: karta i dalje čeka na stolu
+        // dok on ne odbaci jednu iz ruke — tek onda prelazi kod njega.
         seat.hand.push(...draw(state, ids.length));
-        takePendingTalon(state, playerId);
+        toDiscardExtra(state, playerId);
         break;
       }
 

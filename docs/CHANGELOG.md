@@ -2039,3 +2039,18 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 **Mjerenje:** game-core 406, server 262, web 228, typecheck. `simulate:raub` 10.000 × 4P: 0 grešaka, medijan 23 ruke (35 min), refa 2,1 % — trajanje isto kao prije.
 
 **Nije provjereno na uređaju.**
+
+## 172. Raub — karta s talona prelazi u ruku tek poslije odbacivanja (2026-11-15, `fix/raub-must-overtrump`)
+
+**Povod:** vlasnik: kod Rauba karta treba da stoji na stolu do kraja. Djelilac kaže koliko mijenja, dobije toliko, bira koju kartu baca, i tek onda karta sa stola prelazi kod njega. Do sada (changelog 170) je karta prelazila u ruku odmah poslije zamjene, pa je nosilac birao od 5.
+
+**Šta:**
+- `game-core/raub/match.ts`: poslije zamjene nosioca (i kad je špil prazan na njegovom redu) korak `discard_extra` počinje dok je karta još na talonu (`raubTalonPending` i dalje `true`); `discard` je poslije odbacivanja premješta u ruku (`takeTalon`). `takePendingTalon` uklonjen. Bez novog polja u snapshotu; stari snapshot sa kartom već u ruci nije „pending" i ide starim putem.
+- Web: uputa „Odbaci jednu kartu — zatim uzimaš kartu sa stola.” (`discard.hintClaim`, panel `discard` nosi `claim`), uputa zamjene i pravila prepravljeni. Natpis „Uzimaš ti” ostaje ispod karte i za vrijeme odbacivanja; let karte u ruku (`takenTalonCard`) kreće tek poslije odbacivanja.
+- Testovi: tri testa odluke 20 prepravljena na novi redoslijed, novi test za prazan špil na redu nosioca.
+
+**Mjerenje:** game-core 407, server 262, web 228, typecheck, lint. `simulate:raub` 10.000 × 4P: 0 grešaka, medijan 23 ruke (35 min), isto kao prije.
+
+**Stari APK (≤ 1.4.1):** dobija `discard_extra` sa 4 karte i kartom na stolu; panel kaže „Imaš 5 karata. Odbaci jednu.” (netačan broj), ali odbacivanje radi.
+
+**Nije provjereno na uređaju.**

@@ -25,12 +25,12 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
         <SectionTitle>👑 Ko nosi adut</SectionTitle>
         <ul className="list-disc pl-5 space-y-1">
           <li>
-            <b>Štih:</b> kad je na talonu sedmica, djelilac smije reći „Štih”: nosi tu boju i mora 1 štih. Sedmica ostaje na stolu dok ne zamijeni karte, pa je tada uzima i odbacuje jednu.
+            <b>Štih:</b> kad je na talonu sedmica, djelilac smije reći „Štih”: nosi tu boju i mora 1 štih. Sedmica ostaje na stolu dok ne zamijeni karte i odbaci jednu iz ruke; tek tada je uzima.
             Nije obavezno — ako kaže „Dalje”, okreće se nova karta.
           </li>
           <li>
             <b>Raub:</b> smije samo djelilac, samo na prvoj okrenutoj karti, i to kad je A, K, O ili U. Nosi tu boju i
-            mora 2 štiha; karta ostaje na stolu dok ne zamijeni karte, pa je tada uzima i odbacuje jednu. Nije obavezno, a sedmica mu ne treba. Na tu kartu djelilac bira samo
+            mora 2 štiha; karta ostaje na stolu dok ne zamijeni karte i odbaci jednu iz ruke; tek tada je uzima. Nije obavezno, a sedmica mu ne treba. Na tu kartu djelilac bira samo
             „Raub” ili „Dalje”. Na drugoj i trećoj karti ni djelilac nema Raub — samo „Moja” ili „Dalje”.
           </li>
           <li>
@@ -44,8 +44,8 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
           </li>
         </ul>
         <p className="text-muted mt-2">
-          Kod štiha i rauba igrač ima 5 karata i odmah odbacuje jednu (ne kartu uzetu s talona). Kod „Moja” broj karata
-          ostaje 4.
+          Kod štiha i rauba nosilac prvo zamijeni karte i odbaci jednu iz ruke, a tek onda uzima kartu sa stola. Kod
+          „Moja” broj karata ostaje 4.
         </p>
       </section>
 

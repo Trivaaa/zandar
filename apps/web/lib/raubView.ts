@@ -62,7 +62,7 @@ export type RaubPanel =
   /** `raub`/`moja`: šta server dozvoljava (`bidOptions`); `seven` je moja sedmica te boje (ili `null`). */
   | { kind: "bid"; card: Card; raub: boolean; moja: boolean; seven: Card | null }
   | { kind: "swap"; seven: Card; talon: Card }
-  | { kind: "discard" }
+  | { kind: "discard"; claim: boolean }
   /** `mustGo`: svi ostali su rekli „Ne idem” — samo „Idem” (odluka 19). */
   | { kind: "going"; trump: Suit; declarerName: string; required: number; mustGo: boolean }
   /** `claim`: ja sam nosilac kome karta čeka na stolu — poslije zamjene je uzimam i odbacujem (odluka 20). */
@@ -95,7 +95,7 @@ export function panelFor(
     case "swap_seven":
       return v.swapOffer ? { kind: "swap", ...v.swapOffer } : { kind: "none" };
     case "discard_extra":
-      return { kind: "discard" };
+      return { kind: "discard", claim: v.claimedTalon === true && v.talonTakenBy === v.myPlayerId };
     case "going":
       return {
         kind: "going",

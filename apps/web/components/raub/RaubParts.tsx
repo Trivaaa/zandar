@@ -324,7 +324,7 @@ export function ActionPanel({
     case "discard":
       return (
         <div className="rb-panel">
-          <p className="rb-panel__hint">{sr.raub.discard.hint}</p>
+          <p className="rb-panel__hint">{panel.claim ? sr.raub.discard.hintClaim : sr.raub.discard.hint}</p>
           {btn("accent", selectedCount === 1 ? sr.raub.discard.button : sr.raub.discard.pick, onDiscard, selectedCount !== 1)}
         </div>
       );
