@@ -31,7 +31,7 @@ export {
 } from "./match";
 export type { CreateRaubMatchParams, RaubRng, StartRaubHandOptions } from "./match";
 export { getRaubView, getRaubAutoAction } from "./view";
-export { selectRaubBotAction, raubBotThinkMs, DEFAULT_RAUB_BOT_CONFIG } from "./bot";
+export { selectRaubBotAction, raubBotThinkMs, raubNoHumanInHand, DEFAULT_RAUB_BOT_CONFIG } from "./bot";
 export type { RaubBotConfig } from "./bot";
 export { simulateRaubMatches } from "./simulate";
 export type { RaubSimOptions, RaubSimResult, RaubSimMatch } from "./simulate";

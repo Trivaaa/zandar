@@ -1,4 +1,4 @@
-import type { Card, RaubAction, RaubPlayerView, Rank, Suit } from "@zandar/shared-types";
+import type { Card, RaubAction, RaubGameState, RaubPlayerView, Rank, Suit } from "@zandar/shared-types";
 import { beats, isSeven, raubRankValue, trickWinnerIndex, weakestCard } from "./cards";
 
 /**
@@ -43,6 +43,12 @@ export interface RaubBotConfig {
    */
   raubThinkMinMs: number;
   raubThinkMaxMs: number;
+  /**
+   * Ruka u kojoj nijedan čovjek ne igra (svi rekli „Ne idem"): brži tempo, da
+   * čovjek ne gleda prazan hod (odluka 18). Svaki potez i dalje nasumično.
+   */
+  idleThinkMinMs: number;
+  idleThinkMaxMs: number;
 }
 
 export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
@@ -63,6 +69,9 @@ export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
   // Odluka 17: od 1 s poslije okretanja prve karte do 8 s, nasumično.
   raubThinkMinMs: 1000,
   raubThinkMaxMs: 8000,
+  // Odluka 18: kad nijedan čovjek ne igra ruku, 0,8–2 s.
+  idleThinkMinMs: 800,
+  idleThinkMaxMs: 2000,
 };
 
 const isHigh = (c: Card) => c.rank === "A" || c.rank === "K";
@@ -214,15 +223,27 @@ function choosePlay(view: RaubPlayerView, config: RaubBotConfig, rng: () => numb
 
 /**
  * Vrijeme odluke, nasumično (odluka 11: 2,5–7 s). Djelilac koji na prvoj karti
- * smije „Raub” odlučuje za 1–8 s (odluka 17) — kad je `view` dat.
+ * smije „Raub” odlučuje za 1–8 s (odluka 17) — kad je `view` dat. U ruci bez
+ * čovjeka (`idle`, vidi `raubNoHumanInHand`) 0,8–2 s (odluka 18).
  */
 export function raubBotThinkMs(
   config: RaubBotConfig = DEFAULT_RAUB_BOT_CONFIG,
   rng: () => number = Math.random,
   view?: RaubPlayerView,
+  idle = false,
 ): number {
   const raubChoice = view?.step === "bidding" && view.bidOptions?.raub === true;
-  const min = raubChoice ? config.raubThinkMinMs : config.thinkMinMs;
-  const max = raubChoice ? config.raubThinkMaxMs : config.thinkMaxMs;
+  const min = idle ? config.idleThinkMinMs : raubChoice ? config.raubThinkMinMs : config.thinkMinMs;
+  const max = idle ? config.idleThinkMaxMs : raubChoice ? config.raubThinkMaxMs : config.thinkMaxMs;
   return Math.round(min + (max - min) * rng());
+}
+
+/**
+ * Da li u tekućoj ruci više ne igra nijedan čovjek: za stolom je bar jedan
+ * čovjek i svaki je rekao „Ne idem" (odluka 18). Prije odgovora `going` je
+ * `null`, pa licitacija nikad nije „bez čovjeka". Nosilac uvijek ide.
+ */
+export function raubNoHumanInHand(state: RaubGameState, humanIds: readonly string[]): boolean {
+  if (state.phase !== "playing" || humanIds.length === 0) return false;
+  return humanIds.every((id) => state.seats.find((seat) => seat.playerId === id)?.going === false);
 }

@@ -7,6 +7,7 @@ import {
   getRaubAutoAction,
   getRaubView,
   raubBotThinkMs,
+  raubNoHumanInHand,
   selectRaubBotAction,
   startRaubHand,
   upgradeRaubState,
@@ -269,7 +270,10 @@ export class RaubTables {
       this.deadlines.set(room.id, Date.now() + this.deps.timing.turnMs);
       const player = room.players.find((p) => p.id === pid);
       if (player?.isBot) {
-        const delay = this.deps.botThinkMs?.() ?? raubBotThinkMs(DEFAULT_RAUB_BOT_CONFIG, this.rng, getRaubView(s, pid));
+        // Odluka 18: kad nijedan čovjek ne igra ruku, botovi idu brže (prazan hod).
+        const idle = raubNoHumanInHand(s, room.players.filter((p) => !p.isBot).map((p) => p.id));
+        const delay =
+          this.deps.botThinkMs?.() ?? raubBotThinkMs(DEFAULT_RAUB_BOT_CONFIG, this.rng, getRaubView(s, pid), idle);
         this.actTimers.set(room.id, setTimeout(() => this.botAct(room.id, pid), delay));
       } else {
         this.actTimers.set(room.id, setTimeout(() => this.autoAct(room.id, pid), this.deps.timing.turnMs));

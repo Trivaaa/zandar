@@ -1898,3 +1898,11 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Izmjereno (CDP, `/dev/game?chooser=1`, 360×640 / 360×760 / 390×844 / 600×900 / 1440×900 × 2P/4P × 4/9/12 karata, 2 i 3 opcije):** u svih 30 slučajeva sve grupe u JEDNOM redu, cijele i na ekranu, `scrollWidth == clientWidth`, bez sudara sa rukom, špilom i sjedištima. Visina trake 59 px na telefonu (bila 64), 64 px šire — sto ne gubi ništa. Najuži slučaj 360 px 4P (216 px): grupe 44/79/79 px. Pregledano i okom na snimcima 390×844 i 360×640 sa 12 karata.
 
 **Nije provjereno na uređaju.**
+
+## 165. Raub — brži botovi kad nijedan čovjek ne igra ruku (2026-11-15, `feat/raub-idle-pace`)
+
+**Šta:** QA 2026-11-15 P5. Igrač koji kaže „Ne idem" gledao je 45–60 s kako botovi odigraju ruku, svaki potez 2,5–7 s (odluka 11). Vlasnik je izabrao da se ubrza SAMO taj slučaj (odluka 18 u `docs/raub-spec.md`): kad je svaki čovjek za stolom u ruci rekao „Ne idem", bot odlučuje za 0,8–2 s, i dalje nasumično po potezu (ne svi u istoj sekundi). Dok čovjek igra, tempo je isti (2,5–7 s; djelilac na Raub karti 1–8 s).
+
+**Kako:** `RaubBotConfig.idleThinkMinMs/idleThinkMaxMs` (800/2000, config — HARD RULE 7); `raubBotThinkMs(config, rng, view, idle = false)`; čista `raubNoHumanInHand(state, humanIds)` u game-core (`going === false` za sve ljude; `null` u licitaciji = nije; sto bez ljudi = nije). Server (`raub/table.ts` `route()`) računa `idle` iz `room.players` (`!isBot`) i prosljeđuje ga. Ništa od toga ne ide klijentu (HARD RULE 3); oblik snapshota netaknut. Simulacija se ne mijenja — tamo su svi botovi.
+
+**Provjereno:** game-core 398 testova (+5: idle raspon i `raubNoHumanInHand`), server 255, typecheck. **Nije provjereno na uređaju** ni u živoj partiji — tempo okom tek tamo.

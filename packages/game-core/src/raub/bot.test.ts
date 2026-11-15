@@ -3,7 +3,7 @@ import { simulateRaubMatches } from "./simulate";
 import { createRaubRules } from "./config";
 import { applyRaubAction, createRaubMatch, startRaubHand } from "./match";
 import { getRaubView } from "./view";
-import { DEFAULT_RAUB_BOT_CONFIG, raubBotThinkMs, selectRaubBotAction } from "./bot";
+import { DEFAULT_RAUB_BOT_CONFIG, raubBotThinkMs, raubNoHumanInHand, selectRaubBotAction } from "./bot";
 
 function makeLcg(seed: number) {
   let s = seed >>> 0;
@@ -149,4 +149,53 @@ describe("raub simulacija (skraćena; pun broj: pnpm simulate:raub)", () => {
       expect(r.stuck).toBe(0);
     });
   }
+});
+
+describe("raub: tempo u ruci bez čovjeka (odluka 18)", () => {
+  const base = () =>
+    createRaubMatch({
+      roomId: "r",
+      matchId: "m",
+      playerIds: ["a", "b", "c", "d"],
+      rules: createRaubRules(4),
+      rng: makeLcg(5),
+      dealerId: "a",
+    });
+  const withGoing = (going: Record<string, boolean | null>) => {
+    const s = base();
+    return { ...s, seats: s.seats.map((seat) => ({ ...seat, going: going[seat.playerId] ?? seat.going })) };
+  };
+
+  it("idle: 0,8–2 s, nasumično, raspon se koristi", () => {
+    const rng = makeLcg(11);
+    let fastest = Infinity;
+    let slowest = 0;
+    for (let i = 0; i < 200; i++) {
+      const ms = raubBotThinkMs(DEFAULT_RAUB_BOT_CONFIG, rng, undefined, true);
+      expect(ms).toBeGreaterThanOrEqual(800);
+      expect(ms).toBeLessThanOrEqual(2000);
+      fastest = Math.min(fastest, ms);
+      slowest = Math.max(slowest, ms);
+    }
+    expect(fastest).toBeLessThan(1000);
+    expect(slowest).toBeGreaterThan(1800);
+  });
+
+  it("licitacija (going null) nije ruka bez čovjeka", () => {
+    expect(raubNoHumanInHand(base(), ["b"])).toBe(false);
+  });
+
+  it("čovjek koji ide → nije", () => {
+    expect(raubNoHumanInHand(withGoing({ b: true }), ["b"])).toBe(false);
+  });
+
+  it("sto bez ljudi → nije", () => {
+    expect(raubNoHumanInHand(withGoing({ b: false }), [])).toBe(false);
+  });
+
+  it("svi ljudi rekli „Ne idem” → jeste; jedan od dvojice ide → nije", () => {
+    expect(raubNoHumanInHand(withGoing({ b: false }), ["b"])).toBe(true);
+    expect(raubNoHumanInHand(withGoing({ b: false, c: false }), ["b", "c"])).toBe(true);
+    expect(raubNoHumanInHand(withGoing({ b: false, c: true }), ["b", "c"])).toBe(false);
+  });
 });
