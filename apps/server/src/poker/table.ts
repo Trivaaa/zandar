@@ -433,7 +433,10 @@ export class PokerTables {
       this.graceKey(roomId, playerId),
       setTimeout(() => {
         this.graceTimers.delete(this.graceKey(roomId, playerId));
-        void this.leave(roomId, playerId);
+        // Neuhvaćeno odbijanje = shutdown(1) = svi stolovi padaju; greška ostaje na ovom stolu.
+        this.leave(roomId, playerId).catch((err) =>
+          this.deps.log.error(`Poker: istek čekanja za ${playerId} u ${roomId}: ${err}`),
+        );
       }, ms),
     );
   }

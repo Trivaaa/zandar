@@ -95,6 +95,7 @@ import {
   gameStartRecipients,
 } from "./push/messages";
 import { notifyDevices, notifyUser } from "./push/notify";
+import { parseDisplayName, parseRoomTargetScore } from "./input";
 import { parseQuickPlayConfig } from "./quickplay";
 import {
   guarded,
@@ -347,9 +348,9 @@ fastify.post<{ Body: { pushId?: unknown } }>("/api/push/devices/unbind", async (
 // ---- ROOMS ----
 
 type CreateRoomBody = {
-  displayName: string;
-  playerCount: 2 | 3 | 4;
-  targetScore?: number;
+  displayName?: unknown;
+  playerCount?: unknown;
+  targetScore?: unknown;
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
   platform?: unknown;
@@ -359,33 +360,34 @@ type CreateRoomBody = {
 fastify.post<{ Body: CreateRoomBody }>(
   "/api/rooms",
   async (request, reply) => {
-    const { displayName, playerCount, targetScore = 21 } = request.body;
-    const identity = { ...analyticsIdentity(request.body), ...(await optionalUid(request)) };
-
-    if (!displayName || displayName.trim().length === 0) {
+    const body = request.body ?? {};
+    const displayName = parseDisplayName(body.displayName);
+    if (!displayName) {
       return reply.code(400).send({ error: "displayName je obavezan" });
     }
-    if (![2, 3, 4].includes(playerCount)) {
+    const playerCount = body.playerCount;
+    if (playerCount !== 2 && playerCount !== 3 && playerCount !== 4) {
       return reply
         .code(400)
         .send({ error: "playerCount mora biti 2, 3 ili 4" });
     }
+    const game = parseGameId(body.game);
+    const targetScore = parseRoomTargetScore(body.targetScore, game);
+    if (targetScore === null) {
+      return reply.code(400).send({ error: "targetScore mora biti 11 ili 21" });
+    }
+    const identity = { ...analyticsIdentity(body), ...(await optionalUid(request)) };
 
     const { room, playerId, sessionToken } = await createPrivateRoom({
       displayName,
       playerCount,
       targetScore,
-      tableTheme: request.body.tableTheme,
+      tableTheme: body.tableTheme,
       identity,
-      game: parseGameId(request.body.game),
+      game,
     });
 
-    return {
-      roomId: room.id,
-      playerId,
-      playerSessionToken: sessionToken,
-      inviteUrl: `http://localhost:3000/room/${room.id}`,
-    };
+    return { roomId: room.id, playerId, playerSessionToken: sessionToken };
   },
 );
 
@@ -410,7 +412,7 @@ async function createPrivateRoom(opts: {
 
   const hostPlayer: Player = {
     id: playerId,
-    displayName: opts.displayName.trim(),
+    displayName: opts.displayName,
     seatIndex: 0,
     connectionStatus: "connected",
     isHost: true,
@@ -477,7 +479,7 @@ fastify.get<{ Params: { roomId: string } }>(
 // ---- JOIN REQUESTS ----
 
 type JoinRequestBody = {
-  displayName: string;
+  displayName?: unknown;
   games?: unknown; // igre koje klijent zna (poker); stari klijenti ne šalju
   pushId?: unknown;
   guestId?: unknown; // analitika (PostHog distinctId)
@@ -488,9 +490,9 @@ fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
   "/api/rooms/:roomId/join-request",
   async (request, reply) => {
     const { roomId } = request.params;
-    const { displayName } = request.body;
+    const displayName = parseDisplayName(request.body?.displayName);
 
-    if (!displayName || displayName.trim().length === 0) {
+    if (!displayName) {
       return reply.code(400).send({ error: "displayName je obavezan" });
     }
 
@@ -521,7 +523,7 @@ fastify.post<{ Params: { roomId: string }; Body: JoinRequestBody }>(
     const now = Date.now();
     const joinReq: JoinRequest = {
       id: requestId,
-      displayName: displayName.trim(),
+      displayName,
       status: "pending",
       createdAt: now,
       expiresAt: now + JOIN_REQUEST_TTL_MS,
@@ -841,7 +843,6 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
     roomId: room.id,
     playerId,
     playerSessionToken: sessionToken,
-    inviteUrl: `http://localhost:3000/room/${room.id}`,
   };
 });
 
@@ -1004,6 +1005,7 @@ fastify.post<{ Params: { roomId: string }; Body: KickBody }>(
     // Bot-fill ON → oslobođeno mjesto se opet popuni botom.
     if (room.botFill) fillSeatsWithBots(room);
 
+    persistRoom(room); // inače restart vrati izbačenog igrača za sto
     io.to(roomId).emit("room:update");
 
     fastify.log.info(
@@ -1047,6 +1049,7 @@ fastify.post<{ Params: { roomId: string }; Body: RejectBody }>(
     }
 
     req.status = "rejected";
+    persistRoom(room); // inače restart vrati zahtjev u "pending"
     fastify.log.info(`→ Rejected ${requestId} (${req.displayName})`);
 
     return { success: true };
@@ -1087,10 +1090,10 @@ fastify.get<{
 // ---- QUICK PLAY ----
 
 type QuickPlayBody = {
-  displayName: string;
+  displayName?: unknown;
   game?: unknown; // "poker" | "raub"; bez polja = Žandar (stari klijenti)
-  playerCount: 2 | 3 | 4;
-  targetScore?: number;
+  playerCount?: unknown;
+  targetScore?: unknown;
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
   platform?: unknown;
@@ -1099,15 +1102,14 @@ type QuickPlayBody = {
 fastify.post<{ Body: QuickPlayBody }>(
   "/api/quickplay",
   async (request, reply) => {
-    const { displayName } = request.body;
-    const identity = { ...analyticsIdentity(request.body), ...(await optionalUid(request)) };
-
-    if (!displayName || displayName.trim().length === 0) {
+    const displayName = parseDisplayName(request.body?.displayName);
+    if (!displayName) {
       return reply.code(400).send({ error: "displayName je obavezan" });
     }
+    const identity = { ...analyticsIdentity(request.body), ...(await optionalUid(request)) };
     const qpGame = parseGameId(request.body.game);
     if (qpGame === "poker" || qpGame === "raub") {
-      return seatGameQuickPlay(qpGame, displayName.trim(), request.body.tableTheme, identity);
+      return seatGameQuickPlay(qpGame, displayName, request.body.tableTheme, identity);
     }
     // Veličinu stola i cilj bira igrač (ekran `/igraj`) — oba su korisnički unos.
     const parsed = parseQuickPlayConfig(request.body);
@@ -1135,7 +1137,7 @@ fastify.post<{ Body: QuickPlayBody }>(
       const seatIndex = existingRoom.players.length;
       const newPlayer: Player = {
         id: playerId,
-        displayName: displayName.trim(),
+        displayName,
         seatIndex,
         teamId: playerCount === 4 ? seatIndex % 2 : undefined,
         connectionStatus: "connected",
@@ -1146,6 +1148,8 @@ fastify.post<{ Body: QuickPlayBody }>(
       applyAccountIdentity(newPlayer, await accountIdentityFor(profileStore, identity.uid));
       existingRoom.players.push(newPlayer);
       existingRoom.sessionTokens.set(playerId, hashToken(sessionToken));
+      // Puna soba se upiše kroz broadcastGameState ispod; ova linija pokriva sobu koja još čeka.
+      persistRoom(existingRoom);
 
       io.to(existingRoom.id).emit("room:update");
       fastify.log.info(`🤝 Matched ${playerId} into room ${existingRoom.id}`);
@@ -1168,7 +1172,7 @@ fastify.post<{ Body: QuickPlayBody }>(
 
     const humanPlayer: Player = {
       id: playerId,
-      displayName: displayName.trim(),
+      displayName,
       seatIndex: 0,
       teamId: playerCount === 4 ? 0 : undefined,
       connectionStatus: "connected",
@@ -1965,27 +1969,37 @@ function armGraceTimer(
   delayMs: number,
   handEndWaited: boolean,
 ): void {
-  const timer = setTimeout(async () => {
-    disconnectTimers.delete(playerId);
-    const room = getRoom(roomId);
-    if (!room?.gameState) return;
-    const p = room.gameState.players.find((x) => x.id === playerId);
-    if (!p || p.connectionStatus !== "reconnecting") return;
-
-    // `ignore`: neko drugi je već zaustavio sto (dva igrača otpala jedan za
-    // drugim) — ne diraj rok koji već teče, inače bi drugi otpad produžio pauzu.
-    const outcome = afterGrace(room.gameState, handEndWaited);
-    if (outcome === "abandon") {
-      // Sto pun botova: nema koga pitati, raspusti bez glasanja (PRD v3.1 #5).
-      await enterAbandoned(roomId);
-    } else if (outcome === "pause") {
-      await enterPause(roomId);
-    } else if (outcome === "wait_hand_end") {
-      armGraceTimer(roomId, playerId, HAND_END_GRACE_MS, true);
-    }
+  const timer = setTimeout(() => {
+    onGraceExpired(roomId, playerId, handEndWaited).catch((err) =>
+      fastify.log.error(`Istek čekanja za ${playerId} u sobi ${roomId} nije obrađen: ${err}`),
+    );
   }, delayMs);
 
   disconnectTimers.set(playerId, timer);
+}
+
+async function onGraceExpired(
+  roomId: string,
+  playerId: string,
+  handEndWaited: boolean,
+): Promise<void> {
+  disconnectTimers.delete(playerId);
+  const room = getRoom(roomId);
+  if (!room?.gameState) return;
+  const p = room.gameState.players.find((x) => x.id === playerId);
+  if (!p || p.connectionStatus !== "reconnecting") return;
+
+  // `ignore`: neko drugi je već zaustavio sto (dva igrača otpala jedan za
+  // drugim) — ne diraj rok koji već teče, inače bi drugi otpad produžio pauzu.
+  const outcome = afterGrace(room.gameState, handEndWaited);
+  if (outcome === "abandon") {
+    // Sto pun botova: nema koga pitati, raspusti bez glasanja (PRD v3.1 #5).
+    await enterAbandoned(roomId);
+  } else if (outcome === "pause") {
+    await enterPause(roomId);
+  } else if (outcome === "wait_hand_end") {
+    armGraceTimer(roomId, playerId, HAND_END_GRACE_MS, true);
+  }
 }
 
 async function handleTurnTimeout(roomId: string): Promise<void> {
@@ -2225,7 +2239,12 @@ function armPauseTimer(roomId: string): void {
   const delay = Math.max(0, gs.pauseEndsAt - Date.now());
   pauseTimers.set(
     roomId,
-    setTimeout(() => void onPauseDeadline(roomId), delay),
+    setTimeout(() => {
+      // Neuhvaćeno odbijanje = shutdown(1) = svi stolovi padaju; greška ostaje na ovom stolu.
+      onPauseDeadline(roomId).catch((err) =>
+        fastify.log.error(`Rok pauze u sobi ${roomId} nije obrađen: ${err}`),
+      );
+    }, delay),
   );
 }
 

@@ -1928,3 +1928,35 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Zamka:** portovi 3217 i 3291 su držali `next dev` drugih sesija (`zandar-raub-trick*`) — prvo mjerenje je tiho gađalo tuđi server. Prije mjerenja provjeri `netstat` za port.
 
 **Provjereno:** web testovi 225/225, typecheck, lint na izmijenjenim fajlovima. **Nije provjereno na uređaju.**
+
+## 167. Server — otpornost i validacija ulaza (2026-11-15, `chore/p0-server-hardening-2`)
+
+Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
+
+**Neuhvaćena odbijanja:**
+- Ovi async tajmeri su se pokretali bez `.catch`:
+  - Žandar: rok pauze (`onPauseDeadline`) i istek čekanja na povratak (tijelo izdvojeno u `onGraceExpired`);
+  - Raub: rok prekida i istek čekanja;
+  - Poker: istek čekanja (`leave`).
+- Greška u broadcastu tu je postajala `unhandledRejection` → `shutdown(1)`, pa je padao server sa SVIM stolovima. Sad se greška loguje i ostaje na jednom stolu.
+- Ostali `void` pozivi (`driveBotTurn`, `handleTurnTimeout`, `pushFriendCount`, `recordCompletedMatch`) već hvataju greške iznutra.
+
+**Validacija (`src/input.ts`, testiran):**
+- `parseDisplayName`: ne-string ili prazno → 400. Ranije je `displayName.trim()` na broju ili objektu bacao 500.
+- Ime duže od 24 znaka se skraća (po code pointu), ne odbija. Polje imena u klijentu nema ograničenje, pa bi 400 slomio stare klijente.
+- `parseRoomTargetScore`: `/api/rooms` prima samo 11 ili 21, kao `/api/invites` i brza igra; izostavljen cilj = 21, Poker i Raub = 21. Ranije je bilo koja vrijednost išla u `rulesConfig.targetScore`.
+- Važi za `/api/rooms`, join-request i `/api/quickplay` (sve tri igre). Tipovi tijela su `unknown`.
+
+**Perzistencija:**
+- `persistRoom` je dodat poslije kick-a, reject-a i ulaska u javnu sobu koja još čeka. Ranije je restart vraćao izbačenog igrača za sto i odbijeni zahtjev u „pending".
+
+**Uklonjeno:**
+- Polje `inviteUrl` (hardkodiran `http://localhost:3000`) iz `/api/rooms` i `/api/invites`. Klijent ga nikad nije čitao (`inviteLink()`), pa stari APK-ovi nisu pogođeni.
+
+**Usput:**
+- Web `test` skripta je imala `lib/raubRelease` bez `.test.ts`. Sad je `lib/raubRelease.test.ts`.
+
+**Provjereno:**
+- game-core 21 fajl, server 262, web 222 testa; typecheck svih paketa.
+- Curl na lokalnom serveru: ime 123/{} → 400, cilj 99 → 400, Raub sa ciljem 99 → 200, stari klijent 4/21 i bez cilja → 200, Raub i Poker brza igra → 200, ime od 40 znakova → 24.
+- Ranija verzija na starom `main`-u: approve → reject → kick pa restart; izbačeni se ne vraća, zahtjev ostaje `rejected`.

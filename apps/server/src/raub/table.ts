@@ -459,7 +459,10 @@ export class RaubTables {
       this.graceKey(roomId, playerId),
       setTimeout(() => {
         this.graceTimers.delete(this.graceKey(roomId, playerId));
-        void this.onGraceExpired(roomId, playerId, handEndWaited);
+        // Neuhvaćeno odbijanje = shutdown(1) = svi stolovi padaju; greška ostaje na ovom stolu.
+        this.onGraceExpired(roomId, playerId, handEndWaited).catch((err) =>
+          this.deps.log.error(`Raub: istek čekanja za ${playerId} u ${roomId}: ${err}`),
+        );
       }, ms),
     );
   }
@@ -522,7 +525,11 @@ export class RaubTables {
     if (endsAt === undefined) return;
     this.pauseTimers.set(
       roomId,
-      setTimeout(() => void this.onPauseDeadline(roomId), Math.max(0, endsAt - Date.now())),
+      setTimeout(() => {
+        this.onPauseDeadline(roomId).catch((err) =>
+          this.deps.log.error(`Raub: rok prekida u ${roomId}: ${err}`),
+        );
+      }, Math.max(0, endsAt - Date.now())),
     );
   }
 

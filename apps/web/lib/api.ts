@@ -60,7 +60,6 @@ export type CreateRoomResponse = {
   roomId: string;
   playerId: string;
   playerSessionToken: string;
-  inviteUrl: string;
 };
 
 export type JoinRequestResponse = {

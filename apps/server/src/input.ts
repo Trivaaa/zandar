@@ -1,0 +1,33 @@
+import type { GameId } from "@zandar/shared-types";
+
+/**
+ * Čiste provjere korisničkog unosa u REST tijelima. Tijelo stiže kao JSON, pa
+ * TS tip rute ništa ne garantuje — polje može biti broj, objekat ili izostati.
+ */
+
+/** Gornja granica imena za stolom; duže se skraćuje, ne odbija (stari klijenti nemaju ograničenje u polju). */
+export const DISPLAY_NAME_MAX_LENGTH = 24;
+
+/**
+ * Ime igrača iz tijela zahtjeva: `null` kad nije string ili je prazno poslije
+ * `trim`-a (→ 400). Predugo ime se skraćuje po znakovima (code point), da se
+ * ne presiječe emoji ili slovo sa dijakritikom zapisano kao par.
+ */
+export function parseDisplayName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  const chars = Array.from(trimmed);
+  if (chars.length <= DISPLAY_NAME_MAX_LENGTH) return trimmed;
+  return chars.slice(0, DISPLAY_NAME_MAX_LENGTH).join("").trimEnd();
+}
+
+/**
+ * Cilj privatne sobe (`/api/rooms`): isti izbor kao brza igra i pozivi (11 ili
+ * 21), izostavljen → 21. Poker i Raub nemaju izbor cilja — upisuje se 21 samo
+ * da `rulesConfig` ostane istog oblika, šta god klijent poslao. `null` → 400.
+ */
+export function parseRoomTargetScore(value: unknown, game: GameId): 11 | 21 | null {
+  if (game !== "zandar" || value === undefined || value === null) return 21;
+  return value === 11 || value === 21 ? value : null;
+}
