@@ -1573,3 +1573,22 @@
   font: 400 var(--type-lg) / 1.45 var(--font-sans-stack);
   color: var(--text-muted);
 }
+
+/* ------------------------------------------------------------------ *
+ * Nova verzija sa Play-a (components/AppUpdatePrompt.tsx)
+ * Oblik je `.pushprompt` (lobby.css); ovdje samo mjesto: iznad donje trake.
+ * ------------------------------------------------------------------ */
+
+.appupdate {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 0.75rem);
+  /* Iznad trake (40), ispod listova (.sheet-scrim z-50). */
+  z-index: 45;
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 35.5rem);
+  transform: translateX(-50%);
+  /* `.pushprompt` je proziran za lobi; preko početne mora biti pun. */
+  background-color: var(--surface);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.35);
+}

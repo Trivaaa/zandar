@@ -639,6 +639,15 @@ export type AnalyticsEvents = {
   invite_shared: { room_id: string; method: "share" | "copy" };
   /** Gost otvorio link sobe u kojoj nema sjedište. Jednom po sobi u sesiji pregledača. */
   invite_opened: { room_id: string; seats_left: number };
+  /**
+   * Play In-App Updates (samo Android). `offered` = traka prikazana, `accepted` /
+   * `declined` = Ažuriraj / Ne sada, `restarted` = instalacija preuzetog,
+   * `forced` = Play ekran obaveznog ažuriranja otvoren. `version_code` je verzija na Play-u.
+   */
+  app_update: {
+    action: "offered" | "accepted" | "declined" | "restarted" | "forced";
+    version_code?: number;
+  };
   // — server —
   /** Zahtjev za ulazak je primljen (lijevak pozivnice). Odbijen na serveru (sto pun) nije ovo. */
   join_requested: { room_id: string; platform?: AnalyticsPlatform };
@@ -704,7 +713,8 @@ export type ClientAnalyticsEvent =
   | "upcoming_game_tapped"
   | "account_registered"
   | "invite_shared"
-  | "invite_opened";
+  | "invite_opened"
+  | "app_update";
 
 export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;
 

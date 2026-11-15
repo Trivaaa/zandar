@@ -1992,3 +1992,32 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 - Vercel, oba projekta: `NEXT_PUBLIC_POKER/RAUB=1` eksplicitno.
 - Railway, oba servisa: `ADMIN_TOKEN`, `RESEND_API_KEY`, `FEEDBACK_*`.
 - Railway produkcija: postavke iz `railway.json` u dashboard prije 1.12.2026.
+
+## 169. Play In-App Updates — aplikacija sama nudi novu verziju (2026-11-15, `feat/in-app-update`)
+
+**Zašto:** aplikacija nosi web dio u sebi, pa korisnik ostaje na staroj verziji dok ga Play ne ažurira (1–2 dana; nikad ako je automatsko ažuriranje isključeno). Pad pokera u 1.4.0 je zato živio i poslije popravke.
+
+**Šta:**
+- **Native** `AppUpdatePlugin.java` (`com.google.android.play:app-update:2.1.0`, bez nove dozvole):
+  - `check` (vraća i instaliranu verziju iz `PackageInfo`), `startFlexible`, `startImmediate`, `completeUpdate`, događaj `downloaded`.
+  - Svaki neuspjeh → `available: false`, nikad odbijanje (obrazac InstallReferrer-a).
+- **Server** `GET /api/app-config` → `{ android: { minVersionCode } }` iz `ANDROID_MIN_VERSION_CODE`. Fail-open: bez env-a ili neispravno → 0. Prvi modul u `src/routes/` (`registerAppConfigRoute`).
+- **Web** `lib/appUpdate.ts`: čista `decideUpdate` → `none | offer | force | restart`, testirana. Uz nju `AppUpdatePrompt` (oblik `.pushprompt`, iznad donje trake).
+- Analitika: `app_update` (`offered | accepted | declined | restarted | forced`).
+
+**Pravila:**
+- Traka živi SAMO na početnoj i skrivena je dok traje traženje stola ili je otvoren list. Instalacija restartuje aplikaciju, pa nikad za stolom.
+- Provjera ide najviše jednom u 6 h (pokretanje + povratak u prvi plan).
+- „Ne sada" = 3 dana.
+- Preuzeto se uvijek nudi kao „Restartuj".
+- **Prisila** samo kad je instalirana verzija < minimum I Play dozvoljava immediate. Ne upisuje se kao provjerena, pa otkazan Play ekran dolazi opet na sljedeći povratak.
+- Aplikacija se nikad ne zaključava sama: nema update-a ili nema dozvole → igra radi.
+
+**Odstupanje od plana:** trenutna verzija ne ide u web build preko `next.config.ts`, nego je plugin čita iz `PackageInfo`. Uvijek je tačna i nema još jedne env varijable.
+
+**Ograničenja:**
+- Radi samo za instalaciju sa Play-a. Staging, debug i sideload ne vide ništa.
+- Pravi test je Play interni test (instalirati verziju N sa Play-a, objaviti N+1).
+- Važi tek od izdanja koje ga nosi: 1.4.0 i 1.4.1 nikad neće pitati.
+
+**Provjereno:** web 239 testova (+12), server 266 (+4), typecheck, lint = osnovica, staging APK (Java kompajliran). **Nije provjereno na uređaju ni kroz Play interni test.**

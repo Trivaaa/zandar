@@ -96,6 +96,8 @@ dependencies {
     implementation project(':capacitor-android')
     // Play Install Referrer — poziv u sobu preživi instalaciju (InstallReferrerPlugin).
     implementation "com.android.installreferrer:installreferrer:2.2"
+    // Play In-App Updates (AppUpdatePlugin): ponuda i obavezno ažuriranje sa Play-a.
+    implementation "com.google.android.play:app-update:2.1.0"
     // Meta App Events (MetaEventsPlugin): samo core, bez Login/Share modula.
     implementation "com.facebook.android:facebook-core:19.0.0"
     // Google Analytics — samo automatski događaji (first_open, session_start...), bez

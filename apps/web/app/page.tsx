@@ -11,6 +11,7 @@ import { GameSheet } from "@/components/home/GameSheet";
 import { QuickPlayNameSheet, QuickPlaySettingsSheet } from "@/components/home/QuickPlaySheets";
 import { SignupSheet } from "@/components/home/SignupSheet";
 import { TabBar } from "@/components/nav/TabBar";
+import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
 import { useBackHandler } from "@/lib/backHandlers";
 import { identityUi } from "@/lib/features";
 import { GAMES, gameBadge, homeLayout, type GameConfig, type GameSlug } from "@/lib/games";
@@ -170,6 +171,8 @@ export default function Home() {
           : {})}
       />
       {identityUi ? <TabBar /> : null}
+      {/* Samo ovdje: instalacija restartuje aplikaciju, pa nikad za stolom ni dok se traži sto. */}
+      {isNative ? <AppUpdatePrompt hidden={playing || sheetOpen} /> : null}
 
       {/* `Sheet` nosi svoj `.home-layer` i Android „nazad". */}
       {sheet?.kind === "name" ? (

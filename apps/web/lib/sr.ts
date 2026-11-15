@@ -708,6 +708,17 @@ export const sr = {
       "Hvala.",
     ],
   },
+  /* Ažuriranje aplikacije sa Play-a (`components/AppUpdatePrompt.tsx`). Play-ov
+     ekran (preuzimanje, obavezno ažuriranje) je na jeziku sistema — ovo je naša traka. */
+  appUpdate: {
+    offerTitle: "Stigla je nova verzija",
+    offerBody: "Preuzima se u pozadini dok igraš; restart traje par sekundi.",
+    update: "Ažuriraj",
+    notNow: "Ne sada",
+    readyTitle: "Nova verzija je spremna",
+    readyBody: "Restartuj aplikaciju da je uključiš.",
+    restart: "Restartuj",
+  },
   /* Obavještenja (PRD §51). Tekst SAMIH notifikacija živi na serveru
      (`apps/server/src/push/messages.ts`), jer se šalje dok aplikacija ne radi. */
   push: {

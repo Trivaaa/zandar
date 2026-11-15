@@ -109,6 +109,7 @@ import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth
 import { identityAdmin } from "./profile/cleanup";
 import { recordCompletedMatch } from "./profile/results";
 import { registerProfileRoutes } from "./profile/routes";
+import { registerAppConfigRoute } from "./routes/appConfig";
 import { registerFriendRoutes } from "./profile/friendRoutes";
 import {
   addInvites,
@@ -259,6 +260,7 @@ async function requireUser(
 }
 
 // `/api/me`, nadimak i avatar (SPEC_IDENTITET §6.2, §6.4).
+registerAppConfigRoute(fastify);
 registerProfileRoutes(fastify, {
   store: profileStore,
   requireUser,
