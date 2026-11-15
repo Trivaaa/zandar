@@ -54,7 +54,7 @@ Svaka ruka ima pet faza: dijeljenje, određivanje aduta, „Idem / Ne idem”, z
 | Način | Kada | Ko je nosilac | Talon karta | Mora uzeti |
 | --- | --- | --- | --- | --- |
 | 1. Štih | Prva okrenuta karta je 7; djelilac kaže „Štih” (nije obavezno) | Djelilac | Djelilac je uzima | 1 štih |
-| 2. Raub | **Prva** okrenuta karta je A, K, Q (O) ili J (U); **samo djelilac** kaže „Raub” (nije obavezno) **(odluka 15)** | Djelilac | Uzima je (sedmica nije potrebna) i odbacuje jednu **(odluka 14)** | 2 štiha |
+| 2. Raub | **Prva** okrenuta karta je A, K, Q (O) ili J (U); **samo djelilac** kaže „Raub” (nije obavezno) **(odluka 15)** | Djelilac | Uzima je (sedmica nije potrebna) i odbacuje jednu **(odluka 14)**, ali tek poslije svoje zamjene **(odluka 20)** | 2 štiha |
 | 3. Moja | Bilo koji igrač kaže „Moja” (na bilo koju kartu osim 7), sa sedmicom te boje ili bez nje **(odluka 15)** | Prvi koji kaže „Moja” | Sa sedmicom: uzima je, a daje sedmicu. Bez sedmice: karta ostaje na talonu | 2 štiha |
 
 Raub naslijepo ne postoji (uklonjen odlukom 13). Djelilac vidi svoje karte odmah po dijeljenju.
@@ -80,7 +80,7 @@ Raub naslijepo ne postoji (uklonjen odlukom 13). Djelilac vidi svoje karte odmah
 
 **Višak karata**
 
-Kod Štiha i Rauba nosilac ima 5 karata i odmah odbacuje jednu licem nadolje. Karta uzeta s talona se ne smije odbaciti. „Moja” nije višak: igrač daje sedmicu i dobija talon kartu, pa ostaje na 4.
+Kod Štiha i Rauba karta s talona pripada nosiocu, ali **ostaje na stolu** (sa natpisom „Uzima: Ime”) dok on ne zamijeni karte **(odluka 20)**. Nosilac je prvi u zamjeni: bira karte i dobija nove kao i ostali (za sve 4 dobija tačno 4, bez otvorene), zatim uzima kartu sa stola i odbacuje jednu bilo koju iz ruke licem nadolje. Karta uzeta s talona se ne smije odbaciti. „Moja” nije višak: igrač daje sedmicu i dobija talon kartu, pa ostaje na 4.
 
 **Idem / Ne idem** **(odluka 9)**
 
@@ -264,7 +264,7 @@ Raub se uklapa u isti okvir kao Poker: `GameId` dobija `"raub"`, soba nosi `game
 
 **Faze ruke kao stanja**
 
-Ruka je mašina stanja: `dealing` → `trump_selection` (koraci `seven_choice`, `bidding`; `swap_seven` samo u rukama iz snapshota prije odluke 14) → `discard_extra` (samo ako neko ima 5 karata) → `exchange` → `trick_1` … `trick_4` → `scoring`. Iz `trump_selection` ruka može otići i u `void` (refa). Svaka akcija je dozvoljena samo u svojoj fazi i samo igraču koji je na potezu.
+Ruka je mašina stanja: `dealing` → `trump_selection` (koraci `seven_choice`, `bidding`; `swap_seven` samo u rukama iz snapshota prije odluke 14) → `going` → `exchange` (nosilac Štiha/Rauba poslije svoje zamjene ide u `discard_extra`; i ko prvi zamijeni sve 4) → `trick_1` … `trick_4` → `scoring`. Iz `trump_selection` ruka može otići i u `void` (refa). Svaka akcija je dozvoljena samo u svojoj fazi i samo igraču koji je na potezu.
 
 **Validacija poteza**
 
@@ -353,6 +353,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 17 | Bot-djelilac na asu uvijek „Raub”, odluka za 1–8 s | Bot koji je djelilac i na prvoj okrenutoj karti vidi asa uvijek kaže „Raub”, bez procjene ruke (`alwaysRaubRanks`, podrazumijevano `["A"]`; na K, O, U procjena ostaje). Svaku odluku djelioca na prvoj karti na koju smije „Raub” (Raub ili Dalje) bot donosi 1–8 s od okretanja karte, nasumično (`raubThinkMinMs`/`raubThinkMaxMs`); ostale odluke ostaju 2,5–7 s. Samo izbor bota među dozvoljenim potezima — pravila igre netaknuta | Vlasnik, 14.11.2026: as je jaka karta, a bot ga je ponekad propuštao; vrijeme da odluka ne bude providna ni jednoobrazna. Simulacija 10.000 mečeva × 4 igrača: raub 88.460 (81.841), moja 107.994 (111.655), refa 2,1 % (2,2 %), medijan 33,0 min (32,4); bez greške u kartama i štihovima, bez odbijenih akcija |
 | 18 | Brži botovi kad nijedan čovjek ne igra ruku | Kad je svaki čovjek za stolom u ruci rekao „Ne idem”, botovi odlučuju za 0,8–2 s umjesto 2,5–7 s (`idleThinkMinMs`/`idleThinkMaxMs`, `raubNoHumanInHand`). Vrijeme je i dalje nasumično po potezu, pa botovi ne odigraju svi odjednom. Dok čovjek igra, tempo je nepromijenjen (odluke 11 i 17). Samo tempo bota — pravila igre netaknuta | QA 2026-11-15 P5, vlasnik 15.11.2026: van ruke se 45–60 s gleda prazan hod, a to je trenutak kad se aplikacija zatvara. Ubrzanje samo tih ruku, ne cijele igre |
 | 19 | Zadnji upitani mora ići | Ako su kod „Idem / Ne idem” svi prije zadnjeg upitanog rekli „Ne idem”, zadnji mora ići; nosilac nikad ne igra sam. Zamjenjuje dio odluke 9 „ako niko ne ide, nosilac −4”. U 2P protivnik uvijek ide. `raubMustGo`, pogled `mustGo`, „Ne idem” od njega server odbija | Prijava igrača 15.11.2026: svi osim nosioca su odustali. Simulacija 10.000 × 4P: medijan 22 → 23 ruke, 0 grešaka |
+| 20 | Karta s talona čeka do zamjene nosioca | Kod Rauba i Štiha karta s talona ostaje na stolu sa natpisom „Uzima: Ime” (vraćen, changelog 162 ga je uklonio). Nosilac prvo zamijeni (do 4; za sve 4 dobija tačno 4, bez pete i otvorene), pa uzme kartu sa stola i odbaci bilo koju iz ruke. „Moja” bez promjene. Snapshot bez novog polja: karta čeka kad je zaključana a još na vrhu talona (`raubTalonPending`) | Vlasnik 15.11.2026 sa stola: karta je odmah išla u ruku i nosilac je odbacivao prije zamjene |
 
 ## Metrike, acceptance i otvorena pitanja
 

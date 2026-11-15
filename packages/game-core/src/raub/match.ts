@@ -306,12 +306,35 @@ function takeTalon(state: RaubGameState, playerId: string): void {
   state.lockedCardId = card.id;
 }
 
+/**
+ * Raub i Štih (odluka 20): ponuđena karta pripada nosiocu, ali ostaje na
+ * talonu dok on ne zamijeni karte — tek tada je uzima i odbacuje jednu.
+ */
+function claimTalon(state: RaubGameState, playerId: string): void {
+  state.talonTakenBy = playerId;
+  state.lockedCardId = offeredCard(state).id;
+}
+
+/**
+ * Karta s talona pripada nosiocu, ali je još na stolu (odluka 20). Bez novog
+ * polja u snapshotu: uzeta karta je zaključana, a još je na vrhu talona.
+ */
+export function raubTalonPending(state: Pick<RaubGameState, "talonTakenBy" | "lockedCardId" | "talon">): boolean {
+  return !!state.talonTakenBy && !!state.lockedCardId && state.talon.at(-1)?.id === state.lockedCardId;
+}
+
+/** Nosilac uzima kartu koja ga čeka na talonu i odbacuje jednu (odluka 20). */
+function takePendingTalon(state: RaubGameState, playerId: string): void {
+  takeTalon(state, playerId);
+  toDiscardExtra(state, playerId);
+}
+
 /** Scenarij 1: djelilac uzima sedmicu s talona, nosi adut i mora 1 štih. */
 function takeStih(state: RaubGameState): void {
   state.scenario = "seven";
   declare(state, state.dealerId, 1);
-  takeTalon(state, state.dealerId);
-  toDiscardExtra(state, state.dealerId);
+  claimTalon(state, state.dealerId);
+  afterTrump(state);
 }
 
 /** Sedmica boje ponuđene karte iz ruke ide na talon, a ponuđena karta u ruku (zaključana). */
@@ -416,6 +439,11 @@ function continueExchange(state: RaubGameState): void {
       return;
     }
     seatOf(state, id).exchanged = 0;
+    if (id === state.talonTakenBy && raubTalonPending(state)) {
+      // Špil prazan, a nosiocu karta još čeka na stolu: uzima je i odbacuje.
+      takePendingTalon(state, id);
+      return;
+    }
     state.exchangeIndex += 1;
   }
   beginTricks(state);
@@ -583,13 +611,13 @@ export function applyRaubAction(
         break;
       }
       if (bid === "raub") {
-        // Scenarij 3: prvi koji kaže „Raub" nosi boju ponuđene karte, mora 2, i
-        // uzima tu kartu u ruku (odluka 14 — sedmica nije potrebna): 5 karata,
-        // odbacuje jednu, ali ne uzetu.
+        // Scenarij 3: prvi koji kaže „Raub" nosi boju ponuđene karte i mora 2
+        // (odluka 14 — sedmica nije potrebna). Karta ostaje na stolu dok ne
+        // zamijeni; tek tada je uzima i odbacuje jednu (odluka 20).
         state.scenario = "bid";
         declare(state, playerId, 2);
-        takeTalon(state, playerId);
-        toDiscardExtra(state, playerId);
+        claimTalon(state, playerId);
+        afterTrump(state);
         break;
       }
       if (state.seats.every((s) => s.bid === "pass")) {
@@ -646,6 +674,14 @@ export function applyRaubAction(
         return false;
       });
       seat.exchanged = ids.length;
+
+      if (playerId === state.talonTakenBy && raubTalonPending(state)) {
+        // Nosilac Rauba/Štiha (odluka 20): onoliko novih koliko je dao, i za
+        // sve 4 bez pete i bez otvorene; zatim karta sa stola u ruku i višak.
+        seat.hand.push(...draw(state, ids.length));
+        takePendingTalon(state, playerId);
+        break;
+      }
 
       if (ids.length === 4 && !state.fullExchangeUsed) {
         // Prva zamjena sve 4 (odluka 1): 2 skrivene, 1 otvorena, 2 skrivene,

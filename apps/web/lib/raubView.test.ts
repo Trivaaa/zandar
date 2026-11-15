@@ -86,6 +86,13 @@ describe("raubView: faza i panel", () => {
     const fp = panelFor(getRaubView(forced, "p0"), name);
     assert.equal(fp.kind === "going" && fp.mustGo, true);
     assert.equal(panelFor(getRaubView(until(mine("exchange")), "p0"), name).kind, "exchange");
+    // Odluka 20: nosilac Rauba/Štiha mijenja dok mu karta čeka na stolu.
+    const claim = until((s) => mine("exchange")(s) && s.talonTakenBy === "p0" && s.talon.at(-1)?.id === s.lockedCardId);
+    const cp = panelFor(getRaubView(claim, "p0"), name);
+    assert.equal(cp.kind === "exchange" && cp.claim, true);
+    const plain = until((s) => mine("exchange")(s) && s.talonTakenBy !== "p0");
+    const pp = panelFor(getRaubView(plain, "p0"), name);
+    assert.equal(pp.kind === "exchange" && pp.claim, false);
     assert.equal(panelFor(getRaubView(until(mine("tricks")), "p0"), name).kind, "play");
     const other = until((s) => s.phase === "playing" && s.currentPlayerId === "p2");
     assert.deepEqual(panelFor(getRaubView(other, "p0"), name), { kind: "wait", name: "Milica" });

@@ -77,9 +77,11 @@ export function TalonPile({
   /**
    * Karta je uzeta s talona (odletjela je nosiocu i stoji u njegovoj lepezi):
    * `gone` — talon nosi samo ranije okrenute karte; `seven` — „Moja" sa
-   * sedmicom: sedmica je na vrhu, bez izvlačenja sa špila.
+   * sedmicom: sedmica je na vrhu, bez izvlačenja sa špila; `{ label }` — karta
+   * pripada nosiocu, ali čeka na stolu do njegove zamjene (Raub, Štih — odluka
+   * 20): ostaje na vrhu sa natpisom ko je uzima.
    */
-  taken?: "gone" | "seven" | null;
+  taken?: "gone" | "seven" | { label: string } | null;
 }) {
   const current = taken === "gone" ? undefined : talon.at(-1);
   const earlier = taken === "gone" ? talon : talon.slice(0, -1);
@@ -129,13 +131,20 @@ export function TalonPile({
             ref={topRef}
             className="rb-talon__top"
             data-card-id={current.id}
-            {...(taken ? { "data-static": true, "data-arrive": true } : earlier.length === 0 ? { "data-first": true } : {})}
+            {...(taken === "seven"
+              ? { "data-static": true, "data-arrive": true }
+              : taken
+                ? { "data-static": true }
+                : earlier.length === 0
+                  ? { "data-first": true }
+                  : {})}
           >
             <PlayingCard card={current} size="sm" />
             <span className="rb-talon__back">
               <CardBack size="sm" />
             </span>
           </span>
+          {typeof taken === "object" && taken ? <span className="rb-talon__taken">{taken.label}</span> : null}
         </div>
       ) : null}
       {showCounter ? <span className="rb-talon__flip">{sr.raub.talonCard(flips, maxFlips)}</span> : null}
@@ -333,7 +342,9 @@ export function ActionPanel({
     case "exchange":
       return (
         <div className="rb-panel">
-          <p className="rb-panel__hint">{deckCount === 0 ? sr.raub.exchange.empty : sr.raub.exchange.hint}</p>
+          <p className="rb-panel__hint">
+            {deckCount === 0 ? sr.raub.exchange.empty : panel.claim ? sr.raub.exchange.hintClaim : sr.raub.exchange.hint}
+          </p>
           {btn("pass", sr.raub.exchange.keep, onExchange, selectedCount > 0)}
           {btn(
             "accent",

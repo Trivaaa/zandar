@@ -304,6 +304,12 @@ export interface RaubPlayerView {
    * se sedmica iz scenarija 1 nikad ne bi vidjela (uzima se pri dijeljenju).
    */
   takenTalonCard: Card | null;
+  /**
+   * Karta na vrhu talona pripada nosiocu (`talonTakenBy`), ali je još na stolu:
+   * Raub i Štih je uzimaju tek poslije svoje zamjene (odluka 20). Opciono:
+   * stari server ga ne šalje.
+   */
+  claimedTalon?: boolean;
   deckCount: number;
   /** Boja ponuđena u licitaciji (prije nego je adut određen). */
   offeredSuit: Suit | null;

@@ -3503,6 +3503,19 @@
 /* Okretanje s talona: karta krene sa špila licem nadolje, klizne na svoje
    mjesto i okrene se (`TalonPile` izmjeri --draw-x/-y od špila). Prva karta
    ruke ima zadršku i duži pokret — inače je „već tu" čim se uđe za sto. */
+/* Karta pripada nosiocu, ali čeka na stolu do njegove zamjene (odluka 20):
+   ispod nje ko je uzima. */
+.rb-talon__cards > .rb-talon__taken {
+  grid-area: 2 / 1;
+  justify-self: center;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--bg-mid) 80%, transparent);
+  font: 600 0.6875rem/1.2 var(--font-sans);
+  color: var(--accent);
+  white-space: nowrap;
+}
 .rb-talon__top {
   position: relative;
   animation: rb-draw var(--t-rb-draw) var(--ease-card) both;

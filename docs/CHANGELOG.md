@@ -2009,3 +2009,19 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 **Stari klijent (APK ≤ 1.4.1):** ne zna za `mustGo`, pa prikazuje i „Ne idem”; server ga odbija, igrač pritisne „Idem” ili mu istekne sat (auto „Idem”). Ne zaglavljuje se. Vlasnik pravi novi APK.
 
 **Nije provjereno na uređaju.**
+
+## 170. Raub — karta s talona čeka na stolu do zamjene nosioca (2026-11-15, `fix/raub-talon-after-exchange`)
+
+**Povod:** vlasnik sa stola (snimak): kod „Raub” karta je odmah otišla nosiocu u ruku i on je odbacivao prije Idem/zamjene. Pravilo (odluka 20 u `docs/raub-spec.md`): karta ostaje na stolu, nosilac kao i ostali prvo mijenja, pa tek onda uzima kartu sa stola i odbacuje jednu bilo koju iz ruke. Isto za Štih (sedmica). „Moja” bez promjene. Odluke vlasnika: odbacuje bilo koju kartu; za sve 4 nosilac dobija tačno 4 (bez pete i otvorene).
+
+**Šta:**
+- `game-core/raub/match.ts`: `claimTalon` (karta zaključana, a ostaje na talonu), `raubTalonPending` (izvedeno: `lockedCardId` je na vrhu talona — bez novog polja u snapshotu), `takePendingTalon` poslije nosiočeve zamjene → `discard_extra`. Raub i Štih idu odmah u Idem/Ne idem. Zaštita: prazan špil na redu nosioca → uzme i odbaci.
+- Pogled: `RaubPlayerView.claimedTalon` (opciono). `takenTalonCard` i dalje znači „karta u ruci nosioca”, pa let karte (changelog 162) kreće tek kad je stvarno uzme.
+- Web: `TalonPile` opet nosi natpis „Uzima: Ime” / „Uzimaš ti” (iz `fd39dae^`, CSS `.rb-talon__taken`), panel zamjene nosioca kaže da poslije uzima kartu i odbacuje. Pravila prepravljena.
+- Stari snapshot (karta već u ruci, `discard_extra` bez reda zamjene) ide starim putem — test.
+
+**Mjerenje:** game-core 403, server 262, web 227, typecheck, lint. `simulate:raub` 10.000 × 4P: 0 grešaka, medijan 23 ruke (35 min). Snimak `/dev/raub?s=seven` 360×740: sedmica na stolu sa „Uzima: Marko” tokom Idem.
+
+**Stari APK (≤ 1.4.1):** dobija `discard_extra` poslije zamjene i radi; samo nema natpisa ispod karte.
+
+**Nije provjereno na uređaju.**

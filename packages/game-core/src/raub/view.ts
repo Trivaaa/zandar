@@ -7,7 +7,7 @@ import type {
   RaubSwapOffer,
 } from "@zandar/shared-types";
 import { isSeven, raubRankValue, weakestCard } from "./cards";
-import { raubCanMoja, raubCanRaub, raubLegalCards, raubMaxExchange, raubMustGo } from "./match";
+import { raubCanMoja, raubCanRaub, raubLegalCards, raubMaxExchange, raubMustGo, raubTalonPending } from "./match";
 
 /** Uzeta talon karta dok je još u ruci onoga ko ju je uzeo, prije štihova. */
 function takenTalonCard(state: RaubGameState): Card | null {
@@ -66,6 +66,7 @@ export function getRaubView(state: RaubGameState, viewerId: string): RaubPlayerV
     talonFlips: state.talonFlips,
     talonTakenBy: state.talonTakenBy,
     takenTalonCard: takenTalonCard(state),
+    claimedTalon: state.phase === "playing" && raubTalonPending(state),
     deckCount: state.deck.length,
     offeredSuit:
       state.phase === "playing" && state.trumpSuit === null ? (state.talon.at(-1)?.suit ?? null) : null,

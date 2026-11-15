@@ -24,6 +24,7 @@ export {
   raubCanMoja,
   raubHasSeven,
   raubMustGo,
+  raubTalonPending,
   upgradeRaubState,
   raubPlacements,
   raubScoreDelta,

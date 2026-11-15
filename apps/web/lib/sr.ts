@@ -453,6 +453,9 @@ export const sr = {
     talonCard: (n: number, max: number) => `Karta ${n} od ${max}`,
     deck: (n: number) => `Špil ${n}`,
     deckEmpty: "Špil je prazan",
+    /** Odluka 20: karta s talona pripada nosiocu, ali čeka na stolu do njegove zamjene. */
+    talonTaken: (name: string) => `Uzima: ${name}`,
+    talonTakenMe: "Uzimaš ti",
     seven: {
       hint: (card: string) => `Na stolu je ${card} — štih nije obavezan.`,
       take: "Štih",
@@ -485,6 +488,8 @@ export const sr = {
     },
     exchange: {
       hint: "Dodirni karte koje mijenjaš.",
+      /** Nosilac Rauba/Štiha: prvo zamjena, pa uzima kartu sa stola i odbacuje jednu (odluka 20). */
+      hintClaim: "Dodirni karte koje mijenjaš — zatim uzimaš kartu sa stola i odbacuješ jednu.",
       empty: "Špil je prazan — zamjene nema.",
       keep: "Zadrži sve",
       button: (n: number) => `Zamijeni ${n}`,
