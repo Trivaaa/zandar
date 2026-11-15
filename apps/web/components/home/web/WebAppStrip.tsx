@@ -75,9 +75,9 @@ export function WebAppStrip({ preview }: { preview?: { installed: boolean } | un
         </a>
       ) : (
         <a className="web-app__badge" href={href} {...linkProps} onClick={onClick}>
-          {/* Zvanična oznaka, nepromijenjena; PNG već nosi propisan prazan prostor. */}
+          {/* Zvanična oznaka (vlasnik, 15.11.2026); bijela pozadina oko sive ivice je prozirna. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/google-play-badge.png" alt={sr.homeWeb.playBadgeAlt} width={646} height={250} />
+          <img src="/google-play-badge.png" alt={sr.homeWeb.playBadgeAlt} width={361} height={139} />
         </a>
       )}
     </aside>

@@ -317,8 +317,8 @@ export const sr = {
     app: "Igraj u aplikaciji",
     appOpen: "Aplikacija je na telefonu",
     appOpenGo: "Otvori",
-    /** Zvanična oznaka, naša lokalizacija (Google Play smjernice). */
-    playBadgeAlt: "Nabavite na usluzi Google Play",
+    /** Alt = tekst na zvaničnoj oznaci (engleska verzija, od vlasnika 15.11.2026). */
+    playBadgeAlt: "Get it on Google Play",
     nav: "Glavni meni",
   },
   matching: {
