@@ -4,6 +4,8 @@ import { describe, test } from "node:test";
 import type { Player } from "@zandar/shared-types";
 
 import {
+  friendInviteAcceptedEvent,
+  friendInviteSentEvent,
   isRematch,
   joinApprovedEvent,
   joinRequestedEvent,
@@ -67,6 +69,42 @@ describe("lijevak pozivnice", () => {
   test("bez platforme polje izostaje", () => {
     const event = joinRequestedEvent("sto1", { createdAt: 1, guestId: "g" });
     assert.deepEqual(event!.properties, { room_id: "sto1" });
+  });
+});
+
+describe("pozivi iz liste prijatelja", () => {
+  const host = { guestId: "g-host", platform: "android" as const };
+
+  test("friend_invite_sent ide pozivaocu, sa brojem pozvanih i izvorom", () => {
+    assert.deepEqual(friendInviteSentEvent("sto1", { game: "raub" }, host, 2, "new_room"), {
+      distinctId: "g-host",
+      event: "friend_invite_sent",
+      properties: { room_id: "sto1", invited_count: 2, source: "new_room", game: "raub", platform: "android" },
+    });
+  });
+
+  test("soba bez igre je Žandar", () => {
+    const event = friendInviteSentEvent("sto1", {}, { guestId: "g" }, 1, "lobby");
+    assert.deepEqual(event!.properties, { room_id: "sto1", invited_count: 1, source: "lobby", game: "zandar" });
+  });
+
+  test("bez guestId-a pozivaoca ili bez pozvanih nema događaja", () => {
+    assert.equal(friendInviteSentEvent("sto1", {}, undefined, 1, "lobby"), null);
+    assert.equal(friendInviteSentEvent("sto1", {}, {}, 1, "lobby"), null);
+    assert.equal(friendInviteSentEvent("sto1", {}, host, 0, "lobby"), null);
+  });
+
+  test("friend_invite_accepted ide pozvanom i nosi čekanje od poziva", () => {
+    assert.deepEqual(friendInviteAcceptedEvent("sto1", { game: "poker" }, { guestId: "g-gost", platform: "web" }, 1_000, 61_000), {
+      distinctId: "g-gost",
+      event: "friend_invite_accepted",
+      properties: { room_id: "sto1", game: "poker", wait_ms: 60_000, platform: "web" },
+    });
+  });
+
+  test("prihvatanje: sat unazad ne daje negativno čekanje, bez guestId-a nema događaja", () => {
+    assert.equal(friendInviteAcceptedEvent("sto1", {}, { guestId: "g" }, 5_000, 1_000)!.properties.wait_ms, 0);
+    assert.equal(friendInviteAcceptedEvent("sto1", {}, {}, 1, 2), null);
   });
 });
 

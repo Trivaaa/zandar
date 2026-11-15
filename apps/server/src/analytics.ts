@@ -129,6 +129,58 @@ export function joinApprovedEvent(
   };
 }
 
+type AnalyticsGame = AnalyticsEvents["friend_invite_sent"]["game"];
+
+/** Bez polja = Žandar (isto kao soba). */
+function analyticsGame(game: string | undefined): AnalyticsGame {
+  return game === "poker" || game === "raub" ? game : "zandar";
+}
+
+type IdentityLike = { guestId?: string | undefined; platform?: AnalyticsPlatform | undefined };
+
+/** Poziv prijateljima iz liste; ide POZIVAOCU (hostu). */
+export function friendInviteSentEvent(
+  roomId: string,
+  room: { game?: string | undefined },
+  host: IdentityLike | undefined,
+  invitedCount: number,
+  source: "new_room" | "lobby",
+): Capture<"friend_invite_sent"> | null {
+  if (!host?.guestId || invitedCount <= 0) return null;
+  return {
+    distinctId: host.guestId,
+    event: "friend_invite_sent",
+    properties: {
+      room_id: roomId,
+      invited_count: invitedCount,
+      source,
+      game: analyticsGame(room.game),
+      ...(host.platform ? { platform: host.platform } : {}),
+    },
+  };
+}
+
+/** Pozvani je ušao; ide POZVANOM. */
+export function friendInviteAcceptedEvent(
+  roomId: string,
+  room: { game?: string | undefined },
+  guest: IdentityLike,
+  invitedAt: number,
+  now: number,
+): Capture<"friend_invite_accepted"> | null {
+  if (!guest.guestId) return null;
+  return {
+    distinctId: guest.guestId,
+    event: "friend_invite_accepted",
+    properties: {
+      room_id: roomId,
+      game: analyticsGame(room.game),
+      wait_ms: Math.max(0, now - invitedAt),
+      ...(guest.platform ? { platform: guest.platform } : {}),
+    },
+  };
+}
+
 /** Jedan `match_started` po čovjeku. */
 export function matchStartedEvents(
   gs: MatchLike,

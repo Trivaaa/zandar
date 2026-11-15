@@ -59,6 +59,8 @@ import {
 } from "./pause";
 import { posthog, track } from "./lib/posthog";
 import {
+  friendInviteAcceptedEvent,
+  friendInviteSentEvent,
   joinApprovedEvent,
   joinRequestedEvent,
   matchEndedEvents,
@@ -839,6 +841,14 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
   addInvites(room, invitees);
   persistRoom(room);
   sendInviteNotices(room, invitees, true);
+  const sent = friendInviteSentEvent(
+    room.id,
+    room,
+    room.players.find((p) => p.id === playerId),
+    invitees.length,
+    "new_room",
+  );
+  if (sent) track(sent.distinctId, sent.event, sent.properties);
   return {
     roomId: room.id,
     playerId,
@@ -864,6 +874,8 @@ fastify.post<{ Params: { roomId: string }; Body: { profileIds?: unknown } }>(
     persistRoom(room);
     io.to(room.id).emit("room:update");
     sendInviteNotices(room, invitees, true);
+    const sent = friendInviteSentEvent(room.id, room, host, invitees.length, "lobby");
+    if (sent) track(sent.distinctId, sent.event, sent.properties);
     return { invited: invitees.length };
   },
 );
@@ -881,12 +893,15 @@ fastify.post<{
     const invite = room ? inviteFor(room, me.uid, Date.now()) : null;
     if (!room || !invite) return reply.code(410).send({ code: "expired" });
     if (needsUpdate(room, request.body?.games)) return reply.code(426).send(UPDATE_REQUIRED);
+    const guestIdentity = analyticsIdentity(request.body ?? {});
     const admitted = await admitPlayer(room, {
       displayName: me.nickname,
-      ...analyticsIdentity(request.body ?? {}),
+      ...guestIdentity,
       uid: me.uid,
     });
     if (!admitted) return reply.code(410).send({ code: "expired" });
+    const accepted = friendInviteAcceptedEvent(room.id, room, guestIdentity, invite.createdAt, Date.now());
+    if (accepted) track(accepted.distinctId, accepted.event, accepted.properties);
     removeInvite(room, me.uid);
     persistRoom(room);
     io.to(room.id).emit("room:update");

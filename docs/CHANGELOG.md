@@ -2054,3 +2054,17 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 **Stari APK (≤ 1.4.1):** dobija `discard_extra` sa 4 karte i kartom na stolu; panel kaže „Imaš 5 karata. Odbaci jednu.” (netačan broj), ali odbacivanje radi.
 
 **Nije provjereno na uređaju.**
+
+## 173. Analitika — poziv prijatelju iz liste (2026-11-15, `feat/analytics-friend-invites`)
+
+**Povod:** u PostHogu se vidio samo `invite_shared` (link kroz meni ili kopiranje). Poziv iz liste prijatelja (SPEC_IDENTITET tok e) nije slao ništa, pa je omjer „igrači koji pozivaju” (3 od 26 aktivnih od 7.11., ~12 %) bio potcijenjen.
+
+**Šta:**
+- Dva serverska događaja (`shared-types` `AnalyticsEvents`, čiste funkcije u `apps/server/src/analytics.ts`): `friend_invite_sent` (pozivalac; `room_id`, `invited_count`, `source` `new_room`/`lobby`, `game`, `platform?`) i `friend_invite_accepted` (pozvani; `room_id`, `game`, `wait_ms` od poziva, `platform?`).
+- Šalju ih `POST /api/invites`, `POST /api/rooms/:id/invites` i `POST /api/invites/:id/accept`, i to samo na uspjeh. guestId pozivaoca se čita sa host igrača u sobi, jer lobi ruta ne nosi guestId u tijelu.
+- Na serveru je, pa radi i za APK 1.4.1 bez novog paketa; dovoljan je deploy servera.
+- `docs/analytics.md`: dva reda događaja, KPI „Pozivači (svi kanali)” i „Poziv prijatelja → ulazak”.
+
+**Mjerenje:** server 267 testova (5 novih), typecheck.
+
+**Nije provjereno uživo:** događaj se vidi tek kad neko na produkciji pozove prijatelja.

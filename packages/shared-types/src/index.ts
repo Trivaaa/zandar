@@ -644,6 +644,21 @@ export type AnalyticsEvents = {
   join_requested: { room_id: string; platform?: AnalyticsPlatform };
   /** Host odobrio ulazak. `wait_ms` = koliko je gost čekao; rok zahtjeva je 2 min. */
   join_approved: { room_id: string; wait_ms: number; platform?: AnalyticsPlatform };
+  /** Host pozvao prijatelje iz liste: nova soba (`new_room`) ili iz lobija (`lobby`). Ide pozivaocu. */
+  friend_invite_sent: {
+    room_id: string;
+    invited_count: number;
+    source: "new_room" | "lobby";
+    game: "zandar" | "poker" | "raub";
+    platform?: AnalyticsPlatform;
+  };
+  /** Pozvani prijatelj ušao u sobu (bez odobrenja hosta). `wait_ms` = od poziva do ulaska. */
+  friend_invite_accepted: {
+    room_id: string;
+    game: "zandar" | "poker" | "raub";
+    wait_ms: number;
+    platform?: AnalyticsPlatform;
+  };
   match_started: {
     mode: MatchMode;
     match_id: string;
