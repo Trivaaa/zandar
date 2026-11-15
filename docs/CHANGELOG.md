@@ -1888,3 +1888,13 @@ Talon u licitaciji staje u novu (tačnu) kutiju na svim veličinama.
 **Izmjereno (CDP, `/dev/raub?s=trick`, četvrta karta dodata kloniranjem; širina lica karte):** 360×760 sa kamerom 39 px (S10e) 55 → 67 px (+21 %), 360×640 49 → 59 (+21 %), 390×844 65 → 75 (+16 %), 800×900 65 → 78 (+20 %). Razmak gornje karte do gornjeg sjedišta ≥ 2 px, donje do tvog avatara ≥ 13 px, bočne ≥ 28 px od bočnih igrača — nigdje ne ulaze pod avatare (prije je gornji razmak na S10e bio 0). **Zamka:** headless Chrome sa trajnim `--user-data-dir` je servirao stari CSS iz keša — mjerenje je izgledalo kao da izmjena ne djeluje; brisati profil ili `--disable-cache`.
 
 **Nije provjereno na uređaju.**
+
+## 164. Žandar — sve opcije nošenja vidljive odjednom (2026-11-15, `fix/chooser-wrap`)
+
+**Šta:** QA 2026-11-15 B1 (Visoka). Kad karta nosi na više načina, traka izbora (`.table__chooser`) je bila `nowrap` + bočni skrol sa skrivenom trakom. Na 390×844 u 4P traka je široka 234 px, a tri grupe 407 px: druga odsječena („Z…"), treća nevidljiva, nikakav znak da se skrola — a igrač bira pod satom i prisilnim nošenjem.
+
+**Kako (`felt.css`, samo traka izbora):** traka se prelama (`flex-wrap: wrap`, centrirano), skrol i skrivanje trake skrola uklonjeni, `:has(> :only-child)` više ne treba. Samo prelom nije bio dovoljan: sa riječju razloga („Isti rank"/„Zbir") svaka grupa je na uskoj traci uzimala cijeli red, pa su tri opcije bile traka od 199 px i sto od 12 karata se skrolovao 76 px. Zato je traka container (`chooser / inline-size`) i ispod 25rem sakriva riječ razloga (ostaje u `aria-label`-u grupe; grupu pokazuju karte), steže padding i spušta karte trake na 1.9rem. Desktop 4P (408 px) i šire trake zadržavaju riječ.
+
+**Izmjereno (CDP, `/dev/game?chooser=1`, 360×640 / 360×760 / 390×844 / 600×900 / 1440×900 × 2P/4P × 4/9/12 karata, 2 i 3 opcije):** u svih 30 slučajeva sve grupe u JEDNOM redu, cijele i na ekranu, `scrollWidth == clientWidth`, bez sudara sa rukom, špilom i sjedištima. Visina trake 59 px na telefonu (bila 64), 64 px šire — sto ne gubi ništa. Najuži slučaj 360 px 4P (216 px): grupe 44/79/79 px. Pregledano i okom na snimcima 390×844 i 360×640 sa 12 karata.
+
+**Nije provjereno na uređaju.**
