@@ -4,12 +4,13 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
 
-import { AppOfferBar } from "@/components/AppOffer";
 import { RulesModal } from "@/components/RulesModal";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { GameSheet } from "@/components/home/GameSheet";
 import { QuickPlayNameSheet, QuickPlaySettingsSheet } from "@/components/home/QuickPlaySheets";
 import { SignupSheet } from "@/components/home/SignupSheet";
+import { FriendsGameSheet } from "@/components/home/web/FriendsGameSheet";
+import { WebHome } from "@/components/home/web/WebHome";
 import { TabBar } from "@/components/nav/TabBar";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
 import { useBackHandler } from "@/lib/backHandlers";
@@ -24,6 +25,7 @@ import { sr } from "@/lib/sr";
 import { startQuickPlay } from "@/lib/startQuickPlay";
 import { readTableThemeRaw, saveTableTheme, useTableTheme } from "@/lib/tableTheme";
 import { track } from "@/lib/track";
+import { webCreatePath, webQuickPlayChoice } from "@/lib/webHome";
 
 /** Nova soba za igru; Žandar ostaje na staroj adresi (linkovi, APK). */
 const createPath = (game: GameSlug) => (game === "zandar" ? "/create" : `/create?game=${game}`);
@@ -33,10 +35,15 @@ type Sheet =
   | { kind: "setup"; game: GameConfig }
   | { kind: "game"; game: GameConfig }
   | { kind: "signup" }
+  // Samo web (W4): izbor igre za „Igraj s prijateljima".
+  | { kind: "friends" }
   | null;
 
-/** Izbor stola za start; bez njega važi zapamćen izbor te igre. */
-type Choice = { prefs: QuickPlayPrefs; tableTheme: TableTheme };
+/**
+ * Izbor stola za start; bez njega važi zapamćen izbor te igre. `remember: false`
+ * (web početna): izbor nije igračev, pa se ne pamti kao zadnji.
+ */
+type Choice = { prefs: QuickPlayPrefs; tableTheme: TableTheme; remember?: false };
 
 export default function Home() {
   const router = useRouter();
@@ -78,7 +85,11 @@ export default function Home() {
       tableTheme: parseTableTheme(readTableThemeRaw(game.slug)),
     };
     try {
-      router.replace(await startQuickPlay(name, chosen.prefs, chosen.tableTheme, game.slug));
+      router.replace(
+        await startQuickPlay(name, chosen.prefs, chosen.tableTheme, game.slug, {
+          remember: chosen.remember !== false,
+        }),
+      );
     } catch {
       setPlayError(sr.quickSetup.error);
       setPlaying(false);
@@ -123,7 +134,10 @@ export default function Home() {
    * sa zadnjim označenim (odluka #96).
    */
   function playGame(game: GameConfig) {
-    if (game.slug === "poker" || game.slug === "raub") void start(game);
+    // Web (tabla „Početna za web"): svaka igra pravo za sto, bez lista — Žandar
+    // 4 igrača do 11, izgled stola nasumičan. Aplikacija ostaje kakva jeste.
+    if (!isNative) void start(game, webQuickPlayChoice());
+    else if (game.slug === "poker" || game.slug === "raub") void start(game);
     else setSheet({ kind: "setup", game });
   }
 
@@ -136,41 +150,53 @@ export default function Home() {
 
   return (
     <>
-      <HomeScreen
-        layout={layout}
-        history={history}
-        now={now}
-        loading={playing && !sheetOpen}
-        {...(playError && !sheetOpen ? { error: playError } : {})}
-        // Igraj prvo pokazuje izbor (2 ili 4 igrača, do 11 ili 21, sto) sa
-        // zadnjim izborom označenim; „Igraj" u listu kreće za sto. Odluka
-        // vlasnika (#96, potvrđena 2026-10-24 poslije K1). Isti izbor se
-        // mijenja i u Postavke → Brza igra.
-        // Poker: jedan dodir, bez izbora (odluka 3, 6.11.2026) — sto je uvijek
-        // za 4, a izgled stola je zadnji zapamćen.
-        onPlay={() => playGame(main)}
-        onCreate={() => router.push(createPath(main.slug))}
-        onOpenGame={(game) => setSheet({ kind: "game", game })}
-        onNotify={(game) => {
-          track("upcoming_game_tapped", { game: game.slug });
-          setSheet({ kind: "signup" });
-        }}
-        onUpcomingViewed={() => track("upcoming_games_viewed")}
-        onFeedback={() => router.push("/utisak")}
-        {...(isNative ? {} : { topSlot: <AppOfferBar /> })}
-        className={identityUi ? "screen--tabbed" : ""}
-        {...(listMode
-          ? {
-              list: {
-                items: listItems,
-                loadingSlug: (playing || playError) && !sheetOpen ? playingSlug : null,
-                onPlay: playGame,
-                onCreate: (game: GameConfig) => router.push(createPath(game.slug)),
-              },
-            }
-          : {})}
-      />
-      {identityUi ? <TabBar /> : null}
+      {isNative ? (
+        <HomeScreen
+          layout={layout}
+          history={history}
+          now={now}
+          loading={playing && !sheetOpen}
+          {...(playError && !sheetOpen ? { error: playError } : {})}
+          // Igraj prvo pokazuje izbor (2 ili 4 igrača, do 11 ili 21, sto) sa
+          // zadnjim izborom označenim; „Igraj" u listu kreće za sto. Odluka
+          // vlasnika (#96, potvrđena 2026-10-24 poslije K1). Isti izbor se
+          // mijenja i u Postavke → Brza igra.
+          // Poker: jedan dodir, bez izbora (odluka 3, 6.11.2026) — sto je uvijek
+          // za 4, a izgled stola je zadnji zapamćen.
+          onPlay={() => playGame(main)}
+          onCreate={() => router.push(createPath(main.slug))}
+          onOpenGame={(game) => setSheet({ kind: "game", game })}
+          onNotify={(game) => {
+            track("upcoming_game_tapped", { game: game.slug });
+            setSheet({ kind: "signup" });
+          }}
+          onUpcomingViewed={() => track("upcoming_games_viewed")}
+          onFeedback={() => router.push("/utisak")}
+          className={identityUi ? "screen--tabbed" : ""}
+          {...(listMode
+            ? {
+                list: {
+                  items: listItems,
+                  loadingSlug: (playing || playError) && !sheetOpen ? playingSlug : null,
+                  onPlay: playGame,
+                  onCreate: (game: GameConfig) => router.push(createPath(game.slug)),
+                },
+              }
+            : {})}
+        />
+      ) : (
+        <WebHome
+          items={[layout.main, ...layout.more].map((game) => ({ game, badge: gameBadge(game, history, now) }))}
+          loadingSlug={(playing || playError) && !sheetOpen ? playingSlug : null}
+          {...(playError && !sheetOpen ? { error: playError } : {})}
+          onPlay={playGame}
+          onFriends={() => setSheet({ kind: "friends" })}
+          onFeedback={() => router.push("/utisak")}
+          showNav={identityUi}
+          className={identityUi ? "screen--tabbed" : ""}
+        />
+      )}
+      {identityUi ? <TabBar {...(isNative ? {} : { className: "tabbar--web-home" })} /> : null}
       {/* Samo ovdje: instalacija restartuje aplikaciju, pa nikad za stolom ni dok se traži sto. */}
       {isNative ? <AppUpdatePrompt hidden={playing || sheetOpen} /> : null}
 
@@ -228,6 +254,14 @@ export default function Home() {
             setPinnedGame(history.pinned === sheet.game.slug ? null : sheet.game.slug);
             setSheet(null);
           }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+
+      {sheet?.kind === "friends" ? (
+        <FriendsGameSheet
+          games={[layout.main, ...layout.more]}
+          onPick={(game) => router.push(webCreatePath(game.slug))}
           onClose={() => setSheet(null)}
         />
       ) : null}

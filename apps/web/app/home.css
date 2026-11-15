@@ -1592,3 +1592,497 @@
   background-color: var(--surface);
   box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.35);
 }
+
+/* ==================================================================
+ * Početna za web — novi igrači (tabla „UI · Početna za web", W1/W1b/W2/W4).
+ * SAMO web: aplikacija crta `HomeScreen` i nikad ne dobija `.home--web`.
+ * Na kraju `home.css`, NE zaseban import: Vercel je novi importovani CSS fajl
+ * već izbacio iz builda (changelog 129, `poker.css`).
+ * Mjere su sa table: telefon 390×844 (W1), nizak 360×740 (W1b), desktop
+ * 1280×800 (W2).
+ * ================================================================== */
+
+.home--web {
+  --web-gap: 0.625rem;
+  --web-art-h: 5.25rem;
+  --web-play-h: 3.25rem;
+  --web-card-w: 2.5rem;
+  --web-card-h: 3.5625rem;
+}
+
+.screen.home--web {
+  padding-top: calc(0.875rem + var(--safe-top));
+}
+
+.home--web .web-home__col {
+  gap: var(--web-gap);
+  margin-top: 0;
+}
+
+.web-home__env {
+  align-self: flex-start;
+}
+
+/* Naslov postoji za čitač ekrana i pretragu; vidi se tek na desktopu (W2). */
+.web-home__title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Traka „Igraj u aplikaciji" (samo Android pregledač)
+ * ------------------------------------------------------------------ */
+
+.web-app {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 3.75rem;
+  padding-left: 0.875rem;
+  border-radius: 0.75rem;
+  background-color: color-mix(in oklab, var(--card-face) 5%, transparent);
+  color: var(--text);
+  font: 600 0.875rem / 1.2 var(--font-sans-stack);
+}
+.web-app__text {
+  flex: 1;
+}
+/* Oznaka: PNG sa ugrađenim praznim prostorom, visina 40 px; ne mijenja se. */
+.web-app__badge {
+  flex: none;
+  display: block;
+  padding: 0.625rem;
+}
+.web-app__badge img {
+  display: block;
+  width: auto;
+  height: 2.5rem;
+}
+.web-app__open {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  margin-right: 0.5rem;
+  padding: 0 0.875rem;
+  border-radius: 0.625rem;
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--text) 30%, transparent);
+  color: var(--text);
+  font: 700 0.875rem / 1 var(--font-sans-stack);
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Kartice igara — cijela kartica je jedno dugme
+ * ------------------------------------------------------------------ */
+
+.web-home__games {
+  display: flex;
+  flex-direction: column;
+  gap: var(--web-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.web-card {
+  --tint-1: var(--game-zandar-1);
+  --tint-2: var(--game-zandar-2);
+}
+.web-card[data-tint="poker"],
+.web-friends__row[data-tint="poker"] {
+  --tint-1: var(--game-poker-1);
+  --tint-2: var(--game-poker-2);
+}
+.web-card[data-tint="raub"],
+.web-friends__row[data-tint="raub"] {
+  --tint-1: var(--game-raub-1);
+  --tint-2: var(--game-raub-2);
+}
+
+.web-card__hit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: 1.125rem;
+  background-color: color-mix(in oklab, var(--card-face) 4%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 28%, transparent);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+.web-card__hit:active {
+  transform: scale(0.99);
+}
+.web-card__hit:disabled {
+  cursor: default;
+}
+.web-card__hit:disabled .web-card__play {
+  opacity: 0.6;
+}
+.web-card__hit[aria-busy="true"] .web-card__play {
+  opacity: 1;
+}
+
+.web-card__art {
+  position: relative;
+  display: block;
+  height: var(--web-art-h);
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: radial-gradient(ellipse at 75% 40%, var(--tint-1), var(--tint-2) 80%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--card-face) 8%, transparent);
+}
+
+/* Lepeza −12° / 0 / 12°, srednja malo više (isti motiv kao lista u aplikaciji). */
+.web-card__fan,
+.web-friends__fan {
+  position: absolute;
+  display: flex;
+  pointer-events: none;
+}
+.web-card__fan {
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.web-fan__slot {
+  margin-left: calc(var(--web-card-w) * -0.42);
+  transform: rotate(calc((var(--i) - 1) * 12deg));
+}
+.web-fan__slot:first-child {
+  margin-left: 0;
+}
+.web-fan__slot:nth-child(2) {
+  transform: translateY(-0.25rem);
+}
+.web-card__fan .card {
+  --card-w: var(--web-card-w);
+  --card-h: var(--web-card-h);
+}
+
+.web-card__text {
+  position: absolute;
+  left: 0.875rem;
+  top: 0;
+  bottom: 0;
+  max-width: 66%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+}
+.web-card__name {
+  font: 400 1.625rem / 1 var(--font-display-stack);
+  color: var(--card-face);
+  text-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+}
+/* Oznaka uz naziv (ne preko slike), da ne pokriva tekst. */
+.web-card__tag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  vertical-align: 0.3rem;
+  background-color: color-mix(in oklab, var(--bg-mid) 75%, transparent);
+  color: var(--card-face);
+  font: 700 0.5625rem / 1.2 var(--font-sans-stack);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: none;
+}
+.web-card__tag[data-badge="new"] {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.web-card__sub {
+  font: 600 0.75rem / 1.3 var(--font-sans-stack);
+  color: color-mix(in oklab, var(--card-face) 85%, transparent);
+}
+.web-card__sub[data-error="true"] {
+  color: var(--danger-signal);
+}
+
+.web-card__play {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--web-play-h);
+  padding: 0 1.125rem;
+  border-radius: 0.75rem;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: inset 0 -3px 0 color-mix(in oklab, var(--accent-contrast) 22%, transparent);
+  font: 700 1.125rem / 1 var(--font-sans-stack);
+}
+.web-card__arrow {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+@media (hover: hover) {
+  .web-card__hit:not(:disabled):hover .web-card__play {
+    background-color: color-mix(in oklab, var(--accent) 88%, var(--card-face));
+  }
+  .web-home__friends:hover {
+    background-color: color-mix(in oklab, var(--card-face) 10%, transparent);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * „Igraj s prijateljima" (W4) — red ispod kartica
+ * ------------------------------------------------------------------ */
+
+.web-home__friends {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.75rem;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: 0.875rem;
+  background-color: color-mix(in oklab, var(--card-face) 7%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--card-face) 22%, transparent);
+  color: var(--text);
+  text-align: left;
+  font: 700 1rem / 1.2 var(--font-sans-stack);
+  cursor: pointer;
+}
+.web-home__friends-icon {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+}
+.web-home__friends-text {
+  flex: 1;
+}
+.web-home__friends-text small {
+  display: block;
+  margin-top: 0.2rem;
+  font: 400 0.8125rem / 1.2 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+.web-home__friends-chev {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.home--web .home__feedback {
+  margin-top: auto;
+}
+
+/* List W4: red po igri. */
+.web-friends {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.web-friends__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.web-friends__row {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: 0.875rem;
+  background-color: color-mix(in oklab, var(--card-face) 5%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 28%, transparent);
+  color: var(--text);
+  text-align: left;
+  font: 400 1.1875rem / 1.1 var(--font-display-stack);
+  cursor: pointer;
+}
+.web-friends__art {
+  position: relative;
+  flex: none;
+  width: 4.5rem;
+  height: 3.5rem;
+  overflow: hidden;
+  border-radius: 0.625rem;
+  background: radial-gradient(ellipse at 75% 40%, var(--tint-1), var(--tint-2) 80%);
+}
+.web-friends__fan {
+  left: 0.375rem;
+  top: 0.625rem;
+}
+.web-friends__fan .card {
+  --card-w: 1.75rem;
+  --card-h: 2.5rem;
+}
+.web-friends__fan .web-fan__slot {
+  margin-left: -1rem;
+}
+.web-friends__fan .web-fan__slot:first-child {
+  margin-left: 0;
+}
+.web-friends__text {
+  flex: 1;
+}
+.web-friends__text small {
+  display: block;
+  margin-top: 0.3rem;
+  font: 600 0.8125rem / 1 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+.web-friends__chev {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * W1b — nizak telefon (360×740): niža slika i dugmad, da sve stane.
+ * ------------------------------------------------------------------ */
+
+@media (max-height: 48.75rem) {
+  .home--web {
+    --web-gap: 0.5rem;
+    --web-art-h: 4rem;
+    --web-play-h: 3rem;
+    --web-card-w: 2.125rem;
+    --web-card-h: 3rem;
+  }
+  .home--web .web-home__friends {
+    min-height: 3.5rem;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Desktop zaglavlje (W2) — na telefonu ga nema
+ * ------------------------------------------------------------------ */
+
+.web-top {
+  display: none;
+}
+
+@media (min-width: 60rem) {
+  .home--web {
+    --home-col: 65rem;
+    --web-gap: 1.25rem;
+    --web-art-h: 16.875rem;
+    --web-play-h: 3.5rem;
+    --web-card-w: 4.75rem;
+    --web-card-h: 6.75rem;
+  }
+
+  .screen.home--web {
+    padding-top: var(--safe-top);
+  }
+  /* Donje trake nema — zaglavlje je preuzelo navigaciju. */
+  .screen.home--web.screen--tabbed {
+    padding-bottom: calc(var(--funnel-pad) + var(--safe-bottom));
+  }
+  .tabbar.tabbar--web-home {
+    display: none;
+  }
+
+  .web-top {
+    display: flex;
+    justify-content: flex-end;
+    flex: none;
+    width: 100%;
+    max-width: var(--home-col);
+    height: 4.5rem;
+    align-items: center;
+    box-shadow: 0 1px 0 color-mix(in oklab, var(--card-face) 8%, transparent);
+  }
+  .web-top__nav {
+    display: flex;
+    gap: 0.375rem;
+  }
+  .web-top__tab {
+    display: grid;
+    place-items: center;
+    min-height: 3rem;
+    padding: 0 1.125rem;
+    color: var(--nav-ink);
+    font: 600 1rem / 1 var(--font-sans-stack);
+    text-decoration: none;
+  }
+  .web-top__tab[aria-current="page"] {
+    color: var(--accent);
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  .home--web .web-home__col {
+    padding-top: 2.5rem;
+  }
+  .web-home__title {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    margin: 0;
+    font: 400 1.875rem / 1.1 var(--font-display-stack);
+    color: var(--card-face);
+  }
+
+  /* Tri kartice u redu; sa manje igara ostaju iste širine, u sredini. */
+  .web-home__games {
+    flex-direction: row;
+    justify-content: center;
+  }
+  .web-card {
+    flex: 0 1 calc((100% - 2 * var(--web-gap)) / 3);
+  }
+  .web-card__hit {
+    gap: 0.625rem;
+    padding: 0.625rem;
+  }
+  .web-card__fan {
+    right: auto;
+    left: 50%;
+    top: 3rem;
+    transform: translateX(-50%);
+  }
+  .web-card__text {
+    top: auto;
+    bottom: 1.25rem;
+    max-width: 90%;
+    justify-content: flex-end;
+  }
+  .web-card__name {
+    font-size: 2.125rem;
+  }
+  .web-card__tag {
+    vertical-align: 0.55rem;
+    font-size: 0.625rem;
+  }
+  .web-card__sub {
+    font-size: 0.875rem;
+  }
+  .web-card__arrow {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .home--web .web-home__friends {
+    min-height: 4rem;
+  }
+  /* Aplikacija je samo za Android; desktop je nikad ne nudi. */
+  .home--web .web-app {
+    display: none;
+  }
+}

@@ -2097,3 +2097,37 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 - Važi tek od izdanja koje ga nosi: 1.4.0 i 1.4.1 nikad neće pitati.
 
 **Provjereno:** web 239 testova (+12), server 266 (+4), typecheck, lint = osnovica, staging APK (Java kompajliran). **Nije provjereno na uređaju ni kroz Play interni test.**
+
+## 175. Početna za web — novi igrači (2026-11-15, `feat/web-home`)
+
+**Šta:** web dobija svoju početnu po tabli „UI · Početna za web — novi igrači" (W1, W1b, W2, W4) na platnu „Kartaonica · identitet". **Aplikacija je ne dobija:** `app/page.tsx` grana na `isNative` — APK crta stari `HomeScreen`, web novi `components/home/web/WebHome`. Od sada je to pravilo: UI rad ide samo na web, aplikacija se ne dira (odluka vlasnika 15.11.2026).
+
+**Web početna:**
+- Bez naziva „Kartaonica" na vrhu. Redom: traka „Igraj u aplikaciji", kartice igara, red „Igraj s prijateljima", „Piši nam". Na webu se ne prikazuje red „Uskoro".
+- Kartica je JEDNO dugme: dodir na sliku isto je što i „Igraj". Oznaka (Zadnje igrano / Zakačeno / Novo) stoji uz naziv. Podnaslov: „N igrača · odmah, bez registracije".
+- „Igraj" ide pravo za sto, bez lista. Žandar uvijek 4 igrača do 11; za sve tri igre izgled stola je nasumičan (`lib/webHome.ts`). `startQuickPlay(..., { remember: false })` ne upisuje taj izbor kao „zadnji", pa ga `/create` i Postavke → Brza igra ne vide. Ime se i dalje traži listom samo prvi put (odluka vlasnika).
+- W1b: kad je ekran niži od 780 px, slika je 64 px, a dugme 48 px.
+- W2 (≥ 960 px): kolona 1040, naslov „Izaberi igru i sjedi za sto", tri kartice u redu. Donja traka prelazi u zaglavlje `WebTopNav` (`TabBar` dobija `tabbar--web-home`, CSS je sakriva). Traka aplikacije se ne prikazuje.
+- W4: „Igraj s prijateljima" otvara list sa izborom igre i vodi na `/create?game=<igra>`, i za Žandar. Na webu `/create` sa igrom u adresi ne nudi izbor igre. Žandar nudi samo 2 ili 4 igrača (odluka vlasnika; ranije je bilo i 3). Broj koji igra ne nudi pada na 2.
+- Traka aplikacije (odluka vlasnika): prikazuje se UVIJEK, samo na Android pregledaču, bez ×. Desno je zvanična oznaka `google-play-badge.png`; ako je aplikacija instalirana, „Otvori". Ne ide kroz `decideAppOffer` — ta pravila ostaju za red na kraju partije. Analitika `app_offer_shown`/`app_offer_click` dobija novo mjesto `home_strip` (+ postojeći `home_open`); prikaz se broji jednom po posjeti, pod zasebnim ključem, pa ne guši red na kraju partije.
+
+**Zamke:**
+- Stilovi su na kraju `home.css`, ne u novom importovanom fajlu: Vercel je novi CSS import već izbacivao (changelog 129, `poker.css`).
+- Headless Chrome ne pravi prozor uži od ~500 px. Telefon se snima CDP emulacijom (`Emulation.setDeviceMetricsOverride`), inače snimak izgleda odsječeno.
+- Oznaka Google Play je PNG sa NEPROZIRNIM bijelim praznim prostorom. Na tamnoj traci se vidi bijeli okvir. Nije mijenjana; treba prozirna varijanta od vlasnika.
+- Traka aplikacije se pojavi tek poslije hidracije (user agent se zna tek na klijentu), pa na Androidu gura kartice nadolje za ~70 px.
+- `/create` na webu: `?game=` se čita tek na klijentu, pa izbor igre trepne pri prvom crtanju.
+
+**Usput primijećeno (nije dirano):** `/create` čita i pamti podlogu uvijek pod `zandar:table`, i za Poker i Raub.
+
+**Provjereno:**
+- web 245 testova (+5, `lib/webHome.test.ts`), typecheck, lint = osnovica.
+- CDP snimci 390×844 i 360×740 bez skrola, 1280×800, W4 list, traka „Otvori".
+- E2E u headless Chromeu protiv lokalnog servera:
+  - Žandar → soba 4/11 sa nasumičnom podlogom; Poker i Raub → sto za 4.
+  - Zapamćeni izbor ostaje prazan.
+  - W4 → `/create?game=raub` bez izbora igre; Žandar nudi 2/4.
+  - 0 grešaka u konzoli.
+- `build:mobile` prolazi; izvezen `index.html` je stara početna.
+
+**Nije provjereno na uređaju.**

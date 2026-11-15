@@ -22,11 +22,16 @@ export async function startQuickPlay(
   prefs: QuickPlayPrefs,
   tableTheme: TableTheme,
   game: GameSlug = "zandar",
+  { remember = true }: { remember?: boolean } = {},
 ): Promise<string> {
   const displayName = normalizePlayerName(name);
   savePlayerName(displayName);
-  saveQuickPlayPrefs(prefs, game);
-  saveTableTheme(tableTheme, game);
+  // Web početna ide za sto sa stalnim izborom i nasumičnim stolom: to nije
+  // igračev izbor, pa ne smije postati „zadnji" (`/create`, Brza igra).
+  if (remember) {
+    saveQuickPlayPrefs(prefs, game);
+    saveTableTheme(tableTheme, game);
+  }
   const res = await quickPlay({
     displayName,
     ...prefs,

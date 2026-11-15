@@ -11,6 +11,8 @@ import { readTableThemeRaw, saveTableTheme } from "@/lib/tableTheme";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
 import { TABLE_GAMES, pickTableGame } from "@/lib/liveGames";
 import { useQueryParam } from "@/lib/useQuery";
+import { isNative } from "@/lib/platform";
+import { webCreateCounts } from "@/lib/webHome";
 
 const subscribeToNothing = () => () => {};
 
@@ -26,6 +28,13 @@ export default function CreatePage() {
   const [gameDraft, setGameDraft] = useState<GameId | null>(null);
   // Samo igre iza uključenog prekidača izdanja (`lib/liveGames.ts`).
   const game: GameId = gameDraft ?? pickTableGame(gameParam);
+  // Web (tabla „Početna za web", W4): igra je već izabrana na početnoj, pa se
+  // izbor igre ne nudi kad stigne u adresi; Žandar samo 2 ili 4 (odluka
+  // 15.11.2026). Aplikacija ostaje kakva jeste.
+  const counts = isNative ? undefined : webCreateCounts(game);
+  const gamePicked = !isNative && gameParam !== null;
+  // Broj iz druge igre koji ova ne nudi (3 → Žandar na webu) pada na 2.
+  const seats: 2 | 3 | 4 = counts && !counts.includes(playerCount) ? 2 : playerCount;
   const [targetScore, setTargetScore] = useState(21);
   // Zadnja izabrana podloga, zajednička sa brzom igrom; `null` = nije dirano.
   const savedTheme = useSyncExternalStore(subscribeToNothing, readTableThemeRaw, () => null);
@@ -42,7 +51,7 @@ export default function CreatePage() {
       saveTableTheme(tableTheme);
       const res = await createRoom({
         displayName,
-        playerCount,
+        playerCount: seats,
         targetScore,
         tableTheme,
         ...(game !== "zandar" ? { game } : {}),
@@ -64,14 +73,15 @@ export default function CreatePage() {
     <CreateRoomScreen
       displayName={displayName}
       onDisplayName={setNameDraft}
-      playerCount={playerCount}
+      playerCount={seats}
       onPlayerCount={setPlayerCount}
+      {...(counts ? { counts } : {})}
       targetScore={targetScore}
       onTargetScore={setTargetScore}
       tableTheme={tableTheme}
       onTableTheme={setThemeDraft}
       game={game}
-      {...(TABLE_GAMES.length > 1 ? { onGame: setGameDraft } : {})}
+      {...(TABLE_GAMES.length > 1 && !gamePicked ? { onGame: setGameDraft } : {})}
       onCreate={() => void handleCreate()}
       onBack={() => router.push("/")}
       loading={loading}

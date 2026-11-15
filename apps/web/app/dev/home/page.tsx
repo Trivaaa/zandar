@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { GameSheet } from "@/components/home/GameSheet";
 import { TabBar } from "@/components/nav/TabBar";
+import { FriendsGameSheet } from "@/components/home/web/FriendsGameSheet";
+import { WebHome } from "@/components/home/web/WebHome";
 import { GAMES, gameBadge, homeLayout, type GameConfig, type GameSlug, type HomeHistory } from "@/lib/games";
 import { sr } from "@/lib/sr";
 import { useQueryParam } from "@/lib/useQuery";
@@ -16,6 +18,8 @@ import { useQueryParam } from "@/lib/useQuery";
  *   &pin=poker    zakačena igra — H5
  *   &last=poker   zadnja igrana igra (bez nje niko nije igrao ništa)
  *   &err=1        greška traženja stola (stoji na mjestu mete)
+ *   &web=1        web početna (tabla „Početna za web"); &app=1 traka aplikacije,
+ *                 &app=open traka „Otvori", &friends=1 otvoren list W4
  * Dodir na red igre otvara pravi list igre (H4); Zakači/Otkači mijenja glavnu.
  */
 const NOW = Date.parse("2026-10-23");
@@ -29,6 +33,11 @@ export default function DevHomePage() {
   const [open, setOpen] = useState<GameConfig | null>(null);
   const last = useQueryParam("last");
   const err = useQueryParam("err") === "1";
+  const web = useQueryParam("web") === "1";
+  const app = useQueryParam("app");
+  const friendsParam = useQueryParam("friends") === "1";
+  const [friends, setFriends] = useState<boolean | null>(null);
+  const friendsOpen = friends ?? friendsParam;
 
   const { layout, history } = useMemo(() => {
     const order: GameSlug[] = ["zandar", "poker", "raub"];
@@ -43,6 +52,29 @@ export default function DevHomePage() {
     };
     return { layout: homeLayout(games, h), history: h };
   }, [live, pin, last]);
+
+  if (web) {
+    const games = [layout.main, ...layout.more];
+    return (
+      <>
+        <WebHome
+          items={games.map((game) => ({ game, badge: gameBadge(game, history, NOW) }))}
+          loadingSlug={err ? layout.main.slug : null}
+          {...(err ? { error: sr.quickSetup.error } : {})}
+          onPlay={() => undefined}
+          onFriends={() => setFriends(true)}
+          onFeedback={() => undefined}
+          showNav
+          {...(app ? { appPreview: { installed: app === "open" } } : {})}
+          className="screen--tabbed"
+        />
+        <TabBar className="tabbar--web-home" />
+        {friendsOpen ? (
+          <FriendsGameSheet games={games} onPick={() => setFriends(false)} onClose={() => setFriends(false)} />
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <>

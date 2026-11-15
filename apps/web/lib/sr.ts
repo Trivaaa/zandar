@@ -295,6 +295,32 @@ export const sr = {
     terms: "Uslovi korišćenja",
     about: "O nama",
   },
+  /* Početna za web (tabla „UI · Početna za web — novi igrači"). Aplikacija je ne
+     koristi. Podnaslov kaže ono što novi igrač ne zna: može odmah, bez naloga. */
+  homeWeb: {
+    title: "Izaberi igru i sjedi za sto",
+    sub: {
+      zandar: "4 igrača · odmah, bez registracije",
+      poker: "2–4 igrača · odmah, bez registracije",
+      raub: "4 igrača · odmah, bez registracije",
+    } as Record<string, string>,
+    friends: "Igraj s prijateljima",
+    friendsSub: "Napravi sto i pošalji pozivnicu",
+    friendsSheetSub: "Izaberi igru. Zatim napraviš sto i pošalješ pozivnicu.",
+    /** Broj igrača u listu „Igraj s prijateljima" (W4). */
+    friendsPlayers: {
+      zandar: "2 ili 4 igrača",
+      poker: "2–4 igrača",
+      raub: "2–4 igrača",
+    } as Record<string, string>,
+    friendsGame: (name: string) => `Napravi sto: ${name}`,
+    app: "Igraj u aplikaciji",
+    appOpen: "Aplikacija je na telefonu",
+    appOpenGo: "Otvori",
+    /** Zvanična oznaka, naša lokalizacija (Google Play smjernice). */
+    playBadgeAlt: "Nabavite na usluzi Google Play",
+    nav: "Glavni meni",
+  },
   matching: {
     preparing: "Pripremamo sto...",
     seating: "Igrači sjedaju...",

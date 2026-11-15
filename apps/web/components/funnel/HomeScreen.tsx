@@ -144,7 +144,7 @@ export function HomeScreen({
 }
 
 /** Tihi red ispod igara (D1): ne smeta nikom, a vidi ga ko skroluje do kraja. */
-function FeedbackRow({ onOpen }: { onOpen: () => void }) {
+export function FeedbackRow({ onOpen }: { onOpen: () => void }) {
   return (
     <p className="home__feedback">
       <ChatIcon className="home__feedback-icon" />

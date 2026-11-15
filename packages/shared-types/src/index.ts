@@ -611,8 +611,8 @@ export type InstallCampaign = {
   utm_content?: string;
 };
 
-/** Mjesto ponude aplikacije na webu. `home_open` je traka „Otvori", kad je aplikacija već na telefonu. */
-export type AppOfferPlace = "home_top" | "home_open" | "match_end";
+/** Mjesto ponude aplikacije na webu. `home_open` je traka „Otvori", kad je aplikacija već na telefonu; `home_strip` je stalna traka „Igraj u aplikaciji" na web početnoj (15.11.2026). */
+export type AppOfferPlace = "home_top" | "home_open" | "match_end" | "home_strip";
 
 export type AnalyticsEvents = {
   // — klijent —

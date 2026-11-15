@@ -48,7 +48,7 @@ let installedCheck: Promise<boolean> | null = null;
  * Traži `related_applications` u manifestu i `asset_statements` u APK-u. Radi samo
  * u Chrome-u na Androidu; gdje API ne postoji ili baci, igrač dobija „Preuzmi".
  */
-function isAppInstalled(): Promise<boolean> {
+export function isAppInstalled(): Promise<boolean> {
   installedCheck ??= (async () => {
     try {
       const apps = await (navigator as NavigatorWithRelatedApps).getInstalledRelatedApps?.();

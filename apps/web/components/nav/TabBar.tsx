@@ -28,7 +28,8 @@ function samePath(a: string, b: string): boolean {
   return norm(a) === norm(b);
 }
 
-export function TabBar() {
+/** `className`: samo web početna (desktop je sakriva — navigacija je u zaglavlju, W2). */
+export function TabBar({ className = "" }: { className?: string } = {}) {
   const pathname = usePathname() ?? "/";
   // D4: broj zahtjeva koji čekaju, sa korisničkog kanala (0 za gosta).
   const friendRequests = useFriendRequestCount();
@@ -43,7 +44,7 @@ export function TabBar() {
     <>
     {/* E4: poziv na partiju stiže na glavnim ekranima — tamo gdje je i traka. */}
     <InviteInbox />
-    <nav className="tabbar" aria-label={sr.nav.label}>
+    <nav className={`tabbar ${className}`.trim()} aria-label={sr.nav.label}>
       {TABS.map(({ href, label, Icon }) => {
         const active = samePath(pathname, href);
         const badge = href === "/prijatelji" && friendRequests > 0 ? friendRequests : 0;
