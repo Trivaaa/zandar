@@ -1980,6 +1980,7 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 - U manifestu `1.4.1` / `com.kartaonica.zandar`, potpis `KARTAONI` (upload ključ).
 - Nosi popravku pada pokera (148), koju aplikacija 1.4.0 nema.
 - Native sloj od 1.4.0 je nepromijenjen (samo verzija), pa se Data safety i IARC ne diraju.
+- **Živa na Play-u:** Submission 7 (Production, „Start full rollout") poslat 15.11.2026 u 8:35, objavljen (Published) 15.11.2026 u 8:48 — puno puštanje, ne postepeno.
 
 **Zamka:**
 - `apk:prod` izlazi kao `app-debug.apk` sa debug potpisom, pa se ne može instalirati preko 1.4.0 sa Play-a.
