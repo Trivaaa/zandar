@@ -27,6 +27,7 @@ export interface RaubRules {
    * „Idem / Ne idem" (pagat; odluka 9): kad se odredi adut, svaki igrač osim
    * nosioca bira da li igra ruku. Ko ne ide, ne boduje se. Bez ovoga sa 4
    * igrača bodovi u prosjeku rastu i meč ne stiže do 0 (simulacija 7.11.2026).
+   * Zadnji upitani mora ići ako su svi prije njega rekli „Ne idem" (odluka 19).
    */
   allowDrop: boolean;
   turnTimeoutSeconds: number;
@@ -336,6 +337,11 @@ export interface RaubPlayerView {
   swapOffer: RaubSwapOffer | null;
   /** Najviše karata koje gledalac smije zamijeniti (ograničeno špilom i zaključanom kartom). */
   maxExchange: number;
+  /**
+   * Gledalac je na potezu u `going` i mora reći „Idem" — svi ostali osim nosioca
+   * su rekli „Ne idem" (odluka 19). Opciono: stari server ga ne šalje.
+   */
+  mustGo?: boolean;
 
   lastHand: RaubHandResult | null;
   history: RaubHandResult[];

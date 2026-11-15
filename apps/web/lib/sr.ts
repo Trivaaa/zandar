@@ -480,6 +480,8 @@ export const sr = {
       hintMine: (trump: string, n: number) => `Adut ${trump} · moraš ${n}`,
       yes: "Idem",
       no: "Ne idem",
+      /** Odluka 19: svi ostali su rekli „Ne idem”. */
+      must: "ostali ne idu, ti moraš",
     },
     exchange: {
       hint: "Dodirni karte koje mijenjaš.",

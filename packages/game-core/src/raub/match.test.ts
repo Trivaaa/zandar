@@ -8,6 +8,7 @@ import {
   createRaubMatch,
   raubCardCount,
   raubLegalCards,
+  raubMustGo,
   raubPlacements,
   raubScoreDelta,
   startRaubHand,
@@ -574,13 +575,45 @@ describe("raub idem / ne idem (odluka 9)", () => {
     expect(raubCardCount(s)).toBe(32);
   });
 
-  it("niko ne ide: nosilac upisuje sva 4 štiha", () => {
+  it("odluka 19: zadnji upitani poslije dva „Ne idem” mora ići", () => {
     let s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
     s = raubBy(s, "b", "hearts-K");
-    for (const id of ["c", "d", "a"]) s = act(s, id, { type: "go", go: false });
-    expect(s.phase).toBe("hand_complete");
-    expect(s.seats[1]!.score).toBe(21 - 4);
-    expect(s.lastHand!.rows.find((r) => r.playerId === "b")!.tricks).toBe(4);
+    for (const id of ["c", "d"]) {
+      expect(raubMustGo(s, id)).toBe(false);
+      expect(getRaubView(s, id).mustGo).toBe(false);
+      s = act(s, id, { type: "go", go: false });
+    }
+    expect(s.currentPlayerId).toBe("a");
+    expect(raubMustGo(s, "a")).toBe(true);
+    expect(getRaubView(s, "a").mustGo).toBe(true);
+    expect(getRaubView(s, "b").mustGo).toBe(false);
+    expect(() => act(s, "a", { type: "go", go: false })).toThrow("INVALID_ACTION");
+    expect(getRaubAutoAction(s, "a")).toEqual({ type: "go", go: true });
+    s = act(s, "a", { type: "go", go: true });
+    expect(s.step).toBe("exchange");
+    expect(s.exchangeOrder).toEqual(["b", "a"]);
+  });
+
+  it("odluka 19: ako je neko već rekao „Idem”, zadnji smije „Ne idem”", () => {
+    let s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
+    s = raubBy(s, "b", "hearts-K");
+    s = act(s, "c", { type: "go", go: true });
+    s = act(s, "d", { type: "go", go: false });
+    expect(raubMustGo(s, "a")).toBe(false);
+    expect(getRaubAutoAction(s, "a")).toEqual({ type: "go", go: false });
+    s = act(s, "a", { type: "go", go: false });
+    expect(s.exchangeOrder).toEqual(["b", "c"]);
+  });
+
+  it("odluka 19: u 2P protivnik nosioca uvijek ide", () => {
+    let s = match({ ids: ["a", "b"], hands: HANDS4, talon: H("Q"), dealer: "b" });
+    s = raubBy(s, "b", "hearts-K");
+    expect(s.step).toBe("going");
+    expect(s.currentPlayerId).toBe("a");
+    expect(raubMustGo(s, "a")).toBe(true);
+    expect(() => act(s, "a", { type: "go", go: false })).toThrow("INVALID_ACTION");
+    s = act(s, "a", { type: "go", go: true });
+    expect(s.step).toBe("exchange");
   });
 
   it("bez parametra svi igraju i nema koraka going", () => {

@@ -23,6 +23,7 @@ export {
   raubCanRaub,
   raubCanMoja,
   raubHasSeven,
+  raubMustGo,
   upgradeRaubState,
   raubPlacements,
   raubScoreDelta,

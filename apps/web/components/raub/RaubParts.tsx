@@ -324,8 +324,9 @@ export function ActionPanel({
         <div className="rb-panel">
           <p className="rb-panel__hint">
             {withSuits(sr.raub.go.hint(SUIT_SYMBOL[panel.trump], panel.declarerName, panel.required))}
+            {panel.mustGo ? <> · {sr.raub.go.must}</> : null}
           </p>
-          {btn("pass", sr.raub.go.no, () => onGo(false))}
+          {panel.mustGo ? null : btn("pass", sr.raub.go.no, () => onGo(false))}
           {btn("accent", sr.raub.go.yes, () => onGo(true))}
         </div>
       );

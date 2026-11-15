@@ -53,7 +53,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
         <SectionTitle>🙋 Idem / Ne idem</SectionTitle>
         <p>
           Kad je adut poznat, svako osim nosioca bira da li igra ruku. Ko kaže „Ne idem”, odlaže karte i ne boduje se.
-          Ako niko ne ide, nosilac upisuje sva 4 štiha.
+          Pita se redom od nosioca; ako su svi prije tebe rekli „Ne idem”, ti moraš ići — nosilac nikad ne igra sam.
         </p>
       </section>
 

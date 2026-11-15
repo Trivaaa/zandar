@@ -87,7 +87,7 @@ Kod Štiha i Rauba nosilac ima 5 karata i odmah odbacuje jednu licem nadolje. Ka
 1. Kad je adut određen (i višak odbačen), svaki igrač osim nosioca, redom od nosioca u smjeru igre, kaže „Idem” ili „Ne idem”. Nosilac uvijek igra.
 2. Ko kaže „Ne idem”, odlaže karte licem nadolje i ne igra do kraja ruke. Ne boduje se: bodovi mu ostaju isti, bez kazne.
 3. Zamjena i štihovi idu samo među igračima koji igraju.
-4. Ako niko osim nosioca ne ide, nosilac upisuje sva 4 štiha (−4) i ruka se završava bez zamjene i štihova.
+4. Nosilac nikad ne igra sam **(odluka 19)**: ako su svi prije zadnjeg upitanog rekli „Ne idem”, zadnji mora reći „Idem” (dobija samo to dugme). U igri 2 igrača protivnik nosioca zato uvijek ide.
 
 **Zamjena karata**
 
@@ -241,7 +241,7 @@ Botovi omogućavaju trenutni Quick Play, isto kao u Pokeru: svako mjesto koje u 
 
 - Štih: sa sedmicom u ruci ima bar 2 aduta, ili A/K sa strane; ponekad i sa slabijom rukom (mora samo 1).
 - Licitacija: procjena snage ruke za ponuđenu boju. Karta s talona se računa samo ako je igrač dobija (Raub, Moja sa sedmicom). Npr. „Raub” ili „Moja” (šta server dozvoli) ako bi imao 2 ili više aduta, ili 1 jak adut (A, K) i 1 as sa strane. Izuzetak: djelilac na prvoj karti as **uvijek** kaže „Raub”, bez procjene ruke **(odluka 17)**.
-- Idem / Ne idem: ide sa 2 ili više aduta ili sa asom sa strane, ponekad i sa slabijom rukom.
+- Idem / Ne idem: ide sa 2 ili više aduta ili sa asom sa strane, ponekad i sa slabijom rukom. Kad mora (odluka 19), uvijek ide.
 - Zamjena: zadržava adute i aseve, mijenja ostale karte. Kao nosilac nikad ne mijenja sve 4.
 - Igranje: otvara jakim adutom kad mu trebaju štihovi; kad ne može uzeti štih, baca najslabiju dozvoljenu kartu; ne troši jak adut na štih koji već nosi drugi igrač.
 - Nasumičnost u pragovima, da bot ne bude predvidiv.
@@ -311,7 +311,7 @@ Meč se nikad ne zaustavlja zbog jednog poteza: ko ne odigra na vrijeme, server 
 | Istekne tajmer u licitaciji | „Dalje” |
 | Istekne tajmer djeliocu kod sedmice na talonu | „Dalje” (bez štiha), okreće se nova karta |
 | Istekne tajmer kod zamjene sedmice za talon (samo stari snapshot) | Ne mijenja |
-| Istekne tajmer kod „Idem / Ne idem” | „Ne idem” (bez kazne) |
+| Istekne tajmer kod „Idem / Ne idem” | „Ne idem” (bez kazne); zadnji upitani koji mora ići (odluka 19) → „Idem” |
 | Istekne tajmer u zamjeni | Igrač zadržava sve karte |
 | Istekne tajmer kod odbacivanja viška (5 karata) | Odbacuje se najslabija karta koja nije adut i nije karta s talona (ako su sve adut, najslabiji adut koji nije s talona) |
 | Istekne tajmer u štihu | Baca se najslabija dozvoljena karta |
@@ -352,6 +352,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 16 | Djelilac na kartu za Raub: samo Raub ili Dalje | Kad djelilac smije „Raub” (prva karta A, K, Q, J), nudi mu se samo „Raub” ili „Dalje”, bez „Moja” (ni sa sedmicom). Ostali u tom krugu i dalje „Moja” ili „Dalje”. Parametar `dealerRaubOrPass` (stari snapshot bez njega = da) | Vlasnik, 14.11.2026, po testiranju na stagingu: djeliocu je na herc dami bilo ponuđeno i „Moja” |
 | 17 | Bot-djelilac na asu uvijek „Raub”, odluka za 1–8 s | Bot koji je djelilac i na prvoj okrenutoj karti vidi asa uvijek kaže „Raub”, bez procjene ruke (`alwaysRaubRanks`, podrazumijevano `["A"]`; na K, O, U procjena ostaje). Svaku odluku djelioca na prvoj karti na koju smije „Raub” (Raub ili Dalje) bot donosi 1–8 s od okretanja karte, nasumično (`raubThinkMinMs`/`raubThinkMaxMs`); ostale odluke ostaju 2,5–7 s. Samo izbor bota među dozvoljenim potezima — pravila igre netaknuta | Vlasnik, 14.11.2026: as je jaka karta, a bot ga je ponekad propuštao; vrijeme da odluka ne bude providna ni jednoobrazna. Simulacija 10.000 mečeva × 4 igrača: raub 88.460 (81.841), moja 107.994 (111.655), refa 2,1 % (2,2 %), medijan 33,0 min (32,4); bez greške u kartama i štihovima, bez odbijenih akcija |
 | 18 | Brži botovi kad nijedan čovjek ne igra ruku | Kad je svaki čovjek za stolom u ruci rekao „Ne idem”, botovi odlučuju za 0,8–2 s umjesto 2,5–7 s (`idleThinkMinMs`/`idleThinkMaxMs`, `raubNoHumanInHand`). Vrijeme je i dalje nasumično po potezu, pa botovi ne odigraju svi odjednom. Dok čovjek igra, tempo je nepromijenjen (odluke 11 i 17). Samo tempo bota — pravila igre netaknuta | QA 2026-11-15 P5, vlasnik 15.11.2026: van ruke se 45–60 s gleda prazan hod, a to je trenutak kad se aplikacija zatvara. Ubrzanje samo tih ruku, ne cijele igre |
+| 19 | Zadnji upitani mora ići | Ako su kod „Idem / Ne idem” svi prije zadnjeg upitanog rekli „Ne idem”, zadnji mora ići; nosilac nikad ne igra sam. Zamjenjuje dio odluke 9 „ako niko ne ide, nosilac −4”. U 2P protivnik uvijek ide. `raubMustGo`, pogled `mustGo`, „Ne idem” od njega server odbija | Prijava igrača 15.11.2026: svi osim nosioca su odustali. Simulacija 10.000 × 4P: medijan 22 → 23 ruke, 0 grešaka |
 
 ## Metrike, acceptance i otvorena pitanja
 

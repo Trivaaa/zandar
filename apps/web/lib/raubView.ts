@@ -63,7 +63,8 @@ export type RaubPanel =
   | { kind: "bid"; card: Card; raub: boolean; moja: boolean; seven: Card | null }
   | { kind: "swap"; seven: Card; talon: Card }
   | { kind: "discard" }
-  | { kind: "going"; trump: Suit; declarerName: string; required: number }
+  /** `mustGo`: svi ostali su rekli „Ne idem” — samo „Idem” (odluka 19). */
+  | { kind: "going"; trump: Suit; declarerName: string; required: number; mustGo: boolean }
   | { kind: "exchange"; max: number }
   | { kind: "play"; hint: string }
   | { kind: "wait"; name: string }
@@ -100,6 +101,7 @@ export function panelFor(
         trump: v.trumpSuit!,
         declarerName: v.declarerId ? nameOf(v.declarerId) : "",
         required: v.requiredTricks,
+        mustGo: v.mustGo === true,
       };
     case "exchange":
       return { kind: "exchange", max: v.maxExchange };

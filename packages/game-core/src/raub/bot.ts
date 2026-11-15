@@ -145,6 +145,7 @@ export function selectRaubBotAction(
       // Talon karta je uvijek jača od sedmice iste boje.
       return { type: "swap_seven", swap: view.swapOffer !== null };
     case "going": {
+      if (view.mustGo) return { type: "go", go: true };
       const trumps = hand.filter((c) => c.suit === trump).length;
       const aces = hand.filter((c) => c.suit !== trump && c.rank === "A").length;
       const go = trumps >= config.goMinTrumps || aces > 0 || rng() < config.goLooseP;

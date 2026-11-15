@@ -1993,3 +1993,19 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 - Vercel, oba projekta: `NEXT_PUBLIC_POKER/RAUB=1` eksplicitno.
 - Railway, oba servisa: `ADMIN_TOKEN`, `RESEND_API_KEY`, `FEEDBACK_*`.
 - Railway produkcija: postavke iz `railway.json` u dashboard prije 1.12.2026.
+
+## 169. Raub — zadnji upitani mora „Idem” (2026-11-15, `fix/raub-must-go`)
+
+**Povod:** prijava igrača — u ruci su svi osim nosioca rekli „Ne idem”. Motor je to dozvoljavao namjerno (odluka 9: nosilac tada upisuje sva 4 štiha, −4). Vlasnik: barem jedan mora ići; pita se redom, pa ako su svi prije zadnjeg odustali, zadnji mora ići (odluka 19 u `docs/raub-spec.md`). U 2P protivnik nosioca je uvijek zadnji, pa uvijek ide.
+
+**Šta:**
+- `game-core/raub/match.ts`: `raubMustGo(state, playerId)`; `go: false` od igrača koji mora → `INVALID_ACTION`. Grana „niko ne ide → nosilac 4 štiha” ostaje samo kao zaštita (do nje se više ne stiže).
+- `view.ts`: `RaubPlayerView.mustGo` (opciono u `shared-types`); auto-akcija na istek sata daje „Idem” kad mora.
+- `bot.ts`: kad `view.mustGo`, bot uvijek ide.
+- Web: panel `going` nosi `mustGo` (`lib/raubView.ts`) — tada samo dugme „Idem” i uz uputu „ostali ne idu, ti moraš” (`RaubParts.tsx`, `sr.raub.go.must`). Pravila (`RaubRules.tsx`) prepravljena.
+
+**Mjerenje:** game-core 401, server 262, web 227 testova, typecheck. `simulate:raub` 10.000 × 4P: medijan 22 → 23 ruke (p90 32 → 33), procjena 33 → 35 min, 0 grešaka i odbijenih akcija.
+
+**Stari klijent (APK ≤ 1.4.1):** ne zna za `mustGo`, pa prikazuje i „Ne idem”; server ga odbija, igrač pritisne „Idem” ili mu istekne sat (auto „Idem”). Ne zaglavljuje se. Vlasnik pravi novi APK.
+
+**Nije provjereno na uređaju.**

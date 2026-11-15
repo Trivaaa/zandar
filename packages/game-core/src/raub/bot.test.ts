@@ -151,6 +151,40 @@ describe("raub simulacija (skraćena; pun broj: pnpm simulate:raub)", () => {
   }
 });
 
+describe("raub bot: mora ići (odluka 19)", () => {
+  it("kad view kaže mustGo, bot uvijek kaže „Idem”, i sa najslabijom rukom", () => {
+    const s = createRaubMatch({
+      roomId: "r",
+      matchId: "m",
+      playerIds: ["a", "b"],
+      rules: createRaubRules(2),
+      rng: makeLcg(5),
+      dealerId: "a",
+    });
+    const view = {
+      ...getRaubView(s, "b"),
+      step: "going" as const,
+      currentPlayerId: "b",
+      trumpSuit: "hearts" as const,
+      myCards: [
+        { id: "spades-7", suit: "spades" as const, rank: "7" as const },
+        { id: "spades-8", suit: "spades" as const, rank: "8" as const },
+        { id: "clubs-7", suit: "clubs" as const, rank: "7" as const },
+        { id: "clubs-8", suit: "clubs" as const, rank: "8" as const },
+      ],
+    };
+    const never = () => 0.999;
+    expect(selectRaubBotAction({ ...view, mustGo: false }, DEFAULT_RAUB_BOT_CONFIG, never)).toEqual({
+      type: "go",
+      go: false,
+    });
+    expect(selectRaubBotAction({ ...view, mustGo: true }, DEFAULT_RAUB_BOT_CONFIG, never)).toEqual({
+      type: "go",
+      go: true,
+    });
+  });
+});
+
 describe("raub: tempo u ruci bez čovjeka (odluka 18)", () => {
   const base = () =>
     createRaubMatch({
