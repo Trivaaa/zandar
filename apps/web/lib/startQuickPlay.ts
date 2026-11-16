@@ -22,23 +22,33 @@ export async function startQuickPlay(
   prefs: QuickPlayPrefs,
   tableTheme: TableTheme,
   game: GameSlug = "zandar",
-  { remember = true }: { remember?: boolean } = {},
+  {
+    remember = true,
+    saveName = true,
+  }: {
+    remember?: boolean;
+    /** `false`: ime važi samo za ovaj sto („Gost NN" na webu, I5) — sljedeći „Igraj" opet pita. */
+    saveName?: boolean;
+  } = {},
 ): Promise<string> {
   const displayName = normalizePlayerName(name);
-  savePlayerName(displayName);
+  if (saveName) savePlayerName(displayName);
   // Web početna ide za sto sa stalnim izborom i nasumičnim stolom: to nije
   // igračev izbor, pa ne smije postati „zadnji" (`/create`, Brza igra).
   if (remember) {
     saveQuickPlayPrefs(prefs, game);
     saveTableTheme(tableTheme, game);
   }
-  const res = await quickPlay({
-    displayName,
-    ...prefs,
-    tableTheme,
-    // Poker i Raub šalju `game`; veličinu i cilj server za njih ignoriše (uvijek 4).
-    ...(game === "poker" || game === "raub" ? { game } : {}),
-  });
+  const res = await quickPlay(
+    {
+      displayName,
+      ...prefs,
+      tableTheme,
+      // Poker i Raub šalju `game`; veličinu i cilj server za njih ignoriše (uvijek 4).
+      ...(game === "poker" || game === "raub" ? { game } : {}),
+    },
+    saveName ? {} : { guest: true },
+  );
   markGamePlayed(game);
   saveSession({
     roomId: res.roomId,

@@ -628,7 +628,8 @@ export type AnalyticsEvents = {
   /** Aplikacija je prvi put pročitala Play referrer. Nosi kampanju web klika pod novim guest ID-em. */
   app_install_attributed: InstallCampaign & { has_room: boolean };
   /** `game` od pokera (6.11.2026); bez njega je Žandar. */
-  play_requested: { mode: MatchMode; game?: "zandar" | "poker" | "raub" };
+  /** `guest`: igrač je preskočio ime i ide kao „Gost NN" (web, 16.11.2026). */
+  play_requested: { mode: MatchMode; game?: "zandar" | "poker" | "raub"; guest?: true };
   teaser_opened: { game: string };
   upcoming_games_viewed: NoProps;
   /** Dodir na pločicu najavljene igre na početnoj, bez obzira na to da li je ostavljena adresa. */

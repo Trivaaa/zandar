@@ -7,6 +7,7 @@ import { GameSheet } from "@/components/home/GameSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { FriendsGameSheet } from "@/components/home/web/FriendsGameSheet";
 import { WebHome } from "@/components/home/web/WebHome";
+import { WebNameSheet } from "@/components/home/web/WebNameSheet";
 import { GAMES, gameBadge, homeLayout, type GameConfig, type GameSlug, type HomeHistory } from "@/lib/games";
 import { sr } from "@/lib/sr";
 import { useQueryParam } from "@/lib/useQuery";
@@ -19,7 +20,9 @@ import { useQueryParam } from "@/lib/useQuery";
  *   &last=poker   zadnja igrana igra (bez nje niko nije igrao ništa)
  *   &err=1        greška traženja stola (stoji na mjestu mete)
  *   &web=1        web početna (tabla „Početna za web"); &app=1 traka aplikacije,
- *                 &app=open traka „Otvori", &friends=1 otvoren list W4
+ *                 &app=open traka „Otvori", &friends=1 otvoren list W4,
+ *                 &name=1|busy|err list „Ime za stolom" (I1 / I4 / greška
+ *                 servera); Igraj na kartici otvara isti list za tu igru
  * Dodir na red igre otvara pravi list igre (H4); Zakači/Otkači mijenja glavnu.
  */
 const NOW = Date.parse("2026-10-23");
@@ -38,6 +41,9 @@ export default function DevHomePage() {
   const friendsParam = useQueryParam("friends") === "1";
   const [friends, setFriends] = useState<boolean | null>(null);
   const friendsOpen = friends ?? friendsParam;
+  const nameParam = useQueryParam("name");
+  // undefined = po URL-u, null = zatvoren, igra = otvoren dodirom na Igraj.
+  const [nameGame, setNameGame] = useState<GameConfig | null | undefined>(undefined);
 
   const { layout, history } = useMemo(() => {
     const order: GameSlug[] = ["zandar", "poker", "raub"];
@@ -55,13 +61,15 @@ export default function DevHomePage() {
 
   if (web) {
     const games = [layout.main, ...layout.more];
+    // Ručno otvoren list (dodir na Igraj) ima prednost nad `&name=`.
+    const nameFor = nameGame === null ? null : (nameGame ?? (nameParam ? layout.main : null));
     return (
       <>
         <WebHome
           items={games.map((game) => ({ game, badge: gameBadge(game, history, NOW) }))}
           loadingSlug={err ? layout.main.slug : null}
           {...(err ? { error: sr.quickSetup.error } : {})}
-          onPlay={() => undefined}
+          onPlay={(game) => setNameGame(game)}
           onFriends={() => setFriends(true)}
           onFeedback={() => undefined}
           showNav
@@ -71,6 +79,17 @@ export default function DevHomePage() {
         <TabBar className="tabbar--web-home" />
         {friendsOpen ? (
           <FriendsGameSheet games={games} onPick={() => setFriends(false)} onClose={() => setFriends(false)} />
+        ) : null}
+        {nameFor ? (
+          <WebNameSheet
+            game={nameFor}
+            loading={nameParam === "busy"}
+            {...(nameParam === "err" ? { error: sr.quickSetup.error } : {})}
+            guestName="Gost 27"
+            onSubmit={() => setNameGame(null)}
+            onGuest={() => setNameGame(null)}
+            onClose={() => setNameGame(null)}
+          />
         ) : null}
       </>
     );

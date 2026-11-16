@@ -1953,6 +1953,201 @@
 }
 
 /* ------------------------------------------------------------------ *
+ * Ime za stolom — web (tabla „UI · Ime za stolom — web", I1–I5).
+ * ------------------------------------------------------------------ */
+
+/* Tastatura pokriva dno layout viewporta (Chrome Android): list se diže iznad. */
+.web-name-scrim {
+  padding-bottom: var(--kb-inset, 0px);
+}
+
+.web-name {
+  gap: 0;
+  padding: 0.5rem 1.25rem calc(var(--safe-bottom) + 1rem);
+  border-radius: 1.375rem 1.375rem 0 0;
+}
+
+.web-name__game {
+  --tint-1: var(--game-zandar-1);
+  --tint-2: var(--game-zandar-2);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  margin: 0.25rem 0 0.875rem;
+}
+.web-name__game[data-tint="poker"] {
+  --tint-1: var(--game-poker-1);
+  --tint-2: var(--game-poker-2);
+}
+.web-name__game[data-tint="raub"] {
+  --tint-1: var(--game-raub-1);
+  --tint-2: var(--game-raub-2);
+}
+.web-name__art {
+  width: 3.5rem;
+  height: 2.75rem;
+}
+.web-name__art .web-friends__fan {
+  top: 0.375rem;
+}
+.web-name__art .card {
+  --card-w: 1.375rem;
+  --card-h: 2rem;
+}
+.web-name__art .web-fan__slot {
+  margin-left: -0.625rem;
+}
+.web-name__game-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font: 400 1.0625rem / 1 var(--font-display-stack);
+  color: var(--text);
+}
+.web-name__game-text small {
+  font: 600 0.8125rem / 1.2 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+.web-name__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  margin-right: -0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.web-name__close:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.web-name__close-icon {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.web-name__title {
+  margin: 0 0 1rem;
+  font: 400 1.625rem / 1.15 var(--font-display-stack);
+  color: var(--text);
+}
+.web-name__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font: 600 0.9375rem / 1 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+
+/* Polje 60 px, slova 20 px (I2). Okvir je sjena, pa greška ne mijenja mjeru. */
+.web-name__input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 3.75rem;
+  padding: 0 1.125rem;
+  border: 0;
+  border-radius: 0.875rem;
+  background-color: color-mix(in oklab, var(--card-face) 7%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--card-face) 25%, transparent);
+  color: var(--text);
+  font: 600 1.25rem / 1 var(--font-sans-stack);
+  outline: none;
+}
+.web-name__input::placeholder {
+  color: color-mix(in oklab, var(--card-face) 40%, transparent);
+  font-weight: 400;
+}
+.web-name__input:focus-visible,
+.web-name__input:focus {
+  background-color: color-mix(in oklab, var(--card-face) 9%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.web-name__input[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 2px var(--danger-signal);
+}
+.web-name__input:disabled {
+  opacity: 0.6;
+}
+
+.web-name__help {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  min-height: 2.5rem;
+  margin: 0.5rem 0 0.75rem;
+  font: 400 0.875rem / 1.4 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+.web-name__help[data-error="true"] {
+  color: var(--danger-signal);
+  font-weight: 600;
+}
+.web-name__help-icon {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.0625rem;
+}
+
+.web-name__submit {
+  justify-content: space-between;
+  min-height: 3.75rem;
+  padding: 0 1.125rem;
+  font-size: 1.1875rem;
+}
+.web-name__submit[aria-busy="true"] {
+  justify-content: center;
+  opacity: 0.85;
+  cursor: default;
+}
+.web-name__spin {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  border: 2.5px solid color-mix(in oklab, var(--accent-contrast) 30%, transparent);
+  border-top-color: var(--accent-contrast);
+  animation: web-name-spin 0.8s linear infinite;
+}
+@keyframes web-name-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .web-name__spin {
+    animation-duration: 2.4s;
+  }
+}
+
+.web-name__guest {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  font: 400 0.9375rem / 1 var(--font-sans-stack);
+  cursor: pointer;
+}
+.web-name__guest b {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: color-mix(in oklab, var(--card-face) 40%, transparent);
+}
+.web-name__guest:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------------ *
  * W1b — nizak telefon (360×740): niža slika i dugmad, da sve stane.
  * ------------------------------------------------------------------ */
 

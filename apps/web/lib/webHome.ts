@@ -42,3 +42,13 @@ export const webCreatePath = (game: GameSlug) => `/create?game=${game}`;
 export function webCreateCounts(game: GameId): readonly (2 | 3 | 4)[] {
   return game === "zandar" ? [2, 4] : [2, 3, 4];
 }
+
+/**
+ * Ime gosta za „Preskoči i igraj kao Gost NN" (tabla „Ime za stolom — web",
+ * I5). Dvocifren broj, da dva gosta za istim stolom rijetko dobiju isto ime;
+ * server ionako dozvoljava isto ime za stolom. Ne pamti se kao ime igrača.
+ */
+export function guestName(rng: () => number = Math.random): string {
+  const n = 10 + Math.min(89, Math.max(0, Math.floor(rng() * 90)));
+  return `Gost ${n}`;
+}

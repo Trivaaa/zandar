@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 
 import { TABLE_THEMES } from "@zandar/shared-types";
 
-import { randomTableTheme, webCreateCounts, webCreatePath, webQuickPlayChoice } from "./webHome";
+import { guestName, randomTableTheme, webCreateCounts, webCreatePath, webQuickPlayChoice } from "./webHome";
 
 describe("web početna — Igraj pravo za sto (W1)", () => {
   test("Žandar: 4 igrača, do 11", () => {
@@ -38,5 +38,15 @@ describe("web početna — Igraj s prijateljima (W4)", () => {
     assert.deepEqual(webCreateCounts("zandar"), [2, 4]);
     assert.deepEqual(webCreateCounts("poker"), [2, 3, 4]);
     assert.deepEqual(webCreateCounts("raub"), [2, 3, 4]);
+  });
+});
+
+describe("ime gosta (I5)", () => {
+  test("Gost i dvocifren broj, i na granicama rng-a", () => {
+    for (const r of [0, 0.5, 0.999999, 1, -0.1]) {
+      assert.match(guestName(() => r), /^Gost [1-9]\d$/, `rng=${r}`);
+    }
+    assert.equal(guestName(() => 0), "Gost 10");
+    assert.equal(guestName(() => 0.999999), "Gost 99");
   });
 });

@@ -2200,3 +2200,21 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Zamka:** posuđeni `next dev` (3117) poslije prve izmjene panela više nije primao izmjene; konačna uputa je izmjerena upisom teksta u živi oblačić preko CDP-a.
 
 **Nije provjereno na uređaju.**
+
+## 180. Web — „Ime za stolom" po tabli `UI_ImeWeb` (2026-11-16, `feat/web-name-sheet`)
+
+**Šta:** igrač iz oglasa tapne „Igraj" na web početnoj i, bez sačuvanog imena, dobije novi list `components/home/web/WebNameSheet.tsx` (I1–I5 sa table „UI · Ime za stolom — web"). Gore piše kuda ide (lepeza igre, „Žandar · 4 igrača · igra se do 11"), X umjesto donjeg „Odustani", naslov „Kako da te zovemo?", placeholder „Ime ili nadimak", polje 60 px / 20 px, glavno dugme „Sjedi za sto →" odmah ispod polja, `enterKeyHint="go"`. Dugme **nikad nije sivo**: prazan pokušaj daje crveni red „Upiši ime, pa sjedaš za sto." (sa ikonicom, `aria-invalid`, fokus nazad u polje); greška servera ide u isti rezervisan red. Dok se traži sto: spinner + „Tražim sto…", polje i dugmad zaključani.
+
+**I5 (odluka vlasnika 16.11.2026):** „Preskoči i igraj kao Gost NN" (`guestName()` u `lib/webHome.ts`, 10–99, izvučen jednom pri otvaranju lista). Ime gosta ide serveru kao obično ime i **ne pamti se** — `startQuickPlay(..., { saveName: false })` preskače `savePlayerName`, pa sljedeći „Igraj" opet pita. „Novi sto" (`RoomScreen.handleFindNewTable`) čita ime sa sjedišta, pa gost tamo ostaje „Gost NN". Analitika: `play_requested` dobija `guest: true` (drugi argument `quickPlay`, ne ide serveru).
+
+**Samo web:** `app/page.tsx` grana na `isNative`; aplikacija zadržava `QuickPlayNameSheet`. Kod lista je u APK chunku početne (isto kao `WebHome`), ali ga grana sa build-time `isNative` nikad ne crta — provjereno `build:mobile`-om.
+
+**Tastatura:** Chrome na Androidu podrazumijevano ne smanjuje layout viewport, pa bi list prikovan za dno ostao ispod tastature. `useKeyboardInset` (u istom fajlu) čita `visualViewport` i postavlja `--kb-inset` → `padding-bottom` scrima. Globalni `viewport` (`interactive-widget`) namjerno nije diran — djelovao bi i na sto.
+
+**Odstupanje od table:** ikonica greške je postojeći `WarningIcon` (trougao), ne krug sa uzvičnikom.
+
+**Harness:** `/dev/home?web=1&live=3&name=1|busy|err`; „Igraj" na kartici u harnessu otvara list za tu igru.
+
+**Mjereno:** web 247 testova (+1 `guestName`), typecheck čist, lint = osnovica. CDP 390×844 i 360×740 (bez skrola, greška ne pomjera dugme). E2E u headless Chromeu protiv lokalnog servera: prazan submit → poruka i fokus u polju; „Jaca" + Sjedi → `/room`, `zandar_name = Jaca`; gost → `/room`, za stolom „Gost 29", `zandar_name` prazan, povratak na početnu i Igraj → list opet; 0 grešaka u konzoli. Zanimljivo: generator imena botova i sam daje „Gost8801"-oblik, pa gost ne štrči.
+
+**Nije provjereno na uređaju** — posebno dugme iznad tastature u Android Chromeu (headless to ne može pokazati).

@@ -11,6 +11,7 @@ import { QuickPlayNameSheet, QuickPlaySettingsSheet } from "@/components/home/Qu
 import { SignupSheet } from "@/components/home/SignupSheet";
 import { FriendsGameSheet } from "@/components/home/web/FriendsGameSheet";
 import { WebHome } from "@/components/home/web/WebHome";
+import { WebNameSheet } from "@/components/home/web/WebNameSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
 import { useBackHandler } from "@/lib/backHandlers";
@@ -25,13 +26,14 @@ import { sr } from "@/lib/sr";
 import { startQuickPlay } from "@/lib/startQuickPlay";
 import { readTableThemeRaw, saveTableTheme, useTableTheme } from "@/lib/tableTheme";
 import { track } from "@/lib/track";
-import { webCreatePath, webQuickPlayChoice } from "@/lib/webHome";
+import { guestName, webCreatePath, webQuickPlayChoice } from "@/lib/webHome";
 
 /** Nova soba za igru; Žandar ostaje na staroj adresi (linkovi, APK). */
 const createPath = (game: GameSlug) => (game === "zandar" ? "/create" : `/create?game=${game}`);
 
 type Sheet =
-  | { kind: "name" }
+  // `guest`: „Gost NN" za web list (I5), izvučen jednom pri otvaranju.
+  | { kind: "name"; game: GameConfig; guest: string }
   | { kind: "setup"; game: GameConfig }
   | { kind: "game"; game: GameConfig }
   | { kind: "signup" }
@@ -74,7 +76,7 @@ export default function Home() {
   useBackHandler(rulesOpen, () => setRulesFor(null));
 
   /** Pravo za sto. `replace`: „nazad" sa traženja vodi na početnu, ne opet ovdje. */
-  async function play(name: string, game: GameConfig, choice?: Choice) {
+  async function play(name: string, game: GameConfig, choice?: Choice, saveName = true) {
     if (busy.current) return;
     busy.current = true;
     setPlayError(null);
@@ -88,6 +90,7 @@ export default function Home() {
       router.replace(
         await startQuickPlay(name, chosen.prefs, chosen.tableTheme, game.slug, {
           remember: chosen.remember !== false,
+          saveName,
         }),
       );
     } catch {
@@ -120,7 +123,7 @@ export default function Home() {
     }
     pending.current = choice ? { game, choice } : { game };
     setPlayError(null);
-    setSheet({ kind: "name" });
+    setSheet({ kind: "name", game, guest: guestName() });
   }
 
   function saveChoice(choice: Choice) {
@@ -201,13 +204,35 @@ export default function Home() {
       {isNative ? <AppUpdatePrompt hidden={playing || sheetOpen} /> : null}
 
       {/* `Sheet` nosi svoj `.home-layer` i Android „nazad". */}
-      {sheet?.kind === "name" ? (
+      {sheet?.kind === "name" && isNative ? (
         <QuickPlayNameSheet
           loading={playing}
           {...(playError ? { error: playError } : {})}
           onSubmit={(name) => {
             const next = pending.current ?? { game: main };
             void play(name, next.game, next.choice);
+          }}
+          onClose={() => {
+            if (!busy.current) setSheet(null);
+          }}
+        />
+      ) : null}
+
+      {/* Web (tabla „Ime za stolom — web"): kuda igrač ide, dugme nikad sivo, i „Gost NN". */}
+      {sheet?.kind === "name" && !isNative ? (
+        <WebNameSheet
+          game={sheet.game}
+          loading={playing}
+          {...(playError ? { error: playError } : {})}
+          guestName={sheet.guest}
+          onSubmit={(name) => {
+            const next = pending.current ?? { game: sheet.game };
+            void play(name, next.game, next.choice);
+          }}
+          onGuest={() => {
+            const next = pending.current ?? { game: sheet.game };
+            // Ime gosta važi samo za ovaj sto — sljedeći „Igraj" opet pita.
+            void play(sheet.guest, next.game, next.choice, false);
           }}
           onClose={() => {
             if (!busy.current) setSheet(null);

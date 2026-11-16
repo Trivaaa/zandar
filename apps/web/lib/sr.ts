@@ -320,6 +320,24 @@ export const sr = {
     /** Alt = tekst na zvaničnoj oznaci (engleska verzija, od vlasnika 15.11.2026). */
     playBadgeAlt: "Get it on Google Play",
     nav: "Glavni meni",
+    /** List za ime poslije „Igraj" (tabla „Ime za stolom — web", I1–I5). */
+    name: {
+      title: "Kako da te zovemo?",
+      label: "Ime za stolom",
+      placeholder: "Ime ili nadimak",
+      help: "Ovo ime vide ostali za stolom. Promijeniti ga možeš u Postavkama.",
+      empty: "Upiši ime, pa sjedaš za sto.",
+      submit: "Sjedi za sto",
+      submitting: "Tražim sto…",
+      guestPrefix: "Preskoči i igraj kao",
+      close: "Zatvori",
+      /** Red ispod imena igre: kuda igrač ide (brojevi iz `WEB_ZANDAR_PREFS`). */
+      meta: {
+        zandar: "4 igrača · igra se do 11",
+        poker: "4 igrača · Texas Hold'em",
+        raub: "4 igrača",
+      } as Record<string, string>,
+    },
   },
   matching: {
     preparing: "Pripremamo sto...",

@@ -314,8 +314,9 @@ export async function quickPlay(input: {
   tableTheme?: TableTheme;
   /** Poker: server sam bira 4 mjesta i ignoriše veličinu i cilj. */
   game?: GameId;
-}): Promise<QuickPlayResponse> {
-  track("play_requested", { mode: "quick_play", game: input.game ?? "zandar" });
+}, analytics: { guest?: true } = {}): Promise<QuickPlayResponse> {
+  // `guest` ide samo u analitiku, ne serveru.
+  track("play_requested", { mode: "quick_play", game: input.game ?? "zandar", ...analytics });
   const res = await fetch(`${API_BASE}/api/quickplay`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(await authHeaders()) },
