@@ -2160,3 +2160,15 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Zamka:** posuđeni `next dev` (3117) nije osvježio klijentski paket poslije skidanja napomene ispod „Refa” (hidracija se nije slagala). Raspored sa napomenom je izmjeren, a bez nje je dugme samo uže.
 
 **Nije provjereno na uređaju.**
+
+## 177. Raub — ko mora ići, ne pita se „Idem?” (2026-11-16, `fix/raub-auto-go`)
+
+**Šta:** odluka 24 u `docs/raub-spec.md`. `continueGoing` (`packages/game-core/src/raub/match.ts`) igraču koji mora ići (svi ostali osim nosioca rekli „Ne idem” — u 2P uvijek) sam upiše „Idem” i ide dalje, pa igra kreće pravo u zamjenu. Ko još može birati, i dalje se pita.
+
+**Zašto:** feedback igrača sa partije 1-na-1 — ekran je pitao „Idem?” sa jedinim dugmetom „Idem” (odluka 19), suvišan korak prije izbora broja karata.
+
+**Back-compat:** oblik stanja i akcije isti, klijent ne treba novu verziju. `raubMustGo`, provjera u `case "go"`, `view.mustGo`, bot i panel ostaju za ruku hidriranu iz snapshota zatečenu u `going` sa obaveznim „Idem” (testirano ručno sastavljenim stanjem u `match.test.ts` i `raubView.test.ts`).
+
+**Mjereno:** game-core 408, server 271, web 245 testova; typecheck čist; `simulate:raub` 10.000 × 4P: 0 grešaka karata/štihova, 0 odbijenih akcija, 0 zaglavljenih, medijan 23 ruke (isto kao prije).
+
+**Zamka:** grana je napravljena prije nego što je `fix/raub-dealer-refa` (odluka 23, changelog 176) stigla na `main`; rebase je imao konflikte samo u tabeli odluka, changelogu i `CLAUDE.md` (kod se ne preklapa).

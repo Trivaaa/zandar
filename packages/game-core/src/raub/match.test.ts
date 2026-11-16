@@ -714,7 +714,7 @@ describe("raub idem / ne idem (odluka 9)", () => {
     expect(raubCardCount(s)).toBe(32);
   });
 
-  it("odluka 19: zadnji upitani poslije dva „Ne idem” mora ići", () => {
+  it("odluka 19 + 24: zadnji upitani poslije dva „Ne idem” ide bez pitanja", () => {
     let s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
     s = raubBy(s, "b");
     for (const id of ["c", "d"]) {
@@ -722,7 +722,23 @@ describe("raub idem / ne idem (odluka 9)", () => {
       expect(getRaubView(s, id).mustGo).toBe(false);
       s = act(s, id, { type: "go", go: false });
     }
-    expect(s.currentPlayerId).toBe("a");
+    expect(s.seats[0]!.going).toBe(true);
+    expect(s.step).toBe("exchange");
+    expect(s.currentPlayerId).toBe("b");
+    expect(s.exchangeOrder).toEqual(["b", "a"]);
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("stari snapshot: zatečen u going sa obaveznim „Idem” — samo Idem prolazi", () => {
+    let s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
+    s = raubBy(s, "b");
+    // Stanje prije odluke 24: c i d rekli „Ne idem", a se još pita.
+    for (const id of ["c", "d"]) {
+      const seat = s.seats.find((x) => x.playerId === id)!;
+      seat.going = false;
+      s.discarded.push(...seat.hand.splice(0));
+    }
+    s.currentPlayerId = "a";
     expect(raubMustGo(s, "a")).toBe(true);
     expect(getRaubView(s, "a").mustGo).toBe(true);
     expect(getRaubView(s, "b").mustGo).toBe(false);
@@ -744,15 +760,23 @@ describe("raub idem / ne idem (odluka 9)", () => {
     expect(s.exchangeOrder).toEqual(["b", "c"]);
   });
 
-  it("odluka 19: u 2P protivnik nosioca uvijek ide", () => {
+  it("odluka 24: u 2P protivnik nosioca ide bez pitanja (Raub, Moja, Štih)", () => {
     let s = match({ ids: ["a", "b"], hands: HANDS4, talon: H("Q"), dealer: "b" });
     s = raubBy(s, "b");
-    expect(s.step).toBe("going");
-    expect(s.currentPlayerId).toBe("a");
-    expect(raubMustGo(s, "a")).toBe(true);
-    expect(() => act(s, "a", { type: "go", go: false })).toThrow("INVALID_ACTION");
-    s = act(s, "a", { type: "go", go: true });
-    expect(s.step).toBe("exchange");
+    expect(s.step).not.toBe("going");
+    expect(s.seats.every((x) => x.going === true)).toBe(true);
+    expect(s.exchangeOrder).toEqual(["b", "a"]);
+
+    let m = match({ ids: ["a", "b"], hands: HANDS4, talon: H("Q"), dealer: "b" });
+    m = act(m, "b", { type: "bid", bid: "pass" });
+    m = act(m, "a", { type: "bid", bid: "moja" });
+    expect(m.step).toBe("exchange");
+    expect(m.seats.every((x) => x.going === true)).toBe(true);
+
+    let t = match({ ids: ["a", "b"], hands: HANDS4, talon: D("7"), dealer: "b" });
+    t = act(t, "b", { type: "stih", take: true });
+    expect(t.step).toBe("exchange");
+    expect(t.seats.every((x) => x.going === true)).toBe(true);
   });
 
   it("bez parametra svi igraju i nema koraka going", () => {

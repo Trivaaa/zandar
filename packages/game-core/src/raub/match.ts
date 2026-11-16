@@ -404,29 +404,44 @@ function afterTrump(state: RaubGameState): void {
   continueGoing(state);
 }
 
-/**
- * Mora li igrač reći „Idem" (odluka 19): na potezu je u `going`, a svi ostali
- * osim nosioca su već rekli „Ne idem". Nosilac nikad ne ostaje sam — u 2P
- * protivnik uvijek ide.
- */
-export function raubMustGo(state: RaubGameState, playerId: string): boolean {
-  if (state.phase !== "playing" || state.step !== "going") return false;
-  if (state.currentPlayerId !== playerId || playerId === state.declarerId) return false;
+/** Svi ostali osim nosioca su rekli „Ne idem", pa `playerId` mora ići (odluka 19). */
+function othersDropped(state: RaubGameState, playerId: string): boolean {
   return state.seats.every(
     (s) => s.playerId === playerId || s.playerId === state.declarerId || s.going === false,
   );
 }
 
+/**
+ * Mora li igrač reći „Idem" (odluka 19): na potezu je u `going`, a svi ostali
+ * osim nosioca su već rekli „Ne idem". Od odluke 24 motor takvog igrača više
+ * ne pita (`continueGoing`), pa ovo važi samo za ruku iz starog snapshota.
+ */
+export function raubMustGo(state: RaubGameState, playerId: string): boolean {
+  if (state.phase !== "playing" || state.step !== "going") return false;
+  if (state.currentPlayerId !== playerId || playerId === state.declarerId) return false;
+  return othersDropped(state, playerId);
+}
+
+/**
+ * Sljedeći upitani „Idem / Ne idem". Ko mora ići (odluka 19) se ne pita
+ * (odluka 24): upisuje mu se „Idem" i igra ide dalje — u 2P protivnik nosioca
+ * odmah dobija zamjenu.
+ */
 function continueGoing(state: RaubGameState): void {
-  const next = raubOrderFrom(state, state.declarerId!).find((id) => seatOf(state, id).going === null);
-  if (next) {
+  for (;;) {
+    const next = raubOrderFrom(state, state.declarerId!).find((id) => seatOf(state, id).going === null);
+    if (!next) break;
+    if (othersDropped(state, next)) {
+      seatOf(state, next).going = true;
+      continue;
+    }
     state.step = "going";
     state.currentPlayerId = next;
     return;
   }
   if (state.seats.every((s) => s.playerId === state.declarerId || s.going === false)) {
     // Niko ne ide: nosilac upisuje sva 4 štiha (pagat). Od odluke 19 zadnji
-    // upitani mora ići (`raubMustGo`), pa je ovo samo zaštita.
+    // upitani mora ići (od odluke 24 bez pitanja), pa je ovo samo zaštita.
     seatOf(state, state.declarerId!).tricks = RAUB_TRICKS_PER_HAND;
     scoreHand(state);
     return;

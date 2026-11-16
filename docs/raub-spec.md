@@ -88,7 +88,7 @@ Kod Štiha i Rauba karta s talona pripada nosiocu, ali **ostaje na stolu** (sa n
 1. Kad je adut određen (i višak odbačen), svaki igrač osim nosioca, redom od nosioca u smjeru igre, kaže „Idem” ili „Ne idem”. Nosilac uvijek igra.
 2. Ko kaže „Ne idem”, odlaže karte licem nadolje i ne igra do kraja ruke. Ne boduje se: bodovi mu ostaju isti, bez kazne.
 3. Zamjena i štihovi idu samo među igračima koji igraju.
-4. Nosilac nikad ne igra sam **(odluka 19)**: ako su svi prije zadnjeg upitanog rekli „Ne idem”, zadnji mora reći „Idem” (dobija samo to dugme). U igri 2 igrača protivnik nosioca zato uvijek ide.
+4. Nosilac nikad ne igra sam **(odluka 19)**: ako su svi prije zadnjeg upitanog rekli „Ne idem”, zadnji mora ići — i od odluke 24 se više ne pita: igra odmah ide u zamjenu. U igri 2 igrača protivnik nosioca zato uvijek ide, bez pitanja „Idem?”.
 
 **Zamjena karata**
 
@@ -242,7 +242,7 @@ Botovi omogućavaju trenutni Quick Play, isto kao u Pokeru: svako mjesto koje u 
 
 - Štih: sa sedmicom u ruci ima bar 2 aduta, ili A/K sa strane; ponekad i sa slabijom rukom (mora samo 1).
 - Licitacija: procjena snage ruke za ponuđenu boju. Karta s talona se računa samo ako je igrač dobija (Raub, Moja sa sedmicom). Npr. „Raub” ili „Moja” (šta server dozvoli) ako bi imao 2 ili više aduta, ili 1 jak adut (A, K) i 1 as sa strane. Izuzetak: djelilac na prvoj karti as **uvijek** kaže „Raub”, bez procjene ruke **(odluka 17)**.
-- Idem / Ne idem: ide sa 2 ili više aduta ili sa asom sa strane, ponekad i sa slabijom rukom. Kad mora (odluka 19), uvijek ide.
+- Idem / Ne idem: ide sa 2 ili više aduta ili sa asom sa strane, ponekad i sa slabijom rukom. Kad mora (odluka 19), motor ga ne pita (odluka 24).
 - Zamjena: zadržava adute i aseve, mijenja ostale karte. Kao nosilac nikad ne mijenja sve 4.
 - Igranje: otvara jakim adutom kad mu trebaju štihovi; kad ne može uzeti štih, baca najslabiju dozvoljenu kartu; ne troši jak adut na štih koji već nosi drugi igrač.
 - Nasumičnost u pragovima, da bot ne bude predvidiv.
@@ -312,7 +312,7 @@ Meč se nikad ne zaustavlja zbog jednog poteza: ko ne odigra na vrijeme, server 
 | Istekne tajmer u licitaciji | „Dalje” |
 | Istekne tajmer djeliocu kod sedmice na talonu | „Dalje” (bez štiha), okreće se nova karta |
 | Istekne tajmer kod zamjene sedmice za talon (samo stari snapshot) | Ne mijenja |
-| Istekne tajmer kod „Idem / Ne idem” | „Ne idem” (bez kazne); zadnji upitani koji mora ići (odluka 19) → „Idem” |
+| Istekne tajmer kod „Idem / Ne idem” | „Ne idem” (bez kazne); zadnji upitani koji mora ići se ne pita (odluka 24); u ruci iz starog snapshota → „Idem” |
 | Istekne tajmer u zamjeni | Igrač zadržava sve karte |
 | Istekne tajmer kod odbacivanja viška (5 karata) | Odbacuje se najslabija karta koja nije adut i nije karta s talona (ako su sve adut, najslabiji adut koji nije s talona) |
 | Istekne tajmer u štihu | Baca se najslabija dozvoljena karta |
@@ -358,6 +358,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 21 | Obavezno nadjačavanje | Igrač mora nadjačati kartu koja nosi štih kad može: u boji jačom kartom te boje, bez boje jačim adutom. Ako ne može, igra bilo koju kartu iz dozvoljenog skupa (boja, pa adut, pa bilo šta). Zamjenjuje izbor „Nema” iz tabele razilaženja (odluka 5). Parametar `mustOvertrump`, sada `true`; partije počete prije izmjene igraju do kraja po starom | Vlasnik (15.11.2026), sa stola: IX žira je bio dozvoljen iako je u ruci bila figura koja nosi štih. Pagat (varijanta koju već koristimo za „Idem / Ne idem”) traži nadjačavanje. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke, isto kao prije |
 | 22 | Karta s talona prelazi tek poslije odbacivanja | Kod Rauba i Štiha redoslijed nosioca je: zamjena (kaže koliko, dobija toliko), pa odbacuje jednu od svoje 4, pa karta sa stola prelazi u ruku. Do tada karta stoji na stolu sa natpisom „Uzimaš ti” / „Uzima: Ime”. Dopunjava odluku 20 (ranije je karta prelazila u ruku prije odbacivanja, pa je nosilac birao od 5) | Vlasnik (15.11.2026). Ishod je isti (karta s talona se ne može odbaciti), mijenja se samo redoslijed na stolu; stari snapshot sa kartom već u ruci ide starim putem |
 | 23 | Refa djelioca na prvoj karti | Djelilac smije odmah reći „Refa” na prvoj okrenutoj karti, dok još nije odgovorio (i na sedmicu). Ruka se poništava kao obična refa: upisuje se, sljedeća odigrana ruka ide ×2, djeljenje ide dalje. Na drugoj i trećoj karti ne smije. Istek roka ostaje „Dalje”, bot refu ne zove. Parametar `dealerRefaFirstFlip` (stari snapshot bez njega = da); akcija `{ type: "refa" }`, pogled `canRefa`, rezultat ruke `refaBy` | Vlasnik (16.11.2026), dogovoreno uživo sa igračem; prvi put izostavljeno iz implementacije |
+| 24 | Ko mora ići, ne pita se | Kad su svi ostali osim nosioca rekli „Ne idem” (odluka 19; u 2P uvijek), motor upisuje „Idem” sam i igra ide pravo u zamjenu — igrač odmah bira koliko karata mijenja. Ko još može birati, i dalje se pita. Snapshot bez promjene oblika; ruka zatečena u `going` sa obaveznim „Idem” i dalje radi preko `raubMustGo` | Feedback igrača (16.11.2026, 1-na-1): pitanje „Idem?” sa jednim dugmetom je suvišan korak |
 
 ## Metrike, acceptance i otvorena pitanja
 

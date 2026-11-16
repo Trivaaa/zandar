@@ -77,12 +77,12 @@ describe("raubView: faza i panel", () => {
     const gp = panelFor(getRaubView(going, "p0"), name);
     assert.equal(gp.kind, "going");
     if (gp.kind === "going") assert.equal(gp.declarerName, name(going.declarerId!));
-    // Odluka 19: p0 je zadnji, ostali su rekli „Ne idem” → samo „Idem”.
-    const forced = until(
-      (s) =>
-        mine("going")(s) &&
-        s.seats.every((x) => x.playerId === "p0" || x.playerId === s.declarerId || x.going === false),
-    );
+    // Odluka 19: p0 je zadnji, ostali su rekli „Ne idem” → samo „Idem”. Od
+    // odluke 24 motor takvog igrača ne pita; panel ostaje za stari snapshot.
+    const forced = structuredClone(going);
+    for (const x of forced.seats) {
+      if (x.playerId !== "p0" && x.playerId !== forced.declarerId) x.going = false;
+    }
     const fp = panelFor(getRaubView(forced, "p0"), name);
     assert.equal(fp.kind === "going" && fp.mustGo, true);
     assert.equal(panelFor(getRaubView(until(mine("exchange")), "p0"), name).kind, "exchange");
