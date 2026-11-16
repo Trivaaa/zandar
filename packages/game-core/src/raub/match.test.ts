@@ -790,8 +790,8 @@ describe("raub idem / ne idem (odluka 9)", () => {
 // ---- zamjena ----
 
 describe("raub zamjena", () => {
-  function toExchange(next: Card[] = []) {
-    let s = match({ hands: HANDS4, talon: H("Q"), next, dealer: "b" });
+  function toExchange(next: Card[] = [], rules?: Parameters<typeof createRaubRules>[1]) {
+    let s = match({ hands: HANDS4, talon: H("Q"), next, dealer: "b", rules });
     s = raubBy(s, "b");
     for (const id of ["c", "d", "a"]) s = act(s, id, { type: "go", go: true });
     return s;
@@ -838,15 +838,40 @@ describe("raub zamjena", () => {
     s = act(s, "b", { type: "discard", cardId: deckTop[0]!.id });
     expect(s.seats[1]!.hand.map((x) => x.id)).toEqual([...deckTop.slice(1).map((x) => x.id), "hearts-Q"]);
     expect(s.currentPlayerId).toBe("c");
-    // Sljedeći koji mijenja sve 4 i dalje dobija 5 sa otvorenom (odluka 1).
+    // Sljedeći koji mijenja sve 4 dobija tačno 4, bez otvorene (odluka 25).
     s = act(s, "c", { type: "exchange", cardIds: HANDS4.c!.map((x) => x.id) });
-    expect(s.seats[2]!.hand).toHaveLength(5);
-    expect(s.openCard!.playerId).toBe("c");
+    expect(s.seats[2]!.hand).toHaveLength(4);
+    expect(s.openCard).toBeNull();
+    expect(s.currentPlayerId).toBe("d");
     expect(raubCardCount(s)).toBe(32);
   });
 
-  it("prva zamjena sve 4: 5 karata (treća otvorena), odbacuje jednu ali ne otvorenu (odluka 1)", () => {
+  it("odluka 25: zamjena sve 4 daje tačno 4 skrivene — bez pete, otvorene i odbacivanja", () => {
     let s = toExchange();
+    s = ex(s, "b", [], "hearts-K");
+    const deckTop = s.deck.slice(0, 4);
+    s = act(s, "c", { type: "exchange", cardIds: HANDS4.c!.map((x) => x.id) });
+    expect(s.seats[2]!.hand.map((x) => x.id)).toEqual(deckTop.map((x) => x.id));
+    expect(s.openCard).toBeNull();
+    expect(s.fullExchangeUsed).toBe(false);
+    expect(s.step).toBe("exchange");
+    expect(s.currentPlayerId).toBe("d");
+    expect(getRaubView(s, "d").openCard).toBeNull();
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("odluka 25: stari snapshot bez `fullExchangeBonus` igra po novom pravilu", () => {
+    let s = toExchange();
+    delete s.rules.fullExchangeBonus;
+    s = ex(s, "b", [], "hearts-K");
+    s = act(s, "c", { type: "exchange", cardIds: HANDS4.c!.map((x) => x.id) });
+    expect(s.seats[2]!.hand).toHaveLength(4);
+    expect(s.openCard).toBeNull();
+    expect(s.currentPlayerId).toBe("d");
+  });
+
+  it("uz `fullExchangeBonus`: prva zamjena sve 4 daje 5 karata (treća otvorena), odbacuje jednu ali ne otvorenu (odluka 1)", () => {
+    let s = toExchange([], { fullExchangeBonus: true });
     s = ex(s, "b", [], "hearts-K");
     const deckTop = s.deck.slice(0, 5);
     s = act(s, "c", { type: "exchange", cardIds: HANDS4.c!.map((x) => x.id) });
@@ -895,8 +920,8 @@ describe("raub zamjena", () => {
     expect(raubCardCount(s)).toBe(32);
   });
 
-  it("prva zamjena sve 4 kad je u špilu manje od 5: dobija koliko ima, bez odbacivanja", () => {
-    let s = toExchange();
+  it("uz `fullExchangeBonus`: prva zamjena sve 4 kad je u špilu manje od 5 — dobija koliko ima, bez odbacivanja", () => {
+    let s = toExchange([], { fullExchangeBonus: true });
     // b ne mijenja (uzme kartu s talona i odbaci), pa sve 4 mijenja c.
     s = ex(s, "b", [], "hearts-K");
     s = { ...s, deck: s.deck.slice(0, 4), discarded: [...s.discarded, ...s.deck.slice(4)] };

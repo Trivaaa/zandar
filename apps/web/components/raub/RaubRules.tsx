@@ -64,8 +64,8 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
       <section>
         <SectionTitle>🔁 Zamjena</SectionTitle>
         <p>
-          Od nosioca, redom, svako ko igra može zamijeniti do 4 karte iz špila. Prvi ko zamijeni sve 4 dobija 5 karata
-          (treća je otvorena za sve) i odbacuje jednu. Kad se špil isprazni, zamjene više nema.
+          Od nosioca, redom, svako ko igra može zamijeniti do 4 karte iz špila i dobija isto toliko novih. Kad se špil
+          isprazni, zamjene više nema.
         </p>
       </section>
 

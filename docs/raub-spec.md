@@ -81,7 +81,7 @@ Raub naslijepo ne postoji (uklonjen odlukom 13). Djelilac vidi svoje karte odmah
 
 **Višak karata**
 
-Kod Štiha i Rauba karta s talona pripada nosiocu, ali **ostaje na stolu** (sa natpisom „Uzima: Ime”) dok on ne zamijeni karte **(odluka 20)**. Nosilac je prvi u zamjeni: bira karte i dobija nove kao i ostali (za sve 4 dobija tačno 4, bez otvorene), zatim odbacuje jednu bilo koju iz ruke licem nadolje, i **tek onda** karta sa stola prelazi kod njega **(odluka 22)**. Karta s talona se zato ne može odbaciti. „Moja” nije višak: igrač daje sedmicu i dobija talon kartu, pa ostaje na 4.
+Kod Štiha i Rauba karta s talona pripada nosiocu, ali **ostaje na stolu** (sa natpisom „Uzima: Ime”) dok on ne zamijeni karte **(odluka 20)**. Nosilac je prvi u zamjeni: bira karte i dobija nove kao i ostali (koliko da, toliko dobije), zatim odbacuje jednu bilo koju iz ruke licem nadolje, i **tek onda** karta sa stola prelazi kod njega **(odluka 22)**. Karta s talona se zato ne može odbaciti. „Moja” nije višak: igrač daje sedmicu i dobija talon kartu, pa ostaje na 4.
 
 **Idem / Ne idem** **(odluka 9)**
 
@@ -93,10 +93,10 @@ Kod Štiha i Rauba karta s talona pripada nosiocu, ali **ostaje na stolu** (sa n
 **Zamjena karata**
 
 1. Redom, počevši od nosioca aduta, svaki igrač koji igra odbacuje 0 do 4 karte licem nadolje i dobija isto toliko novih sa špila.
-2. Prvi igrač koji zamijeni sve 4 karte dobija 5 karata ovako: 2 skrivene, 1 otvorena koju vide svi, pa 2 skrivene. Zatim odbacuje jednu, ali ne otvorenu, i ostaje na 4 **(odluka 1)**. Svaki sljedeći igrač koji mijenja sve 4 dobija ih skrivene, tačno 4.
+2. Ko zamijeni sve 4 karte, dobija tačno 4 nove, skrivene, kao i svaka druga zamjena — bez pete karte, otvorene karte i odbacivanja **(odluka 25, zamjenjuje odluku 1)**. Ranije pravilo (prvi koji mijenja sve 4 dobija 5, treća otvorena, pa odbacuje jednu) ostaje parametar `fullExchangeBonus`, sada isključen.
 3. Odbačene karte su van igre do kraja ruke.
 4. Igrač ne može odbaciti više karata nego što ih ima u špilu, pa uvijek ulazi u štihove sa 4 karte **(odluka 4)**. Kad se špil isprazni, ostali igrači više ne mogu mijenjati, i to vide prije svog poteza.
-5. Prvi koji mijenja sve 4, a u špilu je manje od 5 karata: dobija koliko ima (najmanje 4), treća karta je otvorena, a odbacuje samo ako je dobio 5 **(odluka 4)**.
+5. ~~Prvi koji mijenja sve 4, a u špilu je manje od 5 karata: dobija koliko ima (najmanje 4), treća karta je otvorena, a odbacuje samo ako je dobio 5 **(odluka 4)**.~~ Važi samo uz `fullExchangeBonus` (odluka 25).
 
 **Igranje štihova**
 
@@ -265,7 +265,7 @@ Raub se uklapa u isti okvir kao Poker: `GameId` dobija `"raub"`, soba nosi `game
 
 **Faze ruke kao stanja**
 
-Ruka je mašina stanja: `dealing` → `trump_selection` (koraci `seven_choice`, `bidding`; `swap_seven` samo u rukama iz snapshota prije odluke 14) → `going` → `exchange` (nosilac Štiha/Rauba poslije svoje zamjene ide u `discard_extra`; i ko prvi zamijeni sve 4) → `trick_1` … `trick_4` → `scoring`. Iz `trump_selection` ruka može otići i u `void` (refa). Svaka akcija je dozvoljena samo u svojoj fazi i samo igraču koji je na potezu.
+Ruka je mašina stanja: `dealing` → `trump_selection` (koraci `seven_choice`, `bidding`; `swap_seven` samo u rukama iz snapshota prije odluke 14) → `going` → `exchange` (nosilac Štiha/Rauba poslije svoje zamjene ide u `discard_extra`; uz `fullExchangeBonus` i ko prvi zamijeni sve 4) → `trick_1` … `trick_4` → `scoring`. Iz `trump_selection` ruka može otići i u `void` (refa). Svaka akcija je dozvoljena samo u svojoj fazi i samo igraču koji je na potezu.
 
 **Validacija poteza**
 
@@ -278,7 +278,7 @@ Ruka je mašina stanja: `dealing` → `trump_selection` (koraci `seven_choice`, 
 
 - Klijent vidi svoje karte, talon, odigrane karte i broj karata koje su drugi zamijenili.
 - Ne vidi tuđe karte, odbačene karte ni špil, ni na kraju ruke.
-- Otvorena karta kod prve zamjene sve 4 karte šalje se svima.
+- Otvorena karta kod prve zamjene sve 4 karte šalje se svima (samo uz `fullExchangeBonus`; od odluke 25 je nema).
 - Karta uzeta s talona (Štih, Raub, Moja) je javna do štihova: odleti sa talona nosiocu i stoji otvorena u njegovoj lepezi iznad avatara (kod mene: u ruci, sa katancem).
 
 **Stari klijenti**
@@ -314,7 +314,7 @@ Meč se nikad ne zaustavlja zbog jednog poteza: ko ne odigra na vrijeme, server 
 | Istekne tajmer kod zamjene sedmice za talon (samo stari snapshot) | Ne mijenja |
 | Istekne tajmer kod „Idem / Ne idem” | „Ne idem” (bez kazne); zadnji upitani koji mora ići se ne pita (odluka 24); u ruci iz starog snapshota → „Idem” |
 | Istekne tajmer u zamjeni | Igrač zadržava sve karte |
-| Istekne tajmer kod odbacivanja viška (5 karata) | Odbacuje se najslabija karta koja nije adut i nije karta s talona (ako su sve adut, najslabiji adut koji nije s talona) |
+| Istekne tajmer kod odbacivanja viška (5 karata: nosilac Rauba/Štiha) | Odbacuje se najslabija karta koja nije adut i nije karta s talona (ako su sve adut, najslabiji adut koji nije s talona) |
 | Istekne tajmer u štihu | Baca se najslabija dozvoljena karta |
 | Igrač izgubi vezu | Gornja pravila važe za svaki potez dok traje rok za povratak. Zatim sto ide u pauzu, pa u glasanje „Čekaj” / „Završi”, isto kao Žandar (`pause.ts`, `PauseAbandonOverlay`) |
 | Igrač namjerno napusti meč | Potvrda „Napusti partiju?”. Ostali odmah vide pauzu „[ime] nije za stolom”, pa glasanje, isto kao Žandar |
@@ -335,7 +335,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 
 | # | Tema | Odluka | Zašto |
 | --- | --- | --- | --- |
-| 1 | Zamjena sve 4 karte | 5 karata (2 skrivene, 1 otvorena, 2 skrivene), pa odbacuje jednu, ali ne otvorenu | Spec v1 je opisivao 5 karata za 4 zamijenjene; vlasnik je potvrdio da je to namjera |
+| 1 | Zamjena sve 4 karte | ~~5 karata (2 skrivene, 1 otvorena, 2 skrivene), pa odbacuje jednu, ali ne otvorenu~~ — zamijenjena odlukom 25 | Spec v1 je opisivao 5 karata za 4 zamijenjene; vlasnik je potvrdio da je to namjera |
 | 2 | Kraj ruke | Dugme hosta „Sljedeća ruka →”, bez auto-prelaza od 5 s s table | Isti obrazac kao Žandar u produkciji (igrač vodi tempo; changelog 2026-06-11) |
 | 3 | Izlazak i prekid veze | Postojeća pauza i glasanje Žandara; bot ne preuzima mjesto u V1 | Isto ponašanje i isti ekran kao u produkciji; preuzimanje mjesta botom (PRD §38.4) ide kasnije, zajedno za sve igre |
 | 4 | Zamjena kad je špil kratak | Igrač ne može tražiti više karata nego što ih ima u špilu, pa uvijek ima 4 za štihove | Spec v1 je imao i „dobija koliko je ostalo” i „ne smije tražiti više nego ima u špilu”; prvo bi ostavilo igrača s manje od 4 karte, a ruka mora imati 4 štiha |
@@ -359,6 +359,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 22 | Karta s talona prelazi tek poslije odbacivanja | Kod Rauba i Štiha redoslijed nosioca je: zamjena (kaže koliko, dobija toliko), pa odbacuje jednu od svoje 4, pa karta sa stola prelazi u ruku. Do tada karta stoji na stolu sa natpisom „Uzimaš ti” / „Uzima: Ime”. Dopunjava odluku 20 (ranije je karta prelazila u ruku prije odbacivanja, pa je nosilac birao od 5) | Vlasnik (15.11.2026). Ishod je isti (karta s talona se ne može odbaciti), mijenja se samo redoslijed na stolu; stari snapshot sa kartom već u ruci ide starim putem |
 | 23 | Refa djelioca na prvoj karti | Djelilac smije odmah reći „Refa” na prvoj okrenutoj karti, dok još nije odgovorio (i na sedmicu). Ruka se poništava kao obična refa: upisuje se, sljedeća odigrana ruka ide ×2, djeljenje ide dalje. Na drugoj i trećoj karti ne smije. Istek roka ostaje „Dalje”, bot refu ne zove. Parametar `dealerRefaFirstFlip` (stari snapshot bez njega = da); akcija `{ type: "refa" }`, pogled `canRefa`, rezultat ruke `refaBy` | Vlasnik (16.11.2026), dogovoreno uživo sa igračem; prvi put izostavljeno iz implementacije |
 | 24 | Ko mora ići, ne pita se | Kad su svi ostali osim nosioca rekli „Ne idem” (odluka 19; u 2P uvijek), motor upisuje „Idem” sam i igra ide pravo u zamjenu — igrač odmah bira koliko karata mijenja. Ko još može birati, i dalje se pita. Snapshot bez promjene oblika; ruka zatečena u `going` sa obaveznim „Idem” i dalje radi preko `raubMustGo` | Feedback igrača (16.11.2026, 1-na-1): pitanje „Idem?” sa jednim dugmetom je suvišan korak |
+| 25 | Zamjena sve 4 daje tačno 4 | Koliko karata igrač da, toliko dobije, i za sve 4: skrivene, bez pete karte, otvorene karte i odbacivanja (pagat.com). Zamjenjuje odluku 1. Parametar `fullExchangeBonus` (sada `false`) čuva staro pravilo; stari snapshot bez polja igra po novom, a ruka zatečena u `discard_extra` sa otvorenom kartom završava starim putem | Feedback igrača (16.11.2026): poslije zamjene sve 4 dobio je 5 karata i „Odbaci jednu” i prijavio to kao grešku. Izvori se razilaze (igresakartama.com: 5 uz otvorenu; pagat.com: isto koliko je dao); vlasnik bira pagat |
 
 ## Metrike, acceptance i otvorena pitanja
 

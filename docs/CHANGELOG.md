@@ -2172,3 +2172,15 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Mjereno:** game-core 408, server 271, web 245 testova; typecheck čist; `simulate:raub` 10.000 × 4P: 0 grešaka karata/štihova, 0 odbijenih akcija, 0 zaglavljenih, medijan 23 ruke (isto kao prije).
 
 **Zamka:** grana je napravljena prije nego što je `fix/raub-dealer-refa` (odluka 23, changelog 176) stigla na `main`; rebase je imao konflikte samo u tabeli odluka, changelogu i `CLAUDE.md` (kod se ne preklapa).
+
+## 178. Raub — zamjena sve 4 daje tačno 4 (2026-11-16, `fix/raub-full-exchange-four`)
+
+**Šta:** odluka 25 u `docs/raub-spec.md`, zamjenjuje odluku 1. Ko zamijeni sve 4 karte, dobija tačno 4 nove, skrivene — bez pete karte, otvorene karte i odbacivanja. Novi parametar `RaubRules.fullExchangeBonus` (`DEFAULT_RAUB_RULES`: `false`); stari put u `case "exchange"` (`packages/game-core/src/raub/match.ts`) radi samo uz `fullExchangeBonus === true`.
+
+**Zašto:** igrač (2P, protivnik rekao „Moja”) je zamijenio sve 4, dobio 5 karata i „Imaš 5 karata. Odbaci jednu.” i prijavio to kao grešku. Izvori se razilaze: igresakartama.com daje prvom koji mijenja sve 4 pet karata (treća otvorena), pagat.com daje koliko je igrač dao. Vlasnik bira pagat.
+
+**Back-compat:** polje je opciono; stari snapshot bez njega igra po novom pravilu od sljedeće zamjene. Ruka zatečena u `discard_extra` sa otvorenom kartom završava starim putem (odbacivanje se ne dira). Oblik stanja i protokol isti, klijent ne treba novu verziju. UI za otvorenu kartu (`OpenCardNote`, katanac) ostaje, samo se više ne aktivira. Pravila u `RaubRules.tsx` prepisana; aplikacija novi tekst dobija tek sljedećim paketom, a motor (server) važi odmah i za nju. Scenario `/dev/raub?s=exchangeOpen` uklonjen (više se ne može desiti).
+
+**Mjereno:** game-core 417 (+2 nova testa; stari testovi odluke 1 idu uz `fullExchangeBonus: true`), server 272, web 246; typecheck čist. `simulate:raub` 10.000 × 4P: 0 grešaka karata/štihova, 0 odbijenih akcija, 0 zaglavljenih, medijan 23 ruke (34,7 min), refa 2,1 % — isto kao prije.
+
+**Nije provjereno na uređaju.**

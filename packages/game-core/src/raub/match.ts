@@ -724,9 +724,10 @@ export function applyRaubAction(
         break;
       }
 
-      if (ids.length === 4 && !state.fullExchangeUsed) {
-        // Prva zamjena sve 4 (odluka 1): 2 skrivene, 1 otvorena, 2 skrivene,
-        // pa odbacivanje jedne (ne otvorene). Kratak špil: koliko ima.
+      if (ids.length === 4 && state.rules.fullExchangeBonus === true && !state.fullExchangeUsed) {
+        // Prva zamjena sve 4 uz bonus (odluka 1; od odluke 25 isključen):
+        // 2 skrivene, 1 otvorena, 2 skrivene, pa odbacivanje jedne (ne
+        // otvorene). Kratak špil: koliko ima. Bez bonusa: koliko daš, toliko dobiješ.
         state.fullExchangeUsed = true;
         const drawn = draw(state, Math.min(5, state.deck.length));
         seat.hand.push(...drawn);

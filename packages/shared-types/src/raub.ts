@@ -62,6 +62,12 @@ export interface RaubRules {
    * odgovora), ali ne na drugoj ni trećoj (odluka 23). Bez polja = da.
    */
   dealerRefaFirstFlip?: boolean;
+  /**
+   * Prvi koji zamijeni sve 4 dobija 5 karata (treća otvorena) i odbacuje jednu
+   * (odluka 1, igresakartama.com). Od odluke 25 isključeno: koliko daš, toliko
+   * dobiješ (pagat.com). Bez polja = isključeno.
+   */
+  fullExchangeBonus?: boolean;
 }
 
 /**
@@ -243,7 +249,10 @@ export interface RaubGameState {
   /** Red zamjene (od nosioca, u smjeru igre); `null` prije zamjene. */
   exchangeOrder: string[] | null;
   exchangeIndex: number;
-  /** Neko je već zamijenio sve 4 u ovoj ruci (dobio je 5 karata s otvorenom). */
+  /**
+   * Neko je već zamijenio sve 4 u ovoj ruci (dobio je 5 karata s otvorenom).
+   * Postavlja se samo uz `rules.fullExchangeBonus` (od odluke 25 isključeno).
+   */
   fullExchangeUsed: boolean;
   openCard: RaubOpenCard | null;
   /** Odbačene karte — van igre do kraja ruke, nikad se ne šalju klijentu. */

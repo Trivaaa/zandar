@@ -29,6 +29,9 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // Odluka 23 (vlasnik, 16.11.2026): djelilac smije odmah reći „Refa" na prvoj
   // okrenutoj karti, ali ne na drugoj ni trećoj.
   dealerRefaFirstFlip: true,
+  // Odluka 25 (vlasnik, 16.11.2026): zamjena sve 4 daje tačno 4, bez pete i
+  // otvorene karte (pagat.com) — igrač je 5 karata prijavio kao grešku.
+  fullExchangeBonus: false,
 };
 
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */
