@@ -261,7 +261,8 @@ function fakeFirestore() {
         .map(([name, d]) => ({ document: { name, fields: d.fields } }));
       return new Response(JSON.stringify(rows.length ? rows : [{ readTime: "t" }]), { status: 200 });
     }
-    const name = decodeURI(url.slice(url.indexOf(prefix)));
+    // Kao pravi Firestore: svaki segment URL-a se dekodira jednom.
+    const name = url.slice(url.indexOf(prefix)).split("/").map(decodeURIComponent).join("/");
     const doc = docs.get(name);
     if (!doc) return new Response("{}", { status: 404 });
     return new Response(JSON.stringify({ name, ...doc }), { status: 200 });
@@ -283,6 +284,18 @@ test("Firestore: isti ugovor; rezultat sa exists:false i inkrement u jednom comm
   assert.deepEqual(first.writes[1]?.updateTransforms, [
     { fieldPath: "completedMatches", increment: { integerValue: "1" } },
   ]);
+});
+
+test("Firestore: nadimak sa _ . č se čita iz istog dokumenta u koji je upisan", async () => {
+  const fake = fakeFirestore();
+  const store = createFirestoreProfileStore(createFirestore("p", tokens, fake.impl));
+  for (const [uid, nick] of [["u1", "Goran_B"], ["u2", "a.b.c"], ["u3", "Čiča"]] as const) {
+    const key = nick.toLowerCase();
+    assert.equal((await store.setNickname(uid, nick, key)).ok, true);
+    assert.equal(await store.uidForNickname(key), uid, nick);
+    assert.equal(await store.nicknameAvailability(key, "drugi"), "taken", nick);
+    assert.equal(await store.nicknameAvailability(key, uid), "own", nick);
+  }
 });
 
 test("Firestore: isti ugovor za nadimak i avatar", async () => {

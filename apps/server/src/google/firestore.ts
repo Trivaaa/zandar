@@ -156,9 +156,15 @@ export function createFirestore(
     };
   }
 
-  /** `null` = dokument ne postoji. */
+  /**
+   * `null` = dokument ne postoji. Id iz `docId` već nosi `%5F`/`%2E`/`%C4%8D`
+   * kao DOSLOVNE znakove (tako ga `commit` upisuje kroz JSON tijelo), pa se u
+   * URL-u svaki segment mora kodirati još jednom — inače Firestore dekodira
+   * `qa%5Fb` u `qa_b` i čita drugi dokument (nadimci sa `_`, `.`, č/ć/ž/š/đ).
+   */
   async function getDoc(path: string): Promise<FsDoc | null> {
-    const res = await call(`${base}/${path}`, { method: "GET" });
+    const url = `${base}/${path.split("/").map(encodeURIComponent).join("/")}`;
+    const res = await call(url, { method: "GET" });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Firestore get ${res.status}: ${(await res.text()).slice(0, 300)}`);
     const json = (await res.json()) as { fields?: unknown; updateTime?: unknown };
