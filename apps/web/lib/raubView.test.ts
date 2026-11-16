@@ -24,6 +24,7 @@ import {
   panelFor,
   phaseLabel,
   playHint,
+  revealSlotKeys,
   scoreTable,
   seatCaptionText,
   sortedRaubPlacements,
@@ -321,5 +322,30 @@ describe("raubView: let zamjene", () => {
   });
   test("nova ruka ne leti", () => {
     assert.deepEqual(exchangeFlights(snap(1, [null, null, null, null]), snap(2, [2, null, null, null])), []);
+  });
+});
+
+describe("revealSlotKeys (odluka 26: okretanje karata djelioca)", () => {
+  const hidden = { dealNo: 3, hidden: true, cardIds: ["hidden-0", "hidden-1"], keys: {} };
+
+  test("otkrivanje u istoj ruci: prava karta dobija ključ skrivenog mjesta", () => {
+    assert.deepEqual(revealSlotKeys(hidden, { dealNo: 3, hidden: false, cardIds: ["hearts-A", "clubs-9"] }), {
+      "hearts-A": "hidden-0",
+      "clubs-9": "hidden-1",
+    });
+  });
+
+  test("ista ruka poslije: mapa ostaje, karta iz zamjene nije u njoj", () => {
+    const keys: Record<string, string> = { "hearts-A": "hidden-0", "clubs-9": "hidden-1" };
+    const prev = { dealNo: 3, hidden: false, cardIds: ["hearts-A", "clubs-9"], keys };
+    const next = revealSlotKeys(prev, { dealNo: 3, hidden: false, cardIds: ["hearts-A", "spades-K"] });
+    assert.equal(next, keys);
+    assert.equal(next["spades-K"], undefined);
+  });
+
+  test("nova ruka, još skriveno ili prvi pogled već otkriven (reconnect): bez okreta", () => {
+    assert.deepEqual(revealSlotKeys(hidden, { dealNo: 4, hidden: false, cardIds: ["hearts-A"] }), {});
+    assert.deepEqual(revealSlotKeys(hidden, { dealNo: 3, hidden: true, cardIds: ["hidden-0"] }), {});
+    assert.deepEqual(revealSlotKeys(null, { dealNo: 3, hidden: false, cardIds: ["hearts-A"] }), {});
   });
 });

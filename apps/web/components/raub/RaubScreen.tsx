@@ -32,10 +32,12 @@ import {
   lockedHandIds,
   panelFor,
   phaseLabel,
+  revealSlotKeys,
   seatCaptionText,
   sortedRaubPlacements,
   type Dir,
   type ExchangeSnapshot,
+  type RevealSnapshot,
 } from "@/lib/raubView";
 import type { ActiveReaction } from "@/lib/reactions";
 import { faceArtOf } from "@/lib/flyAnimation";
@@ -317,6 +319,21 @@ export function RaubScreen({
   if (state.openCard?.playerId === state.myPlayerId) blocked.add(state.openCard.card.id);
 
   const handCards = state.myCardsHidden ? hiddenCards(mySeat?.handCount ?? 0) : state.myCards;
+  // Odluka 26: kad djelilac odluči, iste karte u ruci se okrenu (isti ključ
+  // mjesta → CSS prelaz `data-face-up`), umjesto da se samo pojave.
+  const handIds = handCards.map((c) => c.id);
+  const [reveal, setReveal] = useState<RevealSnapshot | null>(null);
+  if (
+    !reveal ||
+    reveal.dealNo !== state.dealNo ||
+    reveal.hidden !== state.myCardsHidden ||
+    reveal.cardIds.join() !== handIds.join()
+  ) {
+    const next = { dealNo: state.dealNo, hidden: state.myCardsHidden, cardIds: handIds };
+    setReveal({ ...next, keys: revealSlotKeys(reveal, next) });
+  }
+  const revealKeys = reveal?.keys ?? {};
+  const revealing = Object.keys(revealKeys).length > 0;
   const selectable = (card: Card): boolean => {
     if (!myTurn || busy || state.myCardsHidden) return false;
     if (panel.kind === "play") return legal.has(card.id);
@@ -533,6 +550,8 @@ export function RaubScreen({
             <PlayerHand
               cards={handCards}
               faceUp={!state.myCardsHidden}
+              slotKey={(c) => revealKeys[c.id] ?? c.id}
+              className={revealing ? "hand--reveal" : ""}
               selectedCardIds={picked}
               lockedCardIds={lockedIds}
               disabledCardIds={disabledIds}

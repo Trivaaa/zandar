@@ -4210,3 +4210,13 @@
     --card-h: 2.7rem;
   }
 }
+
+/* Raub, odluka 26: djelilac je odlučio naslijepo — iste karte u ruci se okreću
+   lijevo → desno (isti element, `data-face-up` false → true). Animira se samo
+   `transform` na `.card-inner`; podizanje karte je na `.card-lift`, pa ga
+   kašnjenje ne dira. */
+.felt-stage[data-game="raub"] .hand--reveal .card-inner {
+  transition-duration: var(--t-rb-reveal);
+  transition-timing-function: var(--ease-card);
+  transition-delay: calc(var(--hand-i, 0) * var(--t-rb-reveal-stagger));
+}

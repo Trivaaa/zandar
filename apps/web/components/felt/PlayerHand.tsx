@@ -24,6 +24,11 @@ export type PlayerHandProps = {
   /** Defaults to `sm`: eight `sm` cards with the 18px overlap fit a 360px viewport. */
   size?: CardSize;
   animateDeal?: boolean;
+  /**
+   * Ključ mjesta u ruci (podrazumijevano `card.id`). Raub ga koristi da mjesto
+   * preživi otkrivanje karata djelioca, pa se karta okrene umjesto da se zamijeni.
+   */
+  slotKey?: ((card: Card, i: number) => string) | undefined;
   onSelect?: ((card: Card) => void) | undefined;
   className?: string | undefined;
 };
@@ -39,6 +44,7 @@ export function PlayerHand({
   faceUp = true,
   size = "sm",
   animateDeal = false,
+  slotKey,
   onSelect,
   className = "",
 }: PlayerHandProps) {
@@ -64,7 +70,7 @@ export function PlayerHand({
         const disabled = locked || disabledCardIds.includes(c.id);
         return (
           <div
-            key={c.id}
+            key={slotKey ? slotKey(c, i) : c.id}
             className="hand__slot"
             data-selected={selected}
             {...(locked ? { "data-locked": true } : {})}

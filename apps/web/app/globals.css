@@ -160,6 +160,9 @@
   --t-rb-draw:       600ms;
   --t-rb-draw-first: 1000ms;
   --t-rb-draw-delay: 400ms;
+  /* Raub: djelilac odluči naslijepo, pa mu se karte okrenu jedna za drugom (odluka 26). */
+  --t-rb-reveal:         420ms;
+  --t-rb-reveal-stagger: 70ms;
 
   /* Feedback blicevi u play-zoni. Vrijednosti su ISTE kao ranija hardkodirana
      trajanja (0.55s / 0.77s) — ovo je tokenizacija, ne promjena tempa. */
@@ -408,6 +411,8 @@
     --t-rb-draw:       1ms;
     --t-rb-draw-first: 1ms;
     --t-rb-draw-delay: 1ms;
+    --t-rb-reveal:         1ms;
+    --t-rb-reveal-stagger: 1ms;
     --t-capture-flash: 1ms;
     --t-jack-sweep:    1ms;
     --t-turn-pulse:   0s;

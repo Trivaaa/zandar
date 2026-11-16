@@ -24,6 +24,25 @@ export const SUIT_SYMBOL: Record<Suit, string> = {
   spades: "♠",
 };
 
+/** Stanje ruke koje treba za okretanje karata djelioca (odluka 26). */
+export type RevealSnapshot = { dealNo: number; hidden: boolean; cardIds: readonly string[]; keys: Record<string, string> };
+
+/**
+ * Ključevi mjesta u ruci kroz otkrivanje (odluka 26): kad djelilac odluči,
+ * njegove karte iz skrivenih (`hidden-i`) postaju prave u ISTOJ ruci — prave
+ * karte dobijaju ključ `hidden-i`, pa React zadrži element i CSS ga okrene.
+ * Nova ruka i stanje viđeno tek otkriveno (reconnect) nemaju okret. Karte iz
+ * zamjene nisu u mapi i ključ im je njihov id.
+ */
+export function revealSlotKeys(
+  prev: RevealSnapshot | null,
+  next: { dealNo: number; hidden: boolean; cardIds: readonly string[] },
+): Record<string, string> {
+  if (!prev || prev.dealNo !== next.dealNo || next.hidden) return {};
+  if (prev.hidden) return Object.fromEntries(next.cardIds.map((id, i) => [id, `hidden-${i}`]));
+  return prev.keys;
+}
+
 /** Crvene boje se crtaju crveno i u tekstu. */
 export const isRedSuit = (s: Suit) => s === "hearts" || s === "diamonds";
 

@@ -2218,3 +2218,13 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Mjereno:** web 247 testova (+1 `guestName`), typecheck čist, lint = osnovica. CDP 390×844 i 360×740 (bez skrola, greška ne pomjera dugme). E2E u headless Chromeu protiv lokalnog servera: prazan submit → poruka i fokus u polju; „Jaca" + Sjedi → `/room`, `zandar_name = Jaca`; gost → `/room`, za stolom „Gost 29", `zandar_name` prazan, povratak na početnu i Igraj → list opet; 0 grešaka u konzoli. Zanimljivo: generator imena botova i sam daje „Gost8801"-oblik, pa gost ne štrči.
 
 **Nije provjereno na uređaju** — posebno dugme iznad tastature u Android Chromeu (headless to ne može pokazati).
+
+## 180. Raub — karte djelioca se okrenu poslije odluke naslijepo (2026-11-16, `fix/raub-reveal-flip`)
+
+**Šta:** kad djelilac odluči naslijepo (odluka 26, changelog 179), njegove četiri karte se okrenu lijevo → desno umjesto da se samo pojave. Vlasnik tražio „lijepo suptilno okretanje”.
+
+**Kako:** 3D okret je već postojao (`.card[data-face-up="false"] .card-inner` → `rotateY(180deg)` sa prelazom u `felt.css`), ali skrivene karte imaju id `hidden-i`, a `PlayerHand` je ključao po `card.id`, pa je React pri otkrivanju pravio nove elemente licem gore. Sad `PlayerHand` prima opcioni `slotKey` (podrazumijevano `card.id` — Žandar i Poker isti), a čista `revealSlotKeys` (`lib/raubView.ts`) u istoj ruci daje pravim kartama ključ `hidden-i`; isti element mijenja samo `data-face-up`. Nova ruka i stanje viđeno već otkriveno (reconnect) nemaju okret; karte iz zamjene imaju svoj id pa let iz špila radi kao i prije. Stanje u `RaubScreen` se osvježava u renderu (obrazac „prilagodi stanje kad se prop promijeni”), bez efekta. `.hand--reveal` produžava prelaz samo za Raub: `--t-rb-reveal` 420 ms, kaskada `--t-rb-reveal-stagger` 70 ms po karti (oba 1 ms pod reduced-motion); animira se samo `transform`.
+
+**Mjereno:** web 251 test (+3), typecheck čist, lint = osnovica. CDP 360×740, `/dev/raub?s=bid&then=raub`, `requestAnimationFrame` u stranici: isti elementi prije i poslije (bez remounta), okret svake karte ~420 ms, start ~70–80 ms jedna za drugom; snimak usred okreta (2 lica, 1 na ivici, 1 poleđina) i na kraju — lica stižu na vrijeme, predučitavanje nije trebalo.
+
+**Nije provjereno na uređaju.**
