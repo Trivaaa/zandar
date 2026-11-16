@@ -77,6 +77,7 @@ Raub naslijepo ne postoji (uklonjen odlukom 13). Djelilac vidi svoje karte odmah
 4. Sedmica okrenuta kao druga ili treća karta je obična karta: na nju nema ni Štiha, ni Rauba, ni Moje, pa se okreće sljedeća.
 5. Na drugoj i trećoj okrenutoj karti nema Rauba ni za djelioca: samo „Moja” (sa sedmicom te boje uzima kartu, bez nje karta ostaje na talonu) ili „Dalje”. Ako je prva karta bila sedmica i djelilac rekao „Dalje”, sljedeća je već druga **(odluka 15)**.
 6. Ako ni nakon treće okrenute karte niko ne uzme adut, ruka se poništava, upisuje se refa, a djeljenje prelazi na sljedećeg igrača.
+7. Djelilac smije odmah reći „Refa” na prvoj okrenutoj karti, umjesto svog odgovora (i na sedmicu, umjesto „Štih” / „Dalje”). Ruka se poništava kao kod pravila 6. Na drugoj i trećoj karti to ne smije, ni poslije „Dalje” na sedmicu **(odluka 23)**.
 
 **Višak karata**
 
@@ -141,7 +142,7 @@ Primjer: nosilac poslije Rauba uzme 3 štiha i ide s 21 na 18. Drugi igrač uzme
 
 **Refa**
 
-- Kad se ruka poništi jer niko nije uzeo adut, upisuje se refa.
+- Kad se ruka poništi jer niko nije uzeo adut, upisuje se refa. Isto kad djelilac odmah kaže „Refa” na prvoj okrenutoj karti **(odluka 23)**.
 - Sljedeća odigrana ruka se boduje duplo: i odbijeni i kazneni bodovi.
 - Refe se skupljaju u red: svaka refa duplira po jednu sljedeću ruku. Tri refe zaredom znače da se naredne tri ruke boduju duplo, ne da se jedna ruka množi s 8.
 - Broj refa koje čekaju vidi se na tabeli rezultata.
@@ -356,6 +357,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 20 | Karta s talona čeka do zamjene nosioca | Kod Rauba i Štiha karta s talona ostaje na stolu sa natpisom „Uzima: Ime” (vraćen, changelog 162 ga je uklonio). Nosilac prvo zamijeni (do 4; za sve 4 dobija tačno 4, bez pete i otvorene), pa uzme kartu sa stola i odbaci bilo koju iz ruke. „Moja” bez promjene. Snapshot bez novog polja: karta čeka kad je zaključana a još na vrhu talona (`raubTalonPending`) | Vlasnik 15.11.2026 sa stola: karta je odmah išla u ruku i nosilac je odbacivao prije zamjene |
 | 21 | Obavezno nadjačavanje | Igrač mora nadjačati kartu koja nosi štih kad može: u boji jačom kartom te boje, bez boje jačim adutom. Ako ne može, igra bilo koju kartu iz dozvoljenog skupa (boja, pa adut, pa bilo šta). Zamjenjuje izbor „Nema” iz tabele razilaženja (odluka 5). Parametar `mustOvertrump`, sada `true`; partije počete prije izmjene igraju do kraja po starom | Vlasnik (15.11.2026), sa stola: IX žira je bio dozvoljen iako je u ruci bila figura koja nosi štih. Pagat (varijanta koju već koristimo za „Idem / Ne idem”) traži nadjačavanje. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke, isto kao prije |
 | 22 | Karta s talona prelazi tek poslije odbacivanja | Kod Rauba i Štiha redoslijed nosioca je: zamjena (kaže koliko, dobija toliko), pa odbacuje jednu od svoje 4, pa karta sa stola prelazi u ruku. Do tada karta stoji na stolu sa natpisom „Uzimaš ti” / „Uzima: Ime”. Dopunjava odluku 20 (ranije je karta prelazila u ruku prije odbacivanja, pa je nosilac birao od 5) | Vlasnik (15.11.2026). Ishod je isti (karta s talona se ne može odbaciti), mijenja se samo redoslijed na stolu; stari snapshot sa kartom već u ruci ide starim putem |
+| 23 | Refa djelioca na prvoj karti | Djelilac smije odmah reći „Refa” na prvoj okrenutoj karti, dok još nije odgovorio (i na sedmicu). Ruka se poništava kao obična refa: upisuje se, sljedeća odigrana ruka ide ×2, djeljenje ide dalje. Na drugoj i trećoj karti ne smije. Istek roka ostaje „Dalje”, bot refu ne zove. Parametar `dealerRefaFirstFlip` (stari snapshot bez njega = da); akcija `{ type: "refa" }`, pogled `canRefa`, rezultat ruke `refaBy` | Vlasnik (16.11.2026), dogovoreno uživo sa igračem; prvi put izostavljeno iz implementacije |
 
 ## Metrike, acceptance i otvorena pitanja
 

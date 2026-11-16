@@ -42,6 +42,10 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
             Ako svi kažu „Dalje”, okreće se nova karta (najviše 3). Ako niko ne uzme ni treću, to je <b>refa</b>: ruka
             se poništava, a sljedeća se boduje duplo.
           </li>
+          <li>
+            Djelilac smije odmah reći <b>„Refa”</b> na prvoj okrenutoj karti, umjesto svog odgovora. Ruka se poništava
+            kao i obična refa. Na drugoj i trećoj karti to ne smije.
+          </li>
         </ul>
         <p className="text-muted mt-2">
           Kod štiha i rauba nosilac prvo zamijeni karte i odbaci jednu iz ruke, a tek onda uzima kartu sa stola. Kod

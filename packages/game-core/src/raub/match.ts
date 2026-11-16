@@ -101,6 +101,7 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     raubFirstFlipOnly: state.rules.raubFirstFlipOnly ?? DEFAULT_RAUB_RULES.raubFirstFlipOnly!,
     mojaNeedsSeven: state.rules.mojaNeedsSeven ?? DEFAULT_RAUB_RULES.mojaNeedsSeven!,
     dealerRaubOrPass: state.rules.dealerRaubOrPass ?? DEFAULT_RAUB_RULES.dealerRaubOrPass!,
+    dealerRefaFirstFlip: state.rules.dealerRefaFirstFlip ?? DEFAULT_RAUB_RULES.dealerRefaFirstFlip!,
   };
 }
 
@@ -118,6 +119,22 @@ export function raubCanRaub(
   if (rules.raubDealerOnly && playerId !== state.dealerId) return false;
   if (rules.raubFirstFlipOnly && state.talonFlips > 1) return false;
   return !!card && !isSeven(card) && rules.raubRanks.includes(card.rank);
+}
+
+/**
+ * Smije li igrač odmah reći „Refa" (odluka 23): djelilac je na potezu na prvoj
+ * okrenutoj karti (i na sedmici, umjesto „Štih"/„Dalje") i još nije odgovorio.
+ * Na drugoj i trećoj karti ne smije.
+ */
+export function raubCanRefa(
+  state: Pick<RaubGameState, "rules" | "phase" | "step" | "currentPlayerId" | "dealerId" | "talonFlips" | "seats">,
+  playerId: string,
+): boolean {
+  if (!rulesV2(state).dealerRefaFirstFlip) return false;
+  if (state.phase !== "playing" || state.currentPlayerId !== playerId || playerId !== state.dealerId) return false;
+  if (state.step !== "seven_choice" && state.step !== "bidding") return false;
+  if (state.talonFlips !== 1) return false;
+  return state.seats.find((s) => s.playerId === playerId)?.bid == null;
 }
 
 /** Drži li igrač sedmicu boje ponuđene karte. */
@@ -521,13 +538,16 @@ function scoreHand(state: RaubGameState): void {
   }
 }
 
-/** Refa: niko nije uzeo adut; ruka se ne boduje, a sljedeća odigrana ide ×2. */
-function voidHand(state: RaubGameState): void {
+/**
+ * Refa: niko nije uzeo adut (ili ju je djelilac odmah zvao, odluka 23); ruka
+ * se ne boduje, a sljedeća odigrana ide ×2.
+ */
+function voidHand(state: RaubGameState, refaBy: string | null = null): void {
   state.pendingRefas += 1;
-  finishHand(state, { void: true, rows: [] });
+  finishHand(state, { void: true, rows: [], refaBy });
 }
 
-function finishHand(state: RaubGameState, r: { void: boolean; rows: RaubHandRow[] }): void {
+function finishHand(state: RaubGameState, r: { void: boolean; rows: RaubHandRow[]; refaBy?: string | null }): void {
   const result: RaubHandResult = {
     dealNo: state.dealNo,
     dealerId: state.dealerId,
@@ -540,6 +560,7 @@ function finishHand(state: RaubGameState, r: { void: boolean; rows: RaubHandRow[
     rows: r.rows,
     pendingRefasAfter: state.pendingRefas,
   };
+  if (r.refaBy) result.refaBy = r.refaBy;
   state.lastHand = result;
   state.history.push(result);
   state.phase = "hand_complete";
@@ -627,6 +648,12 @@ export function applyRaubAction(
       if (step !== "swap_seven") throw new Error("INVALID_ACTION");
       if (request.swap) swapSeven(state, playerId);
       afterTrump(state);
+      break;
+    }
+    case "refa": {
+      // Odluka 23: djelilac na prvoj okrenutoj karti odmah poništava ruku.
+      if (!raubCanRefa(state, playerId)) throw new Error("INVALID_ACTION");
+      voidHand(state, playerId);
       break;
     }
     case "go": {

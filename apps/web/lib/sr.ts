@@ -489,7 +489,7 @@ export const sr = {
     },
     bidHint: (suit: string) => `Uzmeš li ${suit}, moraš 2 štiha.`,
     bidHintMoja: (seven: string, card: string) => `Imaš ${seven} — „Moja” uzima ${card}.`,
-    bid: { raub: "Raub", moja: "Moja", pass: "Dalje", stih: "Štih" },
+    bid: { raub: "Raub", moja: "Moja", pass: "Dalje", stih: "Štih", refa: "Refa" },
     bidNote: {
       raub: "moraš 2 štiha",
       moja: (seven: string) => `daješ ${seven}`,
@@ -552,6 +552,7 @@ export const sr = {
       title: (n: number) => `Kraj ruke ${n}`,
       refaTitle: "Refa",
       void: "Niko nije uzeo adut ni poslije zadnje okrenute karte. Ruka se poništava, a sljedeća se boduje duplo.",
+      voidDealer: (name: string) => `Refa djelioca (${name}) na prvoj karti. Ruka se poništava, a sljedeća se boduje duplo.`,
       made: (name: string, t: number, r: number) => `${name}: uzeto ${t} od ${r} — obaveza ispunjena.`,
       failed: (name: string, t: number, r: number) => `${name}: uzeto ${t} od ${r} — kazna.`,
       player: "Igrač",

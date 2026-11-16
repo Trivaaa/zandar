@@ -57,6 +57,11 @@ export interface RaubRules {
    * bez sedmice karta ostaje na talonu. Bez polja = ne traži.
    */
   mojaNeedsSeven?: boolean;
+  /**
+   * Djelilac smije odmah reći „Refa" na prvoj okrenutoj karti (prije svog
+   * odgovora), ali ne na drugoj ni trećoj (odluka 23). Bez polja = da.
+   */
+  dealerRefaFirstFlip?: boolean;
 }
 
 /**
@@ -102,7 +107,9 @@ export type RaubAction =
   | { type: "go"; go: boolean }
   | { type: "discard"; cardId: string }
   | { type: "exchange"; cardIds: string[] }
-  | { type: "play"; cardId: string };
+  | { type: "play"; cardId: string }
+  /** Djelilac poništava ruku na prvoj okrenutoj karti (odluka 23). */
+  | { type: "refa" };
 
 export type RaubActionType = RaubAction["type"];
 
@@ -167,6 +174,8 @@ export interface RaubHandResult {
   rows: RaubHandRow[];
   /** Refe koje čekaju POSLIJE ove ruke. */
   pendingRefasAfter: number;
+  /** Refu je odmah zvao djelilac (odluka 23); bez polja = niko nije uzeo adut. */
+  refaBy?: string | null;
 }
 
 export interface RaubPlacement {
@@ -348,6 +357,11 @@ export interface RaubPlayerView {
    * su rekli „Ne idem" (odluka 19). Opciono: stari server ga ne šalje.
    */
   mustGo?: boolean;
+  /**
+   * Gledalac je djelilac na potezu na prvoj okrenutoj karti i smije reći
+   * „Refa" (odluka 23). Opciono: stari server ga ne šalje.
+   */
+  canRefa?: boolean;
 
   lastHand: RaubHandResult | null;
   history: RaubHandResult[];

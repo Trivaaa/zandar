@@ -26,6 +26,9 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // Odluka 16 (vlasnik, 14.11.2026): na kartu za Raub djelilac bira samo Raub ili Dalje.
   dealerRaubOrPass: true,
   mojaNeedsSeven: false,
+  // Odluka 23 (vlasnik, 16.11.2026): djelilac smije odmah reći „Refa" na prvoj
+  // okrenutoj karti, ali ne na drugoj ni trećoj.
+  dealerRefaFirstFlip: true,
 };
 
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */

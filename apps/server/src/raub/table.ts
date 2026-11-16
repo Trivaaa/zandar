@@ -99,6 +99,9 @@ export function parseRaubAction(raw: unknown): RaubActionRequest | null {
       if (typeof r.swap !== "boolean") return null;
       out = { type: "swap_seven", swap: r.swap };
       break;
+    case "refa":
+      out = { type: "refa" };
+      break;
     case "go":
       if (typeof r.go !== "boolean") return null;
       out = { type: "go", go: r.go };

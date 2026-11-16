@@ -6,6 +6,7 @@ import {
   RAUB_DECK_SIZE,
   applyRaubAction,
   createRaubMatch,
+  raubCanRefa,
   raubCardCount,
   raubLegalCards,
   raubMustGo,
@@ -618,6 +619,81 @@ describe("raub scenarij 3 — licitacija", () => {
 });
 
 // ---- idem / ne idem ----
+
+describe("raub refa djelioca (odluka 23)", () => {
+  it("djelilac odmah na prvoj karti: ruka se poništava, refa se upisuje, ostali ne licitiraju", () => {
+    const s0 = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
+    expect(raubCanRefa(s0, "b")).toBe(true);
+    expect(getRaubView(s0, "b").canRefa).toBe(true);
+    for (const pid of ["a", "c", "d"]) {
+      expect(raubCanRefa(s0, pid)).toBe(false);
+      expect(getRaubView(s0, pid).canRefa).toBe(false);
+    }
+    expect(() => act(s0, "c", { type: "refa" })).toThrow("NOT_YOUR_TURN");
+    const s = act(s0, "b", { type: "refa" });
+    expect(s.phase).toBe("hand_complete");
+    expect(s.pendingRefas).toBe(1);
+    expect(s.lastHand!.void).toBe(true);
+    expect(s.lastHand!.refaBy).toBe("b");
+    expect(s.lastHand!.rows).toEqual([]);
+    expect(s.seats.every((x) => x.score === 21)).toBe(true);
+    // Djeljenje ide dalje, a sljedeća ruka je ×2.
+    const next = startRaubHand(s, makeLcg(3));
+    expect(next.dealerId).toBe("c");
+    expect(next.multiplier).toBe(2);
+  });
+
+  it("i na sedmici (umjesto Štih / Dalje)", () => {
+    const s0 = match({ hands: HANDS4, talon: D("7") });
+    expect(s0.step).toBe("seven_choice");
+    expect(raubCanRefa(s0, "a")).toBe(true);
+    const s = act(s0, "a", { type: "refa" });
+    expect(s.lastHand!.void).toBe(true);
+    expect(s.lastHand!.refaBy).toBe("a");
+  });
+
+  it("na drugoj i trećoj karti ne smije, ni poslije Dalje na sedmicu", () => {
+    let s = match({ hands: HANDS4, talon: H("8"), dealer: "a" });
+    for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
+    expect(s.talonFlips).toBe(2);
+    expect(s.currentPlayerId).toBe("a");
+    expect(raubCanRefa(s, "a")).toBe(false);
+    expect(getRaubView(s, "a").canRefa).toBe(false);
+    expect(() => act(s, "a", { type: "refa" })).toThrow("INVALID_ACTION");
+    for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
+    expect(s.talonFlips).toBe(3);
+    expect(() => act(s, "a", { type: "refa" })).toThrow("INVALID_ACTION");
+
+    let t = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
+    t = act(t, "a", { type: "stih", take: false });
+    expect(t.talonFlips).toBe(2);
+    expect(() => act(t, "a", { type: "refa" })).toThrow("INVALID_ACTION");
+  });
+
+  it("ne poslije svog odgovora, ne kad prvi licitira drugi igrač na redu poslije njega", () => {
+    const s = match({ hands: HANDS4, talon: H("8"), dealer: "a" });
+    const after = act(s, "a", { type: "bid", bid: "pass" });
+    expect(raubCanRefa(after, "b")).toBe(false);
+    expect(() => act(after, "b", { type: "refa" })).toThrow("INVALID_ACTION");
+  });
+
+  it("parametar: dealerRefaFirstFlip false = nema refe djelioca", () => {
+    const s = match({ hands: HANDS4, talon: H("Q"), dealer: "b", rules: { dealerRefaFirstFlip: false } });
+    expect(raubCanRefa(s, "b")).toBe(false);
+    expect(() => act(s, "b", { type: "refa" })).toThrow("INVALID_ACTION");
+  });
+
+  it("stari snapshot bez polja = novo pravilo", () => {
+    const s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
+    delete s.rules.dealerRefaFirstFlip;
+    expect(raubCanRefa(s, "b")).toBe(true);
+  });
+
+  it("istek roka ostaje pasivan (Dalje), ne refa", () => {
+    const s = match({ hands: HANDS4, talon: H("Q"), dealer: "b" });
+    expect(getRaubAutoAction(s, "b")).toEqual({ type: "bid", bid: "pass" });
+  });
+});
 
 describe("raub idem / ne idem (odluka 9)", () => {
   it("ko ne ide odlaže karte i ne boduje se; zamjena i štihovi bez njega", () => {

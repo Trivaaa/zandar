@@ -2131,3 +2131,32 @@ Prvi korak plana održavanja (pregled koda 2026-11-15, stavke P0 1, 2, 5, 6).
 - `build:mobile` prolazi; izvezen `index.html` je stara početna.
 
 **Nije provjereno na uređaju.**
+
+## 176. Raub — djelilac smije odmah reći „Refa” na prvoj karti (2026-11-16, `fix/raub-dealer-refa`)
+
+Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj okrenutoj karti, a to nije bilo ugrađeno. Na drugoj i trećoj karti ne smije. Odluka 23 u `docs/raub-spec.md`.
+
+**Motor (`game-core/src/raub`):**
+- `raubCanRefa(state, id)`: pravilo `dealerRefaFirstFlip` je uključeno, igrač je djelilac i na potezu je, korak je `seven_choice` ili `bidding`, `talonFlips === 1` i još nije odgovorio.
+- Akcija `{ type: "refa" }` → `voidHand(state, dealerId)`: `pendingRefas + 1`, ruka `void`, `lastHand.refaBy = djelilac`. Dalje sve ide kao obična refa (djeljenje prelazi dalje, sljedeća ruka ×2).
+- Sedmica na prvoj karti je uključena: djelilac bira Refa / Dalje / Štih. Poslije „Dalje” na sedmicu je karta druga, pa refe nema.
+- Istek roka ostaje „Dalje”. Bot refu ne zove (strategija nepromijenjena, simulacija ista).
+
+**Back-compat:** `dealerRefaFirstFlip`, `canRefa` i `refaBy` su opciona polja. Stari snapshot bez pravila dobija novo pravilo. Stari klijent (APK) ne šalje `canRefa`, pa dugme ne vidi. Može igrati dalje, a ruka koju je neko drugi poništio dolazi kao obična refa. Protokol (`raub:2`) se ne podiže.
+
+**Server:** `parseRaubAction` prima `refa`.
+
+**Web:**
+- Dugme „Refa” (`pass` stil) prvo u panelu licitacije i sedmice. Najviše tri dugmeta, mjereno CDP-om na 360 px: 3 × 76 px.
+- Pregled ruke kaže „Refa djelioca (Ime) na prvoj karti…”.
+- Pravila (`RaubRules`) dopunjena.
+- Dugme je u dijeljenoj `RaubScreen`, bez `isNative` grane: pravilo igre stiže u aplikaciju sa sljedećim paketom.
+
+**Provjereno:**
+- game-core 414 testova (+7), server 271, web 246 (+1).
+- Typecheck i lint izmijenjenih fajlova su čisti.
+- CDP snimak `/dev/raub?s=bid` i `s=sevenChoice` na 360×740.
+
+**Zamka:** posuđeni `next dev` (3117) nije osvježio klijentski paket poslije skidanja napomene ispod „Refa” (hidracija se nije slagala). Raspored sa napomenom je izmjeren, a bez nje je dugme samo uže.
+
+**Nije provjereno na uređaju.**

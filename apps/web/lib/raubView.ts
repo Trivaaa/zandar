@@ -58,9 +58,10 @@ export function phaseLabel(v: Pick<RaubPlayerView, "phase" | "step" | "tricks">)
 
 /** Šta se crta u panelu nad rukom. */
 export type RaubPanel =
-  | { kind: "seven"; card: Card }
+  /** `refa`: djelilac na prvoj karti smije odmah reći „Refa” (odluka 23). */
+  | { kind: "seven"; card: Card; refa: boolean }
   /** `raub`/`moja`: šta server dozvoljava (`bidOptions`); `seven` je moja sedmica te boje (ili `null`). */
-  | { kind: "bid"; card: Card; raub: boolean; moja: boolean; seven: Card | null }
+  | { kind: "bid"; card: Card; raub: boolean; moja: boolean; seven: Card | null; refa: boolean }
   | { kind: "swap"; seven: Card; talon: Card }
   | { kind: "discard"; claim: boolean }
   /** `mustGo`: svi ostali su rekli „Ne idem” — samo „Idem” (odluka 19). */
@@ -80,7 +81,7 @@ export function panelFor(
   switch (v.step) {
     case "seven_choice": {
       const seven = v.talon.at(-1);
-      return seven ? { kind: "seven", card: seven } : { kind: "none" };
+      return seven ? { kind: "seven", card: seven, refa: v.canRefa === true } : { kind: "none" };
     }
     case "bidding": {
       const offered = v.talon.at(-1);
@@ -90,7 +91,7 @@ export function panelFor(
         ? (v.myCards.find((c) => c.rank === "7" && c.suit === offered.suit) ?? null)
         : null;
       // Odluka 15: „Moja" i bez sedmice (karta tada ostaje na talonu).
-      return { kind: "bid", card: offered, raub: options.raub, moja: options.moja, seven };
+      return { kind: "bid", card: offered, raub: options.raub, moja: options.moja, seven, refa: v.canRefa === true };
     }
     case "swap_seven":
       return v.swapOffer ? { kind: "swap", ...v.swapOffer } : { kind: "none" };
@@ -211,7 +212,7 @@ export const formatDelta = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` 
 
 /** Jedna rečenica o ruci: ko je raubovao, šta je uzeo, kazna. */
 export function handSentence(result: RaubHandResult, nameOf: (id: string) => string): string {
-  if (result.void) return sr.raub.summary.void;
+  if (result.void) return result.refaBy ? sr.raub.summary.voidDealer(nameOf(result.refaBy)) : sr.raub.summary.void;
   const decl = result.rows.find((r) => r.playerId === result.declarerId);
   if (!decl || !result.declarerId) return "";
   const name = nameOf(result.declarerId);

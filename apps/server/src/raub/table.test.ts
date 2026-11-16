@@ -107,6 +107,7 @@ describe("raub: parseRaubAction", () => {
     assert.deepEqual(parseRaubAction({ type: "stih", take: true }), { type: "stih", take: true });
     assert.deepEqual(parseRaubAction({ type: "bid", bid: "moja" }), { type: "bid", bid: "moja" });
     assert.equal(parseRaubAction({ type: "open" }), null);
+    assert.deepEqual(parseRaubAction({ type: "refa", extra: 1 }), { type: "refa" });
     assert.equal(parseRaubAction({ type: "blind" }), null);
     assert.equal(parseRaubAction({ type: "stih" }), null);
     assert.deepEqual(parseRaubAction({ type: "bid", bid: "raub" }), { type: "bid", bid: "raub" });

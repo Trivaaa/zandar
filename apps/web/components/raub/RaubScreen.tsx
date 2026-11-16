@@ -515,6 +515,7 @@ export function RaubScreen({
               deckCount={state.deckCount}
               onStih={(take) => void act({ type: "stih", take })}
               onBid={(bid) => void act({ type: "bid", bid })}
+              onRefa={() => void act({ type: "refa" })}
               onSwap={(swap) => void act({ type: "swap_seven", swap })}
               onDiscard={() => picked[0] && void act({ type: "discard", cardId: picked[0] })}
               onGo={(go) => void act({ type: "go", go })}

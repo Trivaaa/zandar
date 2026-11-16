@@ -21,6 +21,7 @@ export {
   raubLegalCards,
   raubMaxExchange,
   raubCanRaub,
+  raubCanRefa,
   raubCanMoja,
   raubHasSeven,
   raubMustGo,

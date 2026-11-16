@@ -98,6 +98,21 @@ describe("raubView: faza i panel", () => {
     assert.deepEqual(panelFor(getRaubView(other, "p0"), name), { kind: "wait", name: "Milica" });
   });
 
+  test("odluka 23: „Refa” samo djeliocu na prvoj karti", () => {
+    const first = until((s) => mine("bidding")(s) && s.dealerId === "p0" && s.talonFlips === 1);
+    const fp = panelFor(getRaubView(first, "p0"), name);
+    assert.equal(fp.kind === "bid" && fp.refa, true);
+    const later = until((s) => mine("bidding")(s) && s.dealerId === "p0" && s.talonFlips === 2);
+    const lp = panelFor(getRaubView(later, "p0"), name);
+    assert.equal(lp.kind === "bid" && lp.refa, false);
+    const notDealer = until((s) => mine("bidding")(s) && s.dealerId !== "p0" && s.talonFlips === 1);
+    const np = panelFor(getRaubView(notDealer, "p0"), name);
+    assert.equal(np.kind === "bid" && np.refa, false);
+    const seven = until((s) => mine("seven_choice")(s));
+    const sp = panelFor(getRaubView(seven, "p0"), name);
+    assert.equal(sp.kind === "seven" && sp.refa, true);
+  });
+
   test("uputa u štihu: otvaranje, boja, adut", () => {
     const lead = until((s) => mine("tricks")(s) && s.tricks.at(-1)!.plays.length === 0);
     assert.match(playHint(getRaubView(lead, "p0")), /bilo koja/i);
@@ -212,6 +227,7 @@ describe("raubView: rezultat", () => {
     assert.equal(formatDelta(0), "0");
     assert.match(handSentence(result, name), /Marko: uzeto 1 od 2 — kazna/);
     assert.match(handSentence({ ...result, void: true }, name), /poništava/);
+    assert.match(handSentence({ ...result, void: true, refaBy: "p1" }, name), /Refa djelioca \(Marko\)/);
   });
 
   test("tabela: refa kao red, ne idem bez broja", () => {

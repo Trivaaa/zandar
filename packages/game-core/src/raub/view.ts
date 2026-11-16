@@ -7,7 +7,7 @@ import type {
   RaubSwapOffer,
 } from "@zandar/shared-types";
 import { isSeven, raubRankValue, weakestCard } from "./cards";
-import { raubCanMoja, raubCanRaub, raubLegalCards, raubMaxExchange, raubMustGo, raubTalonPending } from "./match";
+import { raubCanMoja, raubCanRaub, raubCanRefa, raubLegalCards, raubMaxExchange, raubMustGo, raubTalonPending } from "./match";
 
 /** Uzeta talon karta dok je još u ruci onoga ko ju je uzeo, prije štihova. */
 function takenTalonCard(state: RaubGameState): Card | null {
@@ -91,6 +91,7 @@ export function getRaubView(state: RaubGameState, viewerId: string): RaubPlayerV
     swapOffer,
     maxExchange: myTurn && state.step === "exchange" ? raubMaxExchange(state, viewerId) : 0,
     mustGo: raubMustGo(state, viewerId),
+    canRefa: raubCanRefa(state, viewerId),
     // Upisani redovi istorije se ne mijenjaju (vidi `clone` u match.ts).
     lastHand: state.lastHand,
     history: [...state.history],

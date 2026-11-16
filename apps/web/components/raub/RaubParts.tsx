@@ -228,6 +228,7 @@ export function ActionPanel({
   deckCount,
   onStih,
   onBid,
+  onRefa,
   onSwap,
   onDiscard,
   onGo,
@@ -240,6 +241,7 @@ export function ActionPanel({
   deckCount: number;
   onStih: (take: boolean) => void;
   onBid: (bid: RaubBid) => void;
+  onRefa: () => void;
   onSwap: (swap: boolean) => void;
   onDiscard: () => void;
   onGo: (go: boolean) => void;
@@ -250,6 +252,9 @@ export function ActionPanel({
       {label}
     </button>
   );
+
+  // Odluka 23: samo djelilac, samo na prvoj okrenutoj karti (server šalje `canRefa`).
+  const refaBtn = btn("pass", sr.raub.bid.refa, onRefa);
 
   switch (panel.kind) {
     case "none":
@@ -264,6 +269,7 @@ export function ActionPanel({
       return (
         <div className="rb-panel">
           <p className="rb-panel__hint">{withSuits(sr.raub.seven.hint(cardLabel(panel.card)))}</p>
+          {panel.refa ? refaBtn : null}
           {btn("pass", sr.raub.bid.pass, () => onStih(false))}
           {btn(
             "accent",
@@ -284,6 +290,7 @@ export function ActionPanel({
       return (
         <div className="rb-panel">
           {hint ? <p className="rb-panel__hint">{withSuits(hint)}</p> : null}
+          {panel.refa ? refaBtn : null}
           {btn("pass", sr.raub.bid.pass, () => onBid("pass"))}
           {panel.moja
             ? btn(
