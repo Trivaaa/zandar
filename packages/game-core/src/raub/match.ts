@@ -102,7 +102,22 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     mojaNeedsSeven: state.rules.mojaNeedsSeven ?? DEFAULT_RAUB_RULES.mojaNeedsSeven!,
     dealerRaubOrPass: state.rules.dealerRaubOrPass ?? DEFAULT_RAUB_RULES.dealerRaubOrPass!,
     dealerRefaFirstFlip: state.rules.dealerRefaFirstFlip ?? DEFAULT_RAUB_RULES.dealerRefaFirstFlip!,
+    dealerBlindFirstFlip: state.rules.dealerBlindFirstFlip ?? DEFAULT_RAUB_RULES.dealerBlindFirstFlip!,
   };
+}
+
+/**
+ * Čeka li djelilac još svoju odluku naslijepo (odluka 26): prva okrenuta karta,
+ * on smije „Štih" (7) ili „Raub" (A, K, Q, J) i još nije odgovorio. Dok je ovo
+ * tačno, djelilac ne vidi svoje karte.
+ */
+export function raubDealerBlind(state: RaubGameState): boolean {
+  if (!rulesV2(state).dealerBlindFirstFlip) return false;
+  if (state.phase !== "playing" || state.talonFlips !== 1 || state.trumpSuit !== null) return false;
+  if (state.step === "seven_choice") return true;
+  if (state.step !== "bidding") return false;
+  const dealer = state.seats.find((s) => s.playerId === state.dealerId);
+  return !!dealer && dealer.bid == null && raubCanRaub(state, state.dealerId);
 }
 
 /**
@@ -286,8 +301,6 @@ function startHand(
   state.talonFlips = 1;
   for (const id of order) seatOf(state, id).hand.push(...draw(state, 2));
 
-  // Nema više rauba naslijepo (odluka 13): djelilac odmah vidi svoje karte.
-  state.dealerOpened = true;
   const offered = state.talon[0]!;
   if (isSeven(offered)) {
     if (rulesV2(state).stihOptional) {
@@ -299,6 +312,9 @@ function startHand(
     state.step = "bidding";
     state.currentPlayerId = firstBidderId(state);
   }
+  // Odluka 26: na prvoj karti za Raub/Štih djelilac odlučuje naslijepo; inače
+  // (i bez tog pravila) odmah vidi svoje karte.
+  state.dealerOpened = state.phase !== "playing" || !raubDealerBlind(state);
   state.stateVersion += 1;
   return state;
 }
@@ -771,6 +787,8 @@ export function applyRaubAction(
       throw new Error("INVALID_ACTION");
   }
 
+  // Odluka 26: čim djelilac odgovori (ili ruka ode dalje bez njega), vidi karte.
+  if (!state.dealerOpened && !raubDealerBlind(state)) state.dealerOpened = true;
   state.stateVersion += 1;
   return state;
 }

@@ -46,6 +46,10 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
             Djelilac smije odmah reći <b>„Refa”</b> na prvoj okrenutoj karti, umjesto svog odgovora. Ruka se poništava
             kao i obična refa. Na drugoj i trećoj karti to ne smije.
           </li>
+          <li>
+            Kad na prvoj okrenutoj karti djelilac smije „Štih” ili „Raub”, odlučuje <b>prije nego pogleda svoje karte</b>:
+            vidi ih tek kad odgovori („Štih”, „Raub”, „Dalje” ili „Refa”). Ostali svoje karte vide odmah.
+          </li>
         </ul>
         <p className="text-muted mt-2">
           Kod štiha i rauba nosilac prvo zamijeni karte i odbaci jednu iz ruke, a tek onda uzima kartu sa stola. Kod

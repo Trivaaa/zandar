@@ -23,6 +23,13 @@ export interface RaubBotConfig {
    * (odluka 17: as je jaka karta, propušten raub na asu izgleda glupo).
    */
   alwaysRaubRanks: Rank[];
+  /**
+   * Djelilac naslijepo (odluka 26): ne vidi karte, pa raubuje sa ovom
+   * vjerovatnoćom po rangu ponuđene karte (rang koji fali = 0).
+   */
+  blindRaubP: Partial<Record<Rank, number>>;
+  /** Djelilac naslijepo na sedmici: vjerovatnoća „Štih" (mora samo 1). */
+  blindStihP: number;
   /** Na zadnjoj okrenutoj karti bot je hrabriji: prag aduta manje za ovoliko (refa je skupa za sve). */
   lastFlipLeniency: number;
   /** Nasumični pomak praga aduta (± cijeli broj sa ovom vjerovatnoćom). */
@@ -57,6 +64,9 @@ export const DEFAULT_RAUB_BOT_CONFIG: RaubBotConfig = {
   bidMinTrumps: 2,
   bidStrongTrumpSideAces: 1,
   alwaysRaubRanks: ["A"],
+  // Odluka 26: bez karata u ruci odluka zavisi samo od ponuđene karte.
+  blindRaubP: { A: 1, K: 0.8, Q: 0.5, J: 0.35 },
+  blindStihP: 0.7,
   lastFlipLeniency: 0,
   noiseP: 0.15,
   goMinTrumps: 2,
@@ -117,6 +127,8 @@ export function selectRaubBotAction(
     case "seven_choice": {
       // Sedmica na talonu: sa njom u ruci, mora samo 1 štih.
       const seven = view.talon.at(-1)!;
+      // Odluka 26: djelilac naslijepo ne zna ruku.
+      if (view.myCardsHidden) return { type: "stih", take: rng() < config.blindStihP };
       const trumps = hand.filter((c) => c.suit === seven.suit).length + 1;
       const sideHigh = hand.some((c) => c.suit !== seven.suit && isHigh(c));
       const take = trumps >= config.stihMinTrumps || sideHigh || rng() < config.stihLooseP;
@@ -128,6 +140,11 @@ export function selectRaubBotAction(
       if (!options.raub && !options.moja) return { type: "bid", bid: "pass" };
       const offered = view.talon.at(-1)!;
       if (options.raub && config.alwaysRaubRanks.includes(offered.rank)) return { type: "bid", bid: "raub" };
+      if (view.myCardsHidden) {
+        // Odluka 26: naslijepo — samo po rangu ponuđene karte.
+        const p = options.raub ? (config.blindRaubP[offered.rank] ?? 0) : 0;
+        return { type: "bid", bid: rng() < p ? "raub" : "pass" };
+      }
       const hasSeven = hand.some((c) => isSeven(c) && c.suit === offered.suit);
       const lastFlip = view.talonFlips >= view.rules.maxTalonFlips;
       const need = config.bidMinTrumps - (lastFlip ? config.lastFlipLeniency : 0) + jitter(rng, config.noiseP);
@@ -233,7 +250,10 @@ export function raubBotThinkMs(
   view?: RaubPlayerView,
   idle = false,
 ): number {
-  const raubChoice = view?.step === "bidding" && view.bidOptions?.raub === true;
+  // Odluka 17 (i 26: Štih naslijepo isto tako) — širi raspon, da brzina ne oda odluku.
+  const raubChoice =
+    (view?.step === "bidding" && view.bidOptions?.raub === true) ||
+    (view?.step === "seven_choice" && view.myCardsHidden === true);
   const min = idle ? config.idleThinkMinMs : raubChoice ? config.raubThinkMinMs : config.thinkMinMs;
   const max = idle ? config.idleThinkMaxMs : raubChoice ? config.raubThinkMaxMs : config.thinkMaxMs;
   return Math.round(min + (max - min) * rng());

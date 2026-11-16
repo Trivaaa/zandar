@@ -26,7 +26,7 @@ function takenTalonCard(state: RaubGameState): Card | null {
 export function getRaubView(state: RaubGameState, viewerId: string): RaubPlayerView {
   const me = state.seats.find((s) => s.playerId === viewerId);
   const myTurn = state.phase === "playing" && state.currentPlayerId === viewerId;
-  // Stari snapshot (raub naslijepo): djelilac u `await_open` još ne vidi karte.
+  // Djelilac koji odlučuje naslijepo (odluka 26; i stari `await_open`) ne vidi karte.
   const hidden = !!me && viewerId === state.dealerId && !state.dealerOpened && state.phase === "playing";
   const bidOptions: RaubBidOptions | null =
     myTurn && state.step === "bidding" && me

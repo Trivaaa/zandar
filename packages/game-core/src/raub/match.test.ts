@@ -194,13 +194,13 @@ describe("raub dijeljenje", () => {
 });
 
 describe("raub scenarij 1 — sedmica (Štih)", () => {
-  it("sedmica na talonu: djelilac bira Štih ili Dalje, sa otvorenim kartama", () => {
+  it("sedmica na talonu: djelilac bira Štih ili Dalje, naslijepo (odluka 26)", () => {
     const s = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
     expect(s.step).toBe("seven_choice");
     expect(s.currentPlayerId).toBe("a");
     expect(s.scenario).toBeNull();
-    expect(getRaubView(s, "a").myCards).toHaveLength(4);
-    expect(getRaubView(s, "a").myCardsHidden).toBe(false);
+    expect(getRaubView(s, "a").myCards).toHaveLength(0);
+    expect(getRaubView(s, "a").myCardsHidden).toBe(true);
     expect(() => act(s, "b", { type: "stih", take: true })).toThrow("NOT_YOUR_TURN");
     expect(() => act(s, "a", { type: "bid", bid: "pass" })).toThrow("INVALID_ACTION");
     expect(getRaubAutoAction(s, "a")).toEqual({ type: "stih", take: false });
@@ -296,11 +296,10 @@ describe("raub scenarij 1 — sedmica (Štih)", () => {
 });
 
 describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
-  it("nema rauba naslijepo: djelilac odmah vidi karte, licitacija počinje odmah", () => {
+  it("nema zasebnog koraka naslijepo: licitacija počinje odmah (odluka 26 skriva samo karte)", () => {
     const s = match({ hands: HANDS4, talon: H("Q") });
     expect(s.step).toBe("bidding");
-    expect(getRaubView(s, "a").myCards).toHaveLength(4);
-    expect(getRaubView(s, "a").myCardsHidden).toBe(false);
+    expect(getRaubView(s, "a").myCardsHidden).toBe(true);
     expect(() => act(s, "a", { type: "blind" } as never)).toThrow("INVALID_ACTION");
     expect(() => act(s, "a", { type: "open" } as never)).toThrow("INVALID_ACTION");
   });
@@ -1212,5 +1211,98 @@ describe("raub istek roka", () => {
     let s = toTricks();
     s = act(s, "b", { type: "play", cardId: "diamonds-9" });
     expect(getRaubAutoAction(s, "c")).toEqual({ type: "play", cardId: "diamonds-K" });
+  });
+});
+
+describe("raub odluka 26 — djelilac odlučuje naslijepo", () => {
+  const hidden = (s: RaubGameState, pid: string) => getRaubView(s, pid).myCardsHidden;
+  // Bez herca u rukama, pa je svaki herc slobodan za talon.
+  const HANDS4 = {
+    a: [S("8"), S("10"), C("10"), D("8")],
+    b: [S("9"), C("9"), D("9"), D("10")],
+    c: [S("J"), C("J"), D("J"), D("Q")],
+    d: [S("A"), S("Q"), C("Q"), C("8")],
+  };
+
+  it("prva karta za Raub: djelilac ne vidi karte, ostali vide", () => {
+    for (const r of ["A", "K", "Q", "J"] as Rank[]) {
+      const s = match({ hands: HANDS4, talon: c("hearts", r) });
+      expect(hidden(s, "a")).toBe(true);
+      expect(getRaubView(s, "a").myCards).toEqual([]);
+      expect(getRaubView(s, "a").bidOptions).toEqual({ raub: true, moja: false });
+      expect(getRaubView(s, "a").canRefa).toBe(true);
+      for (const o of ["b", "c", "d"]) {
+        expect(hidden(s, o)).toBe(false);
+        expect(getRaubView(s, o).myCards).toHaveLength(4);
+      }
+      // Tuđi pogled vidi broj djeliočevih karata, kao i uvijek.
+      expect(getRaubView(s, "b").seats.find((x) => x.playerId === "a")!.handCount).toBe(4);
+    }
+  });
+
+  it("Raub otkriva karte djeliocu", () => {
+    const s = raubBy(match({ hands: HANDS4, talon: H("K") }), "a");
+    expect(s.dealerOpened).toBe(true);
+    expect(hidden(s, "a")).toBe(false);
+    expect(getRaubView(s, "a").myCards.map((x) => x.id)).toEqual(HANDS4.a!.map((x) => x.id));
+  });
+
+  it("Dalje otkriva karte; ostali licitiraju kao i prije", () => {
+    const s = act(match({ hands: HANDS4, talon: H("Q") }), "a", { type: "bid", bid: "pass" });
+    expect(hidden(s, "a")).toBe(false);
+    expect(s.currentPlayerId).toBe("b");
+    expect(getRaubView(s, "a").myCards).toHaveLength(4);
+  });
+
+  it("sedmica: Štih i Dalje otkrivaju karte", () => {
+    const base = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
+    expect(hidden(base, "a")).toBe(true);
+    expect(hidden(act(base, "a", { type: "stih", take: true }), "a")).toBe(false);
+    const passed = act(base, "a", { type: "stih", take: false });
+    expect(passed.talonFlips).toBe(2);
+    expect(hidden(passed, "a")).toBe(false);
+  });
+
+  it("Refa naslijepo završava ruku i otkriva karte", () => {
+    const s = act(match({ hands: HANDS4, talon: H("A") }), "a", { type: "refa" });
+    expect(s.phase).toBe("hand_complete");
+    expect(s.dealerOpened).toBe(true);
+  });
+
+  it("istek roka naslijepo = Dalje, pa djelilac vidi karte", () => {
+    const s = match({ hands: HANDS4, talon: H("J") });
+    const auto = getRaubAutoAction(s, "a")!;
+    expect(auto).toEqual({ type: "bid", bid: "pass" });
+    expect(hidden(act(s, "a", auto), "a")).toBe(false);
+  });
+
+  it("prva karta 10, 9 ili 8: djelilac odmah vidi karte", () => {
+    for (const r of ["10", "9", "8"] as Rank[]) {
+      const s = match({ hands: HANDS4, talon: c("hearts", r) });
+      expect(hidden(s, "a")).toBe(false);
+      expect(getRaubView(s, "a").myCards).toHaveLength(4);
+    }
+  });
+
+  it("firstBidder right_of_dealer: Moja prije djelioca otkriva i njegove karte", () => {
+    let s = match({ hands: HANDS4, talon: H("Q"), rules: { firstBidder: "right_of_dealer" } });
+    expect(s.currentPlayerId).toBe("b");
+    expect(hidden(s, "a")).toBe(true);
+    s = act(s, "b", { type: "bid", bid: "moja" });
+    expect(hidden(s, "a")).toBe(false);
+  });
+
+  it("parametar: dealerBlindFirstFlip false = djelilac odmah vidi karte", () => {
+    const s = match({ hands: HANDS4, talon: H("A"), rules: { dealerBlindFirstFlip: false } });
+    expect(hidden(s, "a")).toBe(false);
+    expect(getRaubView(s, "a").myCards).toHaveLength(4);
+  });
+
+  it("stari snapshot: ruka usred licitacije sa otvorenim kartama ostaje otvorena", () => {
+    const s = match({ hands: HANDS4, talon: H("A"), rules: { dealerBlindFirstFlip: false } });
+    delete s.rules.dealerBlindFirstFlip;
+    expect(hidden(s, "a")).toBe(false);
+    const next = act(s, "a", { type: "bid", bid: "pass" });
+    expect(hidden(next, "a")).toBe(false);
   });
 });

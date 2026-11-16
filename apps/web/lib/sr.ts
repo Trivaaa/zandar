@@ -488,6 +488,8 @@ export const sr = {
       takeNote: "moraš 1 štih",
     },
     bidHint: (suit: string) => `Uzmeš li ${suit}, moraš 2 štiha.`,
+    /** Odluka 26: djelilac odlučuje o Raubu/Štihu prije nego vidi svoje karte. */
+    blindHint: "Odluči prije nego vidiš svoje karte.",
     bidHintMoja: (seven: string, card: string) => `Imaš ${seven} — „Moja” uzima ${card}.`,
     bid: { raub: "Raub", moja: "Moja", pass: "Dalje", stih: "Štih", refa: "Refa" },
     bidNote: {

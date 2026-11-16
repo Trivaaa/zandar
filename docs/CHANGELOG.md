@@ -2184,3 +2184,19 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Mjereno:** game-core 417 (+2 nova testa; stari testovi odluke 1 idu uz `fullExchangeBonus: true`), server 272, web 246; typecheck čist. `simulate:raub` 10.000 × 4P: 0 grešaka karata/štihova, 0 odbijenih akcija, 0 zaglavljenih, medijan 23 ruke (34,7 min), refa 2,1 % — isto kao prije.
 
 **Nije provjereno na uređaju.**
+
+## 179. Raub — djelilac odlučuje naslijepo (2026-11-16, `fix/raub-dealer-blind`)
+
+**Šta:** odluka 26 u `docs/raub-spec.md`. Kad na prvoj okrenutoj karti djelilac smije „Štih” (7) ili „Raub” (A, K, O, U), ne vidi svoje karte dok ne odgovori (Štih/Raub, Dalje, Refa ili istek roka). Ostali vide svoje odmah. Na prvoj karti 10/9/8 i na drugoj i trećoj karti sve kao prije.
+
+**Kako:** nova čista funkcija `raubDealerBlind(state)` (`packages/game-core/src/raub/match.ts`). `startHand` postavlja `dealerOpened = !raubDealerBlind`, a `applyRaubAction` poslije svake akcije otvara karte čim djelilac više ne čeka odluku naslijepo (pokriva i `firstBidder: "right_of_dealer"`, gdje neko prije djelioca kaže „Moja”). `getRaubView` već je imao `myCardsHidden` iz vremena rauba naslijepo (prije odluke 13), a `RaubScreen` već crta poleđine — zato nema novog polja u stanju ni pogledu i nema novog protokola; APK 1.4.x prikazuje poleđine bez izmjene. Parametar `RaubRules.dealerBlindFirstFlip` (podrazumijevano `true`; stari snapshot bez polja igra po novom od sljedeće ruke, a ruka zatečena usred licitacije ostaje otvorena jer joj je `dealerOpened` već `true`).
+
+**Bot:** odlučuje iz pogleda, pa naslijepo nema karte. Novo u `DEFAULT_RAUB_BOT_CONFIG`: `blindRaubP` (A 1, K 0,8, O 0,5, U 0,35) i `blindStihP` 0,7; as i dalje uvijek „Raub” (odluka 17). Štih naslijepo ide kroz isti raspon 1–8 s kao Raub.
+
+**Web:** u panelu licitacije djeliocu naslijepo stoji samo „Odluči prije nego vidiš svoje karte.” (obaveza piše na dugmetu; oblačić je jedan red — spojen sa starom uputom bio je 329–386 px u 245 px i sjekao se elipsom). Pravila (`RaubRules.tsx`) dopunjena.
+
+**Mjereno:** game-core 428 (+11), server 272, web 247 (+1); typecheck čist; lint = osnovica (5/2). `simulate:raub` 10.000 × 4P: 0 grešaka karata/štihova, 0 odbijenih akcija, 0 zaglavljenih; refa 2,1 → 2,8 %, medijan 23 ruke, 34,7 → 35,5 min; raub 90.801 → 78.319, štih 27.323 → 20.675, moja 110.187 → 130.862. CDP 360×740 `/dev/raub?s=bid` i `s=sevenChoice`: poleđine u ruci, dugmad stanu, nova uputa 228 px u 245 px.
+
+**Zamka:** posuđeni `next dev` (3117) poslije prve izmjene panela više nije primao izmjene; konačna uputa je izmjerena upisom teksta u živi oblačić preko CDP-a.
+
+**Nije provjereno na uređaju.**

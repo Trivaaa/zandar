@@ -63,6 +63,12 @@ export interface RaubRules {
    */
   dealerRefaFirstFlip?: boolean;
   /**
+   * Djelilac odlučuje naslijepo (odluka 26): kad na prvoj okrenutoj karti smije
+   * „Raub" (A, K, Q, J) ili „Štih" (7), ne vidi svoje karte dok ne odgovori
+   * (Raub/Štih, Dalje ili Refa). Ostali vide svoje odmah. Bez polja = da.
+   */
+  dealerBlindFirstFlip?: boolean;
+  /**
    * Prvi koji zamijeni sve 4 dobija 5 karata (treća otvorena) i odbacuje jednu
    * (odluka 1, igresakartama.com). Od odluke 25 isključeno: koliko daš, toliko
    * dobiješ (pagat.com). Bez polja = isključeno.

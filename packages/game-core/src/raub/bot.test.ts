@@ -76,6 +76,39 @@ describe("raub bot", () => {
     expect(seen.stihNo).toBeGreaterThan(0);
   });
 
+  it("odluka 26: djelilac naslijepo odlučuje samo po karti (blindRaubP / blindStihP)", () => {
+    const rng = makeLcg(26);
+    const counts: Record<string, { raub: number; n: number }> = {};
+    let stih = 0;
+    let sevens = 0;
+    for (let m = 0; m < 4000; m++) {
+      const s = createRaubMatch({ roomId: "r", matchId: `m${m}`, playerIds: ["a", "b", "c", "d"], rules: createRaubRules(4), rng });
+      const view = getRaubView(s, s.dealerId);
+      if (!view.myCardsHidden) continue;
+      expect(view.myCards).toEqual([]);
+      const action = selectRaubBotAction(view, DEFAULT_RAUB_BOT_CONFIG, rng);
+      const rank = view.talon.at(-1)!.rank;
+      if (view.step === "seven_choice") {
+        sevens += 1;
+        if (action.type === "stih" && action.take) stih += 1;
+        continue;
+      }
+      expect(action.type).toBe("bid");
+      const e = (counts[rank] ??= { raub: 0, n: 0 });
+      e.n += 1;
+      if (action.type === "bid" && action.bid === "raub") e.raub += 1;
+      else expect(action).toEqual({ type: "bid", bid: "pass" });
+    }
+    expect(counts.A!.raub).toBe(counts.A!.n);
+    for (const r of ["K", "Q", "J"] as const) {
+      const p = DEFAULT_RAUB_BOT_CONFIG.blindRaubP[r]!;
+      expect(counts[r]!.raub / counts[r]!.n).toBeGreaterThan(p - 0.1);
+      expect(counts[r]!.raub / counts[r]!.n).toBeLessThan(p + 0.1);
+    }
+    expect(stih / sevens).toBeGreaterThan(DEFAULT_RAUB_BOT_CONFIG.blindStihP - 0.1);
+    expect(stih / sevens).toBeLessThan(DEFAULT_RAUB_BOT_CONFIG.blindStihP + 0.1);
+  });
+
   it("odluka 17: djelilac na prvoj karti as uvijek kaže Raub, i za 1–8 s", () => {
     const rng = makeLcg(17);
     let aces = 0;
@@ -92,7 +125,8 @@ describe("raub bot", () => {
         const pid = s.currentPlayerId!;
         const view = getRaubView(s, pid);
         const ms = raubBotThinkMs(DEFAULT_RAUB_BOT_CONFIG, rng, view);
-        if (view.step === "bidding" && view.bidOptions?.raub) {
+        // Odluka 26: i Štih naslijepo ide kroz isti raspon 1–8 s.
+        if ((view.step === "bidding" && view.bidOptions?.raub) || (view.step === "seven_choice" && view.myCardsHidden)) {
           raubChoices += 1;
           expect(ms).toBeGreaterThanOrEqual(1000);
           expect(ms).toBeLessThanOrEqual(8000);

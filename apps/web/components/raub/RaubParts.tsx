@@ -268,7 +268,10 @@ export function ActionPanel({
     case "seven":
       return (
         <div className="rb-panel">
-          <p className="rb-panel__hint">{withSuits(sr.raub.seven.hint(cardLabel(panel.card)))}</p>
+          {/* Odluka 26: naslijepo samo ta uputa — obaveza piše na dugmetu, a oblačić je jedan red. */}
+          <p className="rb-panel__hint">
+            {panel.blind ? sr.raub.blindHint : withSuits(sr.raub.seven.hint(cardLabel(panel.card)))}
+          </p>
           {panel.refa ? refaBtn : null}
           {btn("pass", sr.raub.bid.pass, () => onStih(false))}
           {btn(
@@ -282,7 +285,9 @@ export function ActionPanel({
         </div>
       );
     case "bid": {
-      const hint = panel.raub
+      const hint = panel.blind
+        ? sr.raub.blindHint
+        : panel.raub
         ? sr.raub.bidHint(SUIT_SYMBOL[panel.card.suit])
         : panel.moja && panel.seven
           ? sr.raub.bidHintMoja(cardLabel(panel.seven), cardLabel(panel.card))

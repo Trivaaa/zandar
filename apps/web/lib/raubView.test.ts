@@ -113,6 +113,20 @@ describe("raubView: faza i panel", () => {
     assert.equal(sp.kind === "seven" && sp.refa, true);
   });
 
+  test("odluka 26: djelilac na prvoj karti za Raub/Štih odlučuje naslijepo", () => {
+    const raub = until((s) => mine("bidding")(s) && s.dealerId === "p0" && s.talonFlips === 1 && ["A", "K", "Q", "J"].includes(s.talon.at(-1)!.rank));
+    const v = getRaubView(raub, "p0");
+    assert.equal(v.myCardsHidden, true);
+    const rp = panelFor(v, name);
+    assert.equal(rp.kind === "bid" && rp.blind, true);
+    const seven = until((s) => mine("seven_choice")(s));
+    const sp = panelFor(getRaubView(seven, "p0"), name);
+    assert.equal(sp.kind === "seven" && sp.blind, true);
+    const notDealer = until((s) => mine("bidding")(s) && s.dealerId !== "p0");
+    const np = panelFor(getRaubView(notDealer, "p0"), name);
+    assert.equal(np.kind === "bid" && np.blind, false);
+  });
+
   test("uputa u štihu: otvaranje, boja, adut", () => {
     const lead = until((s) => mine("tricks")(s) && s.tricks.at(-1)!.plays.length === 0);
     assert.match(playHint(getRaubView(lead, "p0")), /bilo koja/i);

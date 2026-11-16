@@ -57,7 +57,7 @@ Svaka ruka ima pet faza: dijeljenje, određivanje aduta, „Idem / Ne idem”, z
 | 2. Raub | **Prva** okrenuta karta je A, K, Q (O) ili J (U); **samo djelilac** kaže „Raub” (nije obavezno) **(odluka 15)** | Djelilac | Uzima je (sedmica nije potrebna) i odbacuje jednu **(odluka 14)**, ali tek poslije svoje zamjene **(odluka 20)** i odbacivanja **(odluka 22)** | 2 štiha |
 | 3. Moja | Bilo koji igrač kaže „Moja” (na bilo koju kartu osim 7), sa sedmicom te boje ili bez nje **(odluka 15)** | Prvi koji kaže „Moja” | Sa sedmicom: uzima je, a daje sedmicu. Bez sedmice: karta ostaje na talonu | 2 štiha |
 
-Raub naslijepo ne postoji (uklonjen odlukom 13). Djelilac vidi svoje karte odmah po dijeljenju.
+**Djelilac odlučuje naslijepo (odluka 26).** Kad na prvoj okrenutoj karti djelilac smije „Štih” (7) ili „Raub” (A, K, O, U), ne vidi svoje karte dok ne odgovori („Štih”/„Raub”, „Dalje” ili „Refa”); tek tada ih vidi. Ostali igrači svoje karte vide odmah. Na prvoj karti 10, 9 ili 8 i na drugoj i trećoj karti djelilac vidi karte kao i ostali. Poseban korak „raub naslijepo” iz v1 (uklonjen odlukom 13) se ne vraća: skrivene su samo karte, licitacija je ista.
 
 **Štih (sedmica na talonu)**
 
@@ -311,6 +311,7 @@ Meč se nikad ne zaustavlja zbog jednog poteza: ko ne odigra na vrijeme, server 
 | --- | --- |
 | Istekne tajmer u licitaciji | „Dalje” |
 | Istekne tajmer djeliocu kod sedmice na talonu | „Dalje” (bez štiha), okreće se nova karta |
+| Istekne tajmer djeliocu dok odlučuje naslijepo (odluka 26) | „Dalje” (ili „Dalje” na sedmicu); djelilac tada vidi svoje karte |
 | Istekne tajmer kod zamjene sedmice za talon (samo stari snapshot) | Ne mijenja |
 | Istekne tajmer kod „Idem / Ne idem” | „Ne idem” (bez kazne); zadnji upitani koji mora ići se ne pita (odluka 24); u ruci iz starog snapshota → „Idem” |
 | Istekne tajmer u zamjeni | Igrač zadržava sve karte |
@@ -360,6 +361,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 23 | Refa djelioca na prvoj karti | Djelilac smije odmah reći „Refa” na prvoj okrenutoj karti, dok još nije odgovorio (i na sedmicu). Ruka se poništava kao obična refa: upisuje se, sljedeća odigrana ruka ide ×2, djeljenje ide dalje. Na drugoj i trećoj karti ne smije. Istek roka ostaje „Dalje”, bot refu ne zove. Parametar `dealerRefaFirstFlip` (stari snapshot bez njega = da); akcija `{ type: "refa" }`, pogled `canRefa`, rezultat ruke `refaBy` | Vlasnik (16.11.2026), dogovoreno uživo sa igračem; prvi put izostavljeno iz implementacije |
 | 24 | Ko mora ići, ne pita se | Kad su svi ostali osim nosioca rekli „Ne idem” (odluka 19; u 2P uvijek), motor upisuje „Idem” sam i igra ide pravo u zamjenu — igrač odmah bira koliko karata mijenja. Ko još može birati, i dalje se pita. Snapshot bez promjene oblika; ruka zatečena u `going` sa obaveznim „Idem” i dalje radi preko `raubMustGo` | Feedback igrača (16.11.2026, 1-na-1): pitanje „Idem?” sa jednim dugmetom je suvišan korak |
 | 25 | Zamjena sve 4 daje tačno 4 | Koliko karata igrač da, toliko dobije, i za sve 4: skrivene, bez pete karte, otvorene karte i odbacivanja (pagat.com). Zamjenjuje odluku 1. Parametar `fullExchangeBonus` (sada `false`) čuva staro pravilo; stari snapshot bez polja igra po novom, a ruka zatečena u `discard_extra` sa otvorenom kartom završava starim putem | Feedback igrača (16.11.2026): poslije zamjene sve 4 dobio je 5 karata i „Odbaci jednu” i prijavio to kao grešku. Izvori se razilaze (igresakartama.com: 5 uz otvorenu; pagat.com: isto koliko je dao); vlasnik bira pagat |
+| 26 | Djelilac odlučuje naslijepo | Kad na prvoj okrenutoj karti djelilac smije „Štih” (7) ili „Raub” (A, K, O, U), ne vidi svoje karte dok ne odgovori (Štih/Raub, Dalje, Refa). Ostali vide svoje odmah. Istek roka = „Dalje” (pa vidi karte). Bot-djelilac naslijepo odlučuje samo po ponuđenoj karti: Raub A 100 %, K 80 %, O 50 %, U 35 %, Štih 70 % (`blindRaubP`, `blindStihP`), za 1–8 s (kao odluka 17). Parametar `dealerBlindFirstFlip` (stari snapshot bez njega = da); bez novog polja u stanju i pogledu (`dealerOpened` / `myCardsHidden`), pa nema novog protokola | Prijava igrača (16.11.2026): djelilac je mogao pogledati karte pa procijeniti da li da raubuje. Simulacija 10.000 × 4P: 0 grešaka, refa 2,1 → 2,8 %, medijan 23 ruke (35,5 min; bilo 34,7) |
 
 ## Metrike, acceptance i otvorena pitanja
 
