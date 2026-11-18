@@ -42,6 +42,10 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // sedmice karta ostaje na talonu, a igrač sa sedmicom aduta je poslije svoje
   // zamjene smije uzeti.
   mojaTalonSeven: true,
+  // Odluka 30 (vlasnik, 18.11.2026, po prijavi igrača): kod „Moja" sa sedmicom
+  // karta čeka na stolu kao kod Rauba — nosilac prvo mijenja (sedmica je
+  // zaključana), pa tek onda daje sedmicu za kartu.
+  mojaSevenAfterExchange: true,
 };
 
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */

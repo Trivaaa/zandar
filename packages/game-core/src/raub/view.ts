@@ -7,7 +7,7 @@ import type {
   RaubSwapOffer,
 } from "@zandar/shared-types";
 import { isSeven, raubRankValue, weakestCard } from "./cards";
-import { raubCanMoja, raubCanRaub, raubCanRefa, raubLegalCards, raubMaxExchange, raubMustGo, raubTalonPending } from "./match";
+import { raubCanMoja, raubCanRaub, raubCanRefa, raubLegalCards, raubMaxExchange, raubMustGo, raubPendingSevenId, raubTalonPending } from "./match";
 
 /** Uzeta talon karta dok je još u ruci onoga ko ju je uzeo, prije štihova. */
 function takenTalonCard(state: RaubGameState): Card | null {
@@ -83,8 +83,12 @@ export function getRaubView(state: RaubGameState, viewerId: string): RaubPlayerV
     myPlayerId: viewerId,
     myCards: me && !hidden ? me.hand.map((c) => ({ ...c })) : [],
     myCardsHidden: hidden,
+    // Odluka 30: dok karta „Moja" čeka na stolu, zaključana je nosiočeva
+    // sedmica aduta (katanac u ruci, bot je ne mijenja; i stari APK je crta).
     lockedCardId:
-      me && me.hand.some((c) => c.id === state.lockedCardId) ? state.lockedCardId : null,
+      me && me.hand.some((c) => c.id === state.lockedCardId)
+        ? state.lockedCardId
+        : (me && !hidden ? raubPendingSevenId(state, viewerId) : null),
     legalCardIds:
       myTurn && state.step === "tricks" ? raubLegalCards(state, viewerId).map((c) => c.id) : null,
     bidOptions,

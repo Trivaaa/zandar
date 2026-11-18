@@ -355,7 +355,13 @@ export function ActionPanel({
       return (
         <div className="rb-panel">
           <p className="rb-panel__hint">
-            {deckCount === 0 ? sr.raub.exchange.empty : panel.claim ? sr.raub.exchange.hintClaim : sr.raub.exchange.hint}
+            {deckCount === 0
+              ? sr.raub.exchange.empty
+              : panel.claimSeven
+                ? sr.raub.exchange.hintClaimSeven
+                : panel.claim
+                  ? sr.raub.exchange.hintClaim
+                  : sr.raub.exchange.hint}
           </p>
           {btn("pass", sr.raub.exchange.keep, onExchange, selectedCount > 0)}
           {btn(

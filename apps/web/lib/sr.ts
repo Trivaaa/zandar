@@ -538,6 +538,8 @@ export const sr = {
       hint: "Dodirni karte koje mijenjaš.",
       /** Nosilac Rauba/Štiha: prvo zamjena, pa uzima kartu sa stola i odbacuje jednu (odluka 20). */
       hintClaim: "Dodirni karte koje mijenjaš — zatim odbacuješ jednu i uzimaš kartu sa stola.",
+      /** Nosilac „Moja” sa sedmicom: prvo zamjena, pa sedmica za kartu sa stola (odluka 30). */
+      hintClaimSeven: "Dodirni karte koje mijenjaš — zatim daješ sedmicu za kartu sa stola.",
       empty: "Špil je prazan — zamjene nema.",
       keep: "Zadrži sve",
       button: (n: number) => `Zamijeni ${n}`,

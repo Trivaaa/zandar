@@ -87,6 +87,13 @@ export interface RaubRules {
    * redu zamjene ima prednost. Bez polja = da.
    */
   mojaTalonSeven?: boolean;
+  /**
+   * „Moja" sa sedmicom čeka zamjenu (odluka 30): karta ostaje na talonu
+   * („Uzima: Ime"), sedmica aduta je kod nosioca zaključana dok on ne zamijeni
+   * karte, a onda je daje za kartu (jedna za jednu, bez odbacivanja).
+   * Bez polja = da.
+   */
+  mojaSevenAfterExchange?: boolean;
 }
 
 /**

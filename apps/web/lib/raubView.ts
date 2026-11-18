@@ -86,8 +86,12 @@ export type RaubPanel =
   | { kind: "discard"; claim: boolean }
   /** `mustGo`: svi ostali su rekli „Ne idem” — samo „Idem” (odluka 19). */
   | { kind: "going"; trump: Suit; declarerName: string; required: number; mustGo: boolean }
-  /** `claim`: ja sam nosilac kome karta čeka na stolu — poslije zamjene je uzimam i odbacujem (odluka 20). */
-  | { kind: "exchange"; max: number; claim: boolean }
+  /**
+   * `claim`: ja sam nosilac kome karta čeka na stolu — poslije zamjene je
+   * uzimam i odbacujem (odluka 20); kod „Moja” (`claimSeven`) za nju dajem
+   * sedmicu, bez odbacivanja (odluka 30).
+   */
+  | { kind: "exchange"; max: number; claim: boolean; claimSeven: boolean }
   | { kind: "play"; hint: string }
   | { kind: "wait"; name: string }
   | { kind: "none" };
@@ -136,7 +140,10 @@ export function panelFor(
         mustGo: v.mustGo === true,
       };
     case "exchange":
-      return { kind: "exchange", max: v.maxExchange, claim: v.claimedTalon === true && v.talonTakenBy === v.myPlayerId };
+    {
+      const claim = v.claimedTalon === true && v.talonTakenBy === v.myPlayerId;
+      return { kind: "exchange", max: v.maxExchange, claim, claimSeven: claim && v.scenario === "moja" };
+    }
     case "tricks":
       return { kind: "play", hint: playHint(v) };
     default:

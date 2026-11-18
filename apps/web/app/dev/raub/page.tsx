@@ -33,6 +33,8 @@ import { useQueryParam } from "@/lib/useQuery";
  *   /dev/raub?s=going         Idem / Ne idem
  *   /dev/raub?s=seven         sedmica uzeta s talona, ostaje na stolu
  *   /dev/raub?s=exchange      8 · zamjena, ti na potezu
+ *   /dev/raub?s=mojaSeven     zamjena: ti si rekao „Moja” sa sedmicom — karta čeka na stolu,
+ *                            sedmica zaključana (odluka 30); &then=exchange&ex=N → sedmica za kartu
  *   /dev/raub?s=trick         9 · štih, moraš odgovoriti (zatamnjene karte)
  *   /dev/raub?s=declarer      10 · ti si nosilac
  *   /dev/raub?s=handEnd       11 · kraj ruke ×2 (poslije refe)
@@ -100,6 +102,9 @@ const SCENARIOS: Record<string, Pred> = {
   // Sedmica na talonu: djelilac je uzima pri dijeljenju — mora ostati vidljiva.
   seven: (s) => s.phase === "playing" && s.scenario === "seven" && s.step === "going" && s.dealerId !== ME,
   exchange: onMyTurn("exchange"),
+  mojaSeven: (s) =>
+    onMyTurn("exchange")(s) && s.scenario === "moja" && s.declarerId === ME &&
+    s.talonTakenBy === ME && s.talon.at(-1)?.id === s.lockedCardId,
   trick: (s) => {
     if (!onMyTurn("tricks")(s)) return false;
     const plays = s.tricks.at(-1)?.plays.length ?? 0;

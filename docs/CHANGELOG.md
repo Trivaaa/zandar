@@ -2256,3 +2256,30 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Mjereno:** game-core 443 testa (+9: ponuda poslije zamjene i „Da”/„Ne”, istek roka, sedmica dobijena u zamjeni kod nosioca, „Ne idem”, Raub i Moja sa sedmicom bez ponude, prazan špil, `mojaTalonSeven: false`, bot), web 252 (+1), server 272, typecheck čist. Simulacija 10.000 × 4P: 0 grešaka karata/štihova/akcija, refa 2,8 %, medijan 23 ruke (35,9 min).
 
 **Nije provjereno na uređaju.** Server mora na deploy (pravilo je u motoru); web izmjene su samo natpisi.
+
+## 185. Raub — „Moja” sa sedmicom: karta čeka na stolu do zamjene (2026-11-18, odluka 30, `fix/raub-moja-seven-after-exchange`)
+
+**Povod:** igrač, uz snimak 2P zamjene, napisao je: „Isto ko prije, ja zaustavio i odma mi zamijenilo kartu”. Rekao je „Moja” sa sedmicom aduta. Karta s talona mu je odmah prešla u ruku sa katancem, a sedmica je otišla na talon. Sve se to desilo prije njegove zamjene.
+
+**Uzrok:** ovo nije kvar. Spec (odluka 15) je pisao „kod Moja sa sedmicom zamjena je dio izjave”, i motor je radio tačno to: bid `moja` je odmah zvao `swapSeven`. Kod Rauba i Štiha ista primjedba je već riješena odlukama 20 i 22, i karta tamo čeka na stolu dok nosilac ne zamijeni. Igraču je zato izgledalo kao da se ista greška vratila.
+
+**Izmjena (odluka 30):** „Moja” sa sedmicom radi kao Raub.
+- Izjava zove `claimTalon`: karta ostaje na stolu sa natpisom „Uzimaš ti” / „Uzima: Ime”.
+- Nosiočeva sedmica aduta je zaključana do kraja njegove zamjene. Izvedena je funkcijom `raubPendingSevenId`, bez novog polja. `raubMaxExchange` je ne broji (najviše 3), a `exchange` za nju vraća `CARD_LOCKED`.
+- Poslije zamjene `settlePendingTalon` zove `swapSeven`: sedmica ide na talon, a karta u ruku. Nema odbacivanja, pa ide `endExchangeTurn`. Raub i Štih kroz istu funkciju idu na `discard_extra` kao i ranije. Isto važi za prazan špil u `continueExchange`.
+- Pogled: dok karta čeka, `lockedCardId` nosioca je id sedmice. Zato bot ne mijenja sedmicu, a katanac se crta bez novog polja, i to i u APK-u 1.4.4.
+- Parametar `mojaSevenAfterExchange` (stari snapshot bez polja = da). Ruka zatečena pri deployu ima kartu već u ruci, nije „pending” i igra se starim putem.
+- Web: panel zamjene kod „Moja” piše „Dodirni karte koje mijenjaš — zatim daješ sedmicu za kartu sa stola.” (`exchange.hintClaimSeven`, `claimSeven` u panelu). `/dev/raub?s=mojaSeven` je novo stanje.
+- Ažurirani su spec (tabela scenarija, licitacija, višak karata, let karte, odluka 30) i `RaubRules.tsx`.
+
+**Mjereno:**
+- game-core 452 testa (+9): obećana karta, sedmica zaključana, zamjena pa predaja sedmice, zamjena 0, istek roka, bot, prazan špil, stari snapshot, bez ponude iz odluke 29. Dva postojeća testa su prilagođena, a staro ponašanje ima svoj test sa `mojaSevenAfterExchange: false`.
+- Server 272, web 252, typecheck čist.
+- `simulate:raub`, sve bez grešaka karata i štihova, bez odbijenih akcija i bez zaglavljenih:
+  - 10.000 × 4P: refa 2,8 %, medijan 23 ruke, 35,7 min;
+  - 3.000 × 2P i 3.000 × 3P.
+- Headless Chrome 360×740 `/dev/raub?s=mojaSeven&n=2|4`: karta je na stolu sa „Uzimaš ti”, sedmica u ruci sa katancem, uputa nova. Sa `then=exchange&ex=1` karta je poslije zamjene u ruci, a sedmice nema.
+
+**Stari APK (1.4.4):** pravilo je na serveru. Katanac na sedmici stiže kroz `lockedCardId`, pa je stara aplikacija ne može označiti za zamjenu. Uputa u staroj aplikaciji kaže „zatim odbacuješ jednu i uzimaš kartu sa stola”, jer ne razlikuje Moju od Rauba. Odbacivanja nema, karta jednostavno dođe.
+
+**Nije provjereno na uređaju.** Server mora na deploy (pravilo je u motoru). Web donosi samo uputu.

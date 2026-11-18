@@ -35,7 +35,8 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
           </li>
           <li>
             <b>Moja:</b> licitira se redom, od djelioca, i svako smije reći „Moja” ili „Dalje”, na svaku kartu (osim djelioca kad smije Raub). Ko kaže
-            „Moja”, nosi boju talona i mora 2 štiha. Ako ima sedmicu te boje, daje je i uzima talon kartu; ako je
+            „Moja”, nosi boju talona i mora 2 štiha. Ako ima sedmicu te boje, karta ostaje na stolu dok
+            ne zamijeni karte (sedmica se ne smije mijenjati), a onda daje sedmicu i uzima talon kartu; ako je
             nema, karta ostaje na stolu — a ko poslije svoje zamjene ima sedmicu te boje (i nosilac), smije je dati za
             tu kartu; prvi u redu zamjene ima prednost.
           </li>

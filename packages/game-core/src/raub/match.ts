@@ -105,6 +105,7 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     dealerBlindFirstFlip: state.rules.dealerBlindFirstFlip ?? DEFAULT_RAUB_RULES.dealerBlindFirstFlip!,
     stihSkipsRefa: state.rules.stihSkipsRefa ?? DEFAULT_RAUB_RULES.stihSkipsRefa!,
     mojaTalonSeven: state.rules.mojaTalonSeven ?? DEFAULT_RAUB_RULES.mojaTalonSeven!,
+    mojaSevenAfterExchange: state.rules.mojaSevenAfterExchange ?? DEFAULT_RAUB_RULES.mojaSevenAfterExchange!,
   };
 }
 
@@ -358,6 +359,34 @@ export function raubTalonPending(state: Pick<RaubGameState, "talonTakenBy" | "lo
   return !!state.talonTakenBy && !!state.lockedCardId && state.talon.at(-1)?.id === state.lockedCardId;
 }
 
+/**
+ * Odluka 30: „Moja" sa sedmicom, a karta još čeka na stolu — nosiočeva
+ * sedmica aduta je zaključana (ne smije u zamjenu), jer je već obećana za
+ * kartu. Izvedeno, bez novog polja u snapshotu. `null` za sve ostale.
+ */
+export function raubPendingSevenId(
+  state: Pick<RaubGameState, "talonTakenBy" | "lockedCardId" | "talon" | "scenario" | "trumpSuit" | "seats">,
+  playerId: string,
+): string | null {
+  if (state.scenario !== "moja" || state.talonTakenBy !== playerId || !raubTalonPending(state)) return null;
+  const seat = state.seats.find((s) => s.playerId === playerId);
+  return seat?.hand.find((c) => isSeven(c) && c.suit === state.trumpSuit)?.id ?? null;
+}
+
+/**
+ * Nosilac kome karta čeka na stolu je završio zamjenu (ili je preskočen jer je
+ * špil prazan): „Moja" daje sedmicu za kartu (odluka 30), Raub i Štih
+ * odbacuju jednu pa je uzimaju (odluke 20 i 22).
+ */
+function settlePendingTalon(state: RaubGameState, playerId: string): void {
+  if (state.scenario === "moja") {
+    swapSeven(state, playerId);
+    endExchangeTurn(state, playerId);
+    return;
+  }
+  toDiscardExtra(state, playerId);
+}
+
 
 /**
  * Scenarij 1: djelilac uzima sedmicu s talona, nosi adut i mora 1 štih.
@@ -407,7 +436,8 @@ function toDiscardExtra(state: RaubGameState, playerId: string): void {
 /** Najviše karata koje igrač smije zamijeniti: ne više nego ima u špilu, bez zaključane. */
 export function raubMaxExchange(state: RaubGameState, playerId: string): number {
   const seat = seatOf(state, playerId);
-  const free = seat.hand.filter((c) => c.id !== state.lockedCardId).length;
+  const seven = raubPendingSevenId(state, playerId);
+  const free = seat.hand.filter((c) => c.id !== state.lockedCardId && c.id !== seven).length;
   return Math.min(free, state.deck.length);
 }
 
@@ -515,8 +545,9 @@ function continueExchange(state: RaubGameState): void {
     }
     seatOf(state, id).exchanged = 0;
     if (id === state.talonTakenBy && raubTalonPending(state)) {
-      // Špil prazan, a nosiocu karta još čeka na stolu: odbacuje jednu, pa je uzima.
-      toDiscardExtra(state, id);
+      // Špil prazan, a nosiocu karta još čeka na stolu: Raub/Štih odbacuje
+      // jednu pa je uzima; Moja daje sedmicu za nju (odluka 30).
+      settlePendingTalon(state, id);
       return;
     }
     if (canTakeTalonWithSeven(state, id)) {
@@ -691,7 +722,9 @@ export function applyRaubAction(
         state.scenario = "moja";
         const hasSeven = raubHasSeven(state, playerId);
         declare(state, playerId, rulesV2(state).mojaRequiredTricks);
-        if (hasSeven) swapSeven(state, playerId);
+        // Odluka 30: sa sedmicom karta čeka na stolu do nosiočeve zamjene.
+        if (hasSeven && rulesV2(state).mojaSevenAfterExchange) claimTalon(state, playerId);
+        else if (hasSeven) swapSeven(state, playerId);
         afterTrump(state);
         break;
       }
@@ -764,6 +797,8 @@ export function applyRaubAction(
       if (!Array.isArray(ids) || new Set(ids).size !== ids.length) throw new Error("INVALID_ACTION");
       if (ids.length > raubMaxExchange(state, playerId)) throw new Error("TOO_MANY_CARDS");
       if (ids.some((id) => id === state.lockedCardId)) throw new Error("CARD_LOCKED");
+      const pendingSeven = raubPendingSevenId(state, playerId);
+      if (pendingSeven && ids.includes(pendingSeven)) throw new Error("CARD_LOCKED");
       if (ids.some((id) => !seat.hand.some((c) => c.id === id))) throw new Error("ILLEGAL_CARD");
 
       seat.hand = seat.hand.filter((c) => {
@@ -777,8 +812,9 @@ export function applyRaubAction(
         // Nosilac Rauba/Štiha (odluka 20): onoliko novih koliko je dao, i za
         // sve 4 bez pete i bez otvorene. Odluka 22: karta i dalje čeka na stolu
         // dok on ne odbaci jednu iz ruke — tek onda prelazi kod njega.
+        // Moja (odluka 30): poslije vučenja daje sedmicu za kartu.
         seat.hand.push(...draw(state, ids.length));
-        toDiscardExtra(state, playerId);
+        settlePendingTalon(state, playerId);
         break;
       }
 
