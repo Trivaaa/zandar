@@ -211,7 +211,7 @@
      Izmjereno prije popravke: lice izabrane karte 58x17 umjesto 58x79. */
   position: absolute;
   inset: 0;
-  transition: transform var(--t-card-play) var(--ease-snap);
+  transition: transform var(--t-card-lift) var(--ease-out-soft);
 }
 
 /* Selecting LIFTS the card. It does not play it. */
@@ -1310,6 +1310,12 @@
   --land-x: 70%;
   --land-y: 0;
 }
+/* Moj potez čiji je duh već doletio na sredinu stola (`flyCardFromHand`):
+   karta se samo slegne na mjesto, ne dolijeće ponovo odozdo. */
+.felt-table[data-land-from="self"] .table__slot--landing {
+  --land-x: 0;
+  --land-y: 0;
+}
 
 @keyframes table-land {
   from {
@@ -1360,6 +1366,11 @@
 }
 .table__played[data-land-from="right"] {
   --play-x: 180%;
+  --play-y: 0;
+}
+/* Duh mog poteza je već na sredini (vidi `.table__slot--landing` gore). */
+.table__played[data-land-from="self"] {
+  --play-x: 0;
   --play-y: 0;
 }
 

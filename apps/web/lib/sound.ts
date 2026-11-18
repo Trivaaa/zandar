@@ -12,6 +12,7 @@
 import { getSound } from "./settings";
 
 export type SfxName =
+  | "lift"
   | "place"
   | "capture"
   | "sweep"
@@ -104,6 +105,9 @@ const MIN_GAP_MS = 70;
 
 function render(name: SfxName): void {
   switch (name) {
+    case "lift": // podizanje karte u ruci — jedva čujan klik, potvrda dodira
+      noise(0, 0.025, 0.14, 2600);
+      break;
     case "place": // spuštanje karte na sto — mek "tap"
       noise(0, 0.05, 0.3, 1400);
       tone(180, 0, 0.05, "sine", 0.25);

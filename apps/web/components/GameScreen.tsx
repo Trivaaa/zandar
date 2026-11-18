@@ -46,7 +46,7 @@ import {
 } from "@/lib/scoreBar";
 import { useScoreNews } from "@/lib/useScoreNews";
 import { useTableBeat } from "@/lib/useTableBeat";
-import { dealFromDeck } from "@/lib/flyAnimation";
+import { dealFromDeck, flyCardFromHand, type OutgoingCard } from "@/lib/flyAnimation";
 import { prefersReducedMotion } from "@/lib/motion";
 import { useCountdown } from "@/lib/useCountdown";
 import { decideHandTap, resolveQueuedPlay } from "@/lib/handTap";
@@ -77,6 +77,12 @@ const DEAL_PAUSE_MS = 800;
  * trenutak mira da se ekran slegne prije nego što karte krenu.
  */
 const DEAL_SETTLE_MS = 250;
+
+/**
+ * Koliko karta smije da stoji „na putu" bez odgovora servera prije nego što se
+ * vrati u ruku. Normalan odgovor stiže za ~150 ms; ovo je samo za pad veze.
+ */
+const PLAY_STALL_MS = 5000;
 
 type GameStateWithDeadline = PrivateGameStateView & { turnDeadline?: number };
 
@@ -134,6 +140,14 @@ export function GameScreen({
   // Drugi dodir koji je stigao dok sto animira prethodni potez (QA P6).
   const [queuedPlayId, setQueuedPlayId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /*
+   * Karta koja je otišla iz ruke na dodir, prije nego što server potvrdi
+   * (`flyCardFromHand`). Ruka je ne crta; vraća se samo ako server odbije.
+   * `toCenter`: duh je doletio na sredinu stola, pa prava karta tamo samo
+   * slegne (`landFrom = "self"`), umjesto da ponovo dolijeće odozdo.
+   */
+  const [outgoing, setOutgoing] = useState<{ cardId: string; toCenter: boolean } | null>(null);
+  const ghostRef = useRef<OutgoingCard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -186,7 +200,15 @@ export function GameScreen({
 
   // Potez kao slijed na stolu, ne kao panel preko njega (vidi `useTableBeat`).
   const beat = useTableBeat(state, {
-    onLand: () => playSfx("place"),
+    onLand: (m) => {
+      if (m.byMe) {
+        // Prava karta je na stolu — duh je odradio svoje.
+        ghostRef.current?.release();
+        ghostRef.current = null;
+      }
+      // Moj dodir je već odsvirao spuštanje (`play`); dvaput bi zvučalo kao eho.
+      if (!m.byMe || m.isAutoPlay) playSfx("place");
+    },
     onCollect: (m) => {
       setFlash((f) => ({ key: f.key + 1, sweep: m.jackSweep }));
       playSfx(m.jackSweep ? "sweep" : "capture");
@@ -304,6 +326,16 @@ export function GameScreen({
   // Ruka prima: izbor karte ne zavisi od stola, a drugi dodir čeka u redu
   // (`queuedPlayId`) dok se sto ne smiri (QA P6, `lib/handTap.ts`).
   const tableBusy = beat.phase !== "idle";
+  // Karta koja je otišla više nije u ruci i njen potez je odigran na stolu →
+  // nema šta da se pamti. Do tada `landFrom` mora ostati stabilan (vidi dolje).
+  if (
+    outgoing !== null &&
+    !busy &&
+    !tableBusy &&
+    !state.myHand.some((c) => c.id === outgoing.cardId)
+  ) {
+    setOutgoing(null);
+  }
   if (
     queuedPlayId !== null &&
     (!myTurn || !state.myHand.some((c) => c.id === queuedPlayId))
@@ -388,22 +420,50 @@ export function GameScreen({
   // Isto za Back u pregledaču (web); u aplikaciji to radi stek iznad.
   useBrowserBackGuard(!isNative, matchLive && !!onLeave, () => requestLeave?.());
 
-  const closeDetails = useCallback(() => setDetailsOpen(false), []);
+  const closeDetails = useCallback(() => setDetailsOpen(false), [setDetailsOpen]);
 
   async function play(cardId: string, captureIds: string[]) {
     if (busy) return;
     setBusy(true);
     setError(null);
     setDetailsOpen(false);
+    // Odziv ODMAH, ne kad se server javi: zvuk, vibracija i karta kreće iz
+    // ruke. Dok sto još animira tuđi potez, duh staje na ivicu stola da ne
+    // pokrije ono što igrač gleda; prava karta sleti kad dođe njen red.
+    playSfx("place");
+    vibrate(HAPTIC.play);
+    const toCenter = !tableBusy;
+    ghostRef.current?.release();
+    ghostRef.current = flyCardFromHand(cardId, toCenter); // mjeri PRIJE skrivanja
+    setOutgoing({ cardId, toCenter });
+    setSelectedId(null);
+    const sendBack = () => {
+      // Karta se vraća u ruku tamo odakle je krenula.
+      const backMs = ghostRef.current?.returnHome() ?? 0;
+      ghostRef.current = null;
+      setTimeout(() => setOutgoing((o) => (o?.cardId === cardId ? null : o)), backMs);
+    };
+    // Odgovor koji ne stiže (veza pala usred poteza): karta ne smije ostati
+    // nevidljiva. Ako potez ipak prođe kasnije, snapshot je skine iz ruke.
+    const stall = setTimeout(sendBack, PLAY_STALL_MS);
     try {
       await onPlayCard(cardId, captureIds);
-      setSelectedId(null);
     } catch (e) {
+      sendBack(); // odbijeno
       setError(e instanceof Error ? e.message : "Greška");
     } finally {
+      clearTimeout(stall);
       setBusy(false);
     }
   }
+  // Ekran koji se zatvori dok duh leti ne smije ostaviti kartu na `body`-ju.
+  useEffect(
+    () => () => {
+      ghostRef.current?.release();
+      ghostRef.current = null;
+    },
+    [],
+  );
 
   function handleCapture(option: CaptureOption) {
     if (tableCard) void play(tableCard.id, option.cardIds);
@@ -426,6 +486,9 @@ export function GameScreen({
     if (tap.kind === "select") {
       setSelectedId(tap.cardId);
       setQueuedPlayId(null);
+      // Potvrda dodira — tiha, jer je ovo izbor, ne potez.
+      playSfx("lift");
+      vibrate(HAPTIC.lift);
     } else if (tap.kind === "queue") {
       setQueuedPlayId(tap.cardId);
     } else if (tap.kind === "play") {
@@ -548,7 +611,12 @@ export function GameScreen({
     justPlayed && beat.cards.some((c) => c.id === justPlayed.id)
       ? [justPlayed.id]
       : [];
-  const landFrom = landDirection(beat.seatId ?? state.lastMove?.playerId);
+  // Moj potez čiji duh već stoji na sredini stola: karta se samo slegne.
+  // `outgoing` živi do kraja beat-a, pa se smjer ne mijenja usred slijetanja.
+  const landFrom: LandFrom =
+    outgoing?.toCenter && beat.seatId === state.myPlayerId
+      ? "self"
+      : landDirection(beat.seatId ?? state.lastMove?.playerId);
 
   // Natpis uz sjedište onoga ko je upravo odigrao. Atribuciju primarno nosi
   // POKRET — karte lete ka njegovom sjedištu; natpis je potvrda, ne nosilac.
@@ -794,11 +862,18 @@ export function GameScreen({
           dijeli dvaput. Ne vraćati ga. */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 pb-safe-bottom z-20">
         <PlayerHand
-          cards={dealHold ? [] : state.myHand}
-          selectedCardId={selectedId}
-          disabledCardIds={
-            myTurn && !busy ? [] : state.myHand.map((card) => card.id)
+          cards={
+            dealHold
+              ? []
+              : outgoing
+                ? state.myHand.filter((c) => c.id !== outgoing.cardId)
+                : state.myHand
           }
+          selectedCardId={selectedId}
+          /* Bez sivljenja dok se čeka server (`busy`): karta je već otišla, a
+             siva ruka je djelovala kao zamrznut ekran. Dodir tada ionako ne
+             radi ništa (`decideHandTap` → ignore). */
+          disabledCardIds={myTurn ? [] : state.myHand.map((card) => card.id)}
           onSelect={handleSelect}
         />
       </div>

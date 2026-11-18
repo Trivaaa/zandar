@@ -30,8 +30,19 @@ describe("decideHandTap — dok sto animira prethodni potez (QA P6)", () => {
     assert.deepEqual(decideHandTap(input({ tableBusy: true })), { kind: "select", cardId: FIVE.id });
   });
 
-  test("drugi dodir iste karte ide u red, ne igra nad starim stolom", () => {
+  test("drugi dodir jednoznačne karte igra ODMAH, ne čeka kraj animacije", () => {
     const tap = decideHandTap(input({ tableBusy: true, selectedId: FIVE.id, table: [TK] }));
+    assert.deepEqual(tap, { kind: "play", cardId: FIVE.id, captureIds: [] });
+  });
+
+  test("odluka ide po PRAVOM stolu: force-capture se ne pretvara u bacanje", () => {
+    // Protivnik je upravo bacio devetku (još leti), na pravom stolu je kupljenje.
+    const tap = decideHandTap(input({ card: NINE, tableBusy: true, selectedId: NINE.id, table: [T9, TK] }));
+    assert.deepEqual(tap, { kind: "play", cardId: NINE.id, captureIds: [T9.id] });
+  });
+
+  test("više kupljenja dok sto radi → red, izbor grupe tek na mirnom stolu", () => {
+    const tap = decideHandTap(input({ tableBusy: true, selectedId: FIVE.id, table: [T5h, T5s] }));
     assert.deepEqual(tap, { kind: "queue", cardId: FIVE.id });
   });
 

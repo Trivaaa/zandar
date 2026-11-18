@@ -2303,3 +2303,22 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Stari APK (1.4.4):** pravilo je na serveru; stara aplikacija na mrtvoj karti vidi samo dugme „Dalje”, bez upute.
 
 **Nije provjereno na uređaju.** Server mora na deploy (pravilo je u motoru).
+
+## 187. Žandar — karta kreće na dodir, bez čekanja servera (2026-11-18, `feat/tap-odziv`)
+
+**Povod:** igrači kažu da poslije dodira na kartu „kao da duže traje". Server nije usko grlo (~1–5 ms), već klijent: poslije drugog dodira ništa se nije micalo dok se odgovor ne vrati iz `iad` (~130 ms + render + 260 ms slijetanja), a jedini znak dodira je bilo sivljenje cijele ruke na 0.4 — djelovalo je kao zamrznut ekran. Drugi dodir dok protivnikov potez još animira (QA P6, changelog 106) se nije ni SLAO dok animacija ne završi: +780 ms (bacanje) / +1045 ms (kupljenje).
+
+**Šta:**
+- **Karta poleti iz ruke odmah** (`flyCardFromHand` u `flyAnimation.ts`): duh na `body`-ju, ruka kartu sakrije i ponovo se raširi. Na mirnom stolu duh ide na sredinu, pa prava karta tamo samo slegne (`landFrom = "self"`, nova CSS varijanta za `.table__slot--landing` i `.table__played`). Dok sto još animira tuđi potez, duh staje na donju ivicu stola da ne pokrije kupljenje koje igrač gleda. Server je i dalje jedini sudija: odbijen potez vraća kartu u ruku letom unazad, a odgovor koji ne stigne za 5 s (pad veze) takođe (`PLAY_STALL_MS`).
+- **Ruka se više ne sivi dok se čeka server** — samo kad nije tvoj red.
+- **Zvuk i vibracija na dodir:** podizanje = tihi klik (`lift`) + 8 ms, potez = `place` + 14 ms. `place` pri slijetanju MOG poteza se preskače (bio bi eho); auto-potez ga zadržava.
+- **Drugi dodir dok sto animira šalje potez ODMAH**, računat nad pravim `state.table` (force-capture se ne gubi). U red ide samo dodir kojem treba izbor grupe — to traži miran sto.
+- **`useTableBeat` ima red snapshota:** potez koji stigne usred beat-a više ne prekida tuđi let (ranije je sto skakao), nego čeka svoj red; sto za to vrijeme crta PRIKAZANO stanje. Pauza/prekid ne čeka. Najviše 4 u redu (botovi igraju najranije za 1,5 s, pa se red u praksi ne puni). `seen` je tačno zadnja primljena verzija, ne maksimum — nova partija kreće od manje verzije, a maksimum bi pri renderu petljao.
+- **Podizanje karte** 260 ms sa odskokom → 150 ms bez odskoka (`--t-card-lift`, važi i za Poker/Raub).
+- **Socket ide pravo na WebSocket** (`transports: ["websocket", "polling"]` + `tryAllTransports`), bez long-polling koraka pri (re)konektu.
+
+**Mjereno** (CDP, headless Chrome 390×844, lokalni server, partija 1v1 protiv bota): duh i nestanak karte iz ruke **4–7 ms** poslije dodira, u svim slučajevima. Dodir tokom protivnikovog beat-a: server potvrdi za 5–16 ms (ranije poslato tek poslije ~0,8–1 s), karta sleti kad protivnikov let završi (640–1090 ms), bez prekidanja. Pad veze usred poteza: karta se vrati u ruku za 5,2 s, a kad se veza vrati potez prođe. Snimci potvrđuju da duh na ivici ne pokriva tuđe kupljenje. Chrome-ova emulacija latencije ne usporava WebSocket okvire, pa je dobitak protiv `iad` procjena: ~400–480 ms do prvog pokreta → ~5 ms. web 259 testova (+9: red snapshota, slanje odmah, force-capture), typecheck, lint = osnovica, `next build`.
+
+**Nije dirano:** dva dodira po potezu ostaju (odluka vlasnika). Odbrojavanje i dalje renderuje sto 4×/s (izdvajanje bi diralo `PlayerSeat`/`TurnBanner` koje dijele Poker i Raub; dodir nije tu usko grlo). Selidba servera u EU region (`iad` → EU, RTT ~130 → ~35 ms) je zasebna stavka.
+
+**Nije provjereno na uređaju.** Na S10e provjeriti: vibracija na dodir (`VIBRATE` je u manifestu, `navigator.vibrate` u WebView-u), osjećaj leta od ruke do stola, i da se nijedan dodir ne gubi (mjerenje iz QA P6).

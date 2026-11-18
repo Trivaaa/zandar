@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import type { Card, GamePhase, PrivateGameStateView } from "@zandar/shared-types";
-import { decideBeat } from "./useTableBeat";
+import { decideBeat, drainQueue, initialTracked, receiveSnapshot } from "./useTableBeat";
 
 const card = (suit: Card["suit"], rank: Card["rank"]): Card =>
   ({ id: `${rank}-${suit}`, suit, rank }) as Card;
@@ -133,5 +133,72 @@ describe("decideBeat", () => {
 
   test("kraj ruke bez poteza: nema šta da se pokaže", () => {
     assert.equal(decideBeat(prev, view("hand_finished", {})), null);
+  });
+});
+
+describe("red snapshota — tuđi beat se ne prekida mojim potezom", () => {
+  const T4 = card("clubs", "K");
+  const MINE = card("hearts", "K");
+  const base = view("playing", { table: [T1, T2, T3], stateVersion: 1 });
+  // p1 kupi dvije petice; zatim ja kupim kralja koji je bio na stolu.
+  const s2 = view("playing", {
+    table: [T3, T4],
+    stateVersion: 2,
+    lastMove: { ...move("p1", [T1, T2]), moveId: "a" },
+  });
+  const s3 = view("playing", {
+    table: [T3],
+    stateVersion: 3,
+    lastMove: { moveId: "b", playerId: "me", playedCard: MINE, capturedCards: [T4], isAutoPlay: false },
+  });
+
+  test("miran sto: potez kreće odmah", () => {
+    const t = receiveSnapshot(initialTracked(base), s2);
+    assert.equal(t.version, 2);
+    assert.equal(t.beat?.moveId, "a");
+    assert.equal(t.queue.length, 0);
+  });
+
+  test("potez usred beat-a čeka u redu, sto ostaje na prikazanom", () => {
+    const busy = receiveSnapshot(initialTracked(base), s2);
+    const t = receiveSnapshot(busy, s3);
+    assert.equal(t.beat?.moveId, "a", "tuđi beat nije prekinut");
+    assert.equal(t.version, 2);
+    assert.equal(t.seen, 3);
+    assert.deepEqual(t.queue.map((q) => q.stateVersion), [3]);
+  });
+
+  test("kraj beat-a pušta sljedeći, nad stolom koji je bio prikazan", () => {
+    const busy = receiveSnapshot(receiveSnapshot(initialTracked(base), s2), s3);
+    const t = drainQueue({ ...busy, beat: null, phase: "idle" });
+    assert.equal(t.beat?.moveId, "b");
+    assert.equal(t.beat?.byMe, true);
+    assert.deepEqual(t.beat?.heldTable, [T3, T4]);
+    assert.equal(t.version, 3);
+    assert.equal(t.queue.length, 0);
+  });
+
+  test("snapshot bez novog poteza prolazi odmah pri pražnjenju", () => {
+    const busy = receiveSnapshot(initialTracked(base), s2);
+    const same = { ...s2, stateVersion: 3 } as PrivateGameStateView;
+    const t = drainQueue({ ...receiveSnapshot(busy, same), beat: null, phase: "idle" });
+    assert.equal(t.beat, null);
+    assert.equal(t.version, 3);
+  });
+
+  test("pauza ne čeka: snap na stvarno stanje, red se baca", () => {
+    const busy = receiveSnapshot(receiveSnapshot(initialTracked(base), s2), s3);
+    const paused = view("paused_for_reconnect", { table: [T3], stateVersion: 4 });
+    const t = receiveSnapshot(busy, paused);
+    assert.equal(t.beat, null);
+    assert.equal(t.phase, "idle");
+    assert.equal(t.queue.length, 0);
+    assert.equal(t.version, 4);
+  });
+
+  test("nova partija sa manjom verzijom: `seen` je tačno zadnja (bez petlje)", () => {
+    const busy = receiveSnapshot(initialTracked(base), s2);
+    const fresh = view("playing", { table: [], stateVersion: 1 });
+    assert.equal(receiveSnapshot(busy, fresh).seen, 1);
   });
 });

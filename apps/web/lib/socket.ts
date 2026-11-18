@@ -18,6 +18,11 @@ export function getSocket(): Socket {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 10,
+      // WebSocket odmah, bez HTTP long-polling koraka i nadogradnje: svaki
+      // (re)konekt je bio nekoliko puteva preko Atlantika prije prvog poteza.
+      // Polling ostaje rezerva kad mreža odbije WebSocket (`tryAllTransports`).
+      transports: ["websocket", "polling"],
+      tryAllTransports: true,
     });
   }
   return socket;

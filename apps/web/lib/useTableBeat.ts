@@ -77,6 +77,8 @@ export type BeatMoment = {
   kind: BeatKind;
   byMe: boolean;
   jackSweep: boolean;
+  /** Potez je odigrao server umjesto igrača (istekao sat) — nije bilo dodira. */
+  isAutoPlay: boolean;
 };
 
 export type TableBeatHandlers = {
@@ -211,8 +213,17 @@ export function decideBeat(prev: BeatPrev, next: PrivateGameStateView): Beat | n
 }
 
 type Tracked = {
-  /** `stateVersion` na koji je ovo stanje već odgovorilo. */
+  /** `stateVersion` snapshota koji sto trenutno PRIKAZUJE. */
   version: number;
+  /** Zadnji primljeni `stateVersion` (drugačiji od `version` dok red čeka). */
+  seen: number;
+  /**
+   * Snapshoti koji su stigli dok je beat trajao, po redu. Ranije je novi potez
+   * usred beat-a prekidao stari (sto skoči, let se ne vidi); otkad se moj potez
+   * šalje odmah, i dok protivnikov još leti, to bi bilo pravilo, ne izuzetak.
+   * Zato beat odigra do kraja, pa tek onda sljedeći.
+   */
+  queue: PrivateGameStateView[];
   /** Sto iz snapshota koji je nosio `version` — ulaz za SLJEDEĆU odluku. */
   prevTable: Card[];
   /** Potpis tog stola po sadržaju (vidi sinhronizaciju pri renderu). */
@@ -247,7 +258,8 @@ function advance(t: Tracked, state: PrivateGameStateView): Tracked {
   // njim. Kraj ruke NIJE ovdje — njegov zadnji potez dobija svoj beat.
   if (state.phase !== "playing" && !isHandEnd(state.phase)) {
     return {
-      version, prevTable, prevSig, prevCaptured,
+      version, seen: t.seen, queue: t.queue,
+      prevTable, prevSig, prevCaptured,
       beat: null, phase: "idle", caption: null, handled: t.handled,
     };
   }
@@ -257,7 +269,7 @@ function advance(t: Tracked, state: PrivateGameStateView): Tracked {
     return { ...t, version, prevTable, prevSig, prevCaptured };
   }
   return {
-    version, prevTable, prevSig, prevCaptured,
+    version, seen: t.seen, queue: t.queue, prevTable, prevSig, prevCaptured,
     beat: next,
     phase: "land",
     caption: {
@@ -272,6 +284,67 @@ function advance(t: Tracked, state: PrivateGameStateView): Tracked {
   };
 }
 
+/** Najviše snapshota koji čekaju beat; stariji se preskaču bez animacije. */
+const MAX_QUEUED = 4;
+
+/**
+ * Prikaži sljedeće iz reda dok god nema beat-a koji traje. Snapshot bez novog
+ * poteza (reakcija, veza, odbrojavanje) prođe odmah; prvi sa potezom pokrene
+ * beat i tu se staje.
+ */
+export function drainQueue(t: Tracked): Tracked {
+  let cur = t;
+  while (cur.beat === null && cur.queue.length > 0) {
+    const [head, ...rest] = cur.queue;
+    cur = advance({ ...cur, queue: rest }, head!);
+  }
+  return cur;
+}
+
+/** Stigao je snapshot: odmah ako je sto miran, inače u red iza beat-a. */
+export function receiveSnapshot(t: Tracked, state: PrivateGameStateView): Tracked {
+  // Tačno zadnja primljena, ne maksimum: nova partija kreće od manje verzije,
+  // a `seen !== stateVersion` pri renderu bi tada petljao u beskraj.
+  const seen = state.stateVersion;
+  // Pauza/prekid ne čeka: snap na stvarno stanje, red se baca (`advance`).
+  if (t.beat === null || (state.phase !== "playing" && !isHandEnd(state.phase))) {
+    return drainQueue(advance({ ...t, seen, queue: [] }, state));
+  }
+  let queue = [...t.queue, state];
+  let cur: Tracked = { ...t, seen };
+  // Preduga kolona: najstariji se preskoči — njegov sto postaje polazište
+  // sljedećeg, bez leta. Bolje propušten let nego sto koji zaostaje sekundama.
+  while (queue.length > MAX_QUEUED) {
+    const [old, ...rest] = queue;
+    queue = rest;
+    cur = {
+      ...cur,
+      prevTable: old!.table,
+      prevSig: sigOf(old!.table),
+      prevCaptured: old!.capturedCounts,
+      handled: old!.lastMove?.moveId ?? cur.handled,
+    };
+  }
+  return { ...cur, queue };
+}
+
+export function initialTracked(state: PrivateGameStateView): Tracked {
+  return {
+    version: state.stateVersion,
+    seen: state.stateVersion,
+    queue: [],
+    prevTable: state.table,
+    prevSig: sigOf(state.table),
+    prevCaptured: state.capturedCounts,
+    beat: null,
+    phase: "idle",
+    caption: null,
+    handled: null,
+  };
+}
+
+export type { Tracked as TrackedBeat };
+
 export function useTableBeat(
   state: PrivateGameStateView,
   handlers: TableBeatHandlers = {},
@@ -281,16 +354,7 @@ export function useTableBeat(
     handlersRef.current = handlers;
   });
 
-  const [tracked, setTracked] = useState<Tracked>(() => ({
-    version: state.stateVersion,
-    prevTable: state.table,
-    prevSig: sigOf(state.table),
-    prevCaptured: state.capturedCounts,
-    beat: null,
-    phase: "idle",
-    caption: null,
-    handled: null,
-  }));
+  const [tracked, setTracked] = useState<Tracked>(() => initialTracked(state));
 
   const tableSig = sigOf(state.table);
 
@@ -305,9 +369,13 @@ export function useTableBeat(
    * radi na serveru. Da radi, sto bi se razlikovao server/klijent = hydration
    * mismatch.
    */
-  if (tracked.version !== state.stateVersion) {
-    setTracked((t) => (t.version === state.stateVersion ? t : advance(t, state)));
-  } else if (tracked.beat === null && tracked.prevSig !== tableSig) {
+  if (tracked.seen !== state.stateVersion) {
+    setTracked((t) => (t.seen === state.stateVersion ? t : receiveSnapshot(t, state)));
+  } else if (
+    tracked.beat === null &&
+    tracked.version === state.stateVersion &&
+    tracked.prevSig !== tableSig
+  ) {
     /*
      * Isti `stateVersion`, drugi sto. U partiji se to ne dešava — server podigne
      * verziju na svaku izmjenu — ali se dešava svuda gdje state nije došao sa
@@ -336,13 +404,18 @@ export function useTableBeat(
     // Tajmer koji je preživio smjenu poteza ne smije da pomjeri novi beat.
     const to = (p: BeatPhase) =>
       setTracked((t) => (t.beat === beat ? { ...t, phase: p } : t));
+    // Kraj beat-a pušta sljedeći snapshot iz reda (ako ga ima) u ISTOM
+    // setState-u — nema kadra u kojem je sto "miran" između dva poteza.
     const end = () =>
-      setTracked((t) => (t.beat === beat ? { ...t, beat: null, phase: "idle" } : t));
+      setTracked((t) =>
+        t.beat === beat ? drainQueue({ ...t, beat: null, phase: "idle" }) : t,
+      );
 
     handlersRef.current.onLand?.({
       kind: beat.kind,
       byMe: beat.byMe,
       jackSweep: beat.jackSweep,
+      isAutoPlay: beat.isAutoPlay,
     });
 
     timers.push(setTimeout(() => to("hold"), landMs));
@@ -363,6 +436,7 @@ export function useTableBeat(
             // nije onaj ko je bacio.
             byMe: beat.collectSeatId === beat.seatId && beat.byMe,
             jackSweep: beat.jackSweep,
+            isAutoPlay: beat.isAutoPlay,
           });
           to("collect");
           const afterMs = flyMs > 0 ? flyMs : TAIL_MS;
@@ -410,9 +484,12 @@ export function useTableBeat(
 
   const holding = beat !== null && beat.hold && (phase === "land" || phase === "hold");
 
+  // Dok snapshot čeka u redu, sto crta ono što PRIKAZUJE, ne najnovije stanje.
+  const shown = tracked.version === state.stateVersion ? state.table : tracked.prevTable;
+
   return {
     phase,
-    cards: holding ? beat.heldTable : state.table,
+    cards: holding ? beat.heldTable : shown,
     // Trail (i onaj zadnji) kartu nosi u mreži, ne iznad nje.
     playedCard: holding && beat.kind === "capture" ? beat.playedCard : null,
     takenIds: holding ? beat.takenIds : [],

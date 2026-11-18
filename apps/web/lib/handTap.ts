@@ -8,10 +8,12 @@ import type { Card } from "@zandar/shared-types";
  * ~1 s animira njegov potez (`useTableBeat`). Ranije se svaki dodir u tom
  * prozoru bacao, pa se u ~30 % poteza prvi dodir „gubio" dok sat već teče.
  *
- * Izbor karte ne zavisi od stola, pa se prihvata uvijek. Izvršenje zavisi:
- * sto u animaciji crta ZADRŽANI raspored, a opcije se računaju po novom
- * `state.table` — zato drugi dodir tada ide u RED i izvršava se kad se sto
- * smiri (`resolveQueuedPlay`), i to samo kad je ishod jednoznačan.
+ * Izbor karte ne zavisi od stola, pa se prihvata uvijek. Drugi dodir dok sto
+ * još animira računa se nad PRAVIM `state.table` (ne nad zadržanim crtežom):
+ * kad je ishod jednoznačan, potez ide serveru ODMAH, a prikaz čeka svoj red
+ * iza tuđeg beat-a (`useTableBeat`). Ranije je i slanje čekalo kraj animacije,
+ * pa je dodir kasnio i do ~1 s plus put do servera. U RED (`queue`) ide samo
+ * dodir kojem treba izbor grupe — taj izbor traži miran sto.
  *
  * Klijent ni ovdje ne odlučuje o legalnosti: `play` samo predlaže potez koji
  * server provjerava (HARD RULE 1).
@@ -31,6 +33,7 @@ export type HandTapInput = {
   busy: boolean;
   /** Sto još animira prethodni potez. */
   tableBusy: boolean;
+  /** PRAVI sto (`state.table`), ne ono što beat trenutno crta. */
   table: Card[];
 };
 
@@ -47,8 +50,9 @@ export function decideHandTap(input: HandTapInput): HandTap {
   const { card, selectedId, myTurn, busy, tableBusy, table } = input;
   if (!myTurn || busy) return { kind: "ignore" };
   if (selectedId !== card.id) return { kind: "select", cardId: card.id };
-  if (tableBusy) return { kind: "queue", cardId: card.id };
-  return playOrChoose(card, table);
+  const tap = playOrChoose(card, table);
+  if (tableBusy && tap.kind === "choose") return { kind: "queue", cardId: card.id };
+  return tap;
 }
 
 export type QueuedPlay =

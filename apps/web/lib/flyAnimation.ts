@@ -241,3 +241,125 @@ export function dealFromDeck(perSeat: number, toTable: number): number {
   }
   return order > 0 ? (order - 1) * DEAL_STEP_MS + DEAL_FLIGHT_MS : 0;
 }
+
+/* ------------------------------------------------------------------ *
+ * Moj potez — karta odmah krene iz ruke, prije odgovora servera
+ * ------------------------------------------------------------------ */
+
+const PLAY_OUT_MS = 200;
+const PLAY_BACK_MS = 220;
+const PLAY_FADE_MS = 140;
+/**
+ * Duh nikad ne ostaje zauvijek. Pozivatelj ga vraća u ruku ranije (5 s bez
+ * odgovora, `GameScreen`); ovo je samo zadnja straža da ne ostane na `body`-ju.
+ */
+const PLAY_MAX_LIFE_MS = 8000;
+
+export type OutgoingCard = {
+  /** Pravi potez je stigao: duh se ugasi (prava karta slijeće na isto mjesto). */
+  release: () => void;
+  /** Server je odbio: duh se vrati u ruku. Vraća trajanje povratka (ms). */
+  returnHome: () => number;
+};
+
+/**
+ * Karta iz ruke poleti ka stolu ODMAH na dodir. Ranije se ništa nije micalo
+ * dok se odgovor servera ne vrati (~130 ms tamo-nazad do `iad`, plus render),
+ * a jedini znak dodira je bilo sivljenje cijele ruke — djelovalo je kao da
+ * se aplikacija zamrzla.
+ *
+ * Duh, a ne prava karta: ruka kartu odmah sakrije i ponovo se raširi, a duh
+ * leti preko svega (`document.body`). `toCenter`: na sredinu stola, tamo gdje
+ * će sletjeti; inače (sto još animira tuđi potez) samo do donje ivice stola,
+ * da ne pokrije kupljenje koje igrač upravo gleda.
+ *
+ * Server je i dalje jedini sudija — duh je samo prikaz, i vraća se ako potez
+ * bude odbijen. `null` kad leta nema (reduced-motion, karta van DOM-a).
+ */
+export function flyCardFromHand(cardId: string, toCenter: boolean): OutgoingCard | null {
+  if (prefersReducedMotion() || typeof document === "undefined") return null;
+  const cardEl = document.querySelector<HTMLElement>(
+    `.hand [data-card-id="${CSS.escape(cardId)}"]`,
+  );
+  const dropEl = document.querySelector<HTMLElement>("[data-table-drop]");
+  if (!cardEl || !dropEl) return null;
+  const rect = cardEl.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return null;
+
+  const from = centerOf(rect);
+  const drop = dropEl.getBoundingClientRect();
+  const to = toCenter
+    ? centerOf(drop)
+    : { x: drop.left + drop.width / 2, y: drop.bottom - rect.height * 0.35 };
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+
+  const ghost = makeGhost(from, rect.width, rect.height, faceArtOf(cardEl));
+  const base = "translate(-50%, -50%)";
+  let anim: Animation | null = null;
+  try {
+    anim = ghost.animate(
+      [
+        { transform: `${base} translate(0, 0) scale(1.04)` },
+        { transform: `${base} translate(${dx}px, ${dy}px) scale(1) rotate(-4deg)` },
+      ],
+      { duration: PLAY_OUT_MS, easing: "cubic-bezier(0.2, 0.7, 0.3, 1)", fill: "forwards" },
+    );
+  } catch {
+    ghost.remove();
+    return null;
+  }
+
+  let done = false;
+  const life = setTimeout(() => finish(), PLAY_MAX_LIFE_MS);
+  function finish() {
+    if (done) return;
+    done = true;
+    clearTimeout(life);
+    ghost.remove();
+  }
+  function then(keyframes: Keyframe[], ms: number) {
+    if (done) return;
+    // Let koji još traje (odgovor brži od 200 ms) se ne prekida skokom:
+    // gašenje počne tamo gdje je duh sada, a ne na odredištu.
+    if (anim && anim.playState === "running") {
+      try {
+        anim.commitStyles();
+        keyframes = keyframes.slice(1);
+      } catch {
+        // commitStyles baca na elementu bez rendera — onda od odredišta.
+      }
+    }
+    anim?.cancel();
+    anim = null;
+    try {
+      const a = ghost.animate(keyframes, { duration: ms, easing: "ease-out", fill: "forwards" });
+      a.onfinish = finish;
+      a.oncancel = finish;
+    } catch {
+      finish();
+    }
+  }
+
+  return {
+    release() {
+      then(
+        [
+          { transform: `${base} translate(${dx}px, ${dy}px) scale(1) rotate(-4deg)`, opacity: 1 },
+          { transform: `${base} translate(${dx}px, ${dy}px) scale(1) rotate(-4deg)`, opacity: 0 },
+        ],
+        PLAY_FADE_MS,
+      );
+    },
+    returnHome() {
+      then(
+        [
+          { transform: `${base} translate(${dx}px, ${dy}px) scale(1) rotate(-4deg)` },
+          { transform: `${base} translate(0, 0) scale(1)` },
+        ],
+        PLAY_BACK_MS,
+      );
+      return done ? 0 : PLAY_BACK_MS;
+    },
+  };
+}

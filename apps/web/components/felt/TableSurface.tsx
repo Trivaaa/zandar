@@ -7,7 +7,8 @@ import { vibrate, HAPTIC } from "@/lib/haptics";
 import { sr } from "@/lib/sr";
 import type { Card, CaptureOption, CaptureReason } from "@/components/felt/types";
 
-export type LandFrom = "bottom" | "top" | "left" | "right";
+/** `self`: moj potez čiji je duh već na sredini stola — karta se samo slegne. */
+export type LandFrom = "bottom" | "top" | "left" | "right" | "self";
 
 export type TableSurfaceProps = {
   cards: Card[];

@@ -144,6 +144,9 @@
 
   /* Motion trajanja — po gestu, podešava se nezavisno */
   --t-card-play:     260ms;
+  /* Podizanje karte na dodir: kratko i bez odskoka — dodir mora djelovati
+     trenutno (ranije je dijelilo `--t-card-play` 260ms sa `--ease-snap`). */
+  --t-card-lift:     150ms;
   --t-card-deal:     180ms;
   --t-deal-stagger:  55ms;
   --t-card-flip:     200ms;
@@ -399,6 +402,7 @@
 @media (prefers-reduced-motion: reduce) {
   :root {
     --t-card-play:    1ms;
+    --t-card-lift:    1ms;
     --t-card-deal:    1ms;
     --t-deal-stagger: 1ms;
     --t-card-flip:    1ms;

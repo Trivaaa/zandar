@@ -12,6 +12,8 @@ import { getHaptics } from "./settings";
 
 /** Orijentacioni patterni (ms). Broj = jedan puls; niz = vibracija/pauza/vibracija. */
 export const HAPTIC = {
+  lift: 8, // podizanje karte — jedva osjetno, samo potvrda dodira
+  play: 14, // karta krenula na sto
   turn: 25,
   capture: [12, 30, 18],
   news: 15, // jedna laka: mala ili velika kod našeg tima
