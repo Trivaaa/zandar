@@ -49,7 +49,7 @@ import { useTableBeat } from "@/lib/useTableBeat";
 import { dealFromDeck, flyCardFromHand, type OutgoingCard } from "@/lib/flyAnimation";
 import { prefersReducedMotion } from "@/lib/motion";
 import { useCountdown } from "@/lib/useCountdown";
-import { decideHandTap, resolveQueuedPlay } from "@/lib/handTap";
+import { decideHandDrop, decideHandTap, resolveQueuedPlay, type DropTarget } from "@/lib/handTap";
 import type { ActiveReaction } from "@/lib/reactions";
 
 /**
@@ -496,6 +496,30 @@ export function GameScreen({
     }
   }
 
+  // Prevlačenje: karta se podigne čim krene (sto pokaže grupe kupljenja), a
+  // spuštanje je isto što i drugi tap — vidi `decideHandDrop`.
+  const preDragSelectedRef = useRef<string | null>(null);
+  function handleDragStart(card: CardType) {
+    preDragSelectedRef.current = selectedId;
+    setSelectedId(card.id);
+    setQueuedPlayId(null);
+  }
+  function handleDragCancel() {
+    setSelectedId(preDragSelectedRef.current);
+  }
+  function handleDrop(card: CardType, target: DropTarget) {
+    const drop = decideHandDrop({ card, target, myTurn, busy, tableBusy, table: state.table });
+    if (drop.kind === "ignore") {
+      handleDragCancel();
+    } else if (drop.kind === "queue") {
+      setSelectedId(drop.cardId);
+      setQueuedPlayId(drop.cardId);
+    } else if (drop.kind === "play") {
+      void play(drop.cardId, drop.captureIds);
+    }
+    // "choose": karta ostaje podignuta, traka traži izbor grupe na stolu.
+  }
+
   // Zapamćen drugi dodir se izvršava nad PRAVIM stolom čim beat završi.
   const runQueuedPlay = useEffectEvent((cardId: string) => {
     setQueuedPlayId(null);
@@ -777,7 +801,7 @@ export function GameScreen({
           width: "calc(100% - 2 * var(--seat-gutter))",
         }}
       >
-        <div data-table-drop className="relative h-full w-full">
+        <div data-table-drop data-drag-target className="relative h-full w-full">
           <TableSurface
             cards={beat.cards}
             takenCardIds={beat.takenIds}
@@ -875,6 +899,9 @@ export function GameScreen({
              radi ništa (`decideHandTap` → ignore). */
           disabledCardIds={myTurn ? [] : state.myHand.map((card) => card.id)}
           onSelect={handleSelect}
+          onDragStart={handleDragStart}
+          onDragDrop={handleDrop}
+          onDragCancel={handleDragCancel}
         />
       </div>
 

@@ -376,6 +376,55 @@
   z-index: 2;
 }
 
+/* Prevlačenje karte (`useCardDrag`) — druga opcija uz tap.
+   `touch-action: none` SAMO na karti koja se smije vući: inače WebView prst
+   shvati kao skrol i opali `pointercancel` usred poteza. Ostatak ruke zadržava
+   `manipulation` (bez kašnjenja dvostrukog dodira). */
+.hand[data-draggable] .card[data-selectable="true"] {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Original ostaje na mjestu kao sjena — ruka se ne preslaže dok karta putuje. */
+.hand .card[data-dragging] {
+  opacity: 0.3;
+  transition: opacity var(--t-card-flip) linear;
+}
+
+/* Duh (pravi ga `makeGhost`, na `document.body`). Pomjera se samo `transform`. */
+.card-drag-ghost {
+  box-shadow: 0 10px 22px color-mix(in oklab, var(--surface) 75%, transparent) !important;
+  z-index: 80 !important;
+}
+
+/* Meta pod kartom. Sto: tihi prsten preko cijele kutije (samo opacity). */
+[data-drag-target]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--turn-active) 70%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-card-flip) var(--ease-out-soft);
+}
+
+[data-drag-target][data-drag-hover]::after {
+  opacity: 1;
+}
+
+/* Grupa kupljenja pod kartom: isto kao izabrana. */
+.table__group[data-drag-hover] {
+  border-color: var(--turn-active);
+  transform: translateY(-0.15rem);
+}
+
+.table__slot[data-drag-hover] .table__glow {
+  opacity: 1;
+}
+
 .hand__empty {
   display: flex;
   align-items: center;

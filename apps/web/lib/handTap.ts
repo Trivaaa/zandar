@@ -67,3 +67,29 @@ export function resolveQueuedPlay(cardId: string, hand: Card[], table: Card[]): 
   const tap = playOrChoose(card, table);
   return tap.kind === "play" ? tap : { kind: "choose" };
 }
+
+/**
+ * Gdje je karta spuštena prevlačenjem: na konkretnu grupu kupljenja
+ * (`optionId`) ili bilo gdje na sto.
+ */
+export type DropTarget = { kind: "table" } | { kind: "option"; optionId: string };
+
+export type HandDropInput = Omit<HandTapInput, "selectedId"> & { target: DropTarget };
+
+/**
+ * Prevlačenje je drugi tap izgovoren pokretom: ista pravila kao `decideHandTap`
+ * kad je karta već podignuta. Jedina razlika je grupa kupljenja — ako je
+ * karta spuštena tačno na nju, to je izbor te grupe. Sto u animaciji crta
+ * stari raspored, pa se tada i prevlačenje stavlja u RED (bez izbora grupe).
+ * Ni ovdje klijent ne odlučuje o legalnosti (HARD RULE 1).
+ */
+export function decideHandDrop(input: HandDropInput): HandTap {
+  const { card, target, myTurn, busy, tableBusy, table } = input;
+  if (!myTurn || busy) return { kind: "ignore" };
+  if (tableBusy) return { kind: "queue", cardId: card.id };
+  if (target.kind === "option") {
+    const option = getCaptureOptions(card, table).find((o) => o.optionId === target.optionId);
+    if (option) return { kind: "play", cardId: card.id, captureIds: option.cardIds };
+  }
+  return playOrChoose(card, table);
+}

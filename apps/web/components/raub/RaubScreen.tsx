@@ -367,6 +367,24 @@ export function RaubScreen({
     }
   }
 
+  // Prevlačenje (samo štih): spuštanje na sto je isto što i drugi tap.
+  // Odbacivanje i zamjena su izbor sa potvrdom, pa tamo ostaje samo tap.
+  const preDragPickRef = useRef<string[]>([]);
+  function onCardDragStart(card: Card) {
+    preDragPickRef.current = picked;
+    setPick({ v: state.stateVersion, ids: [card.id] });
+  }
+  function onCardDragCancel() {
+    setPick({ v: state.stateVersion, ids: preDragPickRef.current });
+  }
+  function onCardDrop(card: Card) {
+    if (panel.kind !== "play" || !selectable(card)) {
+      onCardDragCancel();
+      return;
+    }
+    void act({ type: "play", cardId: card.id });
+  }
+
   function reactionFor(id: string) {
     const r = [...activeReactions].reverse().find((x) => x.playerId === id);
     return r ? <ReactionBubble type={r.type as ReactionType} visible /> : undefined;
@@ -485,6 +503,7 @@ export function RaubScreen({
         {/* Kutija stola: talon (licitacija, zamjena) ili prostor štiha, adut u uglu. */}
         <div
           className="rb-table absolute left-1/2 -translate-x-1/2 z-10"
+          {...(panel.kind === "play" ? { "data-drag-target": true } : {})}
           style={{
             top: "var(--table-top)",
             bottom: "var(--table-bottom)",
@@ -558,6 +577,9 @@ export function RaubScreen({
               dimmedCardIds={dimmedIds}
               idle={!picking}
               onSelect={onCard}
+              {...(panel.kind === "play"
+                ? { onDragStart: onCardDragStart, onDragDrop: onCardDrop, onDragCancel: onCardDragCancel }
+                : {})}
             />
           ) : null}
         </div>

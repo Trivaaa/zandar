@@ -678,7 +678,11 @@ export default function DevGamePage() {
         })}
         {...(url.chooser ? { initialSelectedCardId: "clubs-7" } : {})}
         tableTheme={url.table}
-        onPlayCard={noop}
+        onPlayCard={async (cardId: string, captureIds: string[]) => {
+          // Zapis za headless provjeru (tap i prevlačenje šalju isti potez).
+          const w = window as unknown as { __devPlays?: unknown[] };
+          (w.__devPlays ??= []).push({ cardId, captureIds });
+        }}
         onNextHand={noop}
         onRematch={noop}
         onReact={noop}

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import type { Card } from "@zandar/shared-types";
-import { decideHandTap, resolveQueuedPlay, type HandTapInput } from "./handTap";
+import { decideHandDrop, decideHandTap, resolveQueuedPlay, type HandDropInput, type HandTapInput } from "./handTap";
 
 const card = (suit: Card["suit"], rank: Card["rank"]): Card =>
   ({ id: `${rank}-${suit}`, suit, rank }) as Card;
@@ -96,5 +96,56 @@ describe("resolveQueuedPlay — izvršenje kad se sto smiri", () => {
 
   test("karta više nije u ruci → red se odbacuje", () => {
     assert.deepEqual(resolveQueuedPlay(FIVE.id, [NINE], [TK]), { kind: "drop" });
+  });
+});
+
+describe("decideHandDrop — prevlačenje karte na sto", () => {
+  const drop = (over: Partial<HandDropInput>): HandDropInput => ({
+    card: FIVE,
+    target: { kind: "table" },
+    myTurn: true,
+    busy: false,
+    tableBusy: false,
+    table: [],
+    ...over,
+  });
+
+  test("na sto bez kupljenja → baci kartu (trail)", () => {
+    assert.deepEqual(decideHandDrop(drop({ table: [TK] })), {
+      kind: "play",
+      cardId: FIVE.id,
+      captureIds: [],
+    });
+  });
+
+  test("na sto sa jednim kupljenjem → kupi (prisilno nošenje, nikad trail)", () => {
+    assert.deepEqual(decideHandDrop(drop({ table: [T5h, TK] })), {
+      kind: "play",
+      cardId: FIVE.id,
+      captureIds: [T5h.id],
+    });
+  });
+
+  test("na sto sa više kupljenja → izbor grupe", () => {
+    assert.deepEqual(decideHandDrop(drop({ table: [T5h, T5s] })), { kind: "choose" });
+  });
+
+  test("na konkretnu grupu → kupi baš tu grupu", () => {
+    const tap = decideHandDrop(drop({ table: [T5h, T5s], target: { kind: "option", optionId: `rank-${T5s.id}` } }));
+    assert.deepEqual(tap, { kind: "play", cardId: FIVE.id, captureIds: [T5s.id] });
+  });
+
+  test("nepoznata grupa → kao spuštanje na sto", () => {
+    const tap = decideHandDrop(drop({ card: NINE, table: [T9], target: { kind: "option", optionId: "nema" } }));
+    assert.deepEqual(tap, { kind: "play", cardId: NINE.id, captureIds: [T9.id] });
+  });
+
+  test("dok sto animira → u red", () => {
+    assert.deepEqual(decideHandDrop(drop({ tableBusy: true, table: [TK] })), { kind: "queue", cardId: FIVE.id });
+  });
+
+  test("nije moj potez ili se čeka server → ništa", () => {
+    assert.equal(decideHandDrop(drop({ myTurn: false })).kind, "ignore");
+    assert.equal(decideHandDrop(drop({ busy: true })).kind, "ignore");
   });
 });

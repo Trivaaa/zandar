@@ -225,7 +225,7 @@ Istorija urađenog (šta, zašto, mjerenja, zamke) je u **`docs/CHANGELOG.md`** 
 
 Sažetak iz changeloga — pravila koja su već koštala; detalji i mjerenja su u `docs/CHANGELOG.md`.
 
-- **UI rad je SAMO za web (od 15.11.2026, odluka vlasnika):** aplikacija se ne dira. Svaka razlika ide kroz build konstantu `isNative`; prije izmjene dijeljene komponente provjeri da je APK ne vidi (`build:mobile` → izvezen `index.html`).
+- **UI rad je SAMO za web (od 15.11.2026, odluka vlasnika):** aplikacija se ne dira. Izuzetak: prevlačenje karata (`useCardDrag`, changelog 188) je namjerno i u aplikaciji (odluka vlasnika 18.11.2026). Svaka razlika ide kroz build konstantu `isNative`; prije izmjene dijeljene komponente provjeri da je APK ne vidi (`build:mobile` → izvezen `index.html`).
 - **Kaskada:** ručni CSS je u `layer(components)`, pa utility na istom elementu uvijek pobjeđuje. Ako CSS drži tipografiju ili boju stanja, JSX ne smije nositi `text-*`/konkurentnu utility klasu. Ime klase ne smije biti i Tailwind utility (`.table` → `.felt-table`).
 - **Hover na dodir:** ručni `:hover` ide u `@media (hover: hover)`; nikad neslojevit `revert` (vraća pregledačevu boju linka — B13, changelog 103).
 - **Animira se samo `transform` i `opacity`.** Sjenke su pre-renderovane; trajanja su tokeni (`--t-*` kolapsira pod reduced-motion, `--d-*` ne).

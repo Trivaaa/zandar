@@ -174,6 +174,7 @@ export function TableSurface({
                   }`}
                   {...(taken ? { "data-collect-card": true } : {})}
                   data-option-id={option?.optionId}
+                  {...(tappable && single ? { "data-drag-option": single.optionId } : {})}
                   data-option-selected={inSelected}
                   role={tappable ? "button" : undefined}
                   tabIndex={tappable ? 0 : undefined}
@@ -220,6 +221,7 @@ export function TableSurface({
                 key={option.optionId}
                 className="table__group"
                 data-option-id={option.optionId}
+                data-drag-option={option.optionId}
                 data-option-selected={option.optionId === selectedOptionId}
                 role="button"
                 tabIndex={0}

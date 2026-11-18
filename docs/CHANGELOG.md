@@ -2322,3 +2322,38 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Nije dirano:** dva dodira po potezu ostaju (odluka vlasnika). Odbrojavanje i dalje renderuje sto 4×/s (izdvajanje bi diralo `PlayerSeat`/`TurnBanner` koje dijele Poker i Raub; dodir nije tu usko grlo). Selidba servera u EU region (`iad` → EU, RTT ~130 → ~35 ms) je zasebna stavka.
 
 **Nije provjereno na uređaju.** Na S10e provjeriti: vibracija na dodir (`VIBRATE` je u manifestu, `navigator.vibrate` u WebView-u), osjećaj leta od ruke do stola, i da se nijedan dodir ne gubi (mjerenje iz QA P6).
+
+## 188. Prevlačenje karata uz tap — Žandar i Raub, web i aplikacija (2026-11-18, `feat/card-drag`)
+
+**Šta:** igrači traže da kartu mogu i da prevuku na sto, kao u drugim igrama. Tap ostaje kakav jeste: prevlačenje je druga opcija, uvijek uključena, bez podešavanja. Žandar: ruka → sto ili ruka → konkretna grupa kupljenja. Raub: samo štih (faza igranja). Odbacivanje i zamjena su izbor sa potvrdom, pa tamo ostaje tap. Poker nema poteza kartama. **Svjesno odstupanje od pravila „UI samo za web“ (odluka vlasnika 18.11.2026):** ista izmjena ide i u aplikaciju, a tamo stiže tek novim paketom.
+
+**Kako:**
+- `lib/useCardDrag.ts` koristi Pointer Events i delegaciju na kontejneru ruke, bez biblioteke.
+  - `pointerdown` ništa ne pomjera. Prevlačenje počinje tek poslije 8 px (`DRAG_SLOP`). Ispod toga pregledač opali običan `click`, pa tap ide istim putem kao ranije. `click` poslije prevlačenja se proguta.
+  - Duh je `makeGhost` iz `flyAnimation`, a pomjera se samo njegov `transform`, u rAF-u. Mete se mjere na početku i još tri frejma (dok sto ne nacrta grupe za podignutu kartu). Pogodak ide nad zapamćenim pravougaonicima. React se ne renderuje dok karta putuje.
+  - Mete: `[data-drag-option]` (grupa kupljenja, ima prednost) i `[data-drag-target]` (sto). Pogođena meta dobija `data-drag-hover`.
+- Odluku donosi čista funkcija `decideHandDrop` u `lib/handTap.ts`, sa istim pravilima kao drugi tap:
+  - grupa → ta grupa;
+  - sto → trail, jedino kupljenje ili izbor grupe (prisilno nošenje nikad ne postaje trail);
+  - sto u animaciji → red (`resolveQueuedPlay`);
+  - nije moj potez → ništa.
+- Na početku prevlačenja karta se podigne, pa sto odmah pokaže grupe. Ako je puštena van mete, izbor se vraća na prethodni.
+- CSS: `touch-action: none` ide SAMO na karte koje se smiju vući (`.hand[data-draggable]`), inače WebView opali `pointercancel`. Haptika `pick`/`drop`.
+- `/dev/game` sad bilježi poteze u `window.__devPlays`, za headless provjeru.
+
+**Mjereno:**
+- Web testovi 259/259 (+7 za `decideHandDrop`). Typecheck čist, lint na osnovici.
+- Headless Chrome 390×844, CDP miš, 9/9:
+  - tap-tap igra;
+  - prevlačenje na sto šalje isti potez kao tap-tap;
+  - van stola nema poteza i karta se vraća;
+  - pomak ispod praga je tap;
+  - spuštanje na grupu uzima baš tu grupu;
+  - konzola bez grešaka.
+- Raub (`/dev/raub`): u štihu prevlačenje šalje `play` te karte, a u zamjeni nema prevlačenja.
+- Performanse, 60 pomjeranja na 4× sporijem CPU-u (`next dev`), prevlačenje naspram mirovanja: layout 4 naspram 3, fps 56 naspram 57, skripta oko 2 ms više po pomjeranju.
+- **Zamka:** CDP `Input.dispatchTouchEvent` u headless Chromeu ne radi pouzdano (pada i običan tap), pa se provjerava mišem. Isto tako, PWA baner „Dodaj na ekran“ u headlessu pada preko ruke.
+
+**Popravka poslije prvog APK-a (S10e):** karta se „uhvati, ali ne ide nigdje“. Zapis događaja sa telefona: prevlačenje krene, ali ~17 ms kasnije WebView preusmjeri dodir (`lostpointercapture`), a hook je to brojao kao prekid. Poslije toga `pointermove` više nije stizao do ruke. Sada se pomjeranje i puštanje prate na `window`, bez `setPointerCapture`, a prekid je samo `pointercancel`. Headless test mišem ovo ne može da uhvati.
+
+**Nije provjereno na uređaju:** dodir u WebView-u (bez skrola i zuma pri vuči), haptika, Raub štih prevlačenjem.

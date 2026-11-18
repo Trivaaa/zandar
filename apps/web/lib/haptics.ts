@@ -19,6 +19,8 @@ export const HAPTIC = {
   news: 15, // jedna laka: mala ili velika kod našeg tima
   error: [40, 30, 40],
   confirm: [20, 40, 40], // osjetna potvrda kod paljenja preklopke
+  pick: 8, // karta podignuta prevlačenjem
+  drop: 14, // karta spuštena na sto
 } as const;
 
 /** Da li uređaj uopšte podržava vibraciju (npr. false na iOS Safari). */

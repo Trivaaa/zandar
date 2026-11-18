@@ -286,7 +286,10 @@ export function flyCardFromHand(cardId: string, toCenter: boolean): OutgoingCard
   const rect = cardEl.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return null;
 
-  const from = centerOf(rect);
+  // Karta spuštena prevlačenjem (`useCardDrag`) kreće odande gdje ju je prst
+  // pustio, ne iz ruke — inače bi skočila nazad u ruku pa poletjela na sto.
+  const dragGhost = document.querySelector<HTMLElement>(".card-drag-ghost");
+  const from = centerOf(dragGhost ? dragGhost.getBoundingClientRect() : rect);
   const drop = dropEl.getBoundingClientRect();
   const to = toCenter
     ? centerOf(drop)

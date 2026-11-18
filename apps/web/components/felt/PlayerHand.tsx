@@ -1,8 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import type { Card, CardSize } from "@/components/felt/types";
 import { LockIcon } from "@/components/icons";
 import { sr } from "@/lib/sr";
+import type { DropTarget } from "@/lib/handTap";
+import { useCardDrag } from "@/lib/useCardDrag";
 import { PlayingCard } from "./PlayingCard";
 
 export type PlayerHandProps = {
@@ -30,6 +33,13 @@ export type PlayerHandProps = {
    */
   slotKey?: ((card: Card, i: number) => string) | undefined;
   onSelect?: ((card: Card) => void) | undefined;
+  /**
+   * Prevlačenje na sto — druga opcija uz tap (vidi `useCardDrag`). Bez
+   * `onDragDrop` ruka se ne može vući; tap radi isto u oba slučaja.
+   */
+  onDragStart?: ((card: Card) => void) | undefined;
+  onDragDrop?: ((card: Card, target: DropTarget) => void) | undefined;
+  onDragCancel?: ((card: Card) => void) | undefined;
   className?: string | undefined;
 };
 
@@ -46,8 +56,31 @@ export function PlayerHand({
   animateDeal = false,
   slotKey,
   onSelect,
+  onDragStart,
+  onDragDrop,
+  onDragCancel,
   className = "",
 }: PlayerHandProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const byId = (id: string) => cards.find((c) => c.id === id);
+  const draggable = !!onDragDrop && !idle;
+  useCardDrag(ref, {
+    // Prazna ruka crta drugi element — slušaoci se kače kad karte stignu.
+    enabled: draggable && cards.length > 0,
+    onStart: (id) => {
+      const c = byId(id);
+      if (c) onDragStart?.(c);
+    },
+    onDrop: (id, target) => {
+      const c = byId(id);
+      if (c) onDragDrop?.(c, target);
+    },
+    onCancel: (id) => {
+      const c = byId(id);
+      if (c) onDragCancel?.(c);
+    },
+  });
+
   if (cards.length === 0) {
     return (
       <div className={`hand__empty ${className}`}>
@@ -58,8 +91,10 @@ export function PlayerHand({
 
   return (
     <div
+      ref={ref}
       className={`hand ${className}`}
       data-many={cards.length > 6}
+      {...(draggable ? { "data-draggable": true } : {})}
       {...(idle ? { "data-idle": true } : {})}
       role="group"
       aria-label="Tvoja ruka"
