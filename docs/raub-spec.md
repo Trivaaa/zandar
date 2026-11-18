@@ -134,7 +134,7 @@ Svi počinju s 21 bodom. Svaki osvojeni štih skida 1 bod, a neuspjeh dodaje kaz
 | Bilo koji igrač | Uzeo 1 ili više štihova (i ispunio obavezu) | −1 po štihu |
 | Igrač koji nije nosilac | 0 štihova | +2 |
 | Igrač koji je rekao „Ne idem” | Ne igra ruku | 0 |
-| Djelilac koji je rekao Štih (mora 1) | 0 štihova | +3 |
+| Djelilac koji je rekao Štih (mora 1) | 0 štihova | +2 **(odluka 28)** |
 | Nosilac poslije Rauba ili Moje (mora 2) | 1 štih | +3 |
 | Nosilac poslije Rauba ili Moje (mora 2) | 0 štihova | +4 |
 
@@ -365,6 +365,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 25 | Zamjena sve 4 daje tačno 4 | Koliko karata igrač da, toliko dobije, i za sve 4: skrivene, bez pete karte, otvorene karte i odbacivanja (pagat.com). Zamjenjuje odluku 1. Parametar `fullExchangeBonus` (sada `false`) čuva staro pravilo; stari snapshot bez polja igra po novom, a ruka zatečena u `discard_extra` sa otvorenom kartom završava starim putem | Feedback igrača (16.11.2026): poslije zamjene sve 4 dobio je 5 karata i „Odbaci jednu” i prijavio to kao grešku. Izvori se razilaze (igresakartama.com: 5 uz otvorenu; pagat.com: isto koliko je dao); vlasnik bira pagat |
 | 26 | Djelilac odlučuje naslijepo | Kad na prvoj okrenutoj karti djelilac smije „Štih” (7) ili „Raub” (A, K, O, U), ne vidi svoje karte dok ne odgovori (Štih/Raub, Dalje, Refa). Ostali vide svoje odmah. Istek roka = „Dalje” (pa vidi karte). Bot-djelilac naslijepo odlučuje samo po ponuđenoj karti: Raub A 100 %, K 80 %, O 50 %, U 35 %, Štih 70 % (`blindRaubP`, `blindStihP`), za 1–8 s (kao odluka 17). Parametar `dealerBlindFirstFlip` (stari snapshot bez njega = da); bez novog polja u stanju i pogledu (`dealerOpened` / `myCardsHidden`), pa nema novog protokola | Prijava igrača (16.11.2026): djelilac je mogao pogledati karte pa procijeniti da li da raubuje. Simulacija 10.000 × 4P: 0 grešaka, refa 2,1 → 2,8 %, medijan 23 ruke (35,5 min; bilo 34,7) |
 | 27 | Refa se prenosi preko Štiha | Kad refa čeka, a djelilac kaže „Štih” (i automatski Štih uz `stihOptional: false`), ruka se boduje ×1 i ne troši refu; refe čekaju sljedeću ruku s Raubom ili Mojom. Prije djeliočeve odluke na sedmici sto pokazuje ×2, poslije „Štih” prelazi na brojač refa. Parametar `stihSkipsRefa` (stari snapshot bez njega = da); bez novog polja u stanju i pogledu | Feedback igrača (18.11.2026): „ako je refa i bude štih, da se refa prenosi a ne računa duplo” |
+| 28 | Pad na Štih je +2 | Djelilac koji je rekao „Štih” (mora 1) i nije uzeo nijedan štih ide +2 (bilo +3), kao igrač koji je ušao i nije uzeo ništa. Nosilac poslije Rauba ili Moje ostaje: jedan štih +3, nijedan +4. Uz refu ×2 kao i ranije (uz odluku 27 Štih se ne duplira). Bez promjene stanja i protokola; ruka zatečena u toku boduje se po novom | Feedback igrača (18.11.2026): „kad štihuješ … ako ne uspiješ uzeti jedno, ideš 2 gore (umjesto 3)” |
 
 ## Metrike, acceptance i otvorena pitanja
 

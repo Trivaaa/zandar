@@ -88,7 +88,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
         <ul className="list-disc pl-5 space-y-1">
           <li>Svaki štih: −1.</li>
           <li>Bez ijednog štiha: +2.</li>
-          <li>Štih (mora 1) bez štiha: +3.</li>
+          <li>Štih (mora 1) bez štiha: +2.</li>
           <li>Nosilac koji mora 2: jedan štih +3, nijedan +4.</li>
           <li>„Ne idem”: 0.</li>
           <li>Poslije refe sljedeća odigrana ruka ide duplo. Svaka refa duplira po jednu ruku.</li>

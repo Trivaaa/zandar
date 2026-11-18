@@ -2238,3 +2238,11 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Mjereno:** game-core 434 testa (+6: Štih ×1 i refa ostaje; dvije refe → [1, 2, 2]; Dalje pa Moja i dalje ×2; automatski Štih; `stihSkipsRefa: false`; stari snapshot), typecheck čist. Simulacija 10.000 × 4P: 0 grešaka, refa 2,8 %, medijan 23 ruke (35,4 min; bilo 35,5).
 
 **Nije provjereno na uređaju.**
+
+## 182. Raub — pad na Štih je +2 (2026-11-18, odluka 28, `fix/raub-stih-penalty`)
+
+**Šta:** feedback igrača: djelilac koji kaže „Štih" (sedmica, mora 1) i ne uzme nijedan štih ide 2 gore, ne 3. Raub i Moja ostaju: jedan štih +3, nijedan +4.
+
+**Kako:** `raubScoreDelta` za `requiredTricks === 1` vraća 2. Bodovanje se računa tek na kraju ruke, pa nema promjene snapshota ni protokola; ruka zatečena u toku pri deployu boduje se po novom. Bot ne koristi ovu vrijednost. Ažurirani spec (tabela bodova, odluka 28) i `RaubRules.tsx`.
+
+**Nije provjereno na uređaju.**

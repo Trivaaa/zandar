@@ -1056,9 +1056,9 @@ describe("raub bodovanje", () => {
     expect(raubScoreDelta({ declarer: false, requiredTricks: 2, tricks: 3 })).toEqual({ delta: -3, penalty: false });
     // igrač koji nije nosilac, 0 štihova: +2
     expect(raubScoreDelta({ declarer: false, requiredTricks: 2, tricks: 0 })).toEqual({ delta: 2, penalty: true });
-    // sedmica (mora 1): ispunio −1 po štihu, 0 štihova +3
+    // sedmica (mora 1): ispunio −1 po štihu, 0 štihova +2 (odluka 28)
     expect(raubScoreDelta({ declarer: true, requiredTricks: 1, tricks: 1 })).toEqual({ delta: -1, penalty: false });
-    expect(raubScoreDelta({ declarer: true, requiredTricks: 1, tricks: 0 })).toEqual({ delta: 3, penalty: true });
+    expect(raubScoreDelta({ declarer: true, requiredTricks: 1, tricks: 0 })).toEqual({ delta: 2, penalty: true });
     // nosilac (mora 2): 2+ štiha −1 po štihu, 1 štih +3, 0 štihova +4
     expect(raubScoreDelta({ declarer: true, requiredTricks: 2, tricks: 3 })).toEqual({ delta: -3, penalty: false });
     expect(raubScoreDelta({ declarer: true, requiredTricks: 2, tricks: 1 })).toEqual({ delta: 3, penalty: true });

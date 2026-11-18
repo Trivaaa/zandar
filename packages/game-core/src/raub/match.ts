@@ -531,7 +531,7 @@ export function raubLegalCards(state: RaubGameState, playerId: string): Card[] {
 
 /**
  * Bodovi jednog igrača za ruku, bez ×2 refe (spec: „Bodovi po ruci"):
- * štih −1; igrač bez štiha +2; sedmica (mora 1) bez štiha +3;
+ * štih −1; igrač bez štiha +2; sedmica (mora 1) bez štiha +2 (odluka 28);
  * nosilac koji mora 2: jedan štih +3, nijedan +4.
  */
 export function raubScoreDelta(p: {
@@ -541,7 +541,7 @@ export function raubScoreDelta(p: {
 }): { delta: number; penalty: boolean } {
   if (p.declarer) {
     if (p.tricks >= p.requiredTricks) return { delta: -p.tricks, penalty: false };
-    return { delta: p.requiredTricks === 1 ? 3 : p.tricks === 1 ? 3 : 4, penalty: true };
+    return { delta: p.requiredTricks === 1 ? 2 : p.tricks === 1 ? 3 : 4, penalty: true };
   }
   return p.tricks > 0 ? { delta: -p.tricks, penalty: false } : { delta: 2, penalty: true };
 }
