@@ -2357,3 +2357,5 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Popravka poslije prvog APK-a (S10e):** karta se „uhvati, ali ne ide nigdje“. Zapis događaja sa telefona: prevlačenje krene, ali ~17 ms kasnije WebView preusmjeri dodir (`lostpointercapture`), a hook je to brojao kao prekid. Poslije toga `pointermove` više nije stizao do ruke. Sada se pomjeranje i puštanje prate na `window`, bez `setPointerCapture`, a prekid je samo `pointercancel`. Headless test mišem ovo ne može da uhvati.
 
 **Nije provjereno na uređaju:** dodir u WebView-u (bez skrola i zuma pri vuči), haptika, Raub štih prevlačenjem.
+
+**Spajanje sa tap-odzivom (187), 18.11.2026:** oba rada diraju isti put dodira; git ih je spojio sam (konflikt samo u changelogu). Jedna stvarna nespojivost je ispravljena ručno. Tap-odziv u `play()` odmah pušta let karte iz RUKE (`flyCardFromHand`), a drag je duha brisao prije poteza, pa bi karta spuštena na sto skočila nazad u ruku i tek onda poletjela. Sada `useCardDrag` zove `onDrop` dok je duh još na mjestu spuštanja, a `flyCardFromHand` kreće iz `.card-drag-ghost` ako postoji. Duh se briše u `finally`. Web 268 testova, typecheck čist.
