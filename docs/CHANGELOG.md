@@ -2359,3 +2359,13 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Nije provjereno na uređaju:** dodir u WebView-u (bez skrola i zuma pri vuči), haptika, Raub štih prevlačenjem.
 
 **Spajanje sa tap-odzivom (187), 18.11.2026:** oba rada diraju isti put dodira; git ih je spojio sam (konflikt samo u changelogu). Jedna stvarna nespojivost je ispravljena ručno. Tap-odziv u `play()` odmah pušta let karte iz RUKE (`flyCardFromHand`), a drag je duha brisao prije poteza, pa bi karta spuštena na sto skočila nazad u ruku i tek onda poletjela. Sada `useCardDrag` zove `onDrop` dok je duh još na mjestu spuštanja, a `flyCardFromHand` kreće iz `.card-drag-ghost` ako postoji. Duh se briše u `finally`. Web 268 testova, typecheck čist.
+
+## 189. Izdanje 18.11.2026 — produkcija i AAB 1.4.5 (`versionCode 11`)
+
+**Šta:** `production` 9c8e6dc → `7871983` (fast-forward). Raub odluke 29, 30 i 31 (183, 185, 186), Žandar karta kreće na dodir (187), prevlačenje karata uz tap za Žandar i Raub (188).
+
+**Redoslijed:** tap-odziv rebase na `main` (konflikt samo u changelogu, prenumerisan 184 → 187), pa prevlačenje komitovano iz glavnog foldera i rebase preko njega (184 → 188, jedna ručna popravka leta poslije spuštanja). Staging APK iz čistog worktree-a `zandar-apk` (napravljen ponovo, nije postojao), vlasnik provjerio na S10e: prevlačenje, tap, Raub 29–31, poker — „sve je ok”.
+
+**Mjereno:** web 268 testova, game-core 458, typecheck čist, lint dodirnutih fajlova čist. Deploy `7871983`: Railway staging i produkcija „Success”, oba Vercel projekta gotova, `zandar-test…/health` → `env: production`, kartaonica.com 200. AAB `jar verified`, `com.kartaonica.zandar`, `versionCode 11`, `versionName 1.4.5`.
+
+**Preostaje:** upload AAB-a na Play (vlasnik); provjera ažuriranja 1.4.4 → 1.4.5 sa Play-a; `♻ Restored N room(s)` u produkcijskom Railway logu nije gledan (nema pristupa logu odavde).
