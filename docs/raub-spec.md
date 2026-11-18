@@ -145,6 +145,7 @@ Primjer: nosilac poslije Rauba uzme 3 štiha i ide s 21 na 18. Drugi igrač uzme
 - Kad se ruka poništi jer niko nije uzeo adut, upisuje se refa. Isto kad djelilac odmah kaže „Refa” na prvoj okrenutoj karti **(odluka 23)**.
 - Sljedeća odigrana ruka se boduje duplo: i odbijeni i kazneni bodovi.
 - Refe se skupljaju u red: svaka refa duplira po jednu sljedeću ruku. Tri refe zaredom znače da se naredne tri ruke boduju duplo, ne da se jedna ruka množi s 8.
+- Ruka sa Štihom (djelilac uzeo sedmicu) se ne duplira i ne troši refu: boduje se normalno, a refe čekaju sljedeću ruku s Raubom ili Mojom **(odluka 27)**.
 - Broj refa koje čekaju vidi se na tabeli rezultata.
 
 **Kraj meča**
@@ -324,6 +325,7 @@ Meč se nikad ne zaustavlja zbog jednog poteza: ko ne odigra na vrijeme, server 
 | Sedmica okrenuta kao druga ili treća karta | Obična karta: nema Štiha, Rauba ni Moje, svi „Dalje” i okreće se sljedeća |
 | Pad servera dok djelilac bira raub naslijepo (snapshot prije odluke 13) | Hidracija prevodi ruku u licitaciju sa otvorenim kartama (`upgradeRaubState`) |
 | Tri refe zaredom | Naredne tri odigrane ruke boduju se duplo, svaka posebno |
+| Refa čeka, a djelilac kaže „Štih” | Ruka ide ×1, refa ostaje za sljedeću ruku s Raubom ili Mojom (odluka 27) |
 | Dva ili više igrača stignu do 0 ili ispod u istoj ruci | Pobjeđuje onaj s manje bodova. Ako su jednaki, dijele prvo mjesto |
 | Pad servera usred meča | Obnova iz posljednjeg snimljenog stanja. Ako obnova nije moguća, meč se poništava bez plasmana |
 | Kreator privatne sobe izađe prije starta | Soba se zatvara |
@@ -362,6 +364,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 24 | Ko mora ići, ne pita se | Kad su svi ostali osim nosioca rekli „Ne idem” (odluka 19; u 2P uvijek), motor upisuje „Idem” sam i igra ide pravo u zamjenu — igrač odmah bira koliko karata mijenja. Ko još može birati, i dalje se pita. Snapshot bez promjene oblika; ruka zatečena u `going` sa obaveznim „Idem” i dalje radi preko `raubMustGo` | Feedback igrača (16.11.2026, 1-na-1): pitanje „Idem?” sa jednim dugmetom je suvišan korak |
 | 25 | Zamjena sve 4 daje tačno 4 | Koliko karata igrač da, toliko dobije, i za sve 4: skrivene, bez pete karte, otvorene karte i odbacivanja (pagat.com). Zamjenjuje odluku 1. Parametar `fullExchangeBonus` (sada `false`) čuva staro pravilo; stari snapshot bez polja igra po novom, a ruka zatečena u `discard_extra` sa otvorenom kartom završava starim putem | Feedback igrača (16.11.2026): poslije zamjene sve 4 dobio je 5 karata i „Odbaci jednu” i prijavio to kao grešku. Izvori se razilaze (igresakartama.com: 5 uz otvorenu; pagat.com: isto koliko je dao); vlasnik bira pagat |
 | 26 | Djelilac odlučuje naslijepo | Kad na prvoj okrenutoj karti djelilac smije „Štih” (7) ili „Raub” (A, K, O, U), ne vidi svoje karte dok ne odgovori (Štih/Raub, Dalje, Refa). Ostali vide svoje odmah. Istek roka = „Dalje” (pa vidi karte). Bot-djelilac naslijepo odlučuje samo po ponuđenoj karti: Raub A 100 %, K 80 %, O 50 %, U 35 %, Štih 70 % (`blindRaubP`, `blindStihP`), za 1–8 s (kao odluka 17). Parametar `dealerBlindFirstFlip` (stari snapshot bez njega = da); bez novog polja u stanju i pogledu (`dealerOpened` / `myCardsHidden`), pa nema novog protokola | Prijava igrača (16.11.2026): djelilac je mogao pogledati karte pa procijeniti da li da raubuje. Simulacija 10.000 × 4P: 0 grešaka, refa 2,1 → 2,8 %, medijan 23 ruke (35,5 min; bilo 34,7) |
+| 27 | Refa se prenosi preko Štiha | Kad refa čeka, a djelilac kaže „Štih” (i automatski Štih uz `stihOptional: false`), ruka se boduje ×1 i ne troši refu; refe čekaju sljedeću ruku s Raubom ili Mojom. Prije djeliočeve odluke na sedmici sto pokazuje ×2, poslije „Štih” prelazi na brojač refa. Parametar `stihSkipsRefa` (stari snapshot bez njega = da); bez novog polja u stanju i pogledu | Feedback igrača (18.11.2026): „ako je refa i bude štih, da se refa prenosi a ne računa duplo” |
 
 ## Metrike, acceptance i otvorena pitanja
 
@@ -383,7 +386,7 @@ Analitika ide kroz postojeće `match_started` / `match_ended` sa `game: "raub"` 
 **Acceptance kriteriji**
 
 - [ ] Sva tri scenarija aduta rade po pravilima iz ovog speca, uključujući kartu s talona u ruci nosioca kod Rauba (odluka 14), Raub samo kod djelioca i samo na prvoj karti, „Moja” bez sedmice (odluka 15).
-- [ ] Refa se upisuje i duplira tačno onoliko narednih ruku koliko je refa bilo.
+- [ ] Refa se upisuje i duplira tačno onoliko narednih ruku koliko je refa bilo; ruka sa Štihom se ne duplira i ne troši refu (odluka 27).
 - [ ] Bodovi tačni za svaki red tabele bodovanja, provjereno testovima.
 - [ ] Server odbija svaku kartu koja krši obavezu boje ili aduta.
 - [ ] Zamjena radi i kad se špil isprazni.

@@ -40,7 +40,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
           </li>
           <li>
             Ako svi kažu „Dalje”, okreće se nova karta (najviše 3). Ako niko ne uzme ni treću, to je <b>refa</b>: ruka
-            se poništava, a sljedeća se boduje duplo.
+            se poništava, a sljedeća se boduje duplo (osim Štiha — vidi bodovanje).
           </li>
           <li>
             Djelilac smije odmah reći <b>„Refa”</b> na prvoj okrenutoj karti, umjesto svog odgovora. Ruka se poništava
@@ -92,6 +92,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
           <li>Nosilac koji mora 2: jedan štih +3, nijedan +4.</li>
           <li>„Ne idem”: 0.</li>
           <li>Poslije refe sljedeća odigrana ruka ide duplo. Svaka refa duplira po jednu ruku.</li>
+          <li>Štih se ne duplira: refa se prenosi na sljedeću ruku s Raubom ili Mojom.</li>
         </ul>
       </section>
     </div>

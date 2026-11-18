@@ -1123,6 +1123,105 @@ describe("raub bodovanje", () => {
     expect(multipliers.slice(0, 4)).toEqual([2, 2, 2, 1]);
     expect(s.pendingRefas).toBe(0);
   });
+});
+
+describe("raub refa se prenosi preko Štiha (odluka 27)", () => {
+  /** Djelilac odmah kaže refa, pa nova ruka sa zadatom kartom na talonu. */
+  function afterRefa(talon: Card, rules?: Parameters<typeof createRaubRules>[1], refas = 1): RaubGameState {
+    let s = match({ hands: HANDS4, talon: H("Q"), rules });
+    const rng = makeLcg(11);
+    for (let i = 0; i < refas; i++) {
+      if (i > 0) s = startRaubHand(s, rng, { deck: deckWithTalon(H("Q"), 4) });
+      s = act(s, s.dealerId, { type: "refa" });
+    }
+    expect(s.pendingRefas).toBe(refas);
+    return startRaubHand(s, rng, { deck: deckWithTalon(talon, 4) });
+  }
+
+  function raubHand(s: RaubGameState): RaubGameState {
+    s = startRaubHand(s, makeLcg(7), { deck: deckWithTalon(H("A"), 4) });
+    s = act(s, s.currentPlayerId!, { type: "bid", bid: "raub" });
+    return autoToHandEnd(s);
+  }
+
+  it("Štih poslije refe: ruka ×1, refa ostaje, sljedeći Raub ×2", () => {
+    let s = afterRefa(D("7"));
+    expect(s.step).toBe("seven_choice");
+    s = stih(s);
+    expect(s.multiplier).toBe(1);
+    s = autoToHandEnd(s);
+    expect(s.lastHand!.void).toBe(false);
+    expect(s.lastHand!.scenario).toBe("seven");
+    expect(s.lastHand!.multiplier).toBe(1);
+    expect(s.lastHand!.pendingRefasAfter).toBe(1);
+    expect(s.pendingRefas).toBe(1);
+    for (const r of s.lastHand!.rows) {
+      if (r.dropped) continue;
+      const base = raubScoreDelta({
+        declarer: r.playerId === s.lastHand!.declarerId,
+        requiredTricks: 1,
+        tricks: r.tricks,
+      });
+      expect(r.delta).toBe(base.delta);
+    }
+
+    s = raubHand(s);
+    expect(s.lastHand!.multiplier).toBe(2);
+    expect(s.pendingRefas).toBe(0);
+  });
+
+  it("dvije refe, pa Štih, Raub, Raub: [1, 2, 2]", () => {
+    let s = autoToHandEnd(stih(afterRefa(D("7"), undefined, 2)));
+    const multipliers = [s.lastHand!.multiplier];
+    expect(s.pendingRefas).toBe(2);
+    for (let i = 0; i < 2; i++) {
+      s = raubHand(s);
+      multipliers.push(s.lastHand!.multiplier);
+    }
+    expect(multipliers).toEqual([1, 2, 2]);
+    expect(s.pendingRefas).toBe(0);
+  });
+
+  it("„Dalje\" na sedmicu pa Moja: i dalje ×2 i troši refu", () => {
+    let s = afterRefa(D("7"));
+    s = act(s, s.dealerId, { type: "stih", take: false });
+    expect(s.multiplier).toBe(2);
+    // Svi dalje dok neko ne može Moja ili ruka ne propadne u refu.
+    while (s.phase === "playing" && s.step === "bidding") {
+      const pid = s.currentPlayerId!;
+      const opts = getRaubView(s, pid).bidOptions;
+      s = act(s, pid, { type: "bid", bid: opts?.moja ? "moja" : "pass" });
+    }
+    if (s.phase === "playing") {
+      expect(s.scenario).toBe("moja");
+      expect(s.multiplier).toBe(2);
+      s = autoToHandEnd(s);
+      expect(s.lastHand!.multiplier).toBe(2);
+      expect(s.pendingRefas).toBe(0);
+    }
+  });
+
+  it("automatski Štih (stihOptional: false) poslije refe: ×1", () => {
+    const s = afterRefa(D("7"), { stihOptional: false });
+    expect(s.scenario).toBe("seven");
+    expect(s.multiplier).toBe(1);
+    expect(autoToHandEnd(s).pendingRefas).toBe(1);
+  });
+
+  it("parametar stihSkipsRefa: false = staro ponašanje (Štih ×2, troši refu)", () => {
+    let s = stih(afterRefa(D("7"), { stihSkipsRefa: false }));
+    expect(s.multiplier).toBe(2);
+    s = autoToHandEnd(s);
+    expect(s.lastHand!.multiplier).toBe(2);
+    expect(s.pendingRefas).toBe(0);
+  });
+
+  it("stari snapshot bez polja: refa se prenosi", () => {
+    const s0 = afterRefa(D("7"));
+    const { stihSkipsRefa: _x, ...oldRules } = s0.rules;
+    const s = stih({ ...s0, rules: oldRules as RaubGameState["rules"] });
+    expect(s.multiplier).toBe(1);
+  });
 
   it("kraj meča: neko na 0 ili ispod; plasman po bodovima, jednaki dijele mjesto", () => {
     let s = toTricks();

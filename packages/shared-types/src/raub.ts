@@ -74,6 +74,12 @@ export interface RaubRules {
    * dobiješ (pagat.com). Bez polja = isključeno.
    */
   fullExchangeBonus?: boolean;
+  /**
+   * Refa se prenosi preko Štiha (odluka 27): ruka u kojoj je djelilac rekao
+   * „Štih" boduje se ×1 i ne troši refu; refe čekaju sljedeću ruku s Raubom
+   * ili Mojom. Bez polja = da.
+   */
+  stihSkipsRefa?: boolean;
 }
 
 /**

@@ -35,6 +35,9 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // Odluka 25 (vlasnik, 16.11.2026): zamjena sve 4 daje tačno 4, bez pete i
   // otvorene karte (pagat.com) — igrač je 5 karata prijavio kao grešku.
   fullExchangeBonus: false,
+  // Odluka 27 (vlasnik, 18.11.2026, po feedbacku igrača): ruka sa Štihom se ne
+  // duplira i ne troši refu — refa se prenosi na sljedeću ruku s Raubom/Mojom.
+  stihSkipsRefa: true,
 };
 
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */

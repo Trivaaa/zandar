@@ -103,6 +103,7 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     dealerRaubOrPass: state.rules.dealerRaubOrPass ?? DEFAULT_RAUB_RULES.dealerRaubOrPass!,
     dealerRefaFirstFlip: state.rules.dealerRefaFirstFlip ?? DEFAULT_RAUB_RULES.dealerRefaFirstFlip!,
     dealerBlindFirstFlip: state.rules.dealerBlindFirstFlip ?? DEFAULT_RAUB_RULES.dealerBlindFirstFlip!,
+    stihSkipsRefa: state.rules.stihSkipsRefa ?? DEFAULT_RAUB_RULES.stihSkipsRefa!,
   };
 }
 
@@ -357,9 +358,13 @@ export function raubTalonPending(state: Pick<RaubGameState, "talonTakenBy" | "lo
 }
 
 
-/** Scenarij 1: djelilac uzima sedmicu s talona, nosi adut i mora 1 štih. */
+/**
+ * Scenarij 1: djelilac uzima sedmicu s talona, nosi adut i mora 1 štih.
+ * Odluka 27: ruka sa Štihom ide ×1, pa refa ostaje za sljedeću ruku.
+ */
 function takeStih(state: RaubGameState): void {
   state.scenario = "seven";
+  if (rulesV2(state).stihSkipsRefa) state.multiplier = 1;
   declare(state, state.dealerId, 1);
   claimTalon(state, state.dealerId);
   afterTrump(state);

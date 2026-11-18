@@ -2228,3 +2228,13 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Mjereno:** web 251 test (+3), typecheck čist, lint = osnovica. CDP 360×740, `/dev/raub?s=bid&then=raub`, `requestAnimationFrame` u stranici: isti elementi prije i poslije (bez remounta), okret svake karte ~420 ms, start ~70–80 ms jedna za drugom; snimak usred okreta (2 lica, 1 na ivici, 1 poleđina) i na kraju — lica stižu na vrijeme, predučitavanje nije trebalo.
 
 **Nije provjereno na uređaju.**
+
+## 181. Raub — refa se prenosi preko Štiha (2026-11-18, odluka 27)
+
+**Šta:** feedback igrača: „ako je refa i bude štih, da se refa prenosi a ne računa duplo". Do sada je `startHand` postavljao `multiplier = 2` čim refa čeka, pa je i ruka sa Štihom išla ×2 i trošila refu (po specu). Vlasnik usvojio: ruka sa Štihom se boduje ×1, a refe čekaju sljedeću ruku s Raubom ili Mojom.
+
+**Kako:** novi parametar `stihSkipsRefa` (podrazumijevano da; stari snapshot bez polja = da, preko `rulesV2`). `takeStih` postavlja `multiplier = 1`, a `scoreHand` već troši refu samo kad je `m === 2`, pa se refa prenese sama. Pokriva i automatski Štih (`stihOptional: false`). Bez novog polja u stanju i pogledu, bez novog protokola. Na sedmici sto do djeliočeve odluke pokazuje ×2, a poslije „Štih" brojač refa. Bot ne koristi multiplier, pa ga ova promjena ne dira. Ažurirani spec (Refa, rubni slučajevi, odluka 27, acceptance) i `RaubRules.tsx`.
+
+**Mjereno:** game-core 434 testa (+6: Štih ×1 i refa ostaje; dvije refe → [1, 2, 2]; Dalje pa Moja i dalje ×2; automatski Štih; `stihSkipsRefa: false`; stari snapshot), typecheck čist. Simulacija 10.000 × 4P: 0 grešaka, refa 2,8 %, medijan 23 ruke (35,4 min; bilo 35,5).
+
+**Nije provjereno na uređaju.**
