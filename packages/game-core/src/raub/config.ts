@@ -38,6 +38,10 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // Odluka 27 (vlasnik, 18.11.2026, po feedbacku igrača): ruka sa Štihom se ne
   // duplira i ne troši refu — refa se prenosi na sljedeću ruku s Raubom/Mojom.
   stihSkipsRefa: true,
+  // Odluka 29 (vlasnik, 18.11.2026, po prijavi igrača): poslije „Moja" bez
+  // sedmice karta ostaje na talonu, a igrač sa sedmicom aduta je poslije svoje
+  // zamjene smije uzeti.
+  mojaTalonSeven: true,
 };
 
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */

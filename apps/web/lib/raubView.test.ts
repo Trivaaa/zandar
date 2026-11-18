@@ -202,6 +202,16 @@ describe("raubView: sjedišta", () => {
     assert.ok(!/Zamijenio|Zamijenila/.test(text));
   });
 
+  test("odluka 29: ponuda sedmice usred zamjene — sjedišta i dalje pokazuju zamjenu", () => {
+    const s = until((x) => x.phase === "playing" && x.step === "swap_seven" && x.exchangeOrder !== null);
+    const me = s.currentPlayerId!;
+    const v = getRaubView(s, me);
+    assert.equal(panelFor(v, name).kind, "swap");
+    const done = v.seats.find((t) => t.exchanged !== null)!;
+    const text = seatCaptionText(v, done)!;
+    assert.ok(text === "Bez zamjene" || /^Zamjena \d$/.test(text), text);
+  });
+
   test("oznaka nosioca: ugovor, pa uzeto/obaveza u štihovima", () => {
     const s = until((x) => x.phase === "playing" && x.step === "tricks");
     const v = getRaubView(s, "p0");

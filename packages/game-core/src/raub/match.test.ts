@@ -17,6 +17,7 @@ import {
   upgradeRaubState,
 } from "./match";
 import { getRaubAutoAction, getRaubView } from "./view";
+import { DEFAULT_RAUB_BOT_CONFIG, selectRaubBotAction } from "./bot";
 
 // ---- pomoćne ----
 
@@ -1403,5 +1404,147 @@ describe("raub odluka 26 — djelilac odlučuje naslijepo", () => {
     expect(hidden(s, "a")).toBe(false);
     const next = act(s, "a", { type: "bid", bid: "pass" });
     expect(hidden(next, "a")).toBe(false);
+  });
+});
+
+describe("raub sedmica aduta uzima kartu s talona (odluka 29)", () => {
+  /** c drži sedmicu herca; ostali kao HANDS4 (niko drugi nema sedmicu herca). */
+  const HANDS_C7: Record<string, Card[]> = { ...HANDS4, c: [S("Q"), C("Q"), D("A"), H("7")] };
+
+  /** b kaže „Moja" bez sedmice na H8; svi idu; b je prvi u zamjeni. */
+  function mojaWithoutSeven(hands = HANDS_C7, next?: Card[], rules?: Parameters<typeof createRaubRules>[1]) {
+    let s = match({ hands, talon: H("8"), next, rules });
+    s = act(s, "a", { type: "bid", bid: "pass" });
+    s = act(s, "b", { type: "bid", bid: "moja" });
+    expect(s.talonTakenBy).toBeNull();
+    for (const id of ["c", "d", "a"]) s = act(s, id, { type: "go", go: true });
+    expect(s.exchangeOrder).toEqual(["b", "c", "d", "a"]);
+    return s;
+  }
+
+  const ids = (s: RaubGameState, i: number) => s.seats[i]!.hand.map((x) => x.id).sort();
+
+  it("igrač sa sedmicom poslije svoje zamjene je daje za kartu s talona", () => {
+    let s = mojaWithoutSeven();
+    s = ex(s, "b");
+    expect(s.step).toBe("exchange"); // b nema sedmicu — bez ponude
+    expect(s.currentPlayerId).toBe("c");
+    s = ex(s, "c");
+    expect(s.step).toBe("swap_seven");
+    expect(s.currentPlayerId).toBe("c");
+    expect(getRaubView(s, "c").swapOffer).toEqual({ seven: H("7"), talon: H("8") });
+    expect(getRaubView(s, "d").swapOffer).toBeNull();
+    expect(raubCardCount(s)).toBe(32);
+
+    s = act(s, "c", { type: "swap_seven", swap: true });
+    expect(ids(s, 2)).toEqual(["clubs-Q", "diamonds-A", "hearts-8", "spades-Q"]);
+    expect(s.talon.at(-1)).toEqual(H("7"));
+    expect(s.talonTakenBy).toBe("c");
+    expect(s.lockedCardId).toBe("hearts-8");
+    expect(raubTalonPending(s)).toBe(false);
+    expect(s.step).toBe("exchange");
+    expect(s.currentPlayerId).toBe("d");
+    s = ex(s, "d");
+    s = ex(s, "a");
+    expect(s.step).toBe("tricks");
+    expect(raubCardCount(s)).toBe(32);
+    s = autoToHandEnd(s);
+    expect(s.lastHand!.scenario).toBe("moja");
+    expect(s.lastHand!.declarerId).toBe("b");
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("„Ne” — karta ostaje na talonu, igra ide dalje", () => {
+    let s = ex(ex(mojaWithoutSeven(), "b"), "c");
+    s = act(s, "c", { type: "swap_seven", swap: false });
+    expect(s.talon.at(-1)).toEqual(H("8"));
+    expect(s.talonTakenBy).toBeNull();
+    expect(ids(s, 2)).toContain("hearts-7");
+    expect(s.step).toBe("exchange");
+    expect(s.currentPlayerId).toBe("d");
+  });
+
+  it("istek roka u ponudi je „Ne”", () => {
+    const s = ex(ex(mojaWithoutSeven(), "b"), "c");
+    expect(getRaubAutoAction(s, "c")).toEqual({ type: "swap_seven", swap: false });
+  });
+
+  it("važi i za sedmicu dobijenu u zamjeni — i za samog nosioca", () => {
+    let s = mojaWithoutSeven(HANDS4, [H("7")]);
+    s = act(s, "b", { type: "exchange", cardIds: ["diamonds-9"] });
+    expect(ids(s, 1)).toContain("hearts-7");
+    expect(s.step).toBe("swap_seven");
+    expect(s.currentPlayerId).toBe("b");
+    s = act(s, "b", { type: "swap_seven", swap: true });
+    expect(ids(s, 1)).toEqual(["clubs-K", "hearts-8", "hearts-A", "hearts-K"]);
+    expect(s.currentPlayerId).toBe("c");
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("ko je rekao „Ne idem” nema ponudu", () => {
+    let s = match({ hands: HANDS_C7, talon: H("8") });
+    s = act(s, "a", { type: "bid", bid: "pass" });
+    s = act(s, "b", { type: "bid", bid: "moja" });
+    s = act(s, "c", { type: "go", go: false });
+    for (const id of ["d", "a"]) s = act(s, id, { type: "go", go: true });
+    for (const id of ["b", "d", "a"]) {
+      expect(s.step).toBe("exchange");
+      s = ex(s, id);
+    }
+    expect(s.step).toBe("tricks");
+    expect(s.talon.at(-1)).toEqual(H("8"));
+  });
+
+  it("kod Rauba i Moje sa sedmicom nema ponude", () => {
+    // Raub: karta pripada djeliocu, c sa sedmicom herca ne dobija ponudu.
+    let r = raubBy(match({ hands: HANDS_C7, talon: H("Q") }), "a");
+    for (const id of ["b", "c", "d"]) r = act(r, id, { type: "go", go: true });
+    r = ex(r, "a", [], "spades-K");
+    for (const id of ["b", "c", "d"]) {
+      expect(r.step).toBe("exchange");
+      r = ex(r, id);
+    }
+    expect(r.step).toBe("tricks");
+
+    // Moja sa sedmicom: c je odmah dao sedmicu, kasnije nema druge ponude.
+    let m = match({ hands: HANDS_C7, talon: H("8") });
+    for (const id of ["a", "b"]) m = act(m, id, { type: "bid", bid: "pass" });
+    m = act(m, "c", { type: "bid", bid: "moja" });
+    expect(m.talonTakenBy).toBe("c");
+    for (const id of ["d", "a", "b"]) m = act(m, id, { type: "go", go: true });
+    for (const id of ["c", "d", "a", "b"]) {
+      expect(m.step).toBe("exchange");
+      m = ex(m, id);
+    }
+    expect(m.step).toBe("tricks");
+  });
+
+  it("prazan špil: ponuda i igraču koji preskače zamjenu", () => {
+    let s = match({ hands: HANDS_C7, talon: H("8") });
+    s = act(s, "a", { type: "bid", bid: "pass" });
+    s = act(s, "b", { type: "bid", bid: "moja" });
+    for (const id of ["c", "d"]) s = act(s, id, { type: "go", go: true });
+    s.discarded.push(...s.deck.splice(0)); // špil potrošen (ne može se izdijeliti ovdje prirodno)
+    s = act(s, "a", { type: "go", go: true });
+    expect(s.step).toBe("swap_seven");
+    expect(s.currentPlayerId).toBe("c");
+    s = act(s, "c", { type: "swap_seven", swap: true });
+    expect(s.step).toBe("tricks");
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("parametar mojaTalonSeven false: staro ponašanje, bez ponude", () => {
+    let s = mojaWithoutSeven(HANDS_C7, undefined, { mojaTalonSeven: false });
+    for (const id of ["b", "c", "d", "a"]) {
+      expect(s.step).toBe("exchange");
+      s = ex(s, id);
+    }
+    expect(s.step).toBe("tricks");
+  });
+
+  it("bot prihvata ponudu", () => {
+    const s = ex(ex(mojaWithoutSeven(), "b"), "c");
+    const action = selectRaubBotAction(getRaubView(s, "c"), DEFAULT_RAUB_BOT_CONFIG, makeLcg(3));
+    expect(action).toEqual({ type: "swap_seven", swap: true });
   });
 });

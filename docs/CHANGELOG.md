@@ -2246,3 +2246,13 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Kako:** `raubScoreDelta` za `requiredTricks === 1` vraća 2. Bodovanje se računa tek na kraju ruke, pa nema promjene snapshota ni protokola; ruka zatečena u toku pri deployu boduje se po novom. Bot ne koristi ovu vrijednost. Ažurirani spec (tabela bodova, odluka 28) i `RaubRules.tsx`.
 
 **Nije provjereno na uređaju.**
+
+## 183. Raub — sedmica aduta uzima kartu s talona (2026-11-18, odluka 29, `fix/raub-moja-talon-seven`)
+
+**Šta:** prijava igrača: treća okrenuta karta K, igrač ima samo sedmicu te boje i kaže „Dalje”, protivnik kaže „Moja” bez sedmice. Karta ostaje na talonu (odluka 15), a igraču u zamjeni nije ponuđeno da je uzme sedmicom. To nije bio bug nego pravilo koje motor nije imao. Vlasnik odlučio: ponuda ide POSLIJE igračeve zamjene (važi i sedmica dobijena u zamjeni), i za samog nosioca; prvi u redu zamjene ima prednost.
+
+**Kako:** u `match.ts` `endExchangeTurn` zamjenjuje `exchangeIndex += 1; continueExchange` na kraju zamjene (i kod `discard` sa starim bonusom); `canTakeTalonWithSeven` traži `scenario === "moja"`, `talonTakenBy === null`, kartu aduta na talonu (ne 7), igrača koji ide i sedmicu aduta u ruci. Igrač preskočen zbog praznog špila dobija ponudu u `continueExchange`. Koristi se zatečeni korak `swap_seven` (iz ruku prije odluke 14): pogled `swapOffer`, panel „swap”, bot (uvijek prihvata), auto-akcija „Ne”. Akcija `swap_seven` u fazi zamjene (`exchangeOrder !== null`) ide na sljedećeg u redu, inače stari put `afterTrump`. `swapSeven` zaključava uzetu kartu i stavlja sedmicu na talon, pa ostali ponudu više ne dobijaju. Parametar `mojaTalonSeven` (stari snapshot bez polja = da). Bez novog polja u stanju, bez novog protokola (`raub:2`) — APK 1.4.4 već crta panel. Web: natpis sjedišta i brojač okretanja tretiraju `swap_seven` usred zamjene kao zamjenu; let karte radi sam (prelaz `talonTakenBy` niko → igrač). Ažurirani spec (pravila, višak karata, mašina stanja, tajmer, odluka 29) i `RaubRules.tsx`.
+
+**Mjereno:** game-core 443 testa (+9: ponuda poslije zamjene i „Da”/„Ne”, istek roka, sedmica dobijena u zamjeni kod nosioca, „Ne idem”, Raub i Moja sa sedmicom bez ponude, prazan špil, `mojaTalonSeven: false`, bot), web 252 (+1), server 272, typecheck čist. Simulacija 10.000 × 4P: 0 grešaka karata/štihova/akcija, refa 2,8 %, medijan 23 ruke (35,9 min).
+
+**Nije provjereno na uređaju.** Server mora na deploy (pravilo je u motoru); web izmjene su samo natpisi.

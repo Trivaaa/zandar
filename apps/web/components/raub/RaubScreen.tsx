@@ -426,7 +426,7 @@ export function RaubScreen({
 
   const hasSides = Boolean(seats.oppL || seats.oppR);
   const inTricks = state.step === "tricks" || handOver;
-  const biddingNow = state.phase === "playing" && (state.step === "seven_choice" || state.step === "bidding" || state.step === "swap_seven");
+  const biddingNow = state.phase === "playing" && (state.step === "seven_choice" || state.step === "bidding" || (state.step === "swap_seven" && state.exchangeOrder === null));
   const showSummary = handOver && !holding && state.lastHand !== null;
   const mode: "quick" | "host" | "guest" = isQuickPlay ? "quick" : me?.isHost ? "host" : "guest";
   const host = state.players.find((p) => p.isHost);

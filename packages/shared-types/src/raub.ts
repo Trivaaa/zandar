@@ -80,6 +80,13 @@ export interface RaubRules {
    * ili Mojom. Bez polja = da.
    */
   stihSkipsRefa?: boolean;
+  /**
+   * Sedmica aduta uzima kartu s talona (odluka 29): kad je „Moja" rečena bez
+   * sedmice i karta je ostala na talonu, svaki igrač koji igra (i nosilac) a
+   * poslije svoje zamjene drži sedmicu aduta smije je dati za tu kartu; prvi u
+   * redu zamjene ima prednost. Bez polja = da.
+   */
+  mojaTalonSeven?: boolean;
 }
 
 /**

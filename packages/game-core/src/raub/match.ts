@@ -104,6 +104,7 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     dealerRefaFirstFlip: state.rules.dealerRefaFirstFlip ?? DEFAULT_RAUB_RULES.dealerRefaFirstFlip!,
     dealerBlindFirstFlip: state.rules.dealerBlindFirstFlip ?? DEFAULT_RAUB_RULES.dealerBlindFirstFlip!,
     stihSkipsRefa: state.rules.stihSkipsRefa ?? DEFAULT_RAUB_RULES.stihSkipsRefa!,
+    mojaTalonSeven: state.rules.mojaTalonSeven ?? DEFAULT_RAUB_RULES.mojaTalonSeven!,
   };
 }
 
@@ -476,6 +477,32 @@ function beginExchange(state: RaubGameState): void {
   continueExchange(state);
 }
 
+/**
+ * Smije li igrač, poslije svoje zamjene, dati sedmicu aduta za kartu koja je
+ * ostala na talonu (odluka 29): adut je iz „Moja" bez sedmice, kartu još niko
+ * nije uzeo, igrač igra ruku i drži sedmicu aduta (i ako ju je tek dobio).
+ */
+function canTakeTalonWithSeven(state: RaubGameState, playerId: string): boolean {
+  if (!rulesV2(state).mojaTalonSeven) return false;
+  if (state.scenario !== "moja" || state.talonTakenBy !== null || !state.trumpSuit) return false;
+  const card = state.talon.at(-1);
+  if (!card || isSeven(card) || card.suit !== state.trumpSuit) return false;
+  const seat = seatOf(state, playerId);
+  if (seat.going === false) return false;
+  return seat.hand.some((c) => isSeven(c) && c.suit === state.trumpSuit);
+}
+
+/** Igrač je završio zamjenu: ponuda sedmice za talon (odluka 29) ili sljedeći u redu. */
+function endExchangeTurn(state: RaubGameState, playerId: string): void {
+  if (canTakeTalonWithSeven(state, playerId)) {
+    state.step = "swap_seven";
+    state.currentPlayerId = playerId;
+    return;
+  }
+  state.exchangeIndex += 1;
+  continueExchange(state);
+}
+
 /** Sljedeći u redu zamjene; kad je špil prazan, ostali preskaču (zamjena 0). */
 function continueExchange(state: RaubGameState): void {
   const order = state.exchangeOrder!;
@@ -490,6 +517,12 @@ function continueExchange(state: RaubGameState): void {
     if (id === state.talonTakenBy && raubTalonPending(state)) {
       // Špil prazan, a nosiocu karta još čeka na stolu: odbacuje jednu, pa je uzima.
       toDiscardExtra(state, id);
+      return;
+    }
+    if (canTakeTalonWithSeven(state, id)) {
+      // Bez zamjene (prazan špil), ali sa sedmicom aduta: ponuda i njemu (odluka 29).
+      state.step = "swap_seven";
+      state.currentPlayerId = id;
       return;
     }
     state.exchangeIndex += 1;
@@ -680,10 +713,17 @@ export function applyRaubAction(
       break;
     }
     case "swap_seven": {
-      // Samo ruka iz snapshota prije odluke 14 (Raub više ne nudi zamjenu sedmice).
       if (step !== "swap_seven") throw new Error("INVALID_ACTION");
+      if (typeof request.swap !== "boolean") throw new Error("INVALID_ACTION");
       if (request.swap) swapSeven(state, playerId);
-      afterTrump(state);
+      if (state.exchangeOrder !== null) {
+        // Odluka 29: ponuda poslije zamjene — igrač je gotov, ide sljedeći u redu.
+        state.exchangeIndex += 1;
+        continueExchange(state);
+      } else {
+        // Ruka iz snapshota prije odluke 14 (zamjena sedmice poslije Rauba).
+        afterTrump(state);
+      }
       break;
     }
     case "refa": {
@@ -715,10 +755,7 @@ export function applyRaubAction(
       // (Stari snapshot sa kartom već u ruci ovdje nije „pending" i ide starim putem.)
       if (playerId === state.talonTakenBy && raubTalonPending(state)) takeTalon(state, playerId);
       if (state.exchangeOrder === null) afterTrump(state);
-      else {
-        state.exchangeIndex += 1;
-        continueExchange(state);
-      }
+      else endExchangeTurn(state, playerId);
       break;
     }
     case "exchange": {
@@ -760,8 +797,7 @@ export function applyRaubAction(
       } else {
         seat.hand.push(...draw(state, ids.length));
       }
-      state.exchangeIndex += 1;
-      continueExchange(state);
+      endExchangeTurn(state, playerId);
       break;
     }
     case "play": {

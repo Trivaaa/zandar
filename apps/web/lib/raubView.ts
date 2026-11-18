@@ -190,13 +190,15 @@ export function seatCaptionText(v: RaubPlayerView, seat: RaubSeatView): string |
     if (seat.bid === "pass") return sr.raub.bid.pass;
     return null;
   }
-  if (v.step === "going" || v.step === "swap_seven" || v.step === "discard_extra") {
+  // Odluka 29: `swap_seven` usred zamjene (exchangeOrder postoji) prikazuje se kao zamjena.
+  const swapInExchange = v.step === "swap_seven" && v.exchangeOrder !== null;
+  if (v.step === "going" || (v.step === "swap_seven" && !swapInExchange) || v.step === "discard_extra") {
     if (seat.playerId === v.declarerId) return null;
     if (seat.going === true) return sr.raub.go.yes;
     if (seat.going === false) return sr.raub.go.no;
     return null;
   }
-  if (v.step === "exchange" && seat.exchanged !== null) {
+  if ((v.step === "exchange" || swapInExchange) && seat.exchanged !== null) {
     return seat.exchanged === 0 ? sr.raub.exchange.none : sr.raub.exchange.count(seat.exchanged);
   }
   return null;
