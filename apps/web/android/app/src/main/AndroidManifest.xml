@@ -125,4 +125,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- lib/haptics.ts → navigator.vibrate; bez dozvole je tihi no-op. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- screenOrientation="portrait" sam po sebi traži uspravni ekran, pa Play
+         ne nudi aplikaciju uređajima bez njega (Chromebook, Play Games na PC-u,
+         XR) i od 18.11.2026 blokira slanje na pregled. Zaključavanje ostaje. -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
 </manifest>
