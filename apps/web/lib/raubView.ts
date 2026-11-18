@@ -8,6 +8,8 @@ import type {
   Suit,
 } from "@zandar/shared-types";
 
+import { raubTalonDead } from "@zandar/game-core";
+
 import { huRankLabel } from "@/lib/hungarianDeck";
 import { sr } from "@/lib/sr";
 
@@ -81,7 +83,7 @@ export type RaubPanel =
   /** `blind`: djelilac odlučuje ne vidjevši svoje karte (odluka 26). */
   | { kind: "seven"; card: Card; refa: boolean; blind: boolean }
   /** `raub`/`moja`: šta server dozvoljava (`bidOptions`); `seven` je moja sedmica te boje (ili `null`). */
-  | { kind: "bid"; card: Card; raub: boolean; moja: boolean; seven: Card | null; refa: boolean; blind: boolean }
+  | { kind: "bid"; card: Card; raub: boolean; moja: boolean; seven: Card | null; refa: boolean; blind: boolean; dead: boolean }
   | { kind: "swap"; seven: Card; talon: Card }
   | { kind: "discard"; claim: boolean }
   /** `mustGo`: svi ostali su rekli „Ne idem” — samo „Idem” (odluka 19). */
@@ -125,6 +127,8 @@ export function panelFor(
         seven,
         refa: v.canRefa === true,
         blind: v.myCardsHidden,
+        // Odluka 31: niža karta već odbijene boje — samo „Dalje”.
+        dead: raubTalonDead(v),
       };
     }
     case "swap_seven":

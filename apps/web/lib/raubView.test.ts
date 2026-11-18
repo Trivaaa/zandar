@@ -7,6 +7,7 @@ import {
   createRaubRules,
   createSeededRandom,
   getRaubView,
+  raubTalonDead,
   selectRaubBotAction,
   startRaubHand,
 } from "@zandar/game-core";
@@ -182,6 +183,13 @@ describe("raubView: faza i panel", () => {
       assert.equal(withSeven.seven?.rank, "7");
       assert.equal(withSeven.seven?.suit, withSeven.card.suit);
     }
+  });
+
+  test("odluka 31: niža karta odbijene boje — panel samo Dalje, uz objašnjenje", () => {
+    const dead = panelFor(getRaubView(until((s) => mine("bidding")(s) && raubTalonDead(s)), "p0"), name);
+    assert.ok(dead.kind === "bid" && dead.dead && !dead.moja && !dead.raub);
+    const alive = panelFor(getRaubView(until((s) => mine("bidding")(s) && s.talonFlips === 2 && !raubTalonDead(s)), "p0"), name);
+    assert.ok(alive.kind === "bid" && !alive.dead);
   });
 
   test("Moja: natpis iznad avatara i oznaka nosioca", () => {

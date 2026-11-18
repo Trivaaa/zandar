@@ -287,6 +287,8 @@ export function ActionPanel({
     case "bid": {
       const hint = panel.blind
         ? sr.raub.blindHint
+        : panel.dead
+        ? sr.raub.deadHint(SUIT_SYMBOL[panel.card.suit])
         : panel.raub
         ? sr.raub.bidHint(SUIT_SYMBOL[panel.card.suit])
         : panel.moja && panel.seven

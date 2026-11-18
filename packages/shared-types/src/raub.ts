@@ -94,6 +94,12 @@ export interface RaubRules {
    * Bez polja = da.
    */
   mojaSevenAfterExchange?: boolean;
+  /**
+   * Odluka 31: kad su svi rekli „Dalje” na kartu, kasnija NIŽA karta iste boje
+   * u toj ruci je mrtva — samo „Dalje” (kao sedmica kao druga/treća karta).
+   * Viša karta iste boje se licitira normalno. Bez polja = da.
+   */
+  lowerOfPassedSuitDead?: boolean;
 }
 
 /**

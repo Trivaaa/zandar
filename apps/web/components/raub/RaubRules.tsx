@@ -41,7 +41,8 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
             tu kartu; prvi u redu zamjene ima prednost.
           </li>
           <li>
-            Ako svi kažu „Dalje”, okreće se nova karta (najviše 3). Ako niko ne uzme ni treću, to je <b>refa</b>: ruka
+            Ako svi kažu „Dalje”, okreće se nova karta (najviše 3). Ako je nova karta iste boje a niža od odbijene
+            (npr. J♥ pa 10♥), na nju niko ne može ništa — samo „Dalje”; viša karta iste boje se licitira normalno. Ako niko ne uzme ni treću, to je <b>refa</b>: ruka
             se poništava, a sljedeća se boduje duplo (osim Štiha — vidi bodovanje).
           </li>
           <li>

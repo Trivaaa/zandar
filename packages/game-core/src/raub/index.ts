@@ -27,6 +27,7 @@ export {
   raubHasSeven,
   raubMustGo,
   raubPendingSevenId,
+  raubTalonDead,
   raubTalonPending,
   upgradeRaubState,
   raubPlacements,

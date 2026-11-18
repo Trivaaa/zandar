@@ -2283,3 +2283,23 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Stari APK (1.4.4):** pravilo je na serveru. Katanac na sedmici stiže kroz `lockedCardId`, pa je stara aplikacija ne može označiti za zamjenu. Uputa u staroj aplikaciji kaže „zatim odbacuješ jednu i uzimaš kartu sa stola”, jer ne razlikuje Moju od Rauba. Odbacivanja nema, karta jednostavno dođe.
 
 **Nije provjereno na uređaju.** Server mora na deploy (pravilo je u motoru). Web donosi samo uputu.
+
+## 186. Raub — niža karta odbijene boje je mrtva (2026-11-18, odluka 31, `fix/raub-lower-passed-suit`)
+
+**Povod:** feedback igrača: „Prva karta je dole žandar srce. Ako svi kažu dalje, dolazi druga karta. I ako je manje srce, npr. desetka, to ne može niko ništa.” Motor je do sada gledao samo kartu na vrhu talona, pa je na 10♥ poslije odbijenog J♥ nudio „Moja”.
+
+**Odluke vlasnika:** mrtva je karta niža od BILO KOJE ranije okrenute (odbijene) karte iste boje u toj ruci (J♥ → 8♠ → 10♥: 10♥ je mrtva). Viša karta iste boje se licitira normalno. Tok je isti kao za sedmicu kao drugu/treću kartu: krug sa samo „Dalje”, broji se u `maxTalonFlips`, poslije treće refa.
+
+**Izmjena:** jedan predikat, postojeća mašinerija.
+- `raubTalonDead(state)` u `match.ts`: vrh talona je niži od neke ranije karte iste boje u talonu. Tokom licitacije talon nosi samo okrenute karte (sedmica iz „Moja” stiže tek poslije izjave), pa je to tačno „odbijene karte ove ruke”.
+- `raubCanMoja` i `raubCanRaub` vraćaju `false` za mrtvu kartu. `bidOptions` je zato `{raub:false, moja:false}`, kao kod sedmice kao druge karte; bot, istek roka i server to već nose.
+- Parametar `lowerOfPassedSuitDead` (stari snapshot bez polja = da). Bez novog polja u stanju, pogledu i protokolu.
+- Web: panel dobija `dead` (isti predikat iz `@zandar/game-core` nad pogledom) i uputu „Jači ♥ je već odbijen — na ovu kartu niko ne može ništa.” (`sr.raub.deadHint`). Pravila u igri (`RaubRules.tsx`) i spec (pravilo 4, rubni slučajevi, odluka 31) dopunjeni.
+
+**Mjereno:**
+- game-core 458 testova (+6: J♥→10♥ mrtva, K♥ živa, poređenje sa svim ranijim, mrtva treća → refa, bot kaže Dalje, parametar i stari snapshot). Web 253 (+1). Typecheck čist.
+- `simulate:raub` 10.000 × 4P: 0 grešaka karata i štihova, 0 odbijenih akcija, 0 zaglavljenih; refa 3,1 % (bilo 2,8 %), medijan 23 ruke, 35,9 min.
+
+**Stari APK (1.4.4):** pravilo je na serveru; stara aplikacija na mrtvoj karti vidi samo dugme „Dalje”, bez upute.
+
+**Nije provjereno na uređaju.** Server mora na deploy (pravilo je u motoru).

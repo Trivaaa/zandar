@@ -12,6 +12,7 @@ import {
   raubMustGo,
   raubPendingSevenId,
   raubPlacements,
+  raubTalonDead,
   raubTalonPending,
   raubScoreDelta,
   startRaubHand,
@@ -635,6 +636,71 @@ describe("raub scenarij 3 — licitacija", () => {
   it("parametar: prvi licitira igrač desno od djelioca", () => {
     let s = match({ hands: HANDS4, talon: H("Q"), rules: { firstBidder: "right_of_dealer" } });
     expect(s.currentPlayerId).toBe("b");
+  });
+});
+
+describe("raub niža karta odbijene boje (odluka 31)", () => {
+  const passAll = (s: RaubGameState) => {
+    for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
+    return s;
+  };
+  const NONE = { raub: false, moja: false };
+
+  it("J♥ pa svi Dalje, pa 10♥: niko ne može ništa, samo Dalje", () => {
+    let s = passAll(match({ hands: HANDS4, talon: H("J"), next: [H("10"), S("J")] }));
+    expect(s.talonFlips).toBe(2);
+    expect(raubTalonDead(s)).toBe(true);
+    for (const id of IDS4) {
+      expect(getRaubView(s, id).bidOptions ?? NONE).toEqual(NONE);
+      if (s.currentPlayerId === id) {
+        expect(() => act(s, id, { type: "bid", bid: "moja" })).toThrow("INVALID_ACTION");
+      }
+      s = act(s, id, { type: "bid", bid: "pass" });
+    }
+    expect(s.talonFlips).toBe(3);
+    // Treća karta je druge boje: Moja opet može.
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: true });
+  });
+
+  it("viša karta iste boje se licitira normalno", () => {
+    let s = passAll(match({ hands: HANDS4, talon: H("J"), next: [H("Q")] }));
+    expect(raubTalonDead(s)).toBe(false);
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: true });
+    s = act(s, "a", { type: "bid", bid: "moja" });
+    expect(s.trumpSuit).toBe("hearts");
+  });
+
+  it("poredi sa svim ranije odbijenim kartama, ne samo sa prethodnom", () => {
+    let s = passAll(passAll(match({ hands: HANDS4, talon: H("J"), next: [S("8"), H("10")] })));
+    expect(s.talonFlips).toBe(3);
+    expect(raubTalonDead(s)).toBe(true);
+    expect(getRaubView(s, "a").bidOptions).toEqual(NONE);
+  });
+
+  it("mrtva treća karta: svi Dalje i refa", () => {
+    const s = passAll(passAll(passAll(match({ hands: HANDS4, talon: H("J"), next: [S("8"), H("8")] }))));
+    expect(s.phase).toBe("hand_complete");
+    expect(s.lastHand!.void).toBe(true);
+    expect(s.pendingRefas).toBe(1);
+  });
+
+  it("bot na mrtvoj karti kaže Dalje", () => {
+    const s = passAll(match({ hands: HANDS4, talon: H("J"), next: [H("10")] }));
+    const pid = s.currentPlayerId!;
+    expect(selectRaubBotAction(getRaubView(s, pid), DEFAULT_RAUB_BOT_CONFIG, makeLcg(7))).toEqual({
+      type: "bid",
+      bid: "pass",
+    });
+  });
+
+  it("parametar false: niža karta se licitira; stari snapshot bez polja = da", () => {
+    const off = passAll(
+      match({ hands: HANDS4, talon: H("J"), next: [H("10")], rules: { lowerOfPassedSuitDead: false } }),
+    );
+    expect(getRaubView(off, "a").bidOptions).toEqual({ raub: false, moja: true });
+    const old = passAll(match({ hands: HANDS4, talon: H("J"), next: [H("10")] }));
+    delete old.rules.lowerOfPassedSuitDead;
+    expect(getRaubView(old, "a").bidOptions).toEqual(NONE);
   });
 });
 

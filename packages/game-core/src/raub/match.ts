@@ -9,7 +9,7 @@ import type {
   RaubSeat,
 } from "@zandar/shared-types";
 import { shuffleWith } from "../shuffle";
-import { beats, createRaubDeck, isSeven, trickWinnerIndex } from "./cards";
+import { beats, createRaubDeck, isSeven, raubRankValue, trickWinnerIndex } from "./cards";
 import { DEFAULT_RAUB_RULES } from "./config";
 
 /** Generator u [0, 1). Server daje kriptografski, testovi seeded. */
@@ -106,7 +106,23 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     stihSkipsRefa: state.rules.stihSkipsRefa ?? DEFAULT_RAUB_RULES.stihSkipsRefa!,
     mojaTalonSeven: state.rules.mojaTalonSeven ?? DEFAULT_RAUB_RULES.mojaTalonSeven!,
     mojaSevenAfterExchange: state.rules.mojaSevenAfterExchange ?? DEFAULT_RAUB_RULES.mojaSevenAfterExchange!,
+    lowerOfPassedSuitDead: state.rules.lowerOfPassedSuitDead ?? DEFAULT_RAUB_RULES.lowerOfPassedSuitDead!,
   };
+}
+
+/**
+ * Odluka 31: ponuđena karta je niža od neke ranije okrenute (odbijene) karte
+ * iste boje u ovoj ruci — na nju niko ne može ništa, samo „Dalje”, kao na
+ * sedmicu kao drugu ili treću kartu. Tokom licitacije talon nosi samo
+ * okrenute karte (sedmica iz „Moja” stiže tek poslije izjave).
+ */
+export function raubTalonDead(state: Pick<RaubGameState, "rules" | "talon">): boolean {
+  if (!rulesV2(state).lowerOfPassedSuitDead) return false;
+  const card = state.talon.at(-1);
+  if (!card) return false;
+  return state.talon
+    .slice(0, -1)
+    .some((prev) => prev.suit === card.suit && raubRankValue(prev) > raubRankValue(card));
 }
 
 /**
@@ -136,7 +152,7 @@ export function raubCanRaub(
   const rules = rulesV2(state);
   if (rules.raubDealerOnly && playerId !== state.dealerId) return false;
   if (rules.raubFirstFlipOnly && state.talonFlips > 1) return false;
-  return !!card && !isSeven(card) && rules.raubRanks.includes(card.rank);
+  return !!card && !isSeven(card) && !raubTalonDead(state) && rules.raubRanks.includes(card.rank);
 }
 
 /**
@@ -169,7 +185,7 @@ export function raubHasSeven(state: RaubGameState, playerId: string): boolean {
  */
 export function raubCanMoja(state: RaubGameState, playerId: string): boolean {
   const card = state.talon.at(-1);
-  if (!card || isSeven(card)) return false;
+  if (!card || isSeven(card) || raubTalonDead(state)) return false;
   const rules = rulesV2(state);
   if (rules.dealerRaubOrPass && raubCanRaub(state, playerId)) return false;
   return rules.mojaNeedsSeven ? raubHasSeven(state, playerId) : true;
