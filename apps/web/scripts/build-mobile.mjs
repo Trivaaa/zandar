@@ -80,6 +80,41 @@ export function requireFirebaseConfig(buildType) {
   process.exit(1);
 }
 
+/**
+ * Ključevi koje produkcijski build MORA zapeći u bundle, a ne dolaze iz `TARGETS`
+ * nego iz `.env.local` (nije u gitu). 1.4.5 je izgrađen iz svježeg worktree-a bez
+ * tog fajla: `posthog.init(undefined)` ne baca ništa, pa aplikacija sa Play-a
+ * nije poslala nijedan klijentski događaj (changelog 202). Zato build odbija.
+ */
+export const REQUIRED_PROD_KEYS = ["NEXT_PUBLIC_POSTHOG_KEY", "NEXT_PUBLIC_POSTHOG_HOST"];
+
+/**
+ * Šta će `next build` stvarno vidjeti: shell + `.env*` fajlovi, istim
+ * učitavačem koji koristi Next (`@next/env`, preko `next`-a jer pnpm ga ne
+ * izlaže direktno).
+ */
+function envAsNextSeesIt(env) {
+  const fromNext = createRequire(createRequire(import.meta.url).resolve("next/package.json"));
+  const { loadEnvConfig } = fromNext("@next/env");
+  const silent = { info() {}, error() {} };
+  const { combinedEnv } = loadEnvConfig(join(import.meta.dirname, ".."), false, silent, true);
+  return { ...combinedEnv, ...env };
+}
+
+export function requireAnalyticsKeys(env) {
+  if (env.NEXT_PUBLIC_APP_ENV !== "production") return;
+  const seen = envAsNextSeesIt(env);
+  const missing = REQUIRED_PROD_KEYS.filter((key) => !seen[key]);
+  if (missing.length === 0) return;
+  console.error(
+    `\n✗ Nedostaje ${missing.join(", ")} za produkcijski build.\n` +
+      `  Dolaze iz apps/web/.env.local (nije u gitu — novi worktree ga nema).\n` +
+      `  Bez njih aplikacija radi, ali PostHog tiho ne šalje ništa.\n` +
+      `  Kopiraj .env.local (i .env.sentry-build-plugin) iz glavnog foldera.\n`,
+  );
+  process.exit(1);
+}
+
 /** `--env staging` | `--env=staging`; bez argumenta ostaje produkcija (zatečeno ponašanje). */
 export function parseTarget(argv) {
   const flag = argv.indexOf("--env");
@@ -118,6 +153,7 @@ export function mobileEnv(target) {
       process.exit(1);
     }
   }
+  requireAnalyticsKeys(env);
   return env;
 }
 
