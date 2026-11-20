@@ -2603,3 +2603,17 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 - Web 298 testova (+3 `tableMenu`), typecheck čist, lint 4 greške + 2 upozorenja (sve zatečene), `build:mobile` prolazi i izvoz nosi meni.
 
 **Nije provjereno na uređaju:** Android „nazad" na S10e. Aplikacija dobija izmjenu tek novim paketom.
+
+## 202. 1.4.5 nije slala klijentske događaje u PostHog; 1.4.6 i straža u buildu (2026-11-20, `fix/apk-1.4.6`)
+
+**Simptom:** od 19.11. iz aplikacije sa Play-a nije stigao nijedan klijentski događaj (`$host = localhost`, `app_version = 771a526`). 1.4.4 (`397fb95`) i starije verzije su slale normalno i opadale kako su igrači prelazili na 1.4.5 (18.11.: 38 osoba, 19.11.: 12, 20.11.: 2). Serverski događaji (`match_started`/`match_ended`) za Android su stizali, pa rupa pogađa samo klijentske (`first_open`, `play_requested`, `$pageview`, pozivnice, ponude).
+
+**Uzrok:** `NEXT_PUBLIC_POSTHOG_KEY`/`_HOST` dolaze samo iz `apps/web/.env.local`, koji nije u gitu. Worktree `zandar-apk` je napravljen iznova 18.11. u 22:47, prije builda 1.4.5, i nije imao taj fajl. U izvozu nije bilo nijednog `phc_` ključa, a `posthog.init(undefined)` ne baca grešku. Isto je falio `.env.sentry-build-plugin`, pa 1.4.5 nema source mapa u Sentryju (greške stižu, DSN je u kodu).
+
+**Popravka:**
+- `build-mobile.mjs` → `requireAnalyticsKeys`: produkcijski mobilni build (`NEXT_PUBLIC_APP_ENV=production`) odbija bez ta dva ključa. Provjera čita `.env*` istim učitavačem kao Next (`@next/env`), jer ih `next build` učita tek sam.
+- 1.4.6 = `versionCode 13`, sa svim sa `main`-a (staging) od 1.4.5.
+
+**Zamka:** novi worktree za izdanje ne nosi fajlove van gita. Pored `.env.local` i `.env.sentry-build-plugin` tu su i `android/local.properties` (Meta token), `android/keystore.properties` i `google-services.json`. Za posljednja dva build već odbija.
+
+**Čitanje kohorti:** Android klijentski podaci od 19.11. do izlaska 1.4.6 su rupa i ne mogu se vratiti.
