@@ -182,7 +182,8 @@
   --t-jack-sweep:    770ms;
   /* Lepeza na stolu početne „diše" ±1° (SPEC_POCETNA_V3 §5). */
   --t-fan-breathe:   6400ms;
-  /* „Miješamo špil": krug petlje i S2 izlaz (karte u gomilu + kucanje = 0,65 s;
+  /* „Miješamo špil": krug petlje i S2 izlaz (karte u gomilu + kucanje = 0,65 s,
+     pa 0,5 s zadržavanja bez pokreta;
      isti brojevi su SHUFFLE_*_MS u lib/shuffleView.ts — sat drži JS). */
   --t-shuffle-loop:    3000ms;
   --t-shuffle-collect: 250ms;

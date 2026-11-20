@@ -77,8 +77,8 @@ describe("shuffleView — tekst i tok", () => {
     assert.equal(introOnState("exit"), "exit");
     assert.equal(introOnState("done"), "done");
   });
-  test("izlaz S2 je najviše 0,65 s (tabla)", () => {
-    assert.ok(SHUFFLE_EXIT_MS <= 650);
+  test("izlaz S2: 0,65 s pokreta (tabla) + 0,5 s zadržavanja", () => {
+    assert.equal(SHUFFLE_EXIT_MS, 1150);
   });
   test("oznaka uvoda: samo za tu sobu, čitanje ne briše", () => {
     const mem = new Map<string, string>();

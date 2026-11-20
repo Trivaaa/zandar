@@ -2563,3 +2563,7 @@ Ovo je svjesno odstupanje od „ekran traje koliko i učitavanje" iz unosa 198.
 **Zamka:** glavni folder je u međuvremenu prešao na granu druge sesije (`feat/table-menu`) sa njenim nekomitovanim izmjenama. Ovaj rad je zato prenesen i komitovan iz worktree-a `zandar-seats`.
 
 **Nije provjereno na uređaju.**
+
+## 200. „Svi su tu. Počinjemo!" se drži pola sekunde duže (2026-11-20, `feat/shuffle-seats`)
+
+**Šta:** vlasnik je na S10e javio da S2 „previše brzo nestane i nije efektivno". Pokreti ostaju kao na tabli: karte u gomilu za 250 ms i kucanje za 400 ms. Poslije njih se završna slika (podignut špil, zlatni krug i obod, „Partija počinje") drži još `SHUFFLE_HOLD_MS` = 500 ms. Sto zato stiže 1,15 s poslije zadnjeg igrača, a ne 0,65 s. Žandar je na ~4,0 s od klika. Web 298 testova, typecheck čist. **Nije provjereno na uređaju.**

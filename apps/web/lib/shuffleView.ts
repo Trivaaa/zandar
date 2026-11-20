@@ -9,10 +9,15 @@ import type { GameId } from "@zandar/shared-types";
 
 import { pluralForm } from "@/lib/plural";
 
-/** S2 „sto je pun": karte u gomilu + kucanje o sto. Tabla: najviše 0,65 s. */
+/**
+ * S2 „sto je pun": karte u gomilu + kucanje o sto (tabla: 0,65 s), pa se
+ * završna slika drži još pola sekunde — na telefonu je bez toga „Počinjemo!"
+ * nestajalo prebrzo (odluka vlasnika 20.11.2026).
+ */
 export const SHUFFLE_COLLECT_MS = 250;
 export const SHUFFLE_KNOCK_MS = 400;
-export const SHUFFLE_EXIT_MS = SHUFFLE_COLLECT_MS + SHUFFLE_KNOCK_MS;
+export const SHUFFLE_HOLD_MS = 500;
+export const SHUFFLE_EXIT_MS = SHUFFLE_COLLECT_MS + SHUFFLE_KNOCK_MS + SHUFFLE_HOLD_MS;
 
 /** Broj tonova za krug sa inicijalom (`data-tone` u `funnel.css`). */
 export const INITIAL_TONES = 5;
