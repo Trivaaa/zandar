@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
   getRoom,
@@ -16,6 +16,8 @@ import {
 import { getSession, saveSession, type RoomSession } from "@/lib/session";
 import { readPlayerName } from "@/lib/playerName";
 import { getSocket } from "@/lib/socket";
+import { isConnectionLost, type SocketStatus } from "@/lib/connection";
+import { ConnectionBanner } from "@/components/felt/ConnectionBanner";
 import { getIdToken } from "@/lib/auth";
 import { getPushId, PUSH_REGISTERED_EVENT } from "@/lib/push";
 import { PushPrompt } from "@/components/push/PushPrompt";
@@ -77,9 +79,12 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [inviteUrl, setInviteUrl] = useState("");
-  const [socketStatus, setSocketStatus] = useState<
-    "disconnected" | "connecting" | "connected" | "error"
-  >("disconnected");
+  const [socketStatus, setSocketStatus] = useState<SocketStatus>("disconnected");
+  // Pregledač javi gubitak mreže odmah; socket.io tek na ping timeout (PK-B3).
+  const browserOnline = useSyncExternalStore(subscribeOnline, readOnline, () => true);
+  // Mreža je padala od zadnjeg (re)konekta → socket koji „misli da je povezan"
+  // vjerovatno sjedi na mrtvom transportu.
+  const wentOffline = useRef(false);
   const [pendingRequests, setPendingRequests] = useState<PendingJoinRequest[]>(
     [],
   );
@@ -214,6 +219,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     }
 
     function handleConnect() {
+      wentOffline.current = false;
       setSocketStatus("connected");
       subscribe();
     }
@@ -271,13 +277,22 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       if (resumeTimer) clearTimeout(resumeTimer);
       resumeTimer = setTimeout(() => {
         if (!s.connected) s.connect();
-        else subscribe();
+        else if (wentOffline.current) {
+          // Svjež transport odmah, umjesto da emit ode u mrtav i čeka se ping
+          // timeout (~20 s do prvog pravog stanja, PK-B3). `connect` → subscribe.
+          s.disconnect();
+          s.connect();
+        } else subscribe();
       }, 500);
     }
     function onVisible() {
       if (document.visibilityState === "visible") resume();
     }
+    function onOffline() {
+      wentOffline.current = true;
+    }
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("offline", onOffline);
     window.addEventListener("online", resume);
     window.addEventListener("pageshow", resume);
     // Dozvola za obavještenja data POSLIJE pretplate (tipično u lobiju) —
@@ -293,6 +308,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       s.off("game:reaction", handleReaction);
       s.off("game:autoPlay", handleAutoPlay);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("offline", onOffline);
       window.removeEventListener("online", resume);
       window.removeEventListener("pageshow", resume);
       window.removeEventListener(PUSH_REGISTERED_EVENT, subscribe);
@@ -545,10 +561,14 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     );
   }
 
+  const connectionLost = isConnectionLost({ browserOnline, socketStatus });
+
   if (raubState) {
     return (
       <>
+        <ConnectionBanner show={connectionLost} />
         <RaubScreen
+          offline={connectionLost}
           state={raubState}
           tableTheme={room.tableTheme}
           isQuickPlay={room.isPublic}
@@ -571,7 +591,9 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   if (pokerState) {
     return (
       <>
+        <ConnectionBanner show={connectionLost} />
         <PokerScreen
+          offline={connectionLost}
           state={pokerState}
           tableTheme={room.tableTheme}
           isQuickPlay={room.isPublic}
@@ -591,7 +613,9 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   if (gameState) {
     return (
       <>
+        <ConnectionBanner show={connectionLost} />
         <GameScreen
+          offline={connectionLost}
           state={gameState}
           onPlayCard={handlePlayCard}
           onNextHand={handleNextHand}
@@ -701,4 +725,17 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       ) : null}
     </div>
   );
+}
+
+function subscribeOnline(onChange: () => void): () => void {
+  window.addEventListener("online", onChange);
+  window.addEventListener("offline", onChange);
+  return () => {
+    window.removeEventListener("online", onChange);
+    window.removeEventListener("offline", onChange);
+  };
+}
+
+function readOnline(): boolean {
+  return navigator.onLine;
 }

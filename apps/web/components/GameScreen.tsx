@@ -115,6 +115,8 @@ type GameScreenProps = {
   initialSelectedCardId?: string;
   /** Dodir na protivnika/partnera → tuđi profil ili kartica gosta (T1/T3). */
   onPlayerTap?: ((player: PublicPlayer, anchor: DOMRect) => void) | undefined;
+  /** Naša veza sa stolom je prekinuta — potez zaključan (PK-B3). */
+  offline?: boolean | undefined;
 };
 
 export function GameScreen({
@@ -131,6 +133,7 @@ export function GameScreen({
   tableTheme,
   initialSelectedCardId,
   onPlayerTap,
+  offline = false,
 }: GameScreenProps) {
   const tapFor = (player: PublicPlayer) =>
     onPlayerTap ? (anchor: DOMRect) => onPlayerTap(player, anchor) : undefined;
@@ -319,7 +322,8 @@ export function GameScreen({
   const me = state.players.find((p) => p.id === state.myPlayerId);
   const isHost = me?.isHost ?? false;
   const isPlaying = state.phase === "playing";
-  const myTurn = isPlaying && state.currentPlayerId === state.myPlayerId;
+  // Bez veze (PK-B3) ruka ne prima dodir, kao kad nisi na redu.
+  const myTurn = isPlaying && !offline && state.currentPlayerId === state.myPlayerId;
   // Dok beat traje sto crta ZADRŽANI raspored, a `getCaptureOptions` računa po
   // pravom `state.table` — ponuditi potez nad zastarjelim stolom znači pustiti
   // igrača da bira grupu koje više nema. Sto zato ne prima dodir dok karte lete.

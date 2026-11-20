@@ -95,6 +95,8 @@ export type RaubScreenProps = {
   onPlayerTap?: ((player: PublicPlayer, anchor: DOMRect) => void) | undefined;
   /** Pregled (`/dev/raub`): tabela otvorena odmah. */
   initialTableOpen?: boolean | undefined;
+  /** Naša veza sa stolom je prekinuta — potez zaključan (PK-B3). */
+  offline?: boolean | undefined;
 };
 
 /** Karte licem nadolje za djelioca prije odluke — bez ikakve informacije. */
@@ -126,6 +128,7 @@ export function RaubScreen({
   activeReactions,
   onPlayerTap,
   initialTableOpen = false,
+  offline = false,
 }: RaubScreenProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -135,7 +138,7 @@ export function RaubScreen({
   // Zaključano za JEDNU verziju stanja: novo stanje sa servera otključava samo.
   const [busyAt, setBusyAt] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
-  const busy = running || busyAt === state.stateVersion;
+  const busy = running || busyAt === state.stateVersion || offline;
   // Sinhrona brava: `busyAt` je stanje i važi tek od sljedećeg rendera, pa bi
   // drugi dodir u istom trenutku poslao isti potez još jednom.
   const inflight = useRef(false);
@@ -153,7 +156,9 @@ export function RaubScreen({
   const handOver = state.phase === "hand_complete";
   const pausePhase = overlayPhase(state);
   const interrupted = pausePhase !== null;
-  const myTurn = state.phase === "playing" && !interrupted && state.currentPlayerId === state.myPlayerId;
+  // Bez veze (PK-B3) ruka i panel ne primaju dodir, kao kad nisi na redu.
+  const myTurn =
+    state.phase === "playing" && !interrupted && !offline && state.currentPlayerId === state.myPlayerId;
   const totalSeconds = state.rules.turnTimeoutSeconds;
   const turnSeconds = useCountdown(state.turnDeadline, totalSeconds);
 

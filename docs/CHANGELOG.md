@@ -2389,3 +2389,15 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Back-compat:** polje je opciono na oba kraja; bez njega ostaje Žandar tekst. Push tekst je serverski, pa ga i aplikacija 1.4.x dobija ispravnog čim server ode na deploy; list u aplikaciji tek novim paketom.
 
 **Mjereno:** server 273 testa (novi slučaj po igri), web 269, typecheck shared-types/server/web, lint dodirnutih fajlova čist. **Nije provjereno na uređaju** (traži dva naloga).
+
+## 192. Sto javlja da nema veze — Poker, Žandar, Raub (2026-11-20, `fix/poker-invite-motif`)
+
+**Šta:** QA 2026-11-07 PK-B3 — bez mreže sto je izgledao živ (panel aktivan, sat teče), dodir nije stizao do servera i potez je istekao; poslije povratka mreže prvo pravo stanje je stizalo ~20 s kasnije. Nijedan sto nije pokazivao prekid VLASTITE veze, samo tuđe. Odluka vlasnika: sva tri stola, web i aplikacija.
+
+**Kako:**
+- `lib/connection.ts` `isConnectionLost` (čisto, testirano): prekid = pregledač offline ILI socket `disconnected`/`error`. Pregledač javi `offline` odmah; socket.io tek na ping timeout.
+- `RoomScreen`: `navigator.onLine` kroz `useSyncExternalStore`; na `offline` pamti da je mreža padala, pa na `online` (`resume`) socket koji „misli da je povezan" dobija svjež transport (`disconnect` + `connect`) umjesto emita u mrtav — to je bilo ~20 s.
+- `components/felt/ConnectionBanner.tsx` „Veza je prekinuta — vraćamo te…" (CSS na kraju `felt.css`, neprovidna, `width: max-content` — sa `left: 50%` se lomila u dva reda).
+- Prop `offline` na `PokerScreen` (`busy`), `GameScreen` (`myTurn`) i `RaubScreen` (`myTurn` i `busy`). Sat ostaje — to je stvarni rok servera.
+
+**Mjereno (headless Chrome, CDP `emulateNetworkConditions`, lokalni server):** traka se pojavi za ≤ 3 ms od prekida u sva tri stola; poker panel `disabled` na sva tri dugmeta; traka nestaje 3,8 s (poker), 0,5–3,6 s (Raub), 3,2 s (Žandar) poslije povratka mreže. Web 272 testa, typecheck čist, lint: samo 3 zatečene greške u `RoomScreen`. **Nije provjereno na telefonu** (pravi prekid Wi-Fi-ja / mobilnih podataka).

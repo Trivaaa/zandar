@@ -92,6 +92,8 @@ export const sr = {
     cards: (n: number) => `${n} karata u ruci`,
   },
   connection: {
+    /** Naša veza sa stolom je prekinuta (PK-B3). */
+    lost: "Veza je prekinuta — vraćamo te…",
     connected: "Na vezi",
     reconnecting: "Ponovno povezivanje",
     left: "Nije za stolom",

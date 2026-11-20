@@ -71,6 +71,8 @@ export type PokerScreenProps = {
   onLeave: () => void;
   activeReactions: ActiveReaction[];
   onPlayerTap?: ((player: PublicPlayer, anchor: DOMRect) => void) | undefined;
+  /** Naša veza sa stolom je prekinuta — potez zaključan (PK-B3). */
+  offline?: boolean | undefined;
 };
 
 type Orientation = "top" | "left" | "right" | "bottom";
@@ -105,6 +107,7 @@ export function PokerScreen({
   onLeave,
   activeReactions,
   onPlayerTap,
+  offline = false,
 }: PokerScreenProps) {
   // Sto kao priča: dok `hold` postoji, sto drži uloge, board, pot i stackove
   // kakvi su bili i pušta ih korak po korak (`usePokerBeat`, plan animacija).
@@ -119,7 +122,8 @@ export function PokerScreen({
   const [busyAt, setBusyAt] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
   const raiseOpen = raiseAt === state.stateVersion;
-  const busy = running || busyAt === state.stateVersion;
+  // Bez veze dodir ne stiže do servera — panel i raise list sivi (PK-B3).
+  const busy = running || busyAt === state.stateVersion || offline;
   const setRaiseOpen = (open: boolean) => setRaiseAt(open ? state.stateVersion : null);
   const [bustSeen, setBustSeen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
