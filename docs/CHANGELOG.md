@@ -2617,3 +2617,5 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Zamka:** novi worktree za izdanje ne nosi fajlove van gita. Pored `.env.local` i `.env.sentry-build-plugin` tu su i `android/local.properties` (Meta token), `android/keystore.properties` i `google-services.json`. Za posljednja dva build već odbija.
 
 **Čitanje kohorti:** Android klijentski podaci od 19.11. do izlaska 1.4.6 su rupa i ne mogu se vratiti.
+
+**Dopuna (isti dan):** build 1.4.6 je dvaput pao u `next build` na Turbopack grešci `next/font/google queries have exactly one entry` (i iz Git Bash-a i iz PowerShell-a; Google fontovi su dostupni, Avast ih trenutno ne presreće). Zato `build-apk.mjs` sada prima `--webpack` i prosljeđuje ga `next build`-u: `pnpm aab:prod -- --webpack`.

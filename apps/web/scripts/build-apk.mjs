@@ -76,6 +76,10 @@ function run(cmd, args, opts = {}) {
 
 const target = parseTarget(process.argv.slice(2));
 const wantsRelease = process.argv.includes("--release");
+// `--webpack` ide pravo u `next build`: Turbopack na ovoj mašini zna pasti na
+// Google fontovima („next/font/google queries have exactly one entry"), a
+// webpack prolazi (changelog 202). Primjer: `pnpm aab:prod -- --webpack`.
+const nextBuildArgs = process.argv.includes("--webpack") ? ["build", "--webpack"] : ["build"];
 
 if (wantsRelease && target !== "prod") {
   console.error("\n✗ --release samo uz --env prod (staging ostaje namjerno debug-potpisan)\n");
@@ -101,7 +105,7 @@ delete cleanEnv.CAP_LIVE_RELOAD_URL;
 
 try {
   // 1. Web u jedinstven folder, sa adresama ovog okruženja zapečenim u bundle.
-  await run(process.execPath, [nextBin, "build"], { env });
+  await run(process.execPath, [nextBin, ...nextBuildArgs], { env });
 
   // 2. Izlaz + config u native projekat, bez `server.url`.
   await run(process.execPath, [capBin, "sync", "android"], { env: cleanEnv });
