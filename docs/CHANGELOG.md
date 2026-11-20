@@ -2469,3 +2469,11 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Nije provjereno:**
 - Prelazak sjedišta na drugi uređaj sa pravim Firebase nalogom: lokalni server nema Firebase, pa je pokriveno samo testovima ruta.
 - Uređaj (S10e, staging APK), uključujući ponovno pokretanje aplikacije.
+
+## 196. Poker dobija zvuk i vibraciju (2026-11-20, `fix/poker-sound`)
+
+**Šta:** QA 2026-11-07 PK-B8 — prekidači zvuka i vibracije su stajali na poker stolu, ali poker nije zvao ni `playSfx` ni `vibrate`, pa nisu radili ništa.
+
+**Kako:** `lib/pokerSound.ts` (čisto, testirano) kaže šta ide uz koji korak priče stola: dijeljenje → `deal`; ulog i ulozi u pot → novi `chips` (moj ulog i vibracija `play`); check → tih `lift`; fold → ništa; pot meni → `win` + vibracija `capture`, tuđi → `chips`. `usePokerBeat` ga pušta tačno uz let (`runPokerFx`), ne u pozadini (priča se tada sabija u trenutak). `PokerScreen` na prelaz: moj potez → `turn` + vibracija (kao Žandar), sat mog poteza na ≤ 5 s → novi `warn` (dva tiha tona) + vibracija, kraj meča → `win`/`lose` po mom mjestu. Otvaranje stola usred poteza ili poslije kraja ne zvoni. Novi zvukovi su samo dodati u `lib/sound.ts`; Žandar netaknut.
+
+**Mjereno (headless Chrome, lokalni server, špijun na `createOscillator`/`createBufferSource` i `navigator.vibrate`):** prekidači upaljeni — 16 zvučnih događaja do mog poteza (dijeljenje, blindovi, ulozi), vibracija 25 ms na moj potez, na 5 s dva tona + vibracija, 26 ukupno poslije mog poteza; prekidači ugašeni — 0. Web 275 testova, typecheck, lint dodirnutih fajlova čist. **Ušima i rukom na telefonu nije provjereno.**

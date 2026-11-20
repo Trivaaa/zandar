@@ -20,7 +20,9 @@ export type SfxName =
   | "deal"
   | "win"
   | "lose"
-  | "news";
+  | "news"
+  | "chips"
+  | "warn";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -143,6 +145,15 @@ function render(name: SfxName): void {
       break;
     case "news": // mala ili velika kod našeg tima — jedan tih ton (G5)
       tone(783.99, 0, 0.18, "sine", 0.25);
+      break;
+    case "chips": // poker: žetoni na sto / u pot — dva-tri kratka visoka klika
+      noise(0, 0.018, 0.22, 4200);
+      noise(0.045, 0.018, 0.18, 4600);
+      noise(0.085, 0.015, 0.12, 5000);
+      break;
+    case "warn": // poker: zadnjih 5 s mog poteza — dva brza tiha tona (A5)
+      tone(880, 0, 0.08, "sine", 0.3);
+      tone(880, 0.14, 0.08, "sine", 0.3);
       break;
   }
 }

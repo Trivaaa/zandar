@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type {
   Card,
   PokerActionRequest,
@@ -22,7 +22,10 @@ import { GameMenuSheet } from "@/components/overlay/GameMenuSheet";
 import { LeaveTableSheet } from "@/components/overlay/LeaveTableSheet";
 import { Toast } from "@/components/overlay/Toast";
 import { useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
+import { HAPTIC, vibrate } from "@/lib/haptics";
 import { isNative } from "@/lib/platform";
+import { turnWarning } from "@/lib/pokerSound";
+import { playSfx } from "@/lib/sound";
 import {
   actionLabel,
   actionTone,
@@ -153,6 +156,36 @@ export function PokerScreen({
   const levelUpHand = state.blindLevel > 1 && state.handsUntilNextLevel === handsPerLevel && !handOver;
 
   const turnSeconds = useCountdown(state.turnDeadline, TURN_TOTAL_SECONDS);
+
+  // Zvuk i vibracija (PK-B8). Samo na PRELAZ: otvaranje stola usred mog poteza
+  // ili poslije kraja meča ne zvoni. Zvuk koraka priče pušta `usePokerBeat`.
+  const turnWas = useRef(myTurn);
+  const secondsWas = useRef<number | null>(null);
+  useEffect(() => {
+    if (myTurn && !turnWas.current) {
+      playSfx("turn");
+      vibrate(HAPTIC.turn);
+    }
+    turnWas.current = myTurn;
+    if (!myTurn) secondsWas.current = null;
+  }, [myTurn]);
+  useEffect(() => {
+    if (!myTurn) return;
+    if (turnWarning(secondsWas.current, turnSeconds)) {
+      playSfx("warn");
+      vibrate(HAPTIC.turn);
+    }
+    secondsWas.current = turnSeconds;
+  }, [myTurn, turnSeconds]);
+  const endShown = matchOver && !playing;
+  const endWas = useRef(endShown);
+  useEffect(() => {
+    if (endShown && !endWas.current && state.phase === "match_finished") {
+      const place = state.placements.find((p) => p.playerId === state.myPlayerId)?.place;
+      playSfx(place === 1 ? "win" : "lose");
+    }
+    endWas.current = endShown;
+  }, [endShown, state.phase, state.placements, state.myPlayerId]);
 
   const requestLeave = () => {
     // Bez žetona ili poslije kraja meča nema šta da se izgubi — bez potvrde.

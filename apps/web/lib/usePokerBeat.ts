@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { PokerGamePayload } from "@zandar/shared-types";
 
-import { pokerBeats, totalMs, type BeatHold, type BeatStep } from "./pokerBeat";
+import { pokerBeats, totalMs, type BeatFx, type BeatHold, type BeatStep } from "./pokerBeat";
 import { runPokerFx } from "./pokerFly";
+import { pokerFxFeedback } from "./pokerSound";
+import { vibrate } from "./haptics";
+import { playSfx } from "./sound";
 
 type Beat = { target: PokerGamePayload; steps: BeatStep[]; i: number };
 
@@ -14,6 +17,17 @@ export type PokerBeatState = {
   /** Šta sto još drži drugačije od `view` dok priča traje; `null` = ništa ne traje. */
   hold: BeatHold | null;
 };
+
+/**
+ * Zvuk i vibracija uz let (PK-B8). U pozadini se priča sabija na trenutak, pa
+ * bi se svi koraci čuli odjednom — tada tišina.
+ */
+function feedback(fx: BeatFx, myPlayerId: string): void {
+  if (document.hidden) return;
+  const f = pokerFxFeedback(fx, myPlayerId);
+  if (f?.sfx) playSfx(f.sfx);
+  if (f?.haptic) vibrate(f.haptic);
+}
 
 /** Najkraće što se korak smije sabiti kad priča kasni za serverom. */
 const MIN_SCALE = 0.25;
@@ -89,13 +103,19 @@ export function usePokerBeat(live: PokerGamePayload): PokerBeatState {
         : budget < total
           ? Math.max(MIN_SCALE, budget / Math.max(1, total))
           : 1;
-      if (step.fx) runPokerFx(step.fx, step.ms * scale.current);
+      if (step.fx) {
+        runPokerFx(step.fx, step.ms * scale.current);
+        feedback(step.fx, beat.target.myPlayerId);
+      }
     }
     const t = setTimeout(() => {
       const next = beat.steps[beat.i + 1];
       // Let sljedećeg koraka kreće PRIJE nego se sto promijeni — sidra (ulozi,
       // pot) se mjere dok su još na ekranu.
-      if (next?.fx) runPokerFx(next.fx, next.ms * scale.current);
+      if (next?.fx) {
+        runPokerFx(next.fx, next.ms * scale.current);
+        feedback(next.fx, beat.target.myPlayerId);
+      }
       setBeat({ ...beat, i: beat.i + 1 });
     }, step.ms * scale.current);
     return () => clearTimeout(t);
