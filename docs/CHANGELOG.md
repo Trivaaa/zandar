@@ -2478,7 +2478,7 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 
 **Mjereno (headless Chrome, lokalni server, špijun na `createOscillator`/`createBufferSource` i `navigator.vibrate`):** prekidači upaljeni — 16 zvučnih događaja do mog poteza (dijeljenje, blindovi, ulozi), vibracija 25 ms na moj potez, na 5 s dva tona + vibracija, 26 ukupno poslije mog poteza; prekidači ugašeni — 0. Web 275 testova, typecheck, lint dodirnutih fajlova čist. **Ušima i rukom na telefonu nije provjereno.**
 
-## 196. Poker i Raub lobi: „Počni odmah" umjesto prekidača (2026-11-20, `fix/poker-sound`)
+## 197. Poker i Raub lobi: „Počni odmah" umjesto prekidača (2026-11-20, `fix/poker-sound`)
 
 **Šta:** QA 2026-11-07 PK-P2 — host u poker lobiju je vidio prekidač „Ostavi mjesta prazna / Popuni prazna mjesta". Poker i Raub lobi nemaju „Pokreni igru": server na popunjavanje odmah pokreće meč (`bot-fill` → `startIfFull`, po speci). Prekidač se čitao kao podešavanje, pa je host koji ga samo isproba pokretao partiju bez pozvanih prijatelja.
 
