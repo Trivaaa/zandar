@@ -24,6 +24,8 @@ export type InviteNotice = {
   playerCount: number;
   targetScore: number;
   expiresAt: number;
+  /** Samo za poker i Raub sto; bez polja = Žandar (stariji server). */
+  game?: "poker" | "raub";
 };
 
 let started = false;

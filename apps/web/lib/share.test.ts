@@ -109,3 +109,11 @@ describe("sr.share.msg — share.msg.a", () => {
     assert.ok(sr.share.msg("zandar", "Ana", 2, 1, link).endsWith(link));
   });
 });
+
+describe("list poziva prijatelja (QA 2026-11-07 PK-B2)", () => {
+  test("red ispod naslova nosi igru stola", () => {
+    assert.equal(sr.invite.incomingBody("zandar", 4, 21), "Žandar · 4 igrača · do 21");
+    assert.equal(sr.invite.incomingBody("poker", 3, 21), "Poker · 3 igrača · 100 žetona");
+    assert.equal(sr.invite.incomingBody("raub", 4, 21), "Raub · 4 igrača · od 21 do 0");
+  });
+});

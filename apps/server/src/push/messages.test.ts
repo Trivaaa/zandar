@@ -158,3 +158,11 @@ test("poziv: tekst iz speca, kanal stola, TTL = ostatak roka; istekao se ne šal
     null,
   );
 });
+
+test("invite: tekst po igri stola (QA 2026-11-07 PK-B2)", () => {
+  const base = { roomId: "abc123", fromNickname: "Zvonko", playerCount: 3, targetScore: 21, expiresAt: 60 * 60_000, now: 0 };
+  assert.equal(buildInvitePush({ ...base, game: "poker" })?.body, "Poker · 3 igrača · 100 žetona. Dodirni da sjedneš za sto.");
+  assert.equal(buildInvitePush({ ...base, game: "raub" })?.body, "Raub · 3 igrača · od 21 do 0. Dodirni da sjedneš za sto.");
+  // Žandar soba nema polje `game` (noticeOf ga izostavlja).
+  assert.equal(buildInvitePush(base)?.body, "Žandar · 3 igrača · do 21. Dodirni da sjedneš za sto.");
+});

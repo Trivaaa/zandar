@@ -14,6 +14,18 @@ export function parseGameId(value: unknown): GameId {
   return value === "poker" || value === "raub" ? value : "zandar";
 }
 
+/**
+ * Jedan red o stolu u pozivu prijatelja — push (server) i list poziva (klijent)
+ * čitaju isti tekst, da ne odlutaju (QA 2026-11-07 PK-B2). Rječnik je isti kao
+ * red ispod naslova lobija: „Žandar · 4 igrača · do 21", „Poker · 3 igrača ·
+ * 100 žetona", „Raub · 4 igrača · od 21 do 0".
+ */
+export function inviteSummary(game: GameId, playerCount: number, targetScore: number): string {
+  if (game === "poker") return `Poker · ${playerCount} igrača · 100 žetona`;
+  if (game === "raub") return `Raub · ${playerCount} igrača · od ${targetScore} do 0`;
+  return `Žandar · ${playerCount} igrača · do ${targetScore}`;
+}
+
 export type PokerStreet = "preflop" | "flop" | "turn" | "river";
 
 /**

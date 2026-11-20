@@ -2379,3 +2379,13 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Pregled:** `/dev/lobby?game=poker|raub` (i prekidači zandar/poker/raub). Zamka: posuđeni `next dev` gađan preko `127.0.0.1` ne hidrira stranicu (Next blokira `/_next/hmr` sa drugog origina) — snimci moraju ići na `localhost`.
 
 **Mjereno:** web 268 testova, typecheck čist, lint dodirnutog fajla čist; snimci 420 px širine za sve tri igre. **Nije provjereno na uređaju.**
+
+## 191. Poziv prijatelja po igri stola — push i list (2026-11-20, `fix/poker-invite-motif`)
+
+**Šta:** QA 2026-11-07 PK-B2 — poziv na poker ili Raub sto je u pushu i u listu poziva (`InviteInbox`) pisao „Žandar · 3 igrača · do 21". Server je igru već slao (`noticeOf` → `InviteNotice.game`, samo za poker/Raub), ali je ni `buildInvitePush` ni klijent nisu čitali.
+
+**Kako:** jedan izvor teksta, `inviteSummary(game, igrača, cilj)` u `shared-types` (pored `parseGameId`): „Žandar · 4 igrača · do 21", „Poker · 3 igrača · 100 žetona", „Raub · 4 igrača · od 21 do 0" — isti rječnik kao red ispod naslova lobija. `buildInvitePush` prima opciono `game` (poziv u `index.ts` ga već prosljeđuje kroz `...notice`); web `InviteNotice` dobija `game?`, `sr.invite.incomingBody(game, …)`.
+
+**Back-compat:** polje je opciono na oba kraja; bez njega ostaje Žandar tekst. Push tekst je serverski, pa ga i aplikacija 1.4.x dobija ispravnog čim server ode na deploy; list u aplikaciji tek novim paketom.
+
+**Mjereno:** server 273 testa (novi slučaj po igri), web 269, typecheck shared-types/server/web, lint dodirnutih fajlova čist. **Nije provjereno na uređaju** (traži dva naloga).

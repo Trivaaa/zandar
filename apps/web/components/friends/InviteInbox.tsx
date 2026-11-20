@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { parseGameId } from "@zandar/shared-types";
 
 import { Sheet } from "@/components/sheet/Sheet";
 import { acceptInvite } from "@/lib/invites";
@@ -72,7 +73,7 @@ export function InviteInbox() {
       // „Ne sada" samo zatvara — poziv i dalje važi do isteka (§11).
       onClose={() => dismissInvite(invite.roomId)}
     >
-      <p className="sheet__note">{sr.invite.incomingBody(invite.playerCount, invite.targetScore)}</p>
+      <p className="sheet__note">{sr.invite.incomingBody(parseGameId(invite.game), invite.playerCount, invite.targetScore)}</p>
       <button type="button" className="home__cta sheet__btn" disabled={busy} aria-busy={busy} onClick={() => void join()}>
         {sr.invite.join}
       </button>

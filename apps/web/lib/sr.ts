@@ -4,6 +4,7 @@
 import {
   CONSENT_TEXTS,
   CURRENT_CONSENT_TEXT_ID,
+  inviteSummary,
   type GameId,
   type ProfileAvatar,
   type TableTheme,
@@ -1026,7 +1027,8 @@ export const sr = {
     close: "Zatvori",
     pending: "Poziv poslat · čeka se odgovor",
     incomingTitle: (name: string) => `${name} te zove na partiju`,
-    incomingBody: (players: number, target: number) => `Žandar · ${players} igrača · do ${target}`,
+    /** Isti red kao push poziva — tekst je u `shared-types` (PK-B2). */
+    incomingBody: (game: GameId, players: number, target: number) => inviteSummary(game, players, target),
     join: "Pridruži se",
     notNow: "Ne sada",
     expiredTitle: "Poziv više ne važi",
