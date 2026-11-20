@@ -2369,3 +2369,13 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Mjereno:** web 268 testova, game-core 458, typecheck čist, lint dodirnutih fajlova čist. Deploy `7871983`: Railway staging i produkcija „Success”, oba Vercel projekta gotova, `zandar-test…/health` → `env: production`, kartaonica.com 200. AAB `jar verified`, `com.kartaonica.zandar`, `versionCode 11`, `versionName 1.4.5`.
 
 **Preostaje:** upload AAB-a na Play (vlasnik); provjera ažuriranja 1.4.4 → 1.4.5 sa Play-a; `♻ Restored N room(s)` u produkcijskom Railway logu nije gledan (nema pristupa logu odavde).
+
+## 190. Pozivnica za poker i Raub — slika igre (2026-11-20, `fix/poker-invite-motif`)
+
+**Šta:** QA 2026-11-07 PK-B1 — gost na pozivnici poker stola vidi Žandar. Tekst („te poziva na partiju Pokera") i red ispod („N / M igrača · Poker · 100 žetona") su već bili popravljeni uz Raub (`eb2615d`, QA 2026-11-09 B2), ali je lepeza iznad poziva i dalje bila tri poleđine Žandara. Sad `JoinRequestScreen` za poker i Raub crta tri prave karte igre iz `GAMES` (`listCards` + `deck`, isto kao `GameFan` na web početnoj): poker tri asa, Raub mađarice. Žandar je netaknut.
+
+**Platforma:** web i aplikacija, bez `isNative` — ispravka greške, odluka vlasnika 20.11.2026. Aplikacija je dobija tek novim paketom.
+
+**Pregled:** `/dev/lobby?game=poker|raub` (i prekidači zandar/poker/raub). Zamka: posuđeni `next dev` gađan preko `127.0.0.1` ne hidrira stranicu (Next blokira `/_next/hmr` sa drugog origina) — snimci moraju ići na `localhost`.
+
+**Mjereno:** web 268 testova, typecheck čist, lint dodirnutog fajla čist; snimci 420 px širine za sve tri igre. **Nije provjereno na uređaju.**

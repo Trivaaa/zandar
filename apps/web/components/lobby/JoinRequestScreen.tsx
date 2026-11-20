@@ -5,7 +5,9 @@ import type { CSSProperties, ReactNode } from "react";
 import type { GameId } from "@zandar/shared-types";
 
 import { CardBack } from "@/components/felt/CardBack";
+import { PlayingCard } from "@/components/felt/PlayingCard";
 import { ArrowLeftIcon, ArrowRightIcon } from "@/components/icons";
+import { GAMES } from "@/lib/games";
 import { isValidPlayerName } from "@/lib/playerName";
 import { sr } from "@/lib/sr";
 
@@ -87,6 +89,8 @@ export function JoinRequestScreen({
   const busy = phase === "sending";
   const canSubmit = !busy && isValidPlayerName(displayName);
   const ended = phase === "rejected" || phase === "expired" || phase === "error";
+  const gameConfig = game === "zandar" ? null : GAMES.find((g) => g.slug === game);
+  const fanCards = gameConfig ? { cards: gameConfig.listCards, deck: gameConfig.deck } : null;
 
   return (
     <main className={`screen joinreq ${className}`}>
@@ -101,12 +105,24 @@ export function JoinRequestScreen({
       </div>
 
       <section className="joinreq__intro" aria-labelledby="joinreq-invite">
+        {/* Žandar: tri poleđine. Ostale igre: tri prave karte igre, da gost
+            već po slici zna u koju igru ulazi (QA 2026-11-07 PK-B1). */}
         <div className="card-fan joinreq__fan" aria-hidden="true">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="card-fan-slot">
-              <CardBack size="md" />
-            </div>
-          ))}
+          {fanCards
+            ? fanCards.cards.map((face) => (
+                <div key={`${face.rank}${face.suit}`} className="card-fan-slot">
+                  <PlayingCard
+                    card={{ id: `invite-${game}-${face.rank}-${face.suit}`, ...face }}
+                    size="md"
+                    deck={fanCards.deck}
+                  />
+                </div>
+              ))
+            : [0, 1, 2].map((i) => (
+                <div key={i} className="card-fan-slot">
+                  <CardBack size="md" />
+                </div>
+              ))}
         </div>
 
         <h1 id="joinreq-invite" className="joinreq__invite">

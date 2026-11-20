@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { parseGameId, type GameId } from "@zandar/shared-types";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
+import { useQueryParam } from "@/lib/useQuery";
 import {
   LobbyScreen,
   type LobbyPlayer,
@@ -86,6 +88,10 @@ export default function DevLobbyPage() {
   const [joinHost, setJoinHost] = useState(true);
   const [joinLong, setJoinLong] = useState(false);
   const [joinCount, setJoinCount] = useState<2 | 4>(4);
+  // `?game=poker|raub` otvara pozivnicu te igre (snimci bez klikanja).
+  const gameParam = useQueryParam("game");
+  const [pickedGame, setJoinGame] = useState<GameId | null>(null);
+  const joinGame = pickedGame ?? parseGameId(gameParam);
   const joinPlayers = [
     {
       id: "h",
@@ -176,12 +182,18 @@ export default function DevLobbyPage() {
           <Toggle on={joinHost} onClick={() => setJoinHost((v) => !v)}>host u rosteru</Toggle>
           <Toggle on={joinLong} onClick={() => setJoinLong((v) => !v)}>dugo ime</Toggle>
           <Toggle on={joinCount === 2} onClick={() => setJoinCount((v) => (v === 2 ? 4 : 2))}>2P</Toggle>
+          {(["zandar", "poker", "raub"] as const).map((g) => (
+            <Toggle key={g} on={joinGame === g} onClick={() => setJoinGame(g)}>
+              {g}
+            </Toggle>
+          ))}
         </div>
         <Frame>
           <JoinRequestScreen
             players={joinPlayers}
             playerCount={joinCount}
             targetScore={21}
+            game={joinGame}
             phase={phase}
             displayName={name}
             onDisplayName={setName}
