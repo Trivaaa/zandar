@@ -2567,3 +2567,39 @@ Ovo je svjesno odstupanje od „ekran traje koliko i učitavanje" iz unosa 198.
 ## 200. „Svi su tu. Počinjemo!" se drži pola sekunde duže (2026-11-20, `feat/shuffle-seats`)
 
 **Šta:** vlasnik je na S10e javio da S2 „previše brzo nestane i nije efektivno". Pokreti ostaju kao na tabli: karte u gomilu za 250 ms i kucanje za 400 ms. Poslije njih se završna slika (podignut špil, zlatni krug i obod, „Partija počinje") drži još `SHUFFLE_HOLD_MS` = 500 ms. Sto zato stiže 1,15 s poslije zadnjeg igrača, a ne 0,65 s. Žandar je na ~4,0 s od klika. Web 298 testova, typecheck čist. **Nije provjereno na uređaju.**
+
+## 201. Meni za stolom: dugme gore lijevo, zvuk na stolu, „nazad" otvara meni, karte za Raub (2026-11-20, `feat/table-menu`)
+
+Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i novi izgled menija „M" sa table „UI · Meni za stolom". Važi za Žandar, Poker i Raub, **na webu i u aplikaciji** (odluka vlasnika, izuzetak od „samo web").
+
+- **M1 — dugme menija:** `.felt-header__menu` je krug od 48 px sa tamnom podlogom i obrubom. Ranije je bila gola ikonica koja je na feltu djelovala kao šara.
+  - Poker traka je kraća („Blindovi 1/2 · još 5 ruku"), jer je „sljedeći nivo za 5 ruku" na 360 px ulazio pod dugme. Puni podatak je u meniju.
+- **Zvuk na stolu (`TableSoundButton`):** okruglo dugme iznad dugmeta za reakcije, na njegovoj strani. Koristi isti ključ `zandar:sound` kao pločica u meniju.
+  - **Odstupanje od table:** tabla crta zvuk desno i na pokeru. Izmjereno je da tamo preklapa tvoje karte (12×10 px) i natpis jačine ruke, pa je i na pokeru iznad reakcija, lijevo.
+  - Vibracija ostaje samo u meniju.
+- **Meni „M" (`GameMenuSheet`):**
+  - Zaglavlje nosi ime igre, red stanja (`lib/tableMenu.ts`) i X. Red stanja:
+    - Žandar: „4 igrača · do 21" (prijedlog, nije na tabli)
+    - Poker: „Blindovi 1/2 · sljedeći nivo 2/4 za 5 ruku"
+    - Raub: „4 igrača · od 21 do 0"
+  - Zvuk i vibracija su pločice. „Pravila igre" je red sa strelicom. „Napusti partiju" je odvojen i crven.
+  - Nema dugmeta „Zatvori": meni zatvaraju X, dodir pored menija ili „nazad".
+- **M6 — „nazad" dok partija traje otvara meni.** Izlazak ide u dva koraka: meni → „Napusti partiju" → postojeća potvrda.
+  - Back u pregledaču (`useBrowserBackGuard`) sad zove `runBackHandler()`, pa se web ponaša kao Android: otvoren sloj se zatvara prvi, inače se otvara meni.
+  - Kad partija ne traje (kraj meča, poker bez žetona), „nazad" izlazi odmah, kao ranije.
+- **M7 — karte u Raubu:** u meniju je izbor Mađarice | Klasik (`RaubDeckPicker`).
+  - Izbor se pamti na uređaju (`zandar:raub:deck`, `useRaubDeck`). Podrazumijevane su mađarice; nepoznata vrijednost znači mađarice.
+  - Izbor mijenja samo prikaz: `CardDeckContext` i `data-deck` na stolu, ikonicu boje u tekstu (Klasik: ♠♥♦♣ u boji karte) i `cardLabel` (J/Q umjesto U/O).
+  - Server, pravila i početna pločica nisu dirani.
+  - Francuska karta je pri istoj visini ~10 % šira od mađarice, pa je na 360×740 peta karta ulazila 18 px pod dugme za zvuk. Zato u Raubu ruka sa klasičnim kartama zadržava širinu mađarice (karta je ~10 % niža), pa se raspored ne mijenja.
+
+**Zamka:** klase `.gamemenu*` dijele i Postavke, `Sheet` (potvrda izlaska), `WebNameSheet` i Meta saglasnost. `.gamemenu__item` i `.gamemenu__close` su zato ostale kakve su bile, a novi meni ima vlastite klase (`__row`, `__tile`, `__exit`…). Prvi pokušaj ih je mijenjao.
+
+**Mjereno** (headless Chrome, `/dev/*`, 360×740, 360×640 i 390×844):
+- Meni staje bez skrola i u najdužem slučaju (Raub sa izborom karata, 360×640).
+- Dugme za zvuk ne preklapa nijednu kartu (Žandar, Poker 2P/3P/4P, Raub u svim stanjima, oba kompleta). Izuzetak su zatečena 2 px mađarice na 360×740.
+- Ruka sa klasičnim kartama ostaje unutar ekrana, bez horizontalnog skrola.
+- „Nazad" u pregledaču u sve tri igre: otvori meni → zatvori → otvori → „Napusti partiju" → potvrda → „nazad" = „Ostani".
+- Web 298 testova (+3 `tableMenu`), typecheck čist, lint 4 greške + 2 upozorenja (sve zatečene), `build:mobile` prolazi i izvoz nosi meni.
+
+**Nije provjereno na uređaju:** Android „nazad" na S10e. Aplikacija dobija izmjenu tek novim paketom.

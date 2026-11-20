@@ -1911,18 +1911,36 @@
   pointer-events: auto;
 }
 
-.felt-header__menu {
-  justify-self: start;
+/* M1 (tabla „Gdje je dugme za meni"): pravo dugme — krug od 48px sa tamnom
+   podlogom, da se na feltu ne čita kao šara i ne legne preko trake. */
+.felt-header__menu,
+.table-sound {
   display: grid;
   place-items: center;
   width: 3rem; /* 48px tap-meta */
   height: 3rem;
-  border-radius: var(--radius-lg);
+  border: 0;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, #0a0e0c 72%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--text) 22%, transparent),
+    0 4px 10px color-mix(in oklab, black 35%, transparent);
   color: var(--text);
+  cursor: pointer;
 }
 
-.felt-header__menu:active {
-  background-color: color-mix(in oklab, var(--surface) 60%, transparent);
+.felt-header__menu {
+  justify-self: start;
+}
+
+.felt-header__menu:active,
+.table-sound:active {
+  background-color: color-mix(in oklab, #0a0e0c 90%, transparent);
+}
+
+/* Zvuk isključen: ikonica prigušena, da se stanje vidi i bez čitanja. */
+.table-sound[data-on="false"] {
+  color: var(--text-faint);
 }
 
 /* Tri crte: srednja je sam element, gornja i donja su pseudo-elementi. */
@@ -4327,5 +4345,31 @@
   to {
     opacity: 1;
     transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Znak boje u tekstu kad je igrač izabrao klasične karte (meni, M7). */
+.rb-suit-sym {
+  display: inline-block;
+  margin-inline: 0.08em;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--card-face);
+}
+.rb-suit-sym[data-red="true"] {
+  color: var(--danger-signal);
+}
+
+/* Klasične karte u Raubu (meni, M7): budžet ruke je izmjeren na mađarici, koja
+   je uža (1.571) pri istoj visini. Francuska karta (1.417) iste visine je ~10 %
+   šira i peta karta je na 360×740 ulazila 18 px pod dugme za zvuk. Zato ruka
+   zadrži ŠIRINU mađarice, a francuska karta je ~10 % niža — raspored stola se
+   ne mijenja. */
+.felt-stage[data-game="raub"][data-deck="french"] {
+  --card-w-hand: calc(5rem * 1.417 / 1.571);
+}
+@media (max-height: 700px) {
+  .felt-stage[data-game="raub"][data-deck="french"] {
+    --card-w-hand: calc(4.5rem * 1.417 / 1.571);
   }
 }

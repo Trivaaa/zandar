@@ -47,9 +47,29 @@ export const sr = {
     rules: "Pravila igre",
     sound: "Zvuk",
     haptics: "Vibracija",
+    soundOn: "Uključen",
+    soundOff: "Isključen",
+    hapticsOn: "Uključena",
+    hapticsOff: "Isključena",
     hapticsUnsupported: "Ovaj uređaj ne podržava vibraciju",
-    leave: "Izađi na početnu",
+    leave: "Napusti partiju",
     close: "Zatvori",
+    // Red stanja ispod naslova (lib/tableMenu.ts).
+    players: (n: number) => `${n} igrača`,
+    playTo: (n: number) => `do ${n}`,
+    countDown: (n: number) => `od ${n} do 0`,
+    nextBlinds: (sb: number, bb: number, n: number) =>
+      n <= 1 ? `sljedeći nivo ${sb}/${bb} od iduće ruke` : `sljedeći nivo ${sb}/${bb} za ${n} ${n < 5 ? "ruke" : "ruku"}`,
+    // Raub, izbor karata (M7).
+    deck: "Karte",
+    deckHungarian: "Mađarice",
+    deckFrench: "Klasik",
+    deckNote: "Mijenja samo izgled karata, i to samo kod tebe. Pravila i partija ostaju isti.",
+  },
+  // Zvuk na stolu (M1): okruglo dugme dolje desno.
+  tableSound: {
+    on: "Isključi zvuk",
+    off: "Uključi zvuk",
   },
   // Potvrda izlaska dok partija traje (QA B1/B11).
   leaveTable: {
@@ -494,8 +514,8 @@ export const sr = {
     outOfHand: "Van ruke si do sljedećeg dijeljenja",
     nextHand: "Sljedeća ruka počinje…",
     blinds: "Blindovi",
-    nextLevel: (n: number) =>
-      n <= 1 ? "sljedeći nivo od iduće ruke" : `sljedeći nivo za ${n} ${n < 5 ? "ruke" : "ruku"}`,
+    // Kratko, za traku gore (M1): puni podatak je u redu stanja menija.
+    nextLevel: (n: number) => (n <= 1 ? "zadnja ruka nivoa" : `još ${n} ${n < 5 ? "ruke" : "ruku"}`),
     levelUp: (sb: number, bb: number) => `Blindovi rastu: ${sb}/${bb}`,
     pot: "Pot",
     mainPot: "Glavni pot",

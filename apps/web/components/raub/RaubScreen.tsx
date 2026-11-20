@@ -14,6 +14,10 @@ import type {
 import { ReactionFab } from "@/components/ReactionFab";
 import { RulesModal } from "@/components/RulesModal";
 import { FeltHeader } from "@/components/felt/FeltHeader";
+import { TableSoundButton } from "@/components/felt/TableSoundButton";
+import { RaubDeckPicker } from "@/components/raub/RaubDeckPicker";
+import { useRaubDeck } from "@/lib/settings";
+import { raubMenuLine } from "@/lib/tableMenu";
 import { PlayerHand } from "@/components/felt/PlayerHand";
 import { PlayerSeat } from "@/components/felt/PlayerSeat";
 import { SeatCaption } from "@/components/felt/SeatCaption";
@@ -22,7 +26,7 @@ import { GameMenuSheet } from "@/components/overlay/GameMenuSheet";
 import { LeaveTableSheet } from "@/components/overlay/LeaveTableSheet";
 import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
 import { Toast } from "@/components/overlay/Toast";
-import { useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
+import { runBackHandler, useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
 import { isNative } from "@/lib/platform";
 import {
   declarerTag,
@@ -131,6 +135,7 @@ export function RaubScreen({
   offline = false,
 }: RaubScreenProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [deck] = useRaubDeck();
   const [rulesOpen, setRulesOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(initialTableOpen);
@@ -276,11 +281,16 @@ export function RaubScreen({
     if (matchOver) onLeave();
     else setLeaveOpen(true);
   };
-  useBackHandler(true, requestLeave);
+  // Nazad (Android i pregledač) dok partija traje otvara meni (M6); izlazak
+  // je meni → „Napusti partiju" → potvrda. Otvoreni slojevi se zatvaraju prvi.
+  useBackHandler(true, () => {
+    if (matchOver) onLeave();
+    else setMenuOpen(true);
+  });
   useBackHandler(menuOpen, () => setMenuOpen(false));
   useBackHandler(rulesOpen, () => setRulesOpen(false));
   useBackHandler(tableOpen, () => setTableOpen(false));
-  useBrowserBackGuard(!isNative, !matchOver, requestLeave);
+  useBrowserBackGuard(!isNative, !matchOver, () => void runBackHandler());
 
   function showError(err: unknown) {
     const code = err instanceof Error ? err.message : "";
@@ -462,11 +472,12 @@ export function RaubScreen({
         : "absolute inset-x-0 z-50 flex justify-center p-3 top-[calc(var(--safe-top)+var(--stage-header-h))]";
 
   return (
-    // Raub se igra mađaricama (odluka 12): sve karte ispod čitaju komplet iz konteksta.
-    <CardDeckContext.Provider value="hungarian">
+    // Raub se igra mađaricama (odluka 12), a igrač u meniju smije izabrati
+    // klasične karte (M7) — samo prikaz. Sve karte ispod čitaju komplet iz konteksta.
+    <CardDeckContext.Provider value={deck}>
     <div className="h-[100dvh] w-full bg-surface flex justify-center">
       <div
-        data-deck="hungarian"
+        data-deck={deck}
         className="felt-stage relative h-full w-full max-w-[600px] overflow-hidden md:shadow-2xl md:ring-1 md:ring-black/40"
         data-game="raub"
         data-partner={seats.partner ? "true" : "false"}
@@ -590,7 +601,7 @@ export function RaubScreen({
         </div>
 
         {/* Isti položaj kao Žandar (iznad ruke, desno) — lijevo bi pokrio panel. */}
-        <ReactionFab onReact={onReact} disabled={interrupted} />
+        <ReactionFab onReact={onReact} disabled={interrupted} aboveFab={<TableSoundButton />} />
 
         {showSummary && !matchOver && state.lastHand ? (
           <HandSummaryCard
@@ -636,6 +647,9 @@ export function RaubScreen({
           <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setMenuOpen(false)}>
             <div onClick={(e) => e.stopPropagation()} className="w-full flex justify-center">
               <GameMenuSheet
+                title={sr.games.raub.name}
+                subtitle={raubMenuLine(state.rules.playerCount, state.rules.startScore)}
+                extra={<RaubDeckPicker />}
                 onRules={() => {
                   setMenuOpen(false);
                   setRulesOpen(true);

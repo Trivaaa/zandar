@@ -10,7 +10,7 @@ import type {
 
 import { raubTalonDead } from "@zandar/game-core";
 
-import { huRankLabel } from "@/lib/hungarianDeck";
+import { huRankLabel, type CardDeck } from "@/lib/hungarianDeck";
 import { sr } from "@/lib/sr";
 
 /**
@@ -49,10 +49,12 @@ export function revealSlotKeys(
 export const isRedSuit = (s: Suit) => s === "hearts" || s === "diamonds";
 
 /**
- * „7♣", „U♥": rang kako piše na mađarici (J → U, Q → O, odluka 12), boja kao
- * znak — ekran ga u tekstu zamjenjuje ikonicom sa karte (`withSuits`).
+ * „7♣", „U♥": rang kako piše na karti — na mađarici J → U, Q → O (odluka 12),
+ * na klasičnim kartama (izbor u meniju, M7) ostaje J/Q. Boja je znak — ekran
+ * ga u tekstu zamjenjuje ikonicom sa karte (`withSuits`).
  */
-export const cardLabel = (c: Pick<Card, "rank" | "suit">) => `${huRankLabel(c.rank)}${SUIT_SYMBOL[c.suit]}`;
+export const cardLabel = (c: Pick<Card, "rank" | "suit">, deck: CardDeck = "hungarian") =>
+  `${deck === "hungarian" ? huRankLabel(c.rank) : c.rank}${SUIT_SYMBOL[c.suit]}`;
 
 /** Natpis faze na vrhu stola: „Licitacija", „Idem?", „Zamjena", „Štih 2 od 4". */
 export function phaseLabel(v: Pick<RaubPlayerView, "phase" | "step" | "tricks">): string {

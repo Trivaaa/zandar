@@ -14,6 +14,8 @@ import type {
 import { ReactionFab } from "@/components/ReactionFab";
 import { RulesModal } from "@/components/RulesModal";
 import { FeltHeader } from "@/components/felt/FeltHeader";
+import { TableSoundButton } from "@/components/felt/TableSoundButton";
+import { pokerMenuLine } from "@/lib/tableMenu";
 import { PlayerSeat } from "@/components/felt/PlayerSeat";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { SeatCaption } from "@/components/felt/SeatCaption";
@@ -21,7 +23,7 @@ import { ReactionBubble } from "@/components/overlay/EmojiReactions";
 import { GameMenuSheet } from "@/components/overlay/GameMenuSheet";
 import { LeaveTableSheet } from "@/components/overlay/LeaveTableSheet";
 import { Toast } from "@/components/overlay/Toast";
-import { useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
+import { runBackHandler, useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
 import { HAPTIC, vibrate } from "@/lib/haptics";
 import { isNative } from "@/lib/platform";
 import { turnWarning } from "@/lib/pokerSound";
@@ -192,11 +194,17 @@ export function PokerScreen({
     if (iAmOut || matchOver) onLeave();
     else setLeaveOpen(true);
   };
-  useBackHandler(true, requestLeave);
+  // Nazad (Android i pregledač) dok partija traje otvara meni (tabla „Gdje je
+  // dugme za meni", M6): do izlaska su dva svjesna koraka, meni → „Napusti".
+  // Otvoreni slojevi su iznad u steku i zatvaraju se prvi.
+  useBackHandler(true, () => {
+    if (iAmOut || matchOver) onLeave();
+    else setMenuOpen(true);
+  });
   useBackHandler(menuOpen, () => setMenuOpen(false));
   useBackHandler(rulesOpen, () => setRulesOpen(false));
   useBackHandler(raiseOpen, () => setRaiseOpen(false));
-  useBrowserBackGuard(!isNative, !matchOver && !iAmOut, requestLeave);
+  useBrowserBackGuard(!isNative, !matchOver && !iAmOut, () => void runBackHandler());
 
   async function act(action: Pick<PokerActionRequest, "type" | "amount">) {
     if (busy) return;
@@ -502,10 +510,13 @@ export function PokerScreen({
           />
         ) : null}
 
+        {/* Zvuk na stolu (M1) iznad reakcija, kao u Žandaru i Raubu. Tabla ga
+            crta desno, ali desno su tvoje karte (izmjereno: preklapa ih). */}
         <ReactionFab
           onReact={onReact}
           side="left"
           style={{ bottom: "var(--stage-hand-top)" }}
+          aboveFab={<TableSoundButton />}
         />
 
         {menuOpen ? (
@@ -515,6 +526,8 @@ export function PokerScreen({
           >
             <div onClick={(e) => e.stopPropagation()} className="w-full flex justify-center">
               <GameMenuSheet
+                title={sr.games.poker.name}
+                subtitle={pokerMenuLine(state)}
                 onRules={() => {
                   setMenuOpen(false);
                   setRulesOpen(true);

@@ -23,12 +23,14 @@ import { RoundEndOverlay } from "@/components/overlay/RoundEndOverlay";
 import { Toast } from "@/components/overlay/Toast";
 import { RulesModal } from "@/components/RulesModal";
 import { LeaveTableSheet } from "@/components/overlay/LeaveTableSheet";
-import { useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
+import { runBackHandler, useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
 import { isNative } from "@/lib/platform";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { SeatCaption } from "@/components/felt/SeatCaption";
 import { DeckPile } from "@/components/felt/DeckPile";
 import { FeltHeader } from "@/components/felt/FeltHeader";
+import { TableSoundButton } from "@/components/felt/TableSoundButton";
+import { zandarMenuLine } from "@/lib/tableMenu";
 import { ScoreBar } from "@/components/felt/ScoreBar";
 import { ScoreDetails } from "@/components/felt/ScoreDetails";
 import { arrangeSeats } from "@/lib/seating";
@@ -415,14 +417,18 @@ export function GameScreen({
 
   // Android nazad (`lib/backHandlers.ts`): najmlađi sloj se zatvara prvi.
   // Sto se prijavljuje na mount, pa je najdublji — tek kad nema otvorenog
-  // menija/pravila/potvrde, nazad pita za izlazak, umjesto da `NativeShell`
-  // uradi `router.back()` i tiho izvede igrača iz partije. Potvrdu (`Sheet`)
-  // zatvara njen vlastiti handler.
-  useBackHandler(true, () => requestLeave?.());
+  // menija/pravila/potvrde, nazad otvara MENI (tabla „Gdje je dugme za meni",
+  // M6), umjesto da `NativeShell` uradi `router.back()` i tiho izvede igrača.
+  // Izlazak su dva svjesna koraka: meni → „Napusti partiju" → potvrda. Kad
+  // partija ne traje, nema šta da se izgubi, pa nazad izlazi kao ranije.
+  useBackHandler(true, () => {
+    if (matchLive && onLeave) setMenuOpen(true);
+    else requestLeave?.();
+  });
   useBackHandler(menuOpen, () => setMenuOpen(false));
   useBackHandler(rulesOpen, () => setRulesOpen(false));
-  // Isto za Back u pregledaču (web); u aplikaciji to radi stek iznad.
-  useBrowserBackGuard(!isNative, matchLive && !!onLeave, () => requestLeave?.());
+  // Back u pregledaču (web) ide kroz isti stek, pa se ponaša kao Android.
+  useBrowserBackGuard(!isNative, matchLive && !!onLeave, () => void runBackHandler());
 
   const closeDetails = useCallback(() => setDetailsOpen(false), [setDetailsOpen]);
 
@@ -930,6 +936,8 @@ export function GameScreen({
         >
           <div onClick={(e) => e.stopPropagation()} className="w-full flex justify-center">
             <GameMenuSheet
+              title={sr.games.zandar.name}
+              subtitle={zandarMenuLine(state.players.length, state.targetScore)}
               onRules={() => {
                 setMenuOpen(false);
                 setRulesOpen(true);
@@ -945,6 +953,7 @@ export function GameScreen({
       <ReactionFab
         onReact={onReact}
         disabled={reactionsDisabled}
+        aboveFab={<TableSoundButton />}
       />
 
       {/* Reakcije se sad prikazuju uz svako sjedište (seatReaction) — vidi gore. */}
