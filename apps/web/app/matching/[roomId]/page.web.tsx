@@ -1,10 +1,10 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { MatchingScreen } from "@/components/MatchingScreen";
+import { MatchingRedirect } from "../MatchingRedirect";
 
-/** `/matching/:roomId` — path ruta, samo web build (vidi `room/[roomId]/page.web.tsx`). */
+/** `/matching/:roomId` — stara path ruta (samo web); prosljeđuje na sto. */
 export default function MatchingPathPage() {
   const params = useParams<{ roomId: string }>();
-  return <MatchingScreen key={params.roomId} roomId={params.roomId} />;
+  return <MatchingRedirect roomId={params.roomId} />;
 }

@@ -2485,3 +2485,51 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Kako (samo klijent):** u `LobbyScreen` host poker/Raub stola dobija dugme „Počni odmah" (isti stil kao Žandarovo „Pokreni igru", „Pokrećem…" dok traje) i red „Prazna mjesta popunjavaju protivnici. Ili sačekaj prijatelje — partija počinje čim se mjesta popune." Dugme zove isti `setBotFill(true)`. Bez riječi „bot" (HARD RULE 5). Žandar lobi netaknut; server netaknut. `/dev/lobby?game=poker|raub` sad prikazuje i lobi te igre.
 
 **Mjereno (lokalni server + headless Chrome, privatni poker sto za 4):** prekidača nema, dugme „Počni odmah"; 3 s bez dodira soba ostaje `waiting`; poslije dodira sto za 130 ms. Web 275 testova, typecheck, lint dodirnutih fajlova čist. **Nije provjereno na uređaju.**
+
+## 198. Ekran prije partije „Miješamo špil" — traje koliko i stvarno učitavanje (2026-11-20, `feat/shuffle-screen`)
+
+**Šta:** dizajn je tabla „UI · Ekran prije partije — K1 miješanje špila" (`UI_MijesanjeSpila`) na platnu „Kartaonica · identitet". Tabla ima tri stanja:
+- S1: špil se miješa na stolu dok igrači sjedaju;
+- S2: „Svi su tu. Počinjemo!" — karte uskoče u gomilu, špil kucne o sto, zlatni krug i sjaj oboda, ukupno 0,65 s;
+- S3: smanjeno kretanje.
+
+Vlasnik je tražio da ekran traje tačno koliko i stvarno učitavanje.
+
+**Zašto:** prije stola su se vidjela dva ekrana, i nijedan nije pratio učitavanje.
+- `/matching` je za Žandar imao ~3,85 s izmišljenog sjedanja: `PACE.zandar` = 400 + 3×650 + 600 + 900 ms. Server je partiju već pokrenuo u odgovoru na `/api/quickplay`, a botovi sjedaju svi odjednom.
+- Zatim je slijedio još jedan ekran, „Učitavanje stola...", dok socket ne javi `game:state`.
+
+**Kako:**
+- „Igraj" (`startQuickPlay`) i „Novi sto" idu pravo na `/room?id=` i postavljaju oznaku `zandar:intro` (sessionStorage, po sobi). `RoomScreen` uz tu oznaku crta `components/funnel/ShuffleScreen`.
+- **Ulaz u S2 je dolazak prvog stanja partije.** Sat od 650 ms počinje tada (`SHUFFLE_EXIT_MS`). Prvi krug se ne čeka, a karte uskaču iz tačke u kojoj jesu.
+- Na sporoj mreži socket zna stići prije REST-a sobe. Tada „Počinjemo!" ostaje dok i soba ne stigne. Ranije je tu bljesnulo „Učitavanje...".
+- Povratak u partiju koja traje (reload, „Vrati se za sto", link) nema oznaku, pa ide pravo na sto. Privatni lobi je netaknut.
+- `/matching` i `/matching/:id` sad samo prosljeđuju. `MatchingScreen`, `funnel/MatchingTable` i `sr.matching` su obrisani.
+- Igrači: inicijal u krugu sa bojom iz imena (`initialTone`, uvijek ista za isto ime) ili avatar naloga. Prazno mjesto je „slobodno".
+  - Mjesta prate `lib/seating.ts`: +1 desno, +2 gore, +3 lijevo. Igrač ne preskoči stranu kad sto stigne.
+  - Igrač iskoči kad ga server javi, ne po satu. Poker i Raub botovi sjedaju tek s početkom meča, pa S2 uzima igrače iz samog stanja.
+- Špil je 10 poleđina. Keyframe-ovi su sa table 1:1: krug od 3 s, pet faza, samo `transform`/`opacity`.
+  - Izlaz čita `getComputedStyle().transform` svake karte i špila u layout effectu, gasi CSS petlju i vodi ih WAAPI-jem u gomilu (250 ms). Zatim CSS kucanje (400 ms).
+- Zvuk: jedan „tup" (`place`) na kucanju, uz prekidač zvuka.
+  - **Odstupanje od table:** nema šuškanja u petlji, jer bi se ponavljalo svake 3 s dok se čeka.
+- Tokeni: `--t-shuffle-*` (kolapsiraju pod reduced-motion), `--ease-shuffle`, `--wood-1/2`, `--seat-tone-0..4`.
+- **Web i aplikacija** (odluka vlasnika, izuzetak od „samo web"). U aplikaciju stiže tek novim paketom.
+- **Mjerenje u aplikaciji:** `performance.mark` `shuffle:state` i `shuffle:table` ostaju i u produkciji, za WebView devtools.
+
+**Zamka:** Tailwind preflight `img{max-width:100%}` je stiskao karte na širinu špila (0 px), pa se špil nije vidio. Rješenje je `max-width:none` na `.shuffle__card`.
+
+**Mjereno** (headless Chrome, pravi put od početne, lokalni server, `performance.mark`, od klika):
+
+| | Ekran miješanja | Stanje stiglo | Sto | Izlaz S2 |
+|---|---|---|---|---|
+| Žandar | 117 ms | 118 ms | 809 ms (ranije ~4,5 s) | 657 ms |
+| Poker | 113 ms | 2021 ms (prozor 2 s) | 2714 ms | 662 ms |
+| Raub | 113 ms | 2025 ms | 2719 ms | 657 ms |
+| Žandar, 400 ms latencije i 50 kB/s | 999 ms | 1002 ms | 1869 ms | 660 ms |
+
+- U svim mjerenjima: bez „Učitavanje..." i bez `/matching`.
+- Reload partije u toku: odmah sto, bez miješanja.
+- Snimci 360×740, 360×640, 390×844 (2P/3P/4P), S2 usred riffle-a (bez skoka) i reduced-motion. Pregled: `/dev/shuffle?n=&game=&arrive=&ready=`.
+- Web 295 testova (+12 `shuffleView`), typecheck čist, lint 4 greške + 2 upozorenja (ispod osnovice 5/2, sve zatečene), `build:mobile` prolazi i izvoz nosi ekran.
+
+**Nije provjereno na uređaju** (staging APK, S10e): tempo okom, zvuk kucanja, Android WebView `getComputedStyle` za izlaz.

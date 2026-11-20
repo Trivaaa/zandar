@@ -382,10 +382,14 @@ export const sr = {
       close: "Zatvori",
     },
   },
-  matching: {
-    preparing: "Pripremamo sto...",
-    seating: "Igrači sjedaju...",
-    ready: "Sto je popunjen",
+  /** Ekran prije partije — „Miješamo špil" (tabla UI_MijesanjeSpila). */
+  shuffle: {
+    title: "Miješamo špil",
+    ready: "Svi su tu. Počinjemo!",
+    waiting: "Čekamo igrače za stolom",
+    starting: "Partija počinje",
+    you: "Ti",
+    free: "slobodno",
   },
   end: {
     handTitle: (n: number) => `Ruka #${n} gotova`,

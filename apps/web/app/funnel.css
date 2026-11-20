@@ -1,5 +1,5 @@
 /*
- * funnel.css — the screens before the table: shared .screen shell + MatchingTable.
+ * funnel.css — the screens before the table: shared .screen shell + ShuffleScreen.
  * HomeScreen lives in home.css.
  * Same rules as felt.css / overlay.css:
  *   - No hex, no literal px duration, no literal cubic-bezier. Tokens only.
@@ -8,8 +8,9 @@
  *   - Every state-dependent colour is owned here, base included, because a
  *     Tailwind colour utility in JSX would outrank this file (layer(components)).
  *
- * Local geometry knobs (not tokens): --funnel-pad, --cta-h, --oval-w,
- * --oval-h, --place-size, --matching-bar-h.
+ * Local geometry knobs (not tokens): --funnel-pad, --sh-table-w/h, --sh-card-w/h,
+ * --sh-disc. Pixel offsets in the shuffle keyframes are the board's geometry
+ * (UI_MijesanjeSpila, 54 px card), not durations.
  */
 
 /* ------------------------------------------------------------------ *
@@ -46,171 +47,326 @@
 }
 
 /* ------------------------------------------------------------------ *
- * MatchingTable
+ * ShuffleScreen — „Miješamo špil" (tabla UI_MijesanjeSpila, S1–S3)
+ *
+ * Krug od 3 s (--t-shuffle-loop): miran špil → presijecanje → riffle →
+ * poravnanje + odsjaj → kucanje + zlatni krug. Kraj kruga = početak, šav se
+ * ne vidi. Karte i špil petlju gase sami (ShuffleScreen, WAAPI iz trenutne
+ * tačke), pa pravila petlje NISU vezana za data-stage.
  * ------------------------------------------------------------------ */
 
-.matching {
-  --oval-w: min(19rem, 100%);
-  --oval-h: 15rem;
-  --place-size: 4.5rem;
-  --matching-bar-h: 0.25rem;
-  gap: 1.5rem;
+.shuffle {
+  --sh-table-w: 18.75rem; /* 300px */
+  --sh-table-h: 12.5rem;  /* 200px */
+  --sh-rim: 0.4375rem;    /* 7px */
+  --sh-card-w: 3.375rem;  /* 54px */
+  --sh-card-h: 4.75rem;   /* 76px */
+  --sh-disc: 3.5rem;      /* 56px */
+  --sh-seat: 5rem;
   align-items: center;
-  justify-content: center;
+  background-color: var(--bg-mid);
+  background-image: linear-gradient(180deg, var(--bg-top), var(--bg-mid) 55%, var(--bg-bottom));
 }
 
-.matching__head {
+.shuffle__head {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
-  width: 100%;
-  max-width: min(20rem, 100%);
-}
-
-.matching__headline {
+  gap: 0.5rem;
+  margin-top: clamp(1rem, 6dvh, 3.25rem);
   text-align: center;
-  color: var(--text-muted);
-  transition:
-    transform var(--t-card-play) var(--ease-out-soft),
-    opacity var(--t-card-play) var(--ease-out-soft);
 }
 
-.matching[data-done="true"] .matching__headline {
-  color: var(--accent);
-  transform: scale(1.04);
+.shuffle__kicker {
+  font: 600 var(--type-xs) / 1 var(--font-sans-stack);
+  letter-spacing: 0.02em;
+  color: var(--text-soft);
 }
 
-/* Preparing indicator: a thin bar, no numbers, no counter, no spinner. */
-.matching__bar {
+.shuffle__title {
+  margin: 0;
+  font: 400 var(--type-2xl) / 1.1 var(--font-display-stack);
+  color: var(--text);
+}
+
+/* Sto + sjedišta: jedan koordinatni sistem, kao na tabli (360px okvir). */
+.shuffle__stage {
   position: relative;
-  overflow: hidden;
-  width: 60%;
-  height: var(--matching-bar-h);
-  border-radius: var(--radius-sm);
-  background-color: color-mix(in oklab, var(--surface) 80%, transparent);
+  flex: 1 1 auto;
+  width: var(--sh-table-w);
+  min-height: calc(var(--sh-table-h) + 8rem);
 }
 
-.matching__fill {
+.shuffle__table {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--sh-table-w);
+  height: var(--sh-table-h);
+  margin-top: calc(var(--sh-table-h) / -2);
+  border-radius: 50%;
+  background-image: linear-gradient(160deg, var(--wood-1), var(--wood-2));
+  box-shadow:
+    0 18px 40px rgb(0 0 0 / 0.6),
+    inset 0 0 0 1px color-mix(in oklab, var(--turn-active) 35%, transparent);
+}
+
+.shuffle__felt {
+  position: absolute;
+  inset: var(--sh-rim);
+  border-radius: 50%;
+  background: url(/felt-bg.webp) center / cover, var(--sukno-2);
+  box-shadow: inset 0 0 30px rgb(0 0 0 / 0.55);
+}
+
+/* Sjaj oboda u S2: sloj kojem se mijenja samo prozirnost. */
+.shuffle__glow {
   position: absolute;
   inset: 0;
-  width: 40%;
-  border-radius: var(--radius-sm);
-  background-color: color-mix(in oklab, var(--accent) 70%, var(--felt));
-  animation: matching-bar var(--t-turn-pulse) var(--ease-out-soft) infinite;
-}
-
-@keyframes matching-bar {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(250%);
-  }
-}
-
-/* The oval felt table itself */
-.matching__table {
-  position: relative;
-  width: var(--oval-w);
-  height: var(--oval-h);
-  margin: 0 auto;
-}
-
-.matching__oval {
-  position: absolute;
-  inset: 12% 8%;
-  border-radius: 50% / 50%;
-  background-color: color-mix(in oklab, var(--felt) 78%, black);
+  border-radius: 50%;
+  opacity: 0;
   box-shadow:
-    inset 0 0 0 2px color-mix(in oklab, var(--accent) 28%, transparent),
-    inset 0 0 2rem color-mix(in oklab, black 35%, transparent);
+    0 0 0 3px color-mix(in oklab, var(--turn-active) 75%, transparent),
+    0 0 46px color-mix(in oklab, var(--turn-active) 40%, transparent);
+  transition: opacity var(--t-shuffle-knock) var(--ease-out-soft);
+}
+.shuffle[data-stage="full"] .shuffle__glow {
+  opacity: 1;
 }
 
-.matching__place {
+.shuffle__mid {
   position: absolute;
-  width: var(--place-size);
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+
+.shuffle__deck {
+  position: absolute;
+  left: 0;
+  top: 0;
+  animation: shuffle-deck var(--t-shuffle-loop) var(--ease-shuffle) infinite;
+}
+
+.shuffle__card {
+  position: absolute;
+  left: calc(var(--sh-card-w) / -2);
+  top: calc(var(--sh-card-h) / -2);
+  width: var(--sh-card-w);
+  height: var(--sh-card-h);
+  /* Preflight `img{max-width:100%}` bi kartu stisnuo na širinu špila (0). */
+  max-width: none;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.45);
+  will-change: transform;
+  user-select: none;
+}
+
+.shuffle__shine {
+  position: absolute;
+  left: -1rem;
+  top: calc(var(--sh-card-h) / -2 - 0.5rem);
+  z-index: 20;
+  width: 1.375rem;
+  height: var(--sh-card-h);
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--turn-active) 70%, white), transparent);
+  transform: translateX(-34px) skewX(-18deg);
+  animation: shuffle-shine var(--t-shuffle-loop) ease-in-out infinite;
+}
+
+.shuffle__ring {
+  position: absolute;
+  left: -3.75rem;
+  top: -3.125rem;
+  width: 7.5rem;
+  height: 5.625rem;
+  border-radius: 50%;
+  border: 2px solid var(--turn-active);
+  opacity: 0;
+  animation: shuffle-ring var(--t-shuffle-loop) ease-out infinite;
+}
+
+/* S2 — karte idu u gomilu (WAAPI); odsjaj i krug petlje se gase. */
+.shuffle[data-stage="collect"] .shuffle__shine,
+.shuffle[data-stage="collect"] .shuffle__ring,
+.shuffle[data-stage="full"] .shuffle__shine {
+  animation: none;
+  opacity: 0;
+}
+/* S2 — kucanje: špil se podigne i ostane gore, krug se raširi jednom. */
+.shuffle[data-stage="full"] .shuffle__deck {
+  animation: shuffle-knock var(--t-shuffle-knock) var(--ease-out-soft) forwards;
+}
+.shuffle[data-stage="full"] .shuffle__ring {
+  animation: shuffle-ring-out var(--t-shuffle-knock) ease-out forwards;
+}
+
+/* Sjedišta: centar mjesta je tačka na tabli (sto 300×200, vertikalno u sredini). */
+.shuffle__seat {
+  position: absolute;
+  z-index: 3;
+  width: var(--sh-seat);
+  margin-left: calc(var(--sh-seat) / -2);
+  margin-top: -1.75rem;
+}
+.shuffle__seat--bottom { left: 50%; top: calc(50% + var(--sh-table-h) / 2 + 1.625rem); }
+.shuffle__seat--top    { left: 50%; top: calc(50% - var(--sh-table-h) / 2 - 1.375rem); }
+.shuffle__seat--left   { left: 0.75rem; top: calc(50% + 0.25rem); }
+.shuffle__seat--right  { left: calc(100% - 0.75rem); top: calc(50% + 0.25rem); }
+
+.shuffle__on,
+.shuffle__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  text-align: center;
 }
 
-.matching__place--bottom {
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
+/* Igrač koji stigne iskoči jednom — tad kad ga server javi, ne po satu. */
+.shuffle__on {
+  animation: shuffle-seat-in var(--t-card-play) var(--ease-snap) both;
+}
+.shuffle__on[data-me="true"] {
+  animation: none;
 }
 
-.matching__place--top {
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
+.shuffle__disc {
+  display: block;
+  width: var(--sh-disc);
+  height: var(--sh-disc);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-raised);
+  box-shadow:
+    0 0 0 2.5px color-mix(in oklab, var(--text) 70%, transparent),
+    0 6px 14px rgb(0 0 0 / 0.5);
 }
-
-.matching__place--left {
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+.shuffle__on[data-me="true"] .shuffle__disc {
+  box-shadow: 0 0 0 3px var(--turn-active), 0 6px 14px rgb(0 0 0 / 0.5);
 }
-
-.matching__place--right {
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+.shuffle__disc img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
-
-.matching__avatar {
+.shuffle__disc b {
   display: grid;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 50%;
-  background-color: var(--surface-raised);
+  width: 100%;
+  height: 100%;
+  font: 400 var(--type-2xl) / 1 var(--font-display-stack);
   color: var(--text);
-  border: 2px solid color-mix(in oklab, var(--accent) 45%, transparent);
 }
+.shuffle__disc[data-tone="0"] { background: var(--seat-tone-0); }
+.shuffle__disc[data-tone="1"] { background: var(--seat-tone-1); }
+.shuffle__disc[data-tone="2"] { background: var(--seat-tone-2); }
+.shuffle__disc[data-tone="3"] { background: var(--seat-tone-3); }
+.shuffle__disc[data-tone="4"] { background: var(--seat-tone-4); }
 
-.matching__name {
-  color: var(--text);
+.shuffle__name {
   max-width: 100%;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--bg-bottom) 80%, transparent);
+  font: 600 0.75rem / 1.3 var(--font-sans-stack);
+  color: var(--text);
+}
+.shuffle__on[data-me="true"] .shuffle__name {
+  color: var(--turn-active);
 }
 
-.matching__you {
-  color: var(--accent);
+.shuffle__empty i {
+  display: block;
+  width: var(--sh-disc);
+  height: var(--sh-disc);
+  border-radius: 999px;
+  border: 2px dashed color-mix(in oklab, var(--text) 32%, transparent);
+  background: color-mix(in oklab, var(--bg-bottom) 35%, transparent);
+}
+.shuffle__empty span {
+  font: 400 0.75rem / 1.3 var(--font-sans-stack);
+  color: var(--text-faint);
 }
 
-/* An empty place, never a gap: the table always reads as a table. */
-.matching__place[data-filled="false"] .matching__avatar {
-  background-color: color-mix(in oklab, var(--surface) 55%, transparent);
-  border-style: dashed;
-  border-color: color-mix(in oklab, var(--text-muted) 35%, transparent);
+.shuffle__wait {
+  margin: 0 0 clamp(1.5rem, 9dvh, 5.5rem);
+  text-align: center;
+  font: 400 0.9375rem / 1.3 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+.shuffle__wait[data-full="true"] {
+  font-weight: 700;
+  color: var(--turn-active);
 }
 
-.matching__place[data-filled="false"] .matching__name {
-  color: color-mix(in oklab, var(--text-muted) 55%, transparent);
+@keyframes shuffle-deck {
+  0%, 60% { transform: none; }
+  65% { transform: scale(1.06); }
+  72% { transform: scale(1); }
+  79% { transform: translateY(-12px); }
+  85%, 100% { transform: translateY(0); }
+}
+@keyframes shuffle-ring {
+  0%, 83% { opacity: 0; transform: scale(0.7); }
+  86% { opacity: 0.75; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+@keyframes shuffle-shine {
+  0%, 64% { opacity: 0; transform: translateX(-34px) skewX(-18deg); }
+  70% { opacity: 0.9; }
+  76%, 100% { opacity: 0; transform: translateX(34px) skewX(-18deg); }
+}
+@keyframes shuffle-knock {
+  from { transform: none; }
+  to { transform: translateY(-14px) scale(1.04); }
+}
+@keyframes shuffle-ring-out {
+  from { opacity: 0.75; transform: scale(0.8); }
+  to { opacity: 0.55; transform: scale(1.3); }
+}
+@keyframes shuffle-seat-in {
+  0% { opacity: 0; transform: scale(0.6); }
+  60% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
-.matching__place[data-filled="true"] {
-  animation: matching-seat-in var(--t-card-play) var(--ease-snap) both;
-}
+/* Deset poleđina, svaka sa svojim trenutkom u riffle-u (tabla, keyframe-ovi 1:1). */
+@keyframes shuffle-c0{0.0%{transform:translate(0.0px,0.0px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,0.0px) rotate(0.0deg)} 28.0%{transform:translate(-64.0px,-10.0px) rotate(-14.0deg)} 30.0%{transform:translate(-64.0px,-10.0px) rotate(-14.0deg)} 33.0%{transform:translate(-30.0px,-26.0px) rotate(-6.0deg)} 36.0%{transform:translate(0.0px,0.0px) rotate(-3.0deg)} 62.0%{transform:translate(0.0px,0.0px) rotate(-3.0deg)} 70.0%{transform:translate(0.0px,0.0px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,0.0px) rotate(0.0deg)}}
+.shuffle__card--0 { animation: shuffle-c0 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
+@keyframes shuffle-c1{0.0%{transform:translate(0.0px,-0.9px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,-0.9px) rotate(0.0deg)} 28.0%{transform:translate(64.0px,-10.0px) rotate(14.0deg)} 32.6%{transform:translate(64.0px,-10.0px) rotate(14.0deg)} 35.6%{transform:translate(30.0px,-26.6px) rotate(6.0deg)} 38.6%{transform:translate(0.0px,-0.9px) rotate(2.0deg)} 62.0%{transform:translate(0.0px,-0.9px) rotate(2.0deg)} 70.0%{transform:translate(0.0px,-0.9px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,-0.9px) rotate(0.0deg)}}
+.shuffle__card--1 { animation: shuffle-c1 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
+@keyframes shuffle-c2{0.0%{transform:translate(0.0px,-1.8px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,-1.8px) rotate(0.0deg)} 28.0%{transform:translate(-64.0px,-11.6px) rotate(-14.0deg)} 35.2%{transform:translate(-64.0px,-11.6px) rotate(-14.0deg)} 38.2%{transform:translate(-30.0px,-27.2px) rotate(-6.0deg)} 41.2%{transform:translate(0.0px,-1.8px) rotate(-1.0deg)} 62.0%{transform:translate(0.0px,-1.8px) rotate(-1.0deg)} 70.0%{transform:translate(0.0px,-1.8px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,-1.8px) rotate(0.0deg)}}
+.shuffle__card--2 { animation: shuffle-c2 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
+@keyframes shuffle-c3{0.0%{transform:translate(0.0px,-2.7px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,-2.7px) rotate(0.0deg)} 28.0%{transform:translate(64.0px,-11.6px) rotate(14.0deg)} 37.8%{transform:translate(64.0px,-11.6px) rotate(14.0deg)} 40.8%{transform:translate(30.0px,-27.8px) rotate(6.0deg)} 43.8%{transform:translate(0.0px,-2.7px) rotate(3.0deg)} 62.0%{transform:translate(0.0px,-2.7px) rotate(3.0deg)} 70.0%{transform:translate(0.0px,-2.7px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,-2.7px) rotate(0.0deg)}}
+.shuffle__card--3 { animation: shuffle-c3 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
+@keyframes shuffle-c4{0.0%{transform:translate(0.0px,-3.6px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,-3.6px) rotate(0.0deg)} 28.0%{transform:translate(-64.0px,-13.2px) rotate(-14.0deg)} 40.4%{transform:translate(-64.0px,-13.2px) rotate(-14.0deg)} 43.4%{transform:translate(-30.0px,-28.4px) rotate(-6.0deg)} 46.4%{transform:translate(0.0px,-3.6px) rotate(-2.0deg)} 62.0%{transform:translate(0.0px,-3.6px) rotate(-2.0deg)} 70.0%{transform:translate(0.0px,-3.6px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,-3.6px) rotate(0.0deg)}}
+.shuffle__card--4 { animation: shuffle-c4 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
+@keyframes shuffle-c5{0.0%{transform:translate(0.0px,-4.5px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,-4.5px) rotate(0.0deg)} 28.0%{transform:translate(64.0px,-13.2px) rotate(14.0deg)} 43.0%{transform:translate(64.0px,-13.2px) rotate(14.0deg)} 46.0%{transform:translate(30.0px,-29.0px) rotate(6.0deg)} 49.0%{transform:translate(0.0px,-4.5px) rotate(1.0deg)} 62.0%{transform:translate(0.0px,-4.5px) rotate(1.0deg)} 70.0%{transform:translate(0.0px,-4.5px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,-4.5px) rotate(0.0deg)}}
+.shuffle__card--5 { animation: shuffle-c5 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
+@keyframes shuffle-c6{0.0%{transform:translate(0.0px,-5.4px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,-5.4px) rotate(0.0deg)} 28.0%{transform:translate(-64.0px,-14.8px) rotate(-14.0deg)} 45.6%{transform:translate(-64.0px,-14.8px) rotate(-14.0deg)} 48.6%{transform:translate(-30.0px,-29.6px) rotate(-6.0deg)} 51.6%{transform:translate(0.0px,-5.4px) rotate(-3.0deg)} 62.0%{transform:translate(0.0px,-5.4px) rotate(-3.0deg)} 70.0%{transform:translate(0.0px,-5.4px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,-5.4px) rotate(0.0deg)}}
+.shuffle__card--6 { animation: shuffle-c6 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
+@keyframes shuffle-c7{0.0%{transform:translate(0.0px,-6.3px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,-6.3px) rotate(0.0deg)} 28.0%{transform:translate(64.0px,-14.8px) rotate(14.0deg)} 48.2%{transform:translate(64.0px,-14.8px) rotate(14.0deg)} 51.2%{transform:translate(30.0px,-30.2px) rotate(6.0deg)} 54.2%{transform:translate(0.0px,-6.3px) rotate(2.0deg)} 62.0%{transform:translate(0.0px,-6.3px) rotate(2.0deg)} 70.0%{transform:translate(0.0px,-6.3px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,-6.3px) rotate(0.0deg)}}
+.shuffle__card--7 { animation: shuffle-c7 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
+@keyframes shuffle-c8{0.0%{transform:translate(0.0px,-7.2px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,-7.2px) rotate(0.0deg)} 28.0%{transform:translate(-64.0px,-16.4px) rotate(-14.0deg)} 50.8%{transform:translate(-64.0px,-16.4px) rotate(-14.0deg)} 53.8%{transform:translate(-30.0px,-30.8px) rotate(-6.0deg)} 56.8%{transform:translate(0.0px,-7.2px) rotate(-1.0deg)} 62.0%{transform:translate(0.0px,-7.2px) rotate(-1.0deg)} 70.0%{transform:translate(0.0px,-7.2px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,-7.2px) rotate(0.0deg)}}
+.shuffle__card--8 { animation: shuffle-c8 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
+@keyframes shuffle-c9{0.0%{transform:translate(0.0px,-8.1px) rotate(0.0deg)} 10.0%{transform:translate(0.0px,-8.1px) rotate(0.0deg)} 28.0%{transform:translate(64.0px,-16.4px) rotate(14.0deg)} 53.4%{transform:translate(64.0px,-16.4px) rotate(14.0deg)} 56.4%{transform:translate(30.0px,-31.4px) rotate(6.0deg)} 59.4%{transform:translate(0.0px,-8.1px) rotate(2.0deg)} 62.0%{transform:translate(0.0px,-8.1px) rotate(2.0deg)} 70.0%{transform:translate(0.0px,-8.1px) rotate(0.0deg)} 100.0%{transform:translate(0.0px,-8.1px) rotate(0.0deg)}}
+.shuffle__card--9 { animation: shuffle-c9 var(--t-shuffle-loop) var(--ease-shuffle) infinite; }
 
-@keyframes matching-seat-in {
-  from {
-    opacity: 0;
-    transform-origin: center;
-    scale: 0.9;
-  }
-  to {
-    opacity: 1;
-    scale: 1;
-  }
-}
-
+/* S3 — smanjeno kretanje: špil miruje, igrači bez iskakanja, tekst isti. */
 @media (prefers-reduced-motion: reduce) {
-  .matching__fill {
+  .shuffle__deck,
+  .shuffle__card,
+  .shuffle__shine,
+  .shuffle__ring,
+  .shuffle__on,
+  .shuffle[data-stage="full"] .shuffle__deck,
+  .shuffle[data-stage="full"] .shuffle__ring {
     animation: none;
   }
 }

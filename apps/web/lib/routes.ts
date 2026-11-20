@@ -17,10 +17,6 @@ export function roomPath(roomId: string): string {
   return `/room?id=${encodeURIComponent(roomId)}`;
 }
 
-export function matchingPath(roomId: string): string {
-  return `/matching?id=${encodeURIComponent(roomId)}`;
-}
-
 /**
  * Invite link koji se dijeli van aplikacije. MORA biti web origin — u WebView-u
  * je `window.location.origin` `https://localhost`, što daje mrtav link.

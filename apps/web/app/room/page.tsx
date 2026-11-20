@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { RoomScreen } from "@/components/RoomScreen";
+import { RoomFallback } from "./RoomFallback";
 
 /**
  * `/room?id=…` — kanonska in-app ruta za sobu. Radi i u statičkom exportu /
@@ -35,11 +36,7 @@ function RoomFromQuery() {
 export default function RoomQueryPage() {
   return (
     <Suspense
-      fallback={
-        <main className="min-h-screen bg-felt text-white flex items-center justify-center">
-          <p className="text-muted">Učitavanje...</p>
-        </main>
-      }
+      fallback={<RoomFallback />}
     >
       <RoomFromQuery />
     </Suspense>

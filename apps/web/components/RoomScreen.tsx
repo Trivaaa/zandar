@@ -23,9 +23,11 @@ import { getIdToken } from "@/lib/auth";
 import { getPushId, PUSH_REGISTERED_EVENT } from "@/lib/push";
 import { PushPrompt } from "@/components/push/PushPrompt";
 import { assertNoBotLeak } from "@/lib/antiLeak";
-import { inviteLink, matchingPath } from "@/lib/routes";
+import { inviteLink, roomPath } from "@/lib/routes";
 import { JoinFlow } from "@/components/JoinFlow";
-import { readQuickPlayPrefs } from "@/lib/quickPlayPrefs";
+import { parseQuickPlayPrefs, readQuickPlayPrefs, readQuickPlayPrefsRaw } from "@/lib/quickPlayPrefs";
+import { ShuffleScreen } from "@/components/funnel/ShuffleScreen";
+import { SHUFFLE_EXIT_MS, clearIntro, hasIntro, markIntro, shuffleKicker } from "@/lib/shuffleView";
 import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import { GameScreen } from "@/components/GameScreen";
 import { PokerScreen } from "@/components/poker/PokerScreen";
@@ -44,6 +46,7 @@ import type {
   RaubAction,
   RaubGamePayload,
   PrivateGameStateView,
+  PublicPlayer,
 } from "@zandar/shared-types";
 
 type ReactionEvent = {
@@ -102,6 +105,23 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   const [botFillLoading, setBotFillLoading] = useState(false);
   const [activeReactions, setActiveReactions] = useState<ActiveReaction[]>([]);
   const [autoPlayToast, setAutoPlayToast] = useState<string | null>(null);
+  // Uvod „Miješamo špil" (tabla UI_MijesanjeSpila): samo kad je igrač upravo
+  // krenuo za javni sto (Igraj / Novi sto). Traje tačno dok stanje partije ne
+  // stigne, pa S2 (0,65 s), pa sto — bez izmišljenog čekanja.
+  const introWanted = useSyncExternalStore(subscribeNothing, () => hasIntro(roomId), () => false);
+  const [introExiting, setIntroExiting] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
+  // Igrači iz stanja partije: poker/Raub botovi sjedaju tek kad partija krene,
+  // pa bi spisak sobe u S2 („Svi su tu") još imao prazna mjesta.
+  const [introPlayers, setIntroPlayers] = useState<PublicPlayer[] | null>(null);
+  const introTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefsRaw = useSyncExternalStore(subscribeNothing, () => readQuickPlayPrefsRaw(), () => null);
+  useEffect(
+    () => () => {
+      if (introTimer.current) clearTimeout(introTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     setSession(getSession(roomId));
@@ -238,6 +258,17 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       // prethodnu socket sobu, B10) ne smije se nacrtati pod ovom rutom.
       if (state.roomId !== roomId) return;
       assertNoBotLeak(state.players); // dev straža (DS §7.1, C4)
+      // Prvo stanje dok se špil miješa → S2. Sat od 0,65 s počinje SADA.
+      if (hasIntro(roomId) && !introTimer.current) {
+        markTiming("shuffle:state");
+        clearIntro();
+        setIntroPlayers(state.players);
+        setIntroExiting(true);
+        introTimer.current = setTimeout(() => {
+          markTiming("shuffle:table");
+          setIntroDone(true);
+        }, SHUFFLE_EXIT_MS);
+      }
       if ("game" in state && state.game === "poker") setPokerState(state);
       else if ("game" in state && state.game === "raub") setRaubState(state);
       else setGameState(state as GameStateWithDeadline);
@@ -495,7 +526,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
         playerId: res.playerId,
         sessionToken: res.playerSessionToken,
       });
-      router.push(matchingPath(res.roomId));
+      markIntro(res.roomId);
+      router.push(roomPath(res.roomId));
     } catch (err) {
       alert("Greška: " + (err instanceof Error ? err.message : "Nepoznato"));
     }
@@ -548,6 +580,21 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           </button>
         </div>
       </main>
+    );
+  }
+
+  // Po isteku S2 sto treba i sobu (podloga, javni sto). Na sporoj mreži socket
+  // zna stići prije REST-a — tad „Počinjemo!" ostaje dok i soba ne stigne.
+  const showIntro = (introWanted || introExiting) && (!introDone || !room);
+  if (showIntro && (!room || session)) {
+    return (
+      <ShuffleScreen
+        kicker={room ? shuffleKicker(room) : null}
+        players={introPlayers ?? room?.players ?? []}
+        myPlayerId={session?.playerId ?? null}
+        playerCount={room?.playerCount ?? parseQuickPlayPrefs(prefsRaw).playerCount}
+        exiting={introExiting}
+      />
     );
   }
 
@@ -750,4 +797,15 @@ function subscribeOnline(onChange: () => void): () => void {
 
 function readOnline(): boolean {
   return navigator.onLine;
+}
+
+const subscribeNothing = () => () => {};
+
+/** Mjerenje trajanja uvoda (CDP / WebView devtools): `performance.getEntriesByType("mark")`. */
+function markTiming(name: string): void {
+  try {
+    performance.mark(name);
+  } catch {
+    /* stari WebView bez User Timing — mjerenje nije bitno za igru */
+  }
 }

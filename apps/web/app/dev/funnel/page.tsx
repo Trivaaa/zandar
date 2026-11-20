@@ -4,10 +4,6 @@ import { useState } from "react";
 import { NameStep } from "@/components/funnel/NameStep";
 import { SettingsSheet } from "@/components/home/SettingsSheet";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
-import {
-  MatchingTable,
-  type MatchingPlayer,
-} from "@/components/funnel/MatchingTable";
 import { sr } from "@/lib/sr";
 
 /**
@@ -15,13 +11,6 @@ import { sr } from "@/lib/sr";
  * sata i bez servera. Nije produkcijski. Pregib se mjeri na pravoj `/` ruti,
  * ne ovdje (okvir od 800px nije viewport).
  */
-
-const players: MatchingPlayer[] = [
-  { id: "me", displayName: "Dragan", seatIndex: 0 },
-  { id: "p1", displayName: "Milica", seatIndex: 1 },
-  { id: "p2", displayName: "Zoran", seatIndex: 2 },
-  { id: "p3", displayName: "Svjetlana Vukašinović", seatIndex: 3 },
-];
 
 const ERROR = "Greška pri traženju stola. Pokušaj ponovo.";
 
@@ -46,10 +35,7 @@ export default function DevFunnelPage() {
   const [nameLoading, setNameLoading] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [savedName, setSavedName] = useState(true);
-  const [revealed, setRevealed] = useState(2);
-  const [done, setDone] = useState(false);
 
-  const statusText = done ? sr.matching.ready : revealed === 0 ? sr.matching.preparing : sr.matching.seating;
 
   return (
     <div className="min-h-dvh bg-surface p-4 space-y-8 text-white">
@@ -103,21 +89,6 @@ export default function DevFunnelPage() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="font-bold">MatchingTable</h2>
-        <div className="flex flex-wrap gap-2">
-          {[0, 1, 2, 3, 4].map((n) => (
-            <Toggle key={n} on={revealed === n} onClick={() => setRevealed(n)}>
-              {n} sjedišta
-            </Toggle>
-          ))}
-          <Toggle on={done} onClick={() => setDone((v) => !v)}>sto popunjen</Toggle>
-        </div>
-        <div className={frame}>
-          <MatchingTable players={players} myPlayerId="me" revealed={revealed} statusText={statusText} done={done} />
-        </div>
-        <p className="text-sm text-muted">0 sjedišta = roster još nije stigao; sto se svejedno crta.</p>
-      </section>
     </div>
   );
 }

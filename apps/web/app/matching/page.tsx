@@ -3,9 +3,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { MatchingScreen } from "@/components/MatchingScreen";
+import { MatchingRedirect } from "./MatchingRedirect";
 
-/** `/matching?id=…` — kanonska in-app ruta (vidi `app/room/page.tsx`). */
+/** `/matching?id=…` — stara in-app ruta; prosljeđuje na sto (`/room?id=`). */
 function MatchingFromQuery() {
   const roomId = useSearchParams().get("id");
 
@@ -22,18 +22,13 @@ function MatchingFromQuery() {
     );
   }
 
-  // `key`: druga soba = svjež ekran (isto kao RoomScreen, QA B10).
-  return <MatchingScreen key={roomId} roomId={roomId} />;
+  return <MatchingRedirect roomId={roomId} />;
 }
 
 export default function MatchingQueryPage() {
   return (
     <Suspense
-      fallback={
-        <main className="min-h-screen bg-felt text-white flex items-center justify-center">
-          <p className="text-muted">Pripremamo sto...</p>
-        </main>
-      }
+      fallback={<main className="screen" aria-busy="true" />}
     >
       <MatchingFromQuery />
     </Suspense>

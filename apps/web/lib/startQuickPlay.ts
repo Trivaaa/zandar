@@ -5,8 +5,9 @@ import type { GameSlug } from "@/lib/games";
 import { markGamePlayed } from "@/lib/homePrefs";
 import { normalizePlayerName, savePlayerName } from "@/lib/playerName";
 import { saveQuickPlayPrefs, type QuickPlayPrefs } from "@/lib/quickPlayPrefs";
-import { matchingPath } from "@/lib/routes";
+import { roomPath } from "@/lib/routes";
 import { saveSession } from "@/lib/session";
+import { markIntro } from "@/lib/shuffleView";
 import { saveTableTheme } from "@/lib/tableTheme";
 
 /**
@@ -14,7 +15,7 @@ import { saveTableTheme } from "@/lib/tableTheme";
  *
  * Ime i izbor se pamte PRIJE zahtjeva, pa mrežna greška ne briše ono što je
  * igrač upisao i izabrao. Tek USPJEH igru upisuje kao zadnju igranu (glavna
- * kartica početne, nestaje NOVO). Poker šalje `game`; veličinu i cilj server za njega ignoriše. Vraća putanju matching ekrana; navigaciju radi
+ * kartica početne, nestaje NOVO). Poker šalje `game`; veličinu i cilj server za njega ignoriše. Vraća putanju stola (uvod „Miješamo špil" je na njemu); navigaciju radi
  * pozivalac (`replace`, da „nazad" sa traženja vodi na početnu).
  */
 export async function startQuickPlay(
@@ -55,5 +56,6 @@ export async function startQuickPlay(
     playerId: res.playerId,
     sessionToken: res.playerSessionToken,
   });
-  return matchingPath(res.roomId);
+  markIntro(res.roomId);
+  return roomPath(res.roomId);
 }
