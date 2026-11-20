@@ -110,11 +110,17 @@ export default function Home() {
     const saved = readPlayerName();
     if (saved) return play(saved, game, choice);
     if (identityUi) {
+      // Provjera naloga traje ~1 s: kartica odmah kaže „Tražim sto…" i drugi
+      // dodir se ne broji (QA 2026-11-07 PK-B5). `play` ponovo zaključa.
+      busy.current = true;
+      setPlayError(null);
       setPlaying(true);
+      setPlayingSlug(game.slug);
       const nickname = await fetchMe().then(
         (me) => (me.anonymous ? null : me.nickname),
         () => null,
       );
+      busy.current = false;
       setPlaying(false);
       if (nickname) {
         savePlayerName(nickname);
