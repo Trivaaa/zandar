@@ -12,7 +12,7 @@
  * namjerno, prije builda, a ne tek na telefonu.
  */
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
@@ -115,6 +115,44 @@ export function requireAnalyticsKeys(env) {
   process.exit(1);
 }
 
+/**
+ * Poslije `next build`: ključ mora STVARNO biti u izvezenom JS-u, ne samo u
+ * okruženju. `requireAnalyticsKeys` hvata fajl koji fali; ovo hvata sve ostalo
+ * (prazna vrijednost, pogrešno ime varijable, bundler je izbacio granu).
+ * Vraća skraćen ključ za ispis, `null` za staging/dev.
+ */
+export function verifyAnalyticsInBundle(distDir, env) {
+  if (env.NEXT_PUBLIC_APP_ENV !== "production") return null;
+  const key = envAsNextSeesIt(env).NEXT_PUBLIC_POSTHOG_KEY ?? "";
+  const found = key.length > 0 && bundleContains(join(distDir, "_next", "static"), key);
+  if (!found) {
+    console.error(
+      `\n✗ PostHog ključ nije u izvezenom bundle-u (${distDir}).\n` +
+        `  Aplikacija bi radila, ali ne bi slala nijedan klijentski događaj (changelog 202).\n`,
+    );
+    process.exit(1);
+  }
+  return `${key.slice(0, 8)}…`;
+}
+
+function bundleContains(dir, needle) {
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (bundleContains(path, needle)) return true;
+    } else if (entry.name.endsWith(".js") && readFileSync(path, "utf8").includes(needle)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** `--env staging` | `--env=staging`; bez argumenta ostaje produkcija (zatečeno ponašanje). */
 export function parseTarget(argv) {
   const flag = argv.indexOf("--env");
@@ -179,5 +217,12 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
     env,
   });
 
-  child.on("exit", (code) => process.exit(code ?? 1));
+  child.on("exit", (code) => {
+    if (code === 0) {
+      const distDir = join(import.meta.dirname, "..", process.env.MOBILE_DIST_DIR || "out");
+      const key = verifyAnalyticsInBundle(distDir, env);
+      if (key) console.log(`✓ PostHog ključ u bundle-u: ${key}`);
+    }
+    process.exit(code ?? 1);
+  });
 }

@@ -2619,3 +2619,7 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Čitanje kohorti:** Android klijentski podaci od 19.11. do izlaska 1.4.6 su rupa i ne mogu se vratiti.
 
 **Dopuna (isti dan):** build 1.4.6 je dvaput pao u `next build` na Turbopack grešci `next/font/google queries have exactly one entry` (i iz Git Bash-a i iz PowerShell-a; Google fontovi su dostupni, Avast ih trenutno ne presreće). Zato `build-apk.mjs` sada prima `--webpack` i prosljeđuje ga `next build`-u: `pnpm aab:prod -- --webpack`.
+
+**Dopuna 2 (isti dan):** dvije zaštite više.
+- `verifyAnalyticsInBundle` (`build-mobile.mjs`) poslije `next build` traži stvarnu vrijednost ključa u izvezenom JS-u. `build-apk.mjs` je zove prije `cap sync`, a `build:mobile` na kraju. Ispis nosi `✓ PostHog ključ u bundle-u: phc_xxxx…`. Ovo hvata i slučajeve koje provjera okruženja ne vidi (prazna vrijednost, bundler izbacio granu).
+- PostHog upozorenje „Android igrači bez klijentskih događaja": broji igrače sa serverskim `match_started` (`platform = android`) koji istog dana nisu poslali nijedan klijentski događaj (`$host = localhost`). Istorija od 31.10.: 0 svaki dan (jednom 2), a 19.11. 9 i 20.11. 13. Obični prag na broju događaja ne radi, jer saobraćaj iz aplikacije skače od 0 do 16.000 dnevno, a stare verzije šalju dok traje prelazak. MCP veza prema PostHog-u je samo za čitanje, pa upozorenje pravi vlasnik u PostHog-u.

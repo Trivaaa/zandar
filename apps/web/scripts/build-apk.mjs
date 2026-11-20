@@ -28,7 +28,13 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import { readdir, rm } from "node:fs/promises";
 
-import { parseTarget, mobileEnv, logTarget, requireFirebaseConfig } from "./build-mobile.mjs";
+import {
+  parseTarget,
+  mobileEnv,
+  logTarget,
+  requireFirebaseConfig,
+  verifyAnalyticsInBundle,
+} from "./build-mobile.mjs";
 
 /** Koji gradle task i gdje ostavi artefakt, po cilju. `out` je relativan na
  *  `app/build/outputs/`, jer se APK i AAB granaju ispod različitih podfoldera. */
@@ -107,6 +113,9 @@ try {
   // 1. Web u jedinstven folder, sa adresama ovog okruženja zapečenim u bundle.
   await run(process.execPath, [nextBin, ...nextBuildArgs], { env });
 
+  // Prije `cap sync`: bundle bez PostHog ključa ne smije ni stići do paketa.
+  const analyticsKey = verifyAnalyticsInBundle(join(webDir, process.env.MOBILE_DIST_DIR), env);
+
   // 2. Izlaz + config u native projekat, bez `server.url`.
   await run(process.execPath, [capBin, "sync", "android"], { env: cleanEnv });
 
@@ -123,6 +132,7 @@ try {
   });
 
   const outPath = join(androidDir, "app", "build", "outputs", out);
+  if (analyticsKey) console.log(`\n✓ PostHog ključ u bundle-u: ${analyticsKey}`);
   console.log(
     kind === "aab"
       ? ["", `✓ ${target.toUpperCase()} AAB (release-potpisan)`, `  ${outPath}`, `  Upload u Play Console.`, ""].join("\n")
