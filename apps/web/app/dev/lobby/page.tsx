@@ -160,6 +160,7 @@ export default function DevLobbyPage() {
             joinRequests={isHost && withRequests ? REQUESTS : []}
             onApprove={() => undefined}
             onReject={() => undefined}
+            game={joinGame}
             fillEmptySeats={fill}
             onToggleFill={() => setFill((v) => !v)}
             fillPending={false}

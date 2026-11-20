@@ -235,6 +235,10 @@ export const sr = {
     fillOn: "Popuni prazna mjesta",
     fillOff: "Ostavi mjesta prazna",
     fillHint: "Prazna mjesta popunjavaju protivnici. Ljudi koji se pridruže zauzimaju njihovo mjesto.",
+    /** Poker i Raub: popunjavanje praznih mjesta je start (QA PK-P2). */
+    startNow: "Počni odmah",
+    startingNow: "Pokrećem…",
+    startNowHint: "Prazna mjesta popunjavaju protivnici. Ili sačekaj prijatelje — partija počinje čim se mjesta popune.",
     start: "Pokreni igru",
     starting: "Pokretanje...",
     needMore: (n: number) => `Čeka se još ${n} igrača`,

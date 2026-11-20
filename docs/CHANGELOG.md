@@ -2477,3 +2477,11 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Kako:** `lib/pokerSound.ts` (čisto, testirano) kaže šta ide uz koji korak priče stola: dijeljenje → `deal`; ulog i ulozi u pot → novi `chips` (moj ulog i vibracija `play`); check → tih `lift`; fold → ništa; pot meni → `win` + vibracija `capture`, tuđi → `chips`. `usePokerBeat` ga pušta tačno uz let (`runPokerFx`), ne u pozadini (priča se tada sabija u trenutak). `PokerScreen` na prelaz: moj potez → `turn` + vibracija (kao Žandar), sat mog poteza na ≤ 5 s → novi `warn` (dva tiha tona) + vibracija, kraj meča → `win`/`lose` po mom mjestu. Otvaranje stola usred poteza ili poslije kraja ne zvoni. Novi zvukovi su samo dodati u `lib/sound.ts`; Žandar netaknut.
 
 **Mjereno (headless Chrome, lokalni server, špijun na `createOscillator`/`createBufferSource` i `navigator.vibrate`):** prekidači upaljeni — 16 zvučnih događaja do mog poteza (dijeljenje, blindovi, ulozi), vibracija 25 ms na moj potez, na 5 s dva tona + vibracija, 26 ukupno poslije mog poteza; prekidači ugašeni — 0. Web 275 testova, typecheck, lint dodirnutih fajlova čist. **Ušima i rukom na telefonu nije provjereno.**
+
+## 196. Poker i Raub lobi: „Počni odmah" umjesto prekidača (2026-11-20, `fix/poker-sound`)
+
+**Šta:** QA 2026-11-07 PK-P2 — host u poker lobiju je vidio prekidač „Ostavi mjesta prazna / Popuni prazna mjesta". Poker i Raub lobi nemaju „Pokreni igru": server na popunjavanje odmah pokreće meč (`bot-fill` → `startIfFull`, po speci). Prekidač se čitao kao podešavanje, pa je host koji ga samo isproba pokretao partiju bez pozvanih prijatelja.
+
+**Kako (samo klijent):** u `LobbyScreen` host poker/Raub stola dobija dugme „Počni odmah" (isti stil kao Žandarovo „Pokreni igru", „Pokrećem…" dok traje) i red „Prazna mjesta popunjavaju protivnici. Ili sačekaj prijatelje — partija počinje čim se mjesta popune." Dugme zove isti `setBotFill(true)`. Bez riječi „bot" (HARD RULE 5). Žandar lobi netaknut; server netaknut. `/dev/lobby?game=poker|raub` sad prikazuje i lobi te igre.
+
+**Mjereno (lokalni server + headless Chrome, privatni poker sto za 4):** prekidača nema, dugme „Počni odmah"; 3 s bez dodira soba ostaje `waiting`; poslije dodira sto za 130 ms. Web 275 testova, typecheck, lint dodirnutih fajlova čist. **Nije provjereno na uređaju.**

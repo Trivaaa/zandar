@@ -258,7 +258,23 @@ export function LobbyScreen({
         </div>
 
         <div className="lobby__actions">
-          {isHost ? (
+          {isHost && poker ? (
+            <>
+              {/* Poker i Raub nemaju „Pokreni igru": popunjavanje praznih mjesta
+                  JE start (server odmah dijeli). Prekidač se čitao kao
+                  podešavanje i pokretao partiju bez pozvanih (QA PK-P2). */}
+              <button
+                type="button"
+                className="lobby__start font-display text-xl"
+                onClick={onToggleFill}
+                disabled={fillPending}
+                data-disabled={fillPending}
+              >
+                {fillPending ? sr.lobby.startingNow : sr.lobby.startNow}
+              </button>
+              <p className="lobby__fill-hint font-sans text-xs">{sr.lobby.startNowHint}</p>
+            </>
+          ) : isHost ? (
             <>
               <div className="lobby__fill">
                 <div className="lobby__fill-row">
@@ -280,19 +296,15 @@ export function LobbyScreen({
                 <p className="lobby__fill-hint font-sans text-xs">{sr.lobby.fillHint}</p>
               </div>
 
-              {poker ? (
-                <p className="lobby__waiting font-sans text-base">{sr.poker.lobbyHint}</p>
-              ) : (
-                <button
-                  type="button"
-                  className="lobby__start font-display text-xl"
-                  onClick={onStart}
-                  disabled={!canStart || starting}
-                  data-disabled={!canStart || starting}
-                >
-                  {starting ? sr.lobby.starting : sr.lobby.start}
-                </button>
-              )}
+              <button
+                type="button"
+                className="lobby__start font-display text-xl"
+                onClick={onStart}
+                disabled={!canStart || starting}
+                data-disabled={!canStart || starting}
+              >
+                {starting ? sr.lobby.starting : sr.lobby.start}
+              </button>
 
               {!canStart && !starting ? (
                 <p className="lobby__need-more font-sans text-base">
