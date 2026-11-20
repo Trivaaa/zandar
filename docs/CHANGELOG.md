@@ -2533,3 +2533,33 @@ Vlasnik je tražio da ekran traje tačno koliko i stvarno učitavanje.
 - Web 295 testova (+12 `shuffleView`), typecheck čist, lint 4 greške + 2 upozorenja (ispod osnovice 5/2, sve zatečene), `build:mobile` prolazi i izvoz nosi ekran.
 
 **Nije provjereno na uređaju** (staging APK, S10e): tempo okom, zvuk kucanja, Android WebView `getComputedStyle` za izlaz.
+
+## 199. „Miješamo špil": ostali igrači sjedaju jedan po jedan (2026-11-20, `feat/shuffle-seats`)
+
+**Šta:** vlasnik je ekran iz unosa 198 pogledao na S10e. Kod Žandara su svi igrači stajali za stolom odjednom, jer server sto popuni u istom trenutku. Odluka vlasnika:
+- igrač je tu odmah, a ostala tri sjedaju jedan po jedan, nasumičnim tempom;
+- duži tempo, oko 3 s.
+
+Ovo je svjesno odstupanje od „ekran traje koliko i učitavanje" iz unosa 198.
+
+**Kako:**
+- `arrivalSlots` (`lib/shuffleView.ts`) daje kumulativne nasumične razmake od 800 do 1200 ms, od trenutka kad se ekran pojavi.
+- `revealAt` = max(termin, trenutak kad server javi igrača, prethodni + 300 ms). Igrač nikad ne sjedne prije nego ga server javi, a poker i Raub botovi, koji stižu zajedno, ipak sjedaju redom.
+- `lib/useSeatArrivals.ts` drži tajmere i zove `onAllSeated` iz tajmera kad sjedne zadnji.
+- `RoomScreen` pokreće S2 tek kad je stiglo stanje partije **i** sjeo zadnji igrač (`maybeExitIntro`, mark `shuffle:seated` / `shuffle:exit`).
+- Povratak u partiju koja traje i dalje ide pravo na sto.
+
+**Mjereno** (headless Chrome, lokalni server, od klika):
+
+| | Sjedanja | Sto |
+|---|---|---|
+| Žandar | 1,01 / 1,89 / 2,86 s | 3,53 s (u 198: 0,81 s) |
+| Poker | 2,07 / 2,35 / 3,29 s (botovi javljeni na 2,02 s) | 3,96 s |
+| Raub | 2,04 / 2,37 / 3,02 s | 3,66 s |
+
+- Reload: odmah sto.
+- Web 298 testova (+3), typecheck čist, lint na osnovici.
+
+**Zamka:** glavni folder je u međuvremenu prešao na granu druge sesije (`feat/table-menu`) sa njenim nekomitovanim izmjenama. Ovaj rad je zato prenesen i komitovan iz worktree-a `zandar-seats`.
+
+**Nije provjereno na uređaju.**

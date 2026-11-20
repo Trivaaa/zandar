@@ -27,6 +27,7 @@ import { inviteLink, roomPath } from "@/lib/routes";
 import { JoinFlow } from "@/components/JoinFlow";
 import { parseQuickPlayPrefs, readQuickPlayPrefs, readQuickPlayPrefsRaw } from "@/lib/quickPlayPrefs";
 import { ShuffleScreen } from "@/components/funnel/ShuffleScreen";
+import { useSeatArrivals } from "@/lib/useSeatArrivals";
 import { SHUFFLE_EXIT_MS, clearIntro, hasIntro, markIntro, shuffleKicker } from "@/lib/shuffleView";
 import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import { GameScreen } from "@/components/GameScreen";
@@ -106,16 +107,40 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   const [activeReactions, setActiveReactions] = useState<ActiveReaction[]>([]);
   const [autoPlayToast, setAutoPlayToast] = useState<string | null>(null);
   // Uvod „Miješamo špil" (tabla UI_MijesanjeSpila): samo kad je igrač upravo
-  // krenuo za javni sto (Igraj / Novi sto). Traje tačno dok stanje partije ne
-  // stigne, pa S2 (0,65 s), pa sto — bez izmišljenog čekanja.
+  // krenuo za javni sto (Igraj / Novi sto). Ostali igrači sjedaju jedan po
+  // jedan (~3 s, odluka vlasnika); S2 (0,65 s) kreće kad je stiglo stanje
+  // partije I sjeo zadnji igrač, pa sto.
   const introWanted = useSyncExternalStore(subscribeNothing, () => hasIntro(roomId), () => false);
+  // Stanje je stiglo (oznaka je tad obrisana), uvod još traje.
+  const [introHolding, setIntroHolding] = useState(false);
   const [introExiting, setIntroExiting] = useState(false);
   const [introDone, setIntroDone] = useState(false);
   // Igrači iz stanja partije: poker/Raub botovi sjedaju tek kad partija krene,
   // pa bi spisak sobe u S2 („Svi su tu") još imao prazna mjesta.
   const [introPlayers, setIntroPlayers] = useState<PublicPlayer[] | null>(null);
   const introTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const introStateArrived = useRef(false);
+  const introAllSeated = useRef(false);
+  const maybeExitIntro = useCallback(() => {
+    if (!introStateArrived.current || !introAllSeated.current || introTimer.current) return;
+    markTiming("shuffle:exit");
+    setIntroExiting(true);
+    introTimer.current = setTimeout(() => {
+      markTiming("shuffle:table");
+      setIntroDone(true);
+    }, SHUFFLE_EXIT_MS);
+  }, []);
   const prefsRaw = useSyncExternalStore(subscribeNothing, () => readQuickPlayPrefsRaw(), () => null);
+  const introRoster = introPlayers ?? room?.players ?? [];
+  const introCount = room?.playerCount ?? parseQuickPlayPrefs(prefsRaw).playerCount;
+  // Po isteku S2 sto treba i sobu (podloga, javni sto). Na sporoj mreži socket
+  // zna stići prije REST-a — tad „Počinjemo!" ostaje dok i soba ne stigne.
+  const showIntro = (introWanted || introHolding) && (!introDone || !room);
+  const seatedIds = useSeatArrivals(introRoster, session?.playerId ?? null, introCount, showIntro, () => {
+    markTiming("shuffle:seated");
+    introAllSeated.current = true;
+    maybeExitIntro();
+  });
   useEffect(
     () => () => {
       if (introTimer.current) clearTimeout(introTimer.current);
@@ -258,16 +283,14 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       // prethodnu socket sobu, B10) ne smije se nacrtati pod ovom rutom.
       if (state.roomId !== roomId) return;
       assertNoBotLeak(state.players); // dev straža (DS §7.1, C4)
-      // Prvo stanje dok se špil miješa → S2. Sat od 0,65 s počinje SADA.
-      if (hasIntro(roomId) && !introTimer.current) {
+      // Prvo stanje dok se špil miješa: S2 čim sjedne i zadnji igrač.
+      if (hasIntro(roomId) && !introStateArrived.current) {
         markTiming("shuffle:state");
+        introStateArrived.current = true;
         clearIntro();
         setIntroPlayers(state.players);
-        setIntroExiting(true);
-        introTimer.current = setTimeout(() => {
-          markTiming("shuffle:table");
-          setIntroDone(true);
-        }, SHUFFLE_EXIT_MS);
+        setIntroHolding(true);
+        maybeExitIntro();
       }
       if ("game" in state && state.game === "poker") setPokerState(state);
       else if ("game" in state && state.game === "raub") setRaubState(state);
@@ -357,7 +380,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       window.removeEventListener(PUSH_REGISTERED_EVENT, subscribe);
       if (resumeTimer) clearTimeout(resumeTimer);
     };
-  }, [roomId, session, subscribeSocket, router]);
+  }, [roomId, session, subscribeSocket, router, maybeExitIntro]);
 
   async function handleApprove(requestId: string) {
     if (!session) return;
@@ -585,14 +608,13 @@ export function RoomScreen({ roomId }: { roomId: string }) {
 
   // Po isteku S2 sto treba i sobu (podloga, javni sto). Na sporoj mreži socket
   // zna stići prije REST-a — tad „Počinjemo!" ostaje dok i soba ne stigne.
-  const showIntro = (introWanted || introExiting) && (!introDone || !room);
   if (showIntro && (!room || session)) {
     return (
       <ShuffleScreen
         kicker={room ? shuffleKicker(room) : null}
-        players={introPlayers ?? room?.players ?? []}
+        players={introRoster.filter((p) => p.id === session?.playerId || seatedIds.has(p.id))}
         myPlayerId={session?.playerId ?? null}
-        playerCount={room?.playerCount ?? parseQuickPlayPrefs(prefsRaw).playerCount}
+        playerCount={introCount}
         exiting={introExiting}
       />
     );

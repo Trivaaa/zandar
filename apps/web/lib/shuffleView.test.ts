@@ -4,6 +4,8 @@ import { describe, test } from "node:test";
 import {
   INITIAL_TONES,
   SHUFFLE_EXIT_MS,
+  arrivalSlots,
+  revealAt,
   clearIntro,
   hasIntro,
   initialOf,
@@ -91,5 +93,34 @@ describe("shuffleView — tekst i tok", () => {
     assert.equal(hasIntro("sto1", store), true);
     clearIntro(store);
     assert.equal(hasIntro("sto1", store), false);
+  });
+});
+
+describe("shuffleView — sjedanje jedan po jedan", () => {
+  const seeded = (seed: number) => () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  };
+  test("razmaci 800–1200 ms, tri dolaska ukupno 2,4–3,6 s", () => {
+    for (let s = 1; s < 200; s++) {
+      const slots = arrivalSlots(3, seeded(s));
+      let prev = 0;
+      for (const at of slots) {
+        assert.ok(at - prev >= 800 && at - prev <= 1200, `${at - prev}`);
+        prev = at;
+      }
+      assert.ok(slots[2]! >= 2400 && slots[2]! <= 3600);
+    }
+  });
+  test("niko ne sjeda prije nego ga server javi", () => {
+    assert.equal(revealAt(1000, 2000, null), 2000);
+    assert.equal(revealAt(1000, 0, null), 1000);
+  });
+  test("poker: botovi javljeni zajedno ipak sjedaju redom", () => {
+    const slots = [1000, 2000, 3000];
+    const known = 2050;
+    const out: number[] = [];
+    for (const slot of slots) out.push(revealAt(slot, known, out.at(-1) ?? null));
+    assert.deepEqual(out, [2050, 2350, 3000]);
   });
 });

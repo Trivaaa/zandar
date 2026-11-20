@@ -153,3 +153,33 @@ export function clearIntro(store: SessionLike | null = storage()): void {
     /* ništa */
   }
 }
+
+/**
+ * Sjedanje jedan po jedan (odluka vlasnika 20.11.2026): ja sam za stolom
+ * odmah, ostali sjedaju nasumičnim razmacima — sjedanje traje ~3 s. Server
+ * Žandar sto popuni odjednom, pa je ovaj tempo namjeran, ne mjeren.
+ */
+export const ARRIVAL_GAP_MIN_MS = 800;
+export const ARRIVAL_GAP_MAX_MS = 1200;
+/** Dvojica nikad ne sjednu istovremeno (poker botovi stižu zajedno). */
+export const ARRIVAL_MIN_SPACING_MS = 300;
+
+/** Kumulativni trenuci (od pojave ekrana) za `n` dolazaka. `rng` ∈ [0, 1). */
+export function arrivalSlots(n: number, rng: () => number): number[] {
+  const slots: number[] = [];
+  let at = 0;
+  for (let i = 0; i < n; i++) {
+    at += ARRIVAL_GAP_MIN_MS + Math.round(rng() * (ARRIVAL_GAP_MAX_MS - ARRIVAL_GAP_MIN_MS));
+    slots.push(at);
+  }
+  return slots;
+}
+
+/**
+ * Kad igrač sjeda: ne prije svog termina, ne prije nego ga server javi, i ne
+ * bliže od `ARRIVAL_MIN_SPACING_MS` prethodnom. Sva vremena od pojave ekrana.
+ */
+export function revealAt(slot: number, knownAt: number, prevRevealAt: number | null): number {
+  const spaced = prevRevealAt === null ? 0 : prevRevealAt + ARRIVAL_MIN_SPACING_MS;
+  return Math.max(slot, knownAt, spaced);
+}
