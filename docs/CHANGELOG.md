@@ -2401,3 +2401,19 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 - Prop `offline` na `PokerScreen` (`busy`), `GameScreen` (`myTurn`) i `RaubScreen` (`myTurn` i `busy`). Sat ostaje — to je stvarni rok servera.
 
 **Mjereno (headless Chrome, CDP `emulateNetworkConditions`, lokalni server):** traka se pojavi za ≤ 3 ms od prekida u sva tri stola; poker panel `disabled` na sva tri dugmeta; traka nestaje 3,8 s (poker), 0,5–3,6 s (Raub), 3,2 s (Žandar) poslije povratka mreže. Web 272 testa, typecheck čist, lint: samo 3 zatečene greške u `RoomScreen`. **Nije provjereno na telefonu** (pravi prekid Wi-Fi-ja / mobilnih podataka).
+
+## 193. „Igraj" odmah reaguje dok se provjerava nalog (2026-11-20, `fix/poker-invite-motif`)
+
+**Šta:** QA 2026-11-07 PK-B5 — bez sačuvanog imena prvi dodir na „Igraj" ~1 s nije radio ništa vidljivo, pa je igrač tapkao ponovo. U `start()` (`app/page.tsx`) se za vrijeme `fetchMe()` palio `playing`, ali ne i `playingSlug`, pa kartica nije znala da čeka; `busy` nije bio zaključan.
+
+**Kako:** prije `fetchMe()` se postave `busy`, `playing` i `playingSlug`, poslije se otpuste (`play()` ponovo zaključa, ili se otvara list sa imenom). Važi i za web i za aplikaciju.
+
+**Mjereno (headless Chrome, `/api/me` usporen na 1,5 s preko CDP `Fetch`):** stari kod — u 60 ms i 660 ms dugme i dalje „Igraj", nije zaključano; novi — „Tražim sto…", `disabled` već u 60 ms, drugi dodir ne šalje ništa. Lokalno `/api/me` odgovori za par ms, pa se kvar vidi samo uz usporenje (na stagingu je put preko Atlantika). Web 272 testa, typecheck čist, lint `page.tsx` čist.
+
+## 194. Povratak igrača se javlja stolu, a odlazak više ne resetuje sat (2026-11-20, `fix/poker-invite-motif`)
+
+**Šta:** QA 2026-10-24 B3 — Žandar: igrač se vrati poslije osvježavanja, a ostali i dalje vide „Ponovno povezivanje" dok neko ne odigra (`room:subscribe` je stanje slao samo tom socketu). B2 (po odluci vlasnika zajedno) — osvježavanje je kupovalo vrijeme: `handlePlayerDisconnect` → `broadcastGameState` → `routeTurnTimers` → pun rok igraču na potezu. Poker i Raub već javljaju povratak cijelom stolu (`onSubscribe` → `broadcast`), nisu dirani.
+
+**Kako:** `broadcastGameState` = `routeTurnTimers` + novi `emitGameState` (slanje svima, analitika, `persistRoom`, BEZ rutiranja sata). Odlazak (`reconnecting`) i povratak (`connected`) koriste `emitGameState`; povratak koji skida pauzu i dalje ide kroz `resumeFromPause` (namjerno pun rok, kao ranije). Snapshot netaknut.
+
+**Mjereno (socket.io E2E, lokalni server, 2P Žandar, B na potezu):** stari kod — rok pomjeren poslije B-ovog odlaska, A ne dobija stanje poslije povratka; novi — rok isti prije, za vrijeme i poslije odlaska/povratka, A vidi B `connected` za 7 ms. Server 273 testa, typecheck čist. Zamka: `TaskStop` ugasi `pnpm`, ali `tsx` dijete ostane na 3001 — sljedeći test tiho gađa stari kod; server za test pokretati direktno preko `tsx` (jedan proces).

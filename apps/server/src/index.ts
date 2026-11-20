@@ -1969,7 +1969,8 @@ async function handlePlayerDisconnect(
   if (player.connectionStatus === "abandoned") return;
 
   player.connectionStatus = "reconnecting";
-  await broadcastGameState(roomId);
+  // Potez se ne mijenja → sat teče dalje (B2), samo stolu javi status.
+  await emitGameState(roomId);
   fastify.log.info(`📶 Player ${playerId} reconnecting...`);
 
   // Grace period (§32.2): partija NE staje. Turn timer teče dalje i auto-play
@@ -2392,11 +2393,21 @@ async function resumeFromPause(roomId: string): Promise<void> {
 }
 
 async function broadcastGameState(roomId: string): Promise<void> {
+  if (!getRoom(roomId)?.gameState) return;
+  routeTurnTimers(roomId);
+  await emitGameState(roomId);
+}
+
+/**
+ * Slanje stanja svima za stolom BEZ ponovnog rutiranja sata. Za promjene koje
+ * ne mijenjaju ko je na potezu (veza igrača): `routeTurnTimers` bi igraču na
+ * potezu vratio pun rok, pa se osvježavanjem stranice kupovalo vrijeme (QA
+ * 2026-10-24 B2).
+ */
+async function emitGameState(roomId: string): Promise<void> {
   const room = getRoom(roomId);
   if (!room || !room.gameState) return;
   const gs = room.gameState;
-
-  routeTurnTimers(roomId);
 
   const deadline =
     gs.phase === "playing" ? turnDeadlines.get(roomId) : undefined;
@@ -2540,6 +2551,7 @@ io.on("connection", (socket) => {
         disconnectTimers.delete(playerId);
       }
       // Ako je bio reconnecting, vrati na connected
+      let rejoined = false;
       if (room.gameState) {
         const player = room.gameState.players.find((p) => p.id === playerId);
         if (player && player.connectionStatus === "reconnecting") {
@@ -2550,9 +2562,15 @@ io.on("connection", (socket) => {
 
           // Vratio se posljednji koga smo čekali → partija se nastavlja.
           // Iz `abandoned` se NE vraća: taj meč je zaključan.
+          // `resumeFromPause` šalje stanje svima samo ako je sto bio u pauzi.
+          const phaseBefore = room.gameState.phase;
           if (!hasReconnectingHuman(room.gameState)) {
             await resumeFromPause(roomId);
           }
+          const resumed =
+            (phaseBefore === "paused_for_reconnect" || phaseBefore === "abandon_vote") &&
+            room.gameState.phase === "playing";
+          rejoined = !resumed;
         }
       }
 
@@ -2563,15 +2581,21 @@ io.on("connection", (socket) => {
         // Svježa soba jos nije prošla kroz broadcastGameState, pa rok ne postoji.
         // Rutiraj ovdje da prvi state koji igrač vidi već nosi turnDeadline.
         if (!turnDeadlines.has(roomId)) routeTurnTimers(roomId);
-        const deadline = turnDeadlines.get(roomId);
-        const privateState = buildPrivateGameStateView(
-          room.gameState,
-          playerId,
-        );
-        socket.emit("game:state", {
-          ...privateState,
-          turnDeadline: deadline,
-        });
+        if (rejoined) {
+          // Ostali za stolom inače vide „Ponovno povezivanje" do sljedećeg
+          // poteza (QA 2026-10-24 B3). Bez rutiranja sata (B2).
+          await emitGameState(roomId);
+        } else {
+          const deadline = turnDeadlines.get(roomId);
+          const privateState = buildPrivateGameStateView(
+            room.gameState,
+            playerId,
+          );
+          socket.emit("game:state", {
+            ...privateState,
+            turnDeadline: deadline,
+          });
+        }
 
         // Kick off bot chain if it's a bot's turn and no timer is running yet
         if (room.gameState.phase === "playing") {
