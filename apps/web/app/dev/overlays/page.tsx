@@ -17,6 +17,8 @@ import { AppOfferRow } from "@/components/AppOffer";
 import { RoundEndOverlay } from "@/components/overlay/RoundEndOverlay";
 import { Toast } from "@/components/overlay/Toast";
 import { GameMenuSheet } from "@/components/overlay/GameMenuSheet";
+import { RaubDeckPicker } from "@/components/raub/RaubDeckPicker";
+import { raubMenuLine } from "@/lib/tableMenu";
 
 /**
  * Dev preview za overlay sloj (Lovable korak 3). Sve komponente su čiste —
@@ -271,6 +273,9 @@ export default function DevOverlaysPage() {
         <div className="mx-auto w-[360px] h-[760px] max-w-full rounded-token-lg bg-felt relative overflow-hidden ring-1 ring-white/10">
           <div className="absolute inset-0 z-10 flex items-end justify-center bg-black/60">
             <GameMenuSheet
+              title="Raub"
+              subtitle={raubMenuLine(4, 21)}
+              extra={<RaubDeckPicker />}
               onRules={() => setSent("pravila")}
               {...(menuLeave ? { onLeave: () => setSent("izlaz") } : {})}
               onClose={() => setSent("zatvori meni")}

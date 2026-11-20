@@ -9,6 +9,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { parseRaubDeck, type RaubDeck } from "@/lib/tableMenu";
 
 /**
  * `pushTable` — obavještenja o stolu (PRD §51). Lokalna vrijednost je ogledalo
@@ -92,4 +93,58 @@ export function useSetting(key: SettingKey): [boolean, (value: boolean) => void]
     () => true, // server snapshot: default ON
   );
   return [value, (v: boolean) => setSetting(key, v)];
+}
+
+/* ------------------------------------------------------------------ *
+ * Izgled karata u Raubu (tabla UI_MeniPozicija, M7). Samo prikaz, samo kod
+ * ovog igrača; motor i server uvijek rade sa francuskim `Card`. Podrazumijevano
+ * mađarice (odluka 12); sve osim "french" (i stara/prazna vrijednost) = mađarice.
+ * ------------------------------------------------------------------ */
+
+const RAUB_DECK_KEY = "zandar:raub:deck";
+
+export type { RaubDeck };
+
+let raubDeckCache: RaubDeck = "hungarian";
+const raubDeckListeners = new Set<() => void>();
+
+function readRaubDeck(): RaubDeck {
+  if (typeof window === "undefined") return "hungarian";
+  try {
+    return parseRaubDeck(window.localStorage.getItem(RAUB_DECK_KEY));
+  } catch {
+    return "hungarian";
+  }
+}
+
+if (typeof window !== "undefined") {
+  raubDeckCache = readRaubDeck();
+  window.addEventListener("storage", (e) => {
+    if (e.key === RAUB_DECK_KEY) {
+      raubDeckCache = readRaubDeck();
+      for (const l of raubDeckListeners) l();
+    }
+  });
+}
+
+export function setRaubDeck(deck: RaubDeck): void {
+  try {
+    window.localStorage.setItem(RAUB_DECK_KEY, deck);
+  } catch {
+    // privatni prozor / blokirano skladište: izbor važi do kraja sesije
+  }
+  raubDeckCache = deck;
+  for (const l of raubDeckListeners) l();
+}
+
+export function useRaubDeck(): [RaubDeck, (deck: RaubDeck) => void] {
+  const value = useSyncExternalStore(
+    (l) => {
+      raubDeckListeners.add(l);
+      return () => raubDeckListeners.delete(l);
+    },
+    () => raubDeckCache,
+    () => "hungarian" as RaubDeck,
+  );
+  return [value, setRaubDeck];
 }

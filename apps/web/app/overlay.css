@@ -847,6 +847,7 @@
   gap: 0.5rem;
 }
 
+/* Zajednički red lista: Postavke, `Sheet`, Meta saglasnost (nepromijenjeno). */
 .gamemenu__item {
   display: flex;
   align-items: center;
@@ -864,56 +865,6 @@
   background-color: color-mix(in oklab, var(--surface-raised) 80%, var(--surface));
 }
 
-.gamemenu__switch {
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-.gamemenu__switch:disabled {
-  cursor: default;
-}
-.gamemenu__switch-label {
-  display: flex;
-  flex-direction: column;
-}
-.gamemenu__switch-note {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-/* Isti prekidač kao „Popuni prazna mjesta" u lobiju. */
-.gamemenu__track {
-  position: relative;
-  flex: none;
-  width: 3rem;
-  height: 1.75rem;
-  border-radius: 999px;
-  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
-  transition: background-color var(--t-card-play) var(--ease-out-soft);
-}
-.gamemenu__track[data-on="true"] {
-  background-color: color-mix(in oklab, var(--success) 70%, var(--surface));
-}
-.gamemenu__switch:disabled .gamemenu__track {
-  opacity: 0.5;
-}
-.gamemenu__track::after {
-  content: "";
-  position: absolute;
-  top: 0.2rem;
-  left: 0.2rem;
-  width: 1.35rem;
-  height: 1.35rem;
-  border-radius: 50%;
-  background-color: var(--text);
-  transition: transform var(--t-card-play) var(--ease-snap);
-}
-.gamemenu__track[data-on="true"]::after {
-  transform: translateX(1.25rem);
-}
-
-.gamemenu__item--danger {
-  color: var(--danger-signal);
-}
-
 .gamemenu__close {
   min-height: 3rem;
   border: 0;
@@ -921,6 +872,203 @@
   background-color: color-mix(in oklab, var(--surface-raised) 60%, transparent);
   color: var(--text-muted);
   cursor: pointer;
+}
+
+/* Zaglavlje: igra + red stanja, X desno (tabla „Meni za stolom", M). */
+.gamemenu__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3.25rem;
+}
+.gamemenu__titles {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.gamemenu__title {
+  font-family: var(--font-display-stack);
+  font-size: 1.375rem;
+  line-height: 1;
+  color: var(--text);
+}
+.gamemenu__subtitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-soft);
+}
+.gamemenu__x {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  margin-right: -0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* Zvuk i vibracija: dvije pločice jedna do druge. */
+.gamemenu__tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+}
+.gamemenu__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+  min-height: 5.75rem;
+  padding: 0.875rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--text) 6%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--text-soft);
+  text-align: start;
+  cursor: pointer;
+}
+.gamemenu__tile[data-on="true"] {
+  background-color: color-mix(in oklab, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  color: var(--text);
+}
+.gamemenu__tile:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.gamemenu__tile-label {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.gamemenu__tile-state {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  color: var(--text-soft);
+}
+
+/* Red sa strelicom (Pravila igre). */
+.gamemenu__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding-inline: 0.875rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--text) 6%, transparent);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+.gamemenu__row:active,
+.gamemenu__tile:active:not(:disabled) {
+  background-color: color-mix(in oklab, var(--text) 10%, transparent);
+}
+.gamemenu__row-label {
+  flex: 1;
+}
+
+.gamemenu__sep {
+  height: 1px;
+  margin-block: 0.25rem;
+  background-color: color-mix(in oklab, var(--text) 10%, transparent);
+}
+
+/* Izlazak: odvojen, crven, bez podloge — teže ga je dodirnuti slučajno. */
+.gamemenu__exit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 3.25rem;
+  border: 0;
+  background: none;
+  color: var(--danger-signal);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Raub: izbor karata (M7). */
+.gamemenu__deck {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.gamemenu__label {
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.gamemenu__deck-opts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+}
+.gamemenu__deck-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 7rem;
+  padding: 0.75rem 0.5rem 0.625rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--text) 6%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--text-soft);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.gamemenu__deck-opt[data-on="true"] {
+  background-color: color-mix(in oklab, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  color: var(--text);
+}
+.gamemenu__fan {
+  display: flex;
+  justify-content: center;
+  height: 4rem;
+  padding-left: 0.625rem;
+}
+.gamemenu__fan img {
+  width: 2.5rem;
+  height: 3.875rem;
+  border-radius: 0.25rem;
+  object-fit: cover;
+  box-shadow: 0 3px 8px color-mix(in oklab, black 50%, transparent);
+}
+.gamemenu__fan img:nth-child(1) {
+  transform: rotate(-12deg);
+}
+.gamemenu__fan img:nth-child(2) {
+  transform: translateX(-0.625rem);
+}
+.gamemenu__fan img:nth-child(3) {
+  transform: rotate(12deg) translateX(-1.25rem);
+}
+.gamemenu__note {
+  margin: -0.125rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text-soft);
 }
 
 .gamemenu__close:active {

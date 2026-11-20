@@ -6,10 +6,12 @@ import type { Card, PublicPlayer, RaubBid, RaubHandResult, RaubSeatView, Suit } 
 import { CardBack } from "@/components/felt/CardBack";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { PokerAvatar } from "@/components/poker/PokerParts";
+import { useCardDeck } from "@/components/felt/cardDeck";
 import { HU_SUIT_NAME, huSuitIcon } from "@/lib/hungarianDeck";
 import {
   SUIT_SYMBOL,
-  cardLabel,
+  cardLabel as cardLabelFor,
+  isRedSuit,
   formatDelta,
   handRows,
   handSentence,
@@ -20,8 +22,22 @@ import {
 } from "@/lib/raubView";
 import { sr } from "@/lib/sr";
 
-/** Znak boje u tekstu: ikonica sa mađarice (odluka 12), ne ♠♥♦♣. */
+/** Pik, herc, karo, tref — naziv boje klasičnih karata za čitač ekrana. */
+const FRENCH_SUIT_NAME: Record<Suit, string> = { spades: "pik", hearts: "herc", diamonds: "karo", clubs: "tref" };
+
+/**
+ * Znak boje u tekstu: ikonica sa mađarice (odluka 12); kad je igrač u meniju
+ * izabrao klasične karte (M7), znak ♠♥♦♣ u boji karte.
+ */
 function Suit({ suit }: { suit: Suit }) {
+  const deck = useCardDeck();
+  if (deck === "french") {
+    return (
+      <span className="rb-suit-sym" data-red={isRedSuit(suit)} role="img" aria-label={FRENCH_SUIT_NAME[suit]}>
+        {SUIT_SYMBOL[suit]}
+      </span>
+    );
+  }
   // eslint-disable-next-line @next/next/no-img-element -- mala statična ikonica, i u APK exportu
   return <img className="rb-suit-icon" src={huSuitIcon(suit)} alt={HU_SUIT_NAME[suit]} draggable={false} />;
 }
@@ -182,6 +198,8 @@ export function TrickArea({
 
 /** Otvorena karta prve zamjene sve 4 — vide je svi. */
 export function OpenCardNote({ card, name }: { card: Card; name: string }) {
+  const deck = useCardDeck();
+  const cardLabel = (c: Card) => cardLabelFor(c, deck);
   return (
     <div className="rb-open">
       <b className="rb-open__card">{withSuits(cardLabel(card))}</b>
@@ -247,6 +265,8 @@ export function ActionPanel({
   onGo: (go: boolean) => void;
   onExchange: () => void;
 }) {
+  const deck = useCardDeck();
+  const cardLabel = (c: Card) => cardLabelFor(c, deck);
   const btn = (kind: "pass" | "main" | "accent", label: React.ReactNode, onClick: () => void, disabled = false) => (
     <button type="button" className="rb-panel__btn" data-kind={kind} disabled={busy || disabled} onClick={onClick}>
       {label}

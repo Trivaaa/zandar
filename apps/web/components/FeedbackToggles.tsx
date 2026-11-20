@@ -28,7 +28,7 @@ export function FeedbackToggles({
 }: {
   className?: string;
   showPush?: boolean;
-  /** Uspravno i 44 px: za stolom, dolje desno iznad dugmeta za reakcije. */
+  /** Uspravno i 44 px (ranije za stolom; sto sad ima `TableSoundButton`, a vibracija je u meniju). */
   stacked?: boolean;
 }) {
   const [sound, setSound] = useSetting("sound");
