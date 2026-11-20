@@ -342,6 +342,42 @@ export const sr = {
       } as Record<string, string>,
     },
   },
+  /* „Vrati se za sto" na početnoj (tabla „UI · Vrati se za sto", QA 10-24 P2).
+     Ista traka za sve igre i za web i aplikaciju; mijenja se samo stanje desno. */
+  homeResume: {
+    myTurn: "NA POTEZU SI",
+    away: "IGRA SE BEZ TEBE",
+    /** Lobi, i Žandar u pauzi zbog tvog odsustva — sto stoji i čeka. */
+    waiting: "STO TE ČEKA",
+    finished: "PARTIJA ZAVRŠENA",
+    go: "Vrati se",
+    result: "Rezultat",
+    dismiss: "Zatvori",
+    team: (mine: number, theirs: number) => `Vi ${mine} : ${theirs} Oni`,
+    duel: (mine: number, theirs: number, name?: string) => `Ti ${mine} : ${theirs}${name ? ` ${name}` : ""}`,
+    chips: (n: number) => `${n} ${pluralForm(n, "žeton", "žetona", "žetona")}`,
+    toZero: (n: number) => `do 0 ti fali ${n}`,
+    seats: (taken: number, total: number) => `${taken} od ${total} igrača`,
+    won: "Pobjeda",
+    lost: "Poraz",
+    place: (n: number) => `${n}. mjesto`,
+    /** Desktop (V4): naslov ispod trake, da je jasno šta je glavno. */
+    orNew: "Ili izaberi novu igru",
+    /** Čitač ekrana: cijela traka je jedno dugme. */
+    label: (game: string) => `Vrati se za sto: ${game}`,
+    sheet: {
+      title: (game: string) => `Već igraš ${game}`,
+      /** `other` null = „Igraj s prijateljima" (igra još nije izabrana). */
+      body: (other: GameId | null) =>
+        `Partija je u toku. Ako sjedneš za ${other ? `sto ${GAME_GENITIVE[other]}` : "novi sto"}, napuštaš ovu partiju, a ostali za stolom to vide.`,
+      back: "Vrati se za sto",
+      leave: (game: string) => `Napusti partiju i igraj ${game}`,
+      leaveFriends: "Napusti partiju i napravi sto",
+      leaving: "Napuštam partiju…",
+      error: "Nije uspjelo. Pokušaj ponovo.",
+      close: "Zatvori",
+    },
+  },
   matching: {
     preparing: "Pripremamo sto...",
     seating: "Igrači sjedaju...",

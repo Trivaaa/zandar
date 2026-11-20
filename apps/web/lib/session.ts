@@ -29,6 +29,26 @@ export function clearSession(roomId: string): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(KEY_PREFIX + roomId);
 }
+
+/**
+ * Svi sačuvani ključevi sjedišta („Vrati se za sto"): server kaže za kojim
+ * stolom igrač još sjedi. Pokvaren zapis se preskače, ne ruši početnu.
+ */
+export function listSessions(): RoomSession[] {
+  if (typeof window === "undefined") return [];
+  const out: RoomSession[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(KEY_PREFIX)) continue;
+      const session = getSession(key.slice(KEY_PREFIX.length));
+      if (session?.roomId && session.playerId && session.sessionToken) out.push(session);
+    }
+  } catch {
+    // Blokirano skladište (privatni prozor) — kao da ključeva nema.
+  }
+  return out;
+}
 export type JoinPending = {
   roomId: string;
   requestId: string;

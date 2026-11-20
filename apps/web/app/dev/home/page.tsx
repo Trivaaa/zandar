@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ActiveTable } from "@zandar/shared-types";
 
 import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { GameSheet } from "@/components/home/GameSheet";
+import { ResumeBar } from "@/components/home/ResumeBar";
+import { ResumeSheet } from "@/components/home/ResumeSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { FriendsGameSheet } from "@/components/home/web/FriendsGameSheet";
 import { WebHome } from "@/components/home/web/WebHome";
@@ -23,9 +26,33 @@ import { useQueryParam } from "@/lib/useQuery";
  *                 &app=open traka „Otvori", &friends=1 otvoren list W4,
  *                 &name=1|busy|err list „Ime za stolom" (I1 / I4 / greška
  *                 servera); Igraj na kartici otvara isti list za tu igru
+ *   &resume=…     traka „Vrati se za sto" (tabla `UI_VratiSe`): zandar (V1, na
+ *                 potezu), poker (V2), raub (V3, bez tebe), duel (2P), lobby,
+ *                 pause, done (V6); &sheet=1 list „Već igraš" (V5)
  * Dodir na red igre otvara pravi list igre (H4); Zakači/Otkači mijenja glavnu.
  */
 const NOW = Date.parse("2026-10-23");
+
+const TABLE: ActiveTable = {
+  roomId: "dev",
+  game: "zandar",
+  matchId: "m1",
+  phase: "playing",
+  myTurn: true,
+  waitingForMe: false,
+  state: { kind: "score", mine: 7, theirs: 5, team: true },
+};
+
+/** Stanja trake sa table (V1–V6), iz istog tipa koji šalje server. */
+const RESUME: Record<string, ActiveTable> = {
+  zandar: TABLE,
+  duel: { ...TABLE, myTurn: false, state: { kind: "score", mine: 7, theirs: 5, team: false, opponentName: "Marko" } },
+  poker: { ...TABLE, game: "poker", state: { kind: "chips", stack: 140 } },
+  raub: { ...TABLE, game: "raub", myTurn: false, state: { kind: "toZero", score: 9 } },
+  lobby: { ...TABLE, phase: "lobby", matchId: "", myTurn: false, state: { kind: "seats", taken: 3, total: 4 } },
+  pause: { ...TABLE, myTurn: false, waitingForMe: true },
+  done: { ...TABLE, phase: "finished", myTurn: false, result: { kind: "score", won: true, mine: 11, theirs: 8 } },
+};
 
 export default function DevHomePage() {
   const live = Number(useQueryParam("live") ?? "1");
@@ -44,6 +71,25 @@ export default function DevHomePage() {
   const nameParam = useQueryParam("name");
   // undefined = po URL-u, null = zatvoren, igra = otvoren dodirom na Igraj.
   const [nameGame, setNameGame] = useState<GameConfig | null | undefined>(undefined);
+  const resumeParam = useQueryParam("resume");
+  const [resumeHidden, setResumeHidden] = useState(false);
+  const resume = resumeParam && !resumeHidden ? (RESUME[resumeParam] ?? null) : null;
+  const sheetParam = useQueryParam("sheet") === "1";
+  const [sheetClosed, setSheetClosed] = useState(false);
+  const resumeBar = resume ? (
+    <ResumeBar table={resume} onResume={() => undefined} onDismiss={() => setResumeHidden(true)} />
+  ) : null;
+  const resumeSheet =
+    resume && sheetParam && !sheetClosed ? (
+      <ResumeSheet
+        table={resume}
+        next="poker"
+        leaving={false}
+        onResume={() => setSheetClosed(true)}
+        onLeave={() => setSheetClosed(true)}
+        onClose={() => setSheetClosed(true)}
+      />
+    ) : null;
 
   const { layout, history } = useMemo(() => {
     const order: GameSlug[] = ["zandar", "poker", "raub"];
@@ -74,9 +120,11 @@ export default function DevHomePage() {
           onFeedback={() => undefined}
           showNav
           {...(app ? { appPreview: { installed: app === "open" } } : {})}
+          resumeSlot={resumeBar}
           className="screen--tabbed"
         />
         <TabBar className="tabbar--web-home" />
+        {resumeSheet}
         {friendsOpen ? (
           <FriendsGameSheet games={games} onPick={() => setFriends(false)} onClose={() => setFriends(false)} />
         ) : null}
@@ -108,6 +156,7 @@ export default function DevHomePage() {
         onOpenGame={setOpen}
         onNotify={() => undefined}
         className="screen--tabbed"
+        resumeSlot={resumeBar}
         {...(layout.more.length > 0
           ? {
               list: {
@@ -123,6 +172,7 @@ export default function DevHomePage() {
           : {})}
       />
       <TabBar />
+      {resumeSheet}
       {open ? (
         <GameSheet
           game={open}

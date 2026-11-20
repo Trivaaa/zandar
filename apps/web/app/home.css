@@ -2281,3 +2281,293 @@
     display: none;
   }
 }
+
+/* ==================================================================
+ * „Vrati se za sto" (tabla „UI · Vrati se za sto", QA 10-24 P2).
+ * Ista traka za Žandar, Poker i Raub, na webu i u aplikaciji: boja i lepeza
+ * igre, gornji red stanja, ime, stanje desno i „Vrati se". Mjere su sa table:
+ * telefon 84 px visine, desktop 96 px. Na kraju `home.css`, ne zaseban import
+ * (Vercel je novi importovani CSS već izbacio iz builda, changelog 129).
+ * ================================================================== */
+
+.resume-bar {
+  --tint-1: var(--game-zandar-1);
+  --tint-2: var(--game-zandar-2);
+  flex: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 5.25rem;
+  padding: 0.625rem 0.625rem 0.625rem 0.75rem;
+  border: 0;
+  border-radius: 1rem;
+  background: radial-gradient(ellipse at 75% 40%, var(--tint-1), var(--tint-2) 80%);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 55%, transparent),
+    0 6px 18px rgb(0 0 0 / 0.35);
+  color: var(--card-face);
+  text-align: left;
+  font-family: var(--font-sans-stack);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+.resume-bar[data-tint="poker"] {
+  --tint-1: var(--game-poker-1);
+  --tint-2: var(--game-poker-2);
+}
+.resume-bar[data-tint="raub"] {
+  --tint-1: var(--game-raub-1);
+  --tint-2: var(--game-raub-2);
+}
+button.resume-bar:active {
+  transform: scale(0.99);
+}
+button.resume-bar:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* Lepeza igre u maloj tamnoj pločici 52×52, −12° / 0 / 12°. */
+.resume-bar__fan {
+  position: relative;
+  flex: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  overflow: hidden;
+  border-radius: 0.625rem;
+  background-color: rgb(0 0 0 / 0.25);
+  pointer-events: none;
+}
+.resume-bar__slot {
+  margin-left: -0.625rem;
+  transform: rotate(calc((var(--i) - 1) * 12deg));
+}
+.resume-bar__slot:first-child {
+  margin-left: 0;
+}
+.resume-bar__slot:nth-child(2) {
+  transform: translateY(-0.125rem);
+}
+.resume-bar__slot .card {
+  --card-w: 1.375rem;
+  --card-h: 2rem;
+}
+
+.resume-bar__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+}
+.resume-bar__top {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font: 700 0.625rem / 1 var(--font-sans-stack);
+  letter-spacing: 0.1em;
+  color: color-mix(in oklab, var(--card-face) 75%, transparent);
+}
+.resume-bar__top[data-tone="turn"],
+.resume-bar__top[data-tone="waiting"] {
+  color: var(--accent);
+}
+.resume-bar--done .resume-bar__top {
+  color: var(--text-soft);
+}
+.resume-bar__dot {
+  flex: none;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--card-face) 45%, transparent);
+}
+.resume-bar__top[data-tone="turn"] .resume-bar__dot,
+.resume-bar__top[data-tone="waiting"] .resume-bar__dot {
+  background-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 25%, transparent);
+}
+/* Na potezu tačka treperi (samo opacity). Pod reduced-motion `--t-*` je 0s,
+   a 100% keyframe je puna tačka — nikad trajno prigušena. */
+.resume-bar__top[data-tone="turn"] .resume-bar__dot {
+  animation: resume-dot var(--t-turn-pulse) ease-in-out infinite;
+}
+.resume-bar--done .resume-bar__dot {
+  display: none;
+}
+@keyframes resume-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.resume-bar__name {
+  font: 400 1.1875rem / 1.05 var(--font-display-stack);
+  color: var(--card-face);
+}
+.resume-bar__detail {
+  overflow: hidden;
+  font: 600 0.8125rem / 1.2 var(--font-sans-stack);
+  color: color-mix(in oklab, var(--card-face) 88%, transparent);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.resume-bar__go {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 3rem;
+  padding: 0 0.875rem;
+  border-radius: 0.75rem;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: inset 0 -3px 0 rgb(22 34 31 / 0.22);
+  font: 700 1rem / 1 var(--font-sans-stack);
+}
+.resume-bar__go-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* V6: partija završila dok igrača nije bilo — tiša traka, Rezultat i X. */
+.resume-bar--done {
+  background: color-mix(in oklab, var(--card-face) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 28%, transparent);
+  cursor: default;
+}
+.resume-bar__result {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-height: 3rem;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: none;
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--text) 30%, transparent);
+  color: var(--text);
+  font: 700 0.9375rem / 1 var(--font-sans-stack);
+  cursor: pointer;
+}
+.resume-bar__x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 3rem;
+  margin-right: -0.375rem;
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.resume-bar__x-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Aplikacija (V1): dok traje partija kartice igara su niže (58 px) i bez
+   oznake, da traka stane bez skrolanja na 360×740. */
+.home-list[data-compact] .home-list__art {
+  height: 3.625rem;
+}
+.home-list[data-compact] .home-list__text {
+  top: 0;
+  bottom: 0;
+  justify-content: center;
+  gap: 0.25rem;
+}
+.home-list[data-compact] .home-list__card-slot .card {
+  --card-w: 2.125rem;
+  --card-h: 3rem;
+}
+.home-list[data-compact] .home-list__actions button {
+  min-height: 3rem;
+}
+
+/* V5: „Već igraš X" — povratak je glavno dugme, napuštanje sporedno. */
+.resume-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.resume-sheet__back,
+.resume-sheet__leave {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-family: var(--font-sans-stack);
+}
+.resume-sheet__back {
+  justify-content: space-between;
+  min-height: 3.75rem;
+  padding: 0 1.125rem;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: inset 0 -3px 0 rgb(22 34 31 / 0.22);
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+.resume-sheet__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.resume-sheet__leave {
+  justify-content: center;
+  min-height: 3.5rem;
+  padding: 0 1rem;
+  background: none;
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--text) 30%, transparent);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1rem;
+}
+.resume-sheet__back:disabled,
+.resume-sheet__leave:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.resume-sheet__leave[aria-busy="true"] {
+  opacity: 1;
+}
+.resume-sheet__error {
+  margin: 0;
+  color: var(--danger-signal);
+  font: 600 0.875rem / 1.3 var(--font-sans-stack);
+}
+
+/* Desktop (V4): traka preko cijele širine kolone, krupnija. */
+@media (min-width: 60rem) {
+  .home--web .resume-bar {
+    min-height: 6rem;
+    padding: 0.875rem 1rem;
+  }
+  .home--web .resume-bar__name {
+    font-size: 1.5rem;
+  }
+  .home--web .resume-bar__detail {
+    font-size: 0.9375rem;
+  }
+  .home--web .resume-bar__go {
+    min-height: 3.5rem;
+    padding: 0 1.375rem;
+    font-size: 1.125rem;
+  }
+  .home--web .web-home__col:has(.resume-bar) .web-home__title {
+    font-size: 1.5rem;
+  }
+}

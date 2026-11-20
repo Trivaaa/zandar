@@ -35,6 +35,11 @@ export type HomeScreenProps = {
   /** Ponuda aplikacije: traka na samom vrhu, iznad marke. */
   topSlot?: ReactNode;
   /**
+   * „Vrati se za sto" (tabla `UI_VratiSe`, V1): odmah ispod marke. Dok traje,
+   * kartice igara su niže i bez oznake, da sve stane bez skrolanja.
+   */
+  resumeSlot?: ReactNode;
+  /**
    * Više živih igara (tabla „UI · Početna — opcija 1 Lista"): lista kartica
    * umjesto stola i pločica. Bez nje (živa samo jedna igra) ostaje sto K1.
    */
@@ -69,6 +74,7 @@ export function HomeScreen({
   onUpcomingViewed,
   legalSlot,
   topSlot,
+  resumeSlot,
   list,
   className = "",
 }: HomeScreenProps) {
@@ -82,7 +88,9 @@ export function HomeScreen({
           {isStaging ? <span className="home__env">STAGING</span> : null}
         </header>
         <div className="home__col">
+          {resumeSlot}
           <GameList
+            compact={Boolean(resumeSlot)}
             items={list.items}
             loadingSlug={list.loadingSlug}
             error={error}
@@ -107,6 +115,7 @@ export function HomeScreen({
       </header>
 
       <div className="home__col" data-sections={Number(layout.more.length > 0) + Number(layout.upcoming.length > 0)}>
+        {resumeSlot}
         <GameCard
           game={layout.main}
           pinned={history.pinned === layout.main.slug}

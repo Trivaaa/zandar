@@ -13,7 +13,8 @@ import {
   type RoomInfo,
   type PendingJoinRequest,
 } from "@/lib/api";
-import { getSession, saveSession, type RoomSession } from "@/lib/session";
+import { clearSession, getSession, saveSession, type RoomSession } from "@/lib/session";
+import { markTableSeen } from "@/lib/activeTable";
 import { readPlayerName } from "@/lib/playerName";
 import { getSocket } from "@/lib/socket";
 import { isConnectionLost, type SocketStatus } from "@/lib/connection";
@@ -240,6 +241,15 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       if ("game" in state && state.game === "poker") setPokerState(state);
       else if ("game" in state && state.game === "raub") setRaubState(state);
       else setGameState(state as GameStateWithDeadline);
+      // Kraj viđen za stolom → početna ne nudi „PARTIJA ZAVRŠENA" (V6) za nju.
+      if (state.phase === "match_finished") markTableSeen(state);
+    }
+    // Isti nalog je otvorio ovaj sto na drugom uređaju („Vrati se za sto"):
+    // ključ ovdje više ne važi, pa nazad na početnu umjesto mrtvog stola.
+    function handleSeatMoved(event: { roomId?: string }) {
+      if (event?.roomId !== roomId) return;
+      clearSession(roomId);
+      router.replace("/");
     }
     function handleReaction(event: ReactionEvent) {
       const id = `${event.timestamp}-${Math.random().toString(36).slice(2)}`;
@@ -267,6 +277,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     s.on("game:state", handleGameState);
     s.on("game:reaction", handleReaction);
     s.on("game:autoPlay", handleAutoPlay);
+    s.on("room:seat_moved", handleSeatMoved);
     if (s.connected) handleConnect(); // već povezan na mount-u
 
     // Page-lifecycle reconnect (Faza D2): na povratak u foreground / online,
@@ -307,6 +318,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       s.off("game:state", handleGameState);
       s.off("game:reaction", handleReaction);
       s.off("game:autoPlay", handleAutoPlay);
+      s.off("room:seat_moved", handleSeatMoved);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("offline", onOffline);
       window.removeEventListener("online", resume);
@@ -314,7 +326,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       window.removeEventListener(PUSH_REGISTERED_EVENT, subscribe);
       if (resumeTimer) clearTimeout(resumeTimer);
     };
-  }, [roomId, session, subscribeSocket]);
+  }, [roomId, session, subscribeSocket, router]);
 
   async function handleApprove(requestId: string) {
     if (!session) return;

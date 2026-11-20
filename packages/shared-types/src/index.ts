@@ -714,6 +714,18 @@ export type AnalyticsEvents = {
   };
   /** PRD §51 push. `type` je namjerno string, ne `PushType` — taj tip živi u apps/server/src/push. */
   push_sent: { type: string };
+  /**
+   * „Vrati se za sto" (QA 10-24 P2): dodir na traku na početnoj (`bar`) ili
+   * na „Vrati se za sto" u listu „Već igraš X" (`sheet`). `other_device` = sjedište
+   * prelazi sa drugog uređaja istog naloga.
+   */
+  table_resume_click: {
+    game: "zandar" | "poker" | "raub";
+    phase: "lobby" | "playing" | "finished";
+    my_turn: boolean;
+    place: "bar" | "sheet";
+    other_device: boolean;
+  };
 };
 
 export type ClientAnalyticsEvent =
@@ -730,7 +742,8 @@ export type ClientAnalyticsEvent =
   | "account_registered"
   | "invite_shared"
   | "invite_opened"
-  | "app_update";
+  | "app_update"
+  | "table_resume_click";
 
 export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;
 
@@ -911,3 +924,6 @@ export * from "./poker";
 
 // Raub — tipovi stanja i pogleda.
 export * from "./raub";
+
+// „Vrati se za sto" na početnoj (QA 10-24 P2).
+export * from "./activeTable";

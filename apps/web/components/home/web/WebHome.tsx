@@ -20,6 +20,11 @@ export type WebHomeProps = {
   onFeedback: () => void;
   /** Desktop zaglavlje Igraj · Prijatelji · Profil (uz nalog, kao donja traka). */
   showNav: boolean;
+  /**
+   * „Vrati se za sto" (V2–V4): stoji na mjestu trake aplikacije — dok igrač
+   * ima partiju, ne nudimo mu preuzimanje.
+   */
+  resumeSlot?: React.ReactNode;
   /** Samo `/dev/home`: traka aplikacije i bez Android pregledača. */
   appPreview?: { installed: boolean } | undefined;
   className?: string | undefined;
@@ -41,6 +46,7 @@ export function WebHome({
   onFeedback,
   showNav,
   appPreview,
+  resumeSlot,
   className = "",
 }: WebHomeProps) {
   const busy = loadingSlug !== null && !error;
@@ -48,9 +54,10 @@ export function WebHome({
     <main className={`screen home home--web ${className}`}>
       {showNav ? <WebTopNav /> : null}
       <div className="home__col web-home__col">
-        <WebAppStrip preview={appPreview} />
+        {resumeSlot ?? <WebAppStrip preview={appPreview} />}
         {isStaging ? <span className="home__env web-home__env">STAGING</span> : null}
-        <h1 className="web-home__title">{sr.homeWeb.title}</h1>
+        {/* Desktop (V4): uz traku naslov kaže „Ili izaberi novu igru". */}
+        <h1 className="web-home__title">{resumeSlot ? sr.homeResume.orNew : sr.homeWeb.title}</h1>
         <ul className="web-home__games">
           {items.map(({ game, badge }) => {
             const mine = loadingSlug === game.slug;

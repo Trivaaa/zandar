@@ -85,6 +85,7 @@ import {
   sweepExpiredSignups,
 } from "./signups";
 import { registerFeedbackRoutes, sweepExpiredFeedback } from "./feedback";
+import { registerActiveTableRoutes } from "./activeTable";
 import { mailer } from "./mail/resend";
 import { deviceStore, startDeviceSweeper } from "./push/devices";
 import { fcm } from "./push/fcm";
@@ -1520,6 +1521,41 @@ function sweepSignups(): void {
 sweepSignups();
 setInterval(sweepSignups, 24 * 60 * 60 * 1000).unref();
 
+// ---- „VRATI SE ZA STO" (QA 10-24 P2) ----
+
+/**
+ * Početna pita svakih ~15 s dok je vidljiva, pa je limit širok: iza jedne IP
+ * adrese mobilnog operatera (CGNAT) stoje mnogi igrači.
+ */
+const activeTableLimiter = new SlidingWindowLimiter(2000, 10 * 60 * 1000);
+setInterval(() => activeTableLimiter.sweep(), 10 * 60 * 1000).unref();
+
+registerActiveTableRoutes(fastify, {
+  rooms: getAllRooms,
+  getRoom,
+  verifiedUid: async (authorization) => {
+    const token = bearerToken(authorization);
+    if (!token) return null;
+    const result = await idTokens.verify(token);
+    return result.ok ? result.user.uid : null;
+  },
+  onClaim: async (room, playerId) => {
+    // Stari uređaj više nema važeći ključ: socket tog sjedišta izlazi sa stola,
+    // a klijent briše ključ i ide na početnu (`room:seat_moved`).
+    for (const socket of await io.in(room.id).fetchSockets()) {
+      if (socket.data.playerId !== playerId) continue;
+      socket.emit("room:seat_moved", { roomId: room.id });
+      socket.leave(room.id);
+      delete socket.data.roomId;
+      delete socket.data.playerId;
+    }
+    persistRoom(room);
+    fastify.log.info(`📱 Sjedište ${playerId} u ${room.id} prešlo na drugi uređaj`);
+  },
+  leaveSeat,
+  limiter: activeTableLimiter,
+});
+
 // ---- UTISCI („Pošalji utisak") ----
 
 registerFeedbackRoutes(fastify, {
@@ -2304,6 +2340,52 @@ async function enterPause(
   fastify.log.info(`⏸ Room ${roomId} paused for ${Math.round(durationMs / 1000)}s`);
 }
 
+/**
+ * Namjeran izlazak sa sjedišta (QA B1) — sa socketa (`room:leave`) ili sa
+ * početne (`POST /api/rooms/:id/leave`, „Vrati se za sto" V5). Sto odmah zna:
+ * bez grace perioda ide pauza i glasanje (PRD §32); poker i raub `leave()`.
+ */
+async function leaveSeat(roomId: string, playerId: string): Promise<void> {
+  const graceTimer = disconnectTimers.get(playerId);
+  if (graceTimer) {
+    clearTimeout(graceTimer);
+    disconnectTimers.delete(playerId);
+  }
+
+  const room = getRoom(roomId);
+  if (room?.game === "poker") {
+    await pokerTables.leave(roomId, playerId);
+    return;
+  }
+  if (room?.game === "raub") {
+    await raubTables.leave(roomId, playerId);
+    return;
+  }
+  const gs = room?.gameState;
+  const player = gs?.players.find((p) => p.id === playerId);
+  if (!room || !gs || !player || player.connectionStatus === "abandoned") return;
+
+  const outcome = afterLeave({
+    phase: gs.phase,
+    players: gs.players.map((p) =>
+      p.id === playerId ? { ...p, connectionStatus: "reconnecting" } : p,
+    ),
+  });
+  if (outcome !== "ignore") {
+    player.connectionStatus = "reconnecting";
+    player.left = true;
+  }
+
+  if (outcome === "abandon") await enterAbandoned(roomId);
+  else if (outcome === "vote") await enterVote(roomId);
+  else if (outcome === "next_hand_then_vote") {
+    startNextHand(room);
+    await enterVote(roomId);
+  } else if (outcome === "mark_only") await broadcastGameState(roomId);
+
+  fastify.log.info(`🚪 Player ${playerId} left room ${roomId} (${outcome})`);
+}
+
 async function enterVote(roomId: string): Promise<void> {
   const room = getRoom(roomId);
   if (!room?.gameState) return;
@@ -2746,50 +2828,8 @@ io.on("connection", (socket) => {
       void socket.leave(roomId);
       delete socket.data.roomId;
       delete socket.data.playerId;
-      const graceTimer = disconnectTimers.get(playerId);
-      if (graceTimer) {
-        clearTimeout(graceTimer);
-        disconnectTimers.delete(playerId);
-      }
-
-      const room = getRoom(roomId);
-      if (room?.game === "poker") {
-        await pokerTables.leave(roomId, playerId);
-        ack?.({ ok: true });
-        return;
-      }
-      if (room?.game === "raub") {
-        await raubTables.leave(roomId, playerId);
-        ack?.({ ok: true });
-        return;
-      }
-      const gs = room?.gameState;
-      const player = gs?.players.find((p) => p.id === playerId);
-      if (!room || !gs || !player || player.connectionStatus === "abandoned") {
-        ack?.({ ok: true });
-        return;
-      }
-
-      const outcome = afterLeave({
-        phase: gs.phase,
-        players: gs.players.map((p) =>
-          p.id === playerId ? { ...p, connectionStatus: "reconnecting" } : p,
-        ),
-      });
-      if (outcome !== "ignore") {
-        player.connectionStatus = "reconnecting";
-        player.left = true;
-      }
-
-      if (outcome === "abandon") await enterAbandoned(roomId);
-      else if (outcome === "vote") await enterVote(roomId);
-      else if (outcome === "next_hand_then_vote") {
-        startNextHand(room);
-        await enterVote(roomId);
-      } else if (outcome === "mark_only") await broadcastGameState(roomId);
-
+      await leaveSeat(roomId, playerId);
       ack?.({ ok: true });
-      fastify.log.info(`🚪 Player ${playerId} left room ${roomId} (${outcome})`);
     }),
   );
 

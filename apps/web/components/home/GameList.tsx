@@ -20,12 +20,18 @@ const badgeText: Record<Exclude<GameBadge, null>, string> = {
  */
 export function GameList({
   items,
+  compact = false,
   loadingSlug,
   error,
   onPlay,
   onCreate,
 }: {
   items: readonly GameListItem[];
+  /**
+   * Iznad je traka „Vrati se za sto" (V1): slika niža (58 px), bez oznake
+   * „ZADNJE IGRANO", da sve i dalje stane bez skrolanja.
+   */
+  compact?: boolean;
   /** Igra za koju se upravo traži sto (dugme pokazuje „Tražim sto..."). */
   loadingSlug: string | null;
   /** Greška zadnjeg traženja — stoji na kartici igre koja je tražena. */
@@ -35,7 +41,7 @@ export function GameList({
 }) {
   const busy = loadingSlug !== null && !error;
   return (
-    <ul className="home-list">
+    <ul className="home-list" data-compact={compact || undefined}>
       {items.map(({ game, badge }) => {
         const name = sr.games[game.slug].name;
         const mine = loadingSlug === game.slug;
@@ -43,7 +49,7 @@ export function GameList({
           <li key={game.slug} className="home-list__card" data-tint={game.tint}>
             <div className="home-list__art">
               {/* Greška traženja ima prednost nad oznakom: tekst raste nagore. */}
-              {badge && !(mine && error) ? (
+              {badge && !compact && !(mine && error) ? (
                 <span className="home-list__tag" data-badge={badge}>
                   {badgeText[badge]}
                 </span>

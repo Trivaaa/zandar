@@ -2417,3 +2417,55 @@ Prijava igrača: dogovoreno uživo da djelilac smije zvati refu odmah na prvoj o
 **Kako:** `broadcastGameState` = `routeTurnTimers` + novi `emitGameState` (slanje svima, analitika, `persistRoom`, BEZ rutiranja sata). Odlazak (`reconnecting`) i povratak (`connected`) koriste `emitGameState`; povratak koji skida pauzu i dalje ide kroz `resumeFromPause` (namjerno pun rok, kao ranije). Snapshot netaknut.
 
 **Mjereno (socket.io E2E, lokalni server, 2P Žandar, B na potezu):** stari kod — rok pomjeren poslije B-ovog odlaska, A ne dobija stanje poslije povratka; novi — rok isti prije, za vrijeme i poslije odlaska/povratka, A vidi B `connected` za 7 ms. Server 273 testa, typecheck čist. Zamka: `TaskStop` ugasi `pnpm`, ali `tsx` dijete ostane na 3001 — sljedeći test tiho gađa stari kod; server za test pokretati direktno preko `tsx` (jedan proces).
+
+## 195. „Vrati se za sto" na početnoj — QA 10-24 P2 (2026-11-20, `feat/resume-table`)
+
+**Šta:** dok igrač sjedi za stolom, početna to kaže prva i vodi nazad jednim dodirom (tabla `UI_VratiSe`, V1–V6). Ista traka za Žandar, Poker i Raub. Igra mijenja samo boju, lepezu i stanje desno: Žandar „Vi 7 : 5 Oni" (2P „Ti 7 : 5 Marko"), Poker žetoni, Raub „do 0 ti fali N", lobi „3 od 4 igrača". Gornji red je „NA POTEZU SI" (zlatna tačka treperi), „IGRA SE BEZ TEBE" ili „STO TE ČEKA". Završena partija dok igrača nije bilo (V6) dobija „PARTIJA ZAVRŠENA" sa „Rezultat" i X. „Igraj" ili „Napravi sto" dok partija traje otvara list „Već igraš X" (V5): „Vrati se za sto" je glavno dugme, a „Napusti partiju i igraj …" radi isto što i izlazak za stolom.
+
+**Odluke vlasnika (20.11.2026):**
+- **Web i aplikacija.** Izuzetak od pravila „samo web", kao prevlačenje karata. Aplikacija dobija traku tek novim paketom: 1.4.5 je već `versionCode 12`, pa je sljedeći 13.
+- **Sjedište prelazi na drugi uređaj** sa istim nalogom.
+
+**Kako (server):** sobu pitamo server po igraču, ne localStorage. `apps/server/src/activeTable.ts`:
+- `describeSeat(room, playerId)` je čista funkcija sa tri igre, lobijem, krajem i sjedištem koje više ne postoji.
+- `pickTable` bira jednu traku: partija u toku, pa lobi, pa završena; među istima novija.
+- Rute:
+  - `POST /api/me/table` prima ključeve sjedišta sa uređaja (`zandar:session:*`) i opcioni Bearer. Uz provjeren uid pretražuje `getAllRooms()`, a odgovor nosi `claim: true` kad ključa na ovom uređaju nema. Sobe kojih nema vraća kao `gone`, pa ih klijent briše (djelimično QA P14).
+  - `POST /api/me/table/claim` traži obavezan nalog. Izda novi ključ i u `sessionTokens` upiše novi hash (oblik snapshota isti). Stari socket tog sjedišta dobija `room:seat_moved` i izlazi iz sobe.
+  - `POST /api/rooms/:id/leave` radi isto što i `room:leave`. Tijelo socket handlera je izvučeno u `leaveSeat()`, pa oba puta dijele kod.
+- `guestId` se nikad ne koristi za izdavanje ključa, jer nije tajna.
+
+**Kako (klijent):**
+- `lib/activeTable.ts` pita na ulazu, na povratak u prvi plan i svakih 15 s dok je početna vidljiva.
+- `lib/resumeView.ts` je čisti tekst i ton trake.
+- Komponente: `components/home/ResumeBar.tsx` i `ResumeSheet.tsx`.
+- Na webu traka stoji na mjestu trake aplikacije (dok ima partiju, ne nudimo preuzimanje). Na desktopu ide preko cijele kolone, sa naslovom „Ili izaberi novu igru".
+- U aplikaciji je ispod marke. Kartice igara su tada niže (58 px) i bez „ZADNJE IGRANO" (`GameList compact`).
+- `RoomScreen`: kraj partije viđen za stolom se pamti (`zandar:resume:dismissed`), pa početna ne nudi V6 za nju. Na `room:seat_moved` briše ključ i ide na početnu.
+- Analitika: `table_resume_click` (`game`, `phase`, `my_turn`, `place`, `other_device`).
+
+**Zamke:**
+- Žandar soba na kraju partije ostaje `status: "playing"`; kraj je `gameState.phase === "match_finished"` (revanš je ponovo pokreće u istoj sobi). Zato zatvaranje V6 ide po `roomId:matchId`, a ne po sobi.
+- Igrač se iz `room.players` skoro nikad ne briše. „Sjedi" se izvodi iz `left`, poker `seat.status` i `abandoned`.
+- Klijent do sad nije slušao `room:kicked`. Zato je uveden poseban `room:seat_moved`, inače bi stari uređaj ostao na mrtvom stolu.
+
+**Odstupanja od table:**
+- Žandar u pauzi zbog mog odsustva (`paused_for_reconnect` / `abandon_vote`) daje „STO TE ČEKA" (zlatno), ne „IGRA SE BEZ TEBE". Žandar, za razliku od Pokera i Rauba, staje kad igrača nema.
+- List V5 ima „Zatvori" na dnu (zajednički `Sheet`: Escape, Android nazad, fokus), umjesto X gore.
+- V5 se otvara i za istu igru i za „Napravi sto" / „Igraj s prijateljima". Svaki novi sto napušta postojeći.
+
+**Mjereno:**
+- Testovi: server 292 (+20), web 276 (+8), game-core 458. Typecheck čist, lint na osnovici (5/2).
+- Headless Chrome protiv lokalnog servera:
+  - Quick Play Žandar → početna → „IGRA SE BEZ TEBE · Vi 0 : 0 Oni";
+  - dodir vodi za isti sto;
+  - desktop 1280: traka 1040 px i naslov „Ili izaberi novu igru";
+  - „Igraj" Poker → list V5 → „Napusti…" → Žandar soba `finished`, novi sto Pokera, traka „98 žetona";
+  - konzola bez grešaka.
+- Harness na 360×740 i 390×844 (V1 app, V3, V6, lobi, pauza, 2P): bez vertikalnog i horizontalnog skrola, art u aplikaciji 58 px.
+- Restart servera: `Restored 3 room(s)`, traka ostaje. REST izlazak sa Rauba gasi traku.
+- `build:mobile` prolazi i izvoz nosi traku.
+
+**Nije provjereno:**
+- Prelazak sjedišta na drugi uređaj sa pravim Firebase nalogom: lokalni server nema Firebase, pa je pokriveno samo testovima ruta.
+- Uređaj (S10e, staging APK), uključujući ponovno pokretanje aplikacije.

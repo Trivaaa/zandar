@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { parseTableTheme, type TableTheme } from "@zandar/shared-types";
+import { parseGameId, parseTableTheme, type TableTheme } from "@zandar/shared-types";
 
 import { RulesModal } from "@/components/RulesModal";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
@@ -14,6 +14,11 @@ import { WebHome } from "@/components/home/web/WebHome";
 import { WebNameSheet } from "@/components/home/web/WebNameSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
+import { ResumeBar } from "@/components/home/ResumeBar";
+import { ResumeSheet } from "@/components/home/ResumeSheet";
+import { claimTable, leaveTable, markTableSeen, useActiveTable } from "@/lib/activeTable";
+import { blocksNewTable } from "@/lib/resumeView";
+import { roomPath } from "@/lib/routes";
 import { useBackHandler } from "@/lib/backHandlers";
 import { identityUi } from "@/lib/features";
 import { GAMES, gameBadge, homeLayout, type GameConfig, type GameSlug } from "@/lib/games";
@@ -39,7 +44,15 @@ type Sheet =
   | { kind: "signup" }
   // Samo web (W4): izbor igre za „Igraj s prijateljima".
   | { kind: "friends" }
+  // „Već igraš X" (V5): novi sto dok partija traje — šta je igrač htio.
+  | { kind: "resume"; next: NewTable }
   | null;
+
+/** Radnja koja pravi novi sto; list „Već igraš X" je zadrži do odluke. */
+type NewTable =
+  | { kind: "play"; game: GameConfig }
+  | { kind: "create"; game: GameConfig }
+  | { kind: "friends" };
 
 /**
  * Izbor stola za start; bez njega važi zapamćen izbor te igre. `remember: false`
@@ -74,6 +87,65 @@ export default function Home() {
   const pending = useRef<{ game: GameConfig; choice?: Choice } | null>(null);
 
   useBackHandler(rulesOpen, () => setRulesFor(null));
+
+  // „Vrati se za sto" (QA 10-24 P2): za kojim stolom igrač sjedi, po serveru.
+  const active = useActiveTable();
+  const [leaving, setLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+
+  async function resumeTable(place: "bar" | "sheet") {
+    const t = active.table;
+    if (!t) return;
+    track("table_resume_click", {
+      game: t.game,
+      phase: t.phase,
+      my_turn: t.myTurn,
+      place,
+      other_device: active.claim,
+    });
+    // Završena partija: viđena je čim igrač ode na sto (V6 „Rezultat").
+    if (t.phase === "finished") markTableSeen(t);
+    try {
+      if (active.claim) await claimTable(t.roomId);
+      router.push(roomPath(t.roomId));
+    } catch {
+      // Sjedište se u međuvremenu ispraznilo — traka se osvježi i nestane.
+      active.refresh();
+    }
+  }
+
+  /** Novi sto: dok partija traje prvo pitaj (V5); inače odmah. */
+  function newTable(next: NewTable) {
+    if (blocksNewTable(active.table)) {
+      setLeaveError(null);
+      setSheet({ kind: "resume", next });
+      return;
+    }
+    runNewTable(next);
+  }
+
+  function runNewTable(next: NewTable) {
+    if (next.kind === "play") playGameNow(next.game);
+    else if (next.kind === "create") router.push(createPath(next.game.slug));
+    else setSheet({ kind: "friends" });
+  }
+
+  async function leaveAndContinue(next: NewTable) {
+    const t = active.table;
+    if (!t || leaving) return;
+    setLeaving(true);
+    setLeaveError(null);
+    try {
+      await leaveTable(t.roomId, active.claim);
+      active.dismiss();
+      setSheet(null);
+      runNewTable(next);
+    } catch {
+      setLeaveError(sr.homeResume.sheet.error);
+    } finally {
+      setLeaving(false);
+    }
+  }
 
   /** Pravo za sto. `replace`: „nazad" sa traženja vodi na početnu, ne opet ovdje. */
   async function play(name: string, game: GameConfig, choice?: Choice, saveName = true) {
@@ -143,6 +215,10 @@ export default function Home() {
    * sa zadnjim označenim (odluka #96).
    */
   function playGame(game: GameConfig) {
+    newTable({ kind: "play", game });
+  }
+
+  function playGameNow(game: GameConfig) {
     // Web (tabla „Početna za web"): svaka igra pravo za sto, bez lista — Žandar
     // 4 igrača do 11, izgled stola nasumičan. Aplikacija ostaje kakva jeste.
     if (!isNative) void start(game, webQuickPlayChoice());
@@ -156,6 +232,10 @@ export default function Home() {
 
   const setupName = sr.games[setupGame.slug].name;
   const sheetOpen = sheet !== null;
+
+  const resumeBar = active.table ? (
+    <ResumeBar table={active.table} onResume={() => void resumeTable("bar")} onDismiss={active.dismiss} />
+  ) : null;
 
   return (
     <>
@@ -173,7 +253,7 @@ export default function Home() {
           // Poker: jedan dodir, bez izbora (odluka 3, 6.11.2026) — sto je uvijek
           // za 4, a izgled stola je zadnji zapamćen.
           onPlay={() => playGame(main)}
-          onCreate={() => router.push(createPath(main.slug))}
+          onCreate={() => newTable({ kind: "create", game: main })}
           onOpenGame={(game) => setSheet({ kind: "game", game })}
           onNotify={(game) => {
             track("upcoming_game_tapped", { game: game.slug });
@@ -182,13 +262,14 @@ export default function Home() {
           onUpcomingViewed={() => track("upcoming_games_viewed")}
           onFeedback={() => router.push("/utisak")}
           className={identityUi ? "screen--tabbed" : ""}
+          resumeSlot={resumeBar}
           {...(listMode
             ? {
                 list: {
                   items: listItems,
                   loadingSlug: (playing || playError) && !sheetOpen ? playingSlug : null,
                   onPlay: playGame,
-                  onCreate: (game: GameConfig) => router.push(createPath(game.slug)),
+                  onCreate: (game: GameConfig) => newTable({ kind: "create", game }),
                 },
               }
             : {})}
@@ -199,7 +280,8 @@ export default function Home() {
           loadingSlug={(playing || playError) && !sheetOpen ? playingSlug : null}
           {...(playError && !sheetOpen ? { error: playError } : {})}
           onPlay={playGame}
-          onFriends={() => setSheet({ kind: "friends" })}
+          onFriends={() => newTable({ kind: "friends" })}
+          resumeSlot={resumeBar}
           onFeedback={() => router.push("/utisak")}
           showNav={identityUi}
           className={identityUi ? "screen--tabbed" : ""}
@@ -271,9 +353,10 @@ export default function Home() {
           onPlay={() => {
             const game = sheet.game;
             setSheet(null);
-            void start(game);
+            if (blocksNewTable(active.table)) newTable({ kind: "play", game });
+            else void start(game);
           }}
-          onFriends={() => router.push(createPath(sheet.game.slug))}
+          onFriends={() => newTable({ kind: "create", game: sheet.game })}
           onRules={() => {
             const game = sheet.game.slug;
             setSheet(null);
@@ -294,6 +377,23 @@ export default function Home() {
           games={[layout.main, ...layout.more]}
           onPick={(game) => router.push(webCreatePath(game.slug))}
           onClose={() => setSheet(null)}
+        />
+      ) : null}
+
+      {sheet?.kind === "resume" && active.table ? (
+        <ResumeSheet
+          table={active.table}
+          next={sheet.next.kind === "friends" ? null : parseGameId(sheet.next.game.slug)}
+          leaving={leaving}
+          error={leaveError}
+          onResume={() => {
+            setSheet(null);
+            void resumeTable("sheet");
+          }}
+          onLeave={() => void leaveAndContinue(sheet.next)}
+          onClose={() => {
+            if (!leaving) setSheet(null);
+          }}
         />
       ) : null}
 
