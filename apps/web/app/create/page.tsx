@@ -9,7 +9,7 @@ import { saveSession } from "@/lib/session";
 import { savePlayerName, usePlayerName } from "@/lib/playerName";
 import { readTableThemeRaw, saveTableTheme } from "@/lib/tableTheme";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
-import { TABLE_GAMES, pickTableGame } from "@/lib/liveGames";
+import { BELA_DEFAULT_TARGET, BELA_TARGETS, TABLE_GAMES, pickTableGame } from "@/lib/liveGames";
 import { useQueryParam } from "@/lib/useQuery";
 import { isNative } from "@/lib/platform";
 import { webCreateCounts } from "@/lib/webHome";
@@ -31,11 +31,20 @@ export default function CreatePage() {
   // Web (tabla „Početna za web", W4): igra je već izabrana na početnoj, pa se
   // izbor igre ne nudi kad stigne u adresi; Žandar samo 2 ili 4 (odluka
   // 15.11.2026). Aplikacija ostaje kakva jeste.
-  const counts = isNative ? undefined : webCreateCounts(game);
+  // Bela: samo 4 igrača, i u aplikaciji (odluka 1).
+  const counts = isNative && game !== "bela" ? undefined : webCreateCounts(game);
   const gamePicked = !isNative && gameParam !== null;
   // Broj iz druge igre koji ova ne nudi (3 → Žandar na webu) pada na 2.
-  const seats: 2 | 3 | 4 = counts && !counts.includes(playerCount) ? 2 : playerCount;
-  const [targetScore, setTargetScore] = useState(21);
+  const seats: 2 | 3 | 4 =
+    counts && !counts.includes(playerCount) ? (counts.includes(2) ? 2 : 4) : playerCount;
+  const [targetDraft, setTargetScore] = useState(21);
+  // Cilj iz druge igre koji ova ne nudi (21 → Bela) pada na podrazumijevani.
+  const targetScore =
+    game === "bela"
+      ? (BELA_TARGETS as readonly number[]).includes(targetDraft)
+        ? targetDraft
+        : BELA_DEFAULT_TARGET
+      : targetDraft;
   // Zadnja izabrana podloga, zajednička sa brzom igrom; `null` = nije dirano.
   const savedTheme = useSyncExternalStore(subscribeToNothing, readTableThemeRaw, () => null);
   const [themeDraft, setThemeDraft] = useState<TableTheme | null>(null);

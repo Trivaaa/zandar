@@ -97,6 +97,9 @@ export function LobbyScreen({
 }: LobbyScreenProps) {
   // Poker i Raub: bez cilja, timova i dugmeta Start (sto kreće sam kad se popuni).
   const poker = game === "poker" || game === "raub";
+  // Bela: sto kreće sam kad se popuni (kao poker i Raub), ali ima timove po
+  // redu ulaska (odluka 15) — slova A/B ostaju vidljiva.
+  const autoStart = poker || game === "bela";
   const seatsFilled = players.length;
   const seatsNeeded = Math.max(0, playerCount - seatsFilled);
 
@@ -258,7 +261,7 @@ export function LobbyScreen({
         </div>
 
         <div className="lobby__actions">
-          {isHost && poker ? (
+          {isHost && autoStart ? (
             <>
               {/* Poker i Raub nemaju „Pokreni igru": popunjavanje praznih mjesta
                   JE start (server odmah dijeli). Prekidač se čitao kao
@@ -314,7 +317,7 @@ export function LobbyScreen({
             </>
           ) : (
             <p className="lobby__waiting font-sans text-base">
-              {poker ? sr.poker.lobbyHint : sr.lobby.waitingHost}
+              {autoStart ? sr.poker.lobbyHint : sr.lobby.waitingHost}
             </p>
           )}
         </div>

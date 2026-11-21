@@ -4373,3 +4373,561 @@
     --card-w-hand: calc(4.5rem * 1.417 / 1.571);
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Bela (docs/bela-spec.md, tabla `UI_Bela`, faza 4)
+ *
+ * Isti sto kao Raub (`.rb-table`, `.rb-trick`, `.rb-head`, listovi i kartice
+ * se dijele); ovdje je samo ono što Bela ima drukčije: ruka u dva reda po 4
+ * (odluka 8), tvoje sjedište se ne crta (potez je u traci iznad ruke), panel
+ * zvanja aduta, traka zvanja uz prvu kartu i rezultat dva tima.
+ * Tim MI = `--team-a`, VI = `--team-b` (iste boje kao prstenovi sjedišta).
+ * Živi na kraju felt.css (isti sloj), ne u zasebnom fajlu (changelog 129).
+ * ------------------------------------------------------------------ */
+
+.felt-stage[data-game="bela"] {
+  /* Mađarica u ruci 84 × 132 px (odluka 8). Karta se crta po visini
+     (`--card-w-hand` × 1.417), a mađarica je uža (1.571), pa je za širinu od
+     5.25rem `--card-w-hand` 5.25 × 1.571 / 1.417 = 5.82rem (visina 8.25rem).
+     IZMJERENO CDP-om: sa 5.25rem karta je bila 76 px. */
+  --card-w-hand: calc(5.25rem * 1.571 / 1.417);
+  /* Dva reda: gornji viri 4rem, donji cijela karta (8.25rem), plus 0.5rem do
+     ivice. Jedan red (do 4 karte): karta + 0.5rem. */
+  --bl-row-peek: 4rem;
+  --stage-hand-h: 12.75rem;
+  /* Traka poteza iznad ruke (44 px). */
+  --stage-banner-h: 2.75rem;
+  /* Tvoje sjedište se ne crta. */
+  --stage-seat-h: 0rem;
+}
+.felt-stage[data-game="bela"][data-rows="1"] {
+  --stage-hand-h: 8.75rem;
+}
+.felt-stage[data-game="bela"] .rb-table {
+  --card-w-hand: 4.5rem;
+  --rb-trick-max: 5.4rem;
+  container-type: size;
+}
+.felt-stage[data-game="bela"] .rb-trick {
+  --card-w-hand: min(var(--rb-trick-max), 100cqh / 2.4, 100cqw / 2.8);
+}
+
+/* Sjedišta: isti prsten tajmera i natpis kao Raub. */
+.felt-stage[data-game="bela"] .seat[data-countdown] {
+  --seat-ring-live: var(--success);
+  --seat-halo: color-mix(in oklab, var(--success) 70%, transparent);
+}
+.felt-stage[data-game="bela"] .seat[data-countdown][data-warn] {
+  --seat-ring-live: var(--warn);
+  --seat-halo: color-mix(in oklab, var(--warn) 75%, transparent);
+}
+.felt-stage[data-game="bela"] .seat[data-countdown][data-urgent] {
+  --seat-ring-live: var(--danger-signal);
+  --seat-halo: color-mix(in oklab, var(--danger-signal) 85%, transparent);
+}
+.felt-stage[data-game="bela"] .seat__caption {
+  top: auto;
+  bottom: calc(100% - 0.55rem);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background-color: var(--card-face);
+}
+.felt-stage[data-game="bela"] .seat--left .seat__caption {
+  left: 0;
+  right: auto;
+  transform: none;
+  animation-name: caption-in;
+}
+.felt-stage[data-game="bela"] .seat--right .seat__caption {
+  left: auto;
+  right: 0;
+  transform: none;
+  animation-name: caption-in;
+}
+.felt-stage[data-game="bela"] .seat__caption-text {
+  font-weight: 700;
+  color: var(--accent-contrast);
+  white-space: nowrap;
+}
+.felt-stage[data-game="bela"] .seat__caption[data-tone="bet"] {
+  background-color: var(--accent);
+}
+/* Ko je zvao adut: znak boje aduta uz avatar. */
+.bl-caller {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background-color: var(--card-face);
+  box-shadow: 0 0 0 1.5px var(--accent);
+}
+.bl-caller img {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+/* ---- Zaglavlje: rezultat dva tima ------------------------------------ */
+
+.bl-head {
+  gap: 0.4rem;
+}
+/* Na 360 px faza, adut i rezultat jedva staju: adut bez riječi „ADUT". */
+.bl-head .rb-trump__label {
+  display: none;
+}
+.bl-head .rb-head__phase {
+  white-space: nowrap;
+}
+.bl-score {
+  margin-left: auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--bg-mid) 85%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--text);
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+.bl-score__line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  font-size: var(--type-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.bl-score__line b {
+  font: 700 1rem/1 var(--font-display);
+  letter-spacing: 0;
+}
+.bl-score__line i {
+  font-style: normal;
+  color: var(--text-faint);
+}
+.bl-score small {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-soft);
+}
+.bl-score__mi,
+.bl-mi {
+  color: var(--team-a);
+}
+.bl-score__vi,
+.bl-vi {
+  color: var(--team-b);
+}
+
+/* ---- Nad rukom: panel aduta, traka zvanja, traka poteza --------------- */
+
+.bl-above {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem 0.25rem;
+  pointer-events: none;
+}
+.bl-above > * {
+  pointer-events: auto;
+}
+.bl-panel,
+.bl-decl {
+  width: 100%;
+  max-width: 26rem;
+  border-radius: 1.1rem;
+  background-color: color-mix(in oklab, var(--surface) 94%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--accent-line),
+    0 10px 30px color-mix(in oklab, black 55%, transparent);
+}
+.bl-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+}
+.bl-panel[data-must] {
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 10px 30px color-mix(in oklab, black 55%, transparent);
+}
+.bl-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.bl-panel__head b {
+  font: 400 1.125rem/1.1 var(--font-display);
+  color: var(--text);
+}
+.bl-panel__head small {
+  font-size: var(--type-xs);
+  font-weight: 600;
+  color: var(--text-soft);
+  text-align: right;
+}
+.bl-suits {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.bl-suit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 4.5rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background-color: var(--card-face);
+  color: var(--accent-contrast);
+  font: 700 0.8125rem/1 var(--font-sans);
+  cursor: pointer;
+}
+.bl-suit img {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+.bl-suit:disabled,
+.bl-pass:disabled {
+  opacity: 0.5;
+}
+.bl-pass {
+  min-height: 3rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--accent-line);
+  color: var(--text);
+  font: 700 1rem/1 var(--font-sans);
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .bl-suit:hover:not(:disabled) {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  .bl-pass:hover:not(:disabled) {
+    background-color: color-mix(in oklab, var(--text) 8%, transparent);
+  }
+}
+
+.bl-decl {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 3.4rem;
+  padding: 0.35rem 0.35rem 0.35rem 0.6rem;
+  box-shadow:
+    inset 0 0 0 1.5px var(--team-a),
+    0 8px 20px color-mix(in oklab, black 50%, transparent);
+}
+.bl-decl__cards {
+  display: flex;
+  flex: none;
+  --card-w-hand: 1.5rem;
+}
+.bl-decl__cards > * + * {
+  margin-left: -0.6rem;
+}
+.bl-decl__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.bl-decl__text b {
+  font: 700 0.875rem/1.2 var(--font-sans);
+  color: var(--text);
+}
+.bl-decl__text small {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+.bl-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 0.7rem;
+  background-color: color-mix(in oklab, var(--text) 8%, transparent);
+}
+.bl-seg button {
+  min-height: 2.75rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: none;
+  color: var(--text-soft);
+  font: 700 0.8125rem/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.bl-seg button[data-on] {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.bl-turn {
+  /* Desno iznad ruke stoje dugmad zvuka i reakcija (48 px + rub). */
+  max-width: calc(100% - 7.5rem);
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--surface) 88%, transparent);
+  color: var(--text);
+  font: 600 0.8125rem/1.3 var(--font-sans);
+  text-align: center;
+}
+.bl-turn[data-warn] {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.bl-turn[data-active] {
+  box-shadow:
+    inset 0 0 0 2px var(--success),
+    0 0 14px color-mix(in oklab, var(--success) 40%, transparent);
+}
+
+/* ---- Ruka u dva reda (odluka 8) --------------------------------------- */
+
+.bl-hand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 0.5rem;
+}
+.bl-hand .hand,
+.bl-hand .hand[data-many="true"] {
+  /* Ravan red, korak 68 px (84 − 16), blag nagib; bez luka. */
+  --hand-spread: 2.5deg;
+  --hand-overlap: 1rem;
+  --hand-lift: 0rem;
+  padding: 0;
+}
+/* Zatamnjena karta (pravila je ne dozvoljavaju) — bojom, ne providnošću:
+   providna karta donjeg reda bi pokazala gornji red kroz sebe. */
+/* Zatamnjena karta: providnost na `.card` (kao ostale igre), ali preko PUNE
+   tamne podloge mjesta karte — inače bi se gornji red vidio kroz donji.
+   (Tamni sloj, `filter` i providnost lica headless Chrome nije crtao na ovom
+   3D sloju; providnost same karte jeste — CDP snimak, 21.11.2026.) */
+.bl-hand .card[data-dimmed="true"] {
+  opacity: 0.42;
+}
+.bl-hand .hand__slot:has(> .card[data-dimmed="true"]) {
+  border-radius: 0.4rem;
+  background-color: var(--surface);
+}
+/* Donji red leži preko gornjeg: gornji viri `--bl-row-peek`. */
+.bl-hand[data-rows="2"] .bl-hand__row--front {
+  margin-top: calc(var(--bl-row-peek) - var(--card-w-hand) * 1.417);
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Pokazana zvanja (B7) --------------------------------------------- */
+
+.bl-show {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  translate: -50% -50%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 1rem;
+  background-color: color-mix(in oklab, var(--surface) 90%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--accent-line);
+}
+.bl-show__who {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+.bl-show__who b {
+  font: 700 0.8125rem/1.2 var(--font-sans);
+  color: var(--text);
+  text-align: center;
+}
+.bl-show__cards {
+  display: flex;
+  --card-w-hand: 2.5rem;
+}
+.bl-show__cards > * + * {
+  margin-left: -0.6rem;
+}
+.bl-show small {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  text-align: center;
+}
+
+/* ---- Pregled ruke, tabela, kraj meča ---------------------------------- */
+
+.bl-summary__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.bl-summary__head h3 {
+  margin: 0;
+}
+.bl-summary__head p {
+  margin: 0.3rem 0 0;
+}
+.bl-outcome {
+  flex: none;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.6rem;
+  font: 400 1rem/1 var(--font-display);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1.5px var(--accent-line);
+}
+.bl-outcome[data-tone="good"] {
+  color: var(--success);
+  box-shadow: inset 0 0 0 1.5px var(--success);
+}
+.bl-outcome[data-tone="bad"] {
+  color: var(--danger-signal);
+  box-shadow: inset 0 0 0 1.5px var(--danger-signal);
+}
+.bl-rows {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+}
+.bl-rows th,
+.bl-rows td {
+  padding: 0.45rem 0;
+  border-top: 1px solid color-mix(in oklab, var(--text) 12%, transparent);
+  text-align: right;
+  font-size: var(--type-base);
+  color: var(--text);
+}
+.bl-rows th:first-child {
+  text-align: left;
+  font-weight: 400;
+  color: var(--text-soft);
+}
+.bl-rows thead th {
+  border-top: 0;
+  font-size: var(--type-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.bl-rows tr[data-kind="sum"] td,
+.bl-rows tr[data-kind="sum"] th {
+  font-weight: 700;
+  color: var(--text);
+}
+.bl-rows tr[data-kind="award"] td {
+  font: 400 1.125rem/1 var(--font-display);
+}
+.bl-rows tr[data-kind="award"] th {
+  color: var(--text);
+}
+.bl-match {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  background-color: color-mix(in oklab, var(--text) 5%, transparent);
+  font-family: var(--font-sans);
+}
+.bl-match > span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.bl-match b {
+  flex: 1;
+  font: 400 1.0625rem/1 var(--font-display);
+  color: var(--text);
+}
+.bl-match b span {
+  font: 700 0.75rem/1 var(--font-sans);
+  letter-spacing: 0.06em;
+}
+.bl-match small {
+  font-size: var(--type-xs);
+  color: var(--text-soft);
+}
+.bl-grid__tag span {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background-color: color-mix(in oklab, var(--text) 10%, transparent);
+  color: var(--text-soft);
+}
+.bl-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-family: var(--font-sans);
+}
+.bl-bars div {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--type-xs);
+  font-weight: 700;
+}
+.bl-bars i {
+  flex: 1;
+  height: 0.6rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--text) 10%, transparent);
+  overflow: hidden;
+}
+.bl-bars em {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background-color: var(--team-a);
+}
+.bl-bars em[data-vi] {
+  background-color: var(--team-b);
+}
+.bl-bars b {
+  width: 2.75rem;
+  text-align: right;
+  font: 400 0.9375rem/1 var(--font-display);
+  color: var(--text);
+}
+.bl-end h3[data-won] {
+  color: var(--accent);
+}
+.bl-end__pair {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 0.5rem 0;
+}
+.bl-end__score {
+  font: 400 1.5rem/1.1 var(--font-display);
+  color: var(--text);
+  text-align: center;
+}
+.bl-end__score span {
+  font: 700 0.875rem/1 var(--font-sans);
+  letter-spacing: 0.08em;
+}

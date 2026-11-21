@@ -98,6 +98,9 @@
   --game-poker-2:   #3e1611;
   --game-raub-1:    #2a5276;
   --game-raub-2:    #14283c;
+  /* Bela: tamna šljiva — odvojena od crvene pokera i plave Rauba. */
+  --game-bela-1:    #5e3462;
+  --game-bela-2:    #2c162e;
   --game-zandar-1:  #2c6152;
   --game-zandar-2:  #10302a;
 

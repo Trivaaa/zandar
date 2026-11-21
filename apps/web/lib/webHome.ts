@@ -40,7 +40,8 @@ export const webCreatePath = (game: GameSlug) => `/create?game=${game}`;
  * vlasnika 15.11.2026 — kartica igre kaže „2 ili 4"). Aplikacija ovo ne zove.
  */
 export function webCreateCounts(game: GameId): readonly (2 | 3 | 4)[] {
-  return game === "zandar" ? [2, 4] : [2, 3, 4];
+  // Bela je samo 2 na 2 (spec, odluka 1).
+  return game === "zandar" ? [2, 4] : game === "bela" ? [4] : [2, 3, 4];
 }
 
 /**

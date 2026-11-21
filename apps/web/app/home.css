@@ -2571,3 +2571,14 @@ button.resume-bar:focus-visible {
     font-size: 1.5rem;
   }
 }
+
+/* Bela (docs/bela-spec.md, faza 4) — ista pravila boje kao ostale igre. */
+.game-tile[data-tint="bela"],
+.home-list__card[data-tint="bela"],
+.web-card[data-tint="bela"],
+.web-friends__row[data-tint="bela"],
+.web-name__game[data-tint="bela"],
+.resume-bar[data-tint="bela"] {
+  --tint-1: var(--game-bela-1);
+  --tint-2: var(--game-bela-2);
+}

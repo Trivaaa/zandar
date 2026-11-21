@@ -1,5 +1,7 @@
 import type { GameId } from "@zandar/shared-types";
 
+import { belaLive } from "@/lib/belaRelease";
+
 /**
  * Igre koje OVAJ klijent zna da nacrta. Server ih traži u tijelu
  * `join-request` / `invites/:id/accept` i u `auth.games` na socketu: klijent
@@ -12,4 +14,7 @@ export const CLIENT_GAMES: readonly (GameId | string)[] = [
   "raub",
   // Pravila Rauba v2 (odluka 13) — vidi `GAME_PROTOCOL` u shared-types.
   "raub:2",
+  // Bela (docs/bela-spec.md, faza 4): server traži i "bela:1". Iza prekidača,
+  // da ugašena Bela ne ulazi ni preko tuđeg linka.
+  ...(belaLive ? ["bela", "bela:1"] : []),
 ];

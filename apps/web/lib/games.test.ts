@@ -21,19 +21,19 @@ describe("homeLayout (SPEC_POCETNA §3, §5)", () => {
     const l = homeLayout(withLive("zandar"), NONE);
     assert.equal(l.main.slug, "zandar");
     assert.deepEqual(slugs(l.more), []);
-    assert.deepEqual(slugs(l.upcoming), ["poker", "raub"]);
+    assert.deepEqual(slugs(l.upcoming), ["poker", "raub", "bela"]);
   });
 
   test("dvije igre (H2): novi igrač dobija Žandar, Poker je red, Raub uskoro", () => {
     const l = homeLayout(withLive("zandar", "poker"), NONE);
     assert.equal(l.main.slug, "zandar");
     assert.deepEqual(slugs(l.more), ["poker"]);
-    assert.deepEqual(slugs(l.upcoming), ["raub"]);
+    assert.deepEqual(slugs(l.upcoming), ["raub", "bela"]);
   });
 
   test("tri igre (H3): bez reda „Uskoro\"", () => {
-    const l = homeLayout(withLive("zandar", "poker", "raub"), NONE);
-    assert.deepEqual(slugs(l.more), ["poker", "raub"]);
+    const l = homeLayout(withLive("zandar", "poker", "raub", "bela"), NONE);
+    assert.deepEqual(slugs(l.more), ["poker", "raub", "bela"]);
     assert.deepEqual(slugs(l.upcoming), []);
   });
 

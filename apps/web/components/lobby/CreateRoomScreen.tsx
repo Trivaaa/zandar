@@ -3,7 +3,7 @@
 import type { GameId, TableTheme } from "@zandar/shared-types";
 
 import { TableSetupFields } from "@/components/lobby/TableSetupFields";
-import { TABLE_GAMES, isSeatGame } from "@/lib/liveGames";
+import { BELA_TARGETS, TABLE_GAMES, isSeatGame } from "@/lib/liveGames";
 import { sr } from "@/lib/sr";
 
 export type CreateRoomScreenProps = {
@@ -114,6 +114,7 @@ export function CreateRoomScreen({
 
         <TableSetupFields
           showTarget={!isSeatGame(game)}
+          {...(game === "bela" ? { targets: BELA_TARGETS } : {})}
           playerCount={playerCount}
           onPlayerCount={onPlayerCount}
           targetScore={targetScore}

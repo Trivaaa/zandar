@@ -8,7 +8,7 @@ import { Avatar } from "@/components/profile/Avatar";
 import { Sheet } from "@/components/sheet/Sheet";
 import { fetchFriends, type FriendEntry } from "@/lib/friends";
 import { createInviteRoom, inviteToRoom } from "@/lib/invites";
-import { TABLE_GAMES, isSeatGame, pickTableGame } from "@/lib/liveGames";
+import { BELA_DEFAULT_TARGET, TABLE_GAMES, isSeatGame, pickTableGame } from "@/lib/liveGames";
 import { roomPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
 
@@ -92,8 +92,9 @@ export function InviteSheet({
       } else {
         const id = await createInviteRoom({
           profileIds: [...chosen],
-          playerCount: prefs.playerCount,
-          targetScore: prefs.targetScore,
+          // Bela: uvijek 4 igrača i 1001 (cilj se mijenja na `/create`).
+          playerCount: prefs.game === "bela" ? 4 : prefs.playerCount,
+          targetScore: prefs.game === "bela" ? BELA_DEFAULT_TARGET : prefs.targetScore,
           ...(prefs.game !== "zandar" ? { game: prefs.game } : {}),
         });
         onClose();
@@ -143,9 +144,9 @@ export function InviteSheet({
           ) : null}
           <span className="invite__label">{sr.invite.options}</span>
           <div className="invite__segs" role="group" aria-label={sr.invite.options}>
-            {segment(2, prefs.playerCount, () => choose({ playerCount: 2 }))}
-            {segment(4, prefs.playerCount, () => choose({ playerCount: 4 }))}
-            {isSeatGame(prefs.game) ? null : (
+            {prefs.game === "bela" ? null : segment(2, prefs.playerCount, () => choose({ playerCount: 2 }))}
+            {segment(4, prefs.game === "bela" ? 4 : prefs.playerCount, () => choose({ playerCount: 4 }))}
+            {isSeatGame(prefs.game) || prefs.game === "bela" ? null : (
               <>
                 <span className="invite__gap" aria-hidden="true" />
                 {segment(11, prefs.targetScore, () => choose({ targetScore: 11 }))}

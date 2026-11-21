@@ -18,7 +18,7 @@ describe("parseHomeHistory (zakačena i igrane igre)", () => {
   });
 
   test("igra koje više nema i pokvarene vrijednosti se odbacuju, ostalo ostaje", () => {
-    assert.deepEqual(parseHomeHistory('{"pinned":"remi","played":{"zandar":"x","bela":5,"poker":7}}'), {
+    assert.deepEqual(parseHomeHistory('{"pinned":"remi","played":{"zandar":"x","remi":5,"poker":7}}'), {
       pinned: null,
       played: { poker: 7 },
     });

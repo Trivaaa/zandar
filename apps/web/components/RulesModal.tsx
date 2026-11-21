@@ -14,6 +14,7 @@ import type { GameId } from "@zandar/shared-types";
 
 import { PokerRulesBody } from "@/components/poker/PokerRules";
 import { RaubRulesBody } from "@/components/raub/RaubRules";
+import { BelaRulesBody } from "@/components/bela/BelaRules";
 
 type Props = {
   isOpen: boolean;
@@ -31,7 +32,8 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 export function RulesModal({ isOpen, onClose, game = "zandar" }: Props) {
   if (!isOpen) return null;
-  const title = game === "poker" ? "Pravila pokera" : game === "raub" ? "Pravila Rauba" : "Pravila Žandara";
+  const title =
+    game === "poker" ? "Pravila pokera" : game === "raub" ? "Pravila Rauba" : game === "bela" ? "Pravila Bele" : "Pravila Žandara";
 
   return (
     <div
@@ -57,6 +59,8 @@ export function RulesModal({ isOpen, onClose, game = "zandar" }: Props) {
           <PokerRulesBody SectionTitle={SectionTitle} />
         ) : game === "raub" ? (
           <RaubRulesBody SectionTitle={SectionTitle} />
+        ) : game === "bela" ? (
+          <BelaRulesBody SectionTitle={SectionTitle} />
         ) : (
         <div className="space-y-5 font-sans text-base">
           <section>

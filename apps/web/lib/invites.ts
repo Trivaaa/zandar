@@ -14,7 +14,8 @@ import { saveSession } from "@/lib/session";
 export async function createInviteRoom(input: {
   profileIds: string[];
   playerCount: 2 | 3 | 4;
-  targetScore: 11 | 21;
+  /** Žandar 11 ili 21; Bela 501, 701 ili 1001. */
+  targetScore: number;
   tableTheme?: TableTheme | undefined;
   /** Bez polja = Žandar (server isto tumači). */
   game?: GameId | undefined;

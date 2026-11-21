@@ -1,8 +1,8 @@
 # Kartaonica — Bela modul (Spec v0.1, nacrt)
 
-Nov 21, 2026 · @Igor · v0.2: pravila P-1…P-17 prihvaćena kako su predložena **(odluka 7)** · v0.3: ruka u dva reda **(odluka 8)**, motor i odluke 9–14
+Nov 21, 2026 · @Igor · v0.2: pravila P-1…P-17 prihvaćena kako su predložena **(odluka 7)** · v0.3: ruka u dva reda **(odluka 8)**, motor i odluke 9–14 · v0.4: server (odluka 15) i ekran
 
-> Status: faza 0 (pravila) i faza 2 (motor, `feat/bela-core`) završene; faza 1 (tabla `UI_Bela`) je nacrt sa izabranom rukom u dva reda. Sljedeća je faza 3 (server).
+> Status: faze 0–4 završene na granama `feat/bela-core` → `feat/bela-server` → `feat/bela-table` (nije spojeno u `main`). Preostaje faza 5: staging, uređaj, izdanje.
 > Dizajn: tabla „UI · Bela" (`UI_Bela`) na Claude Design platnu „Kartaonica · identitet", https://claude.ai/artifact/1DkTrJNEv2148shhQUC3de#artboard-UI_Bela — nacrt B1–B12 od 21.11.2026, čeka odobrenje vlasnika. Gdje se tabla i ovaj tekst razilaze, važi tekst.
 > Jezik interfejsa: ijekavica, obraćanje na „ti", rodno neutralno. Riječi „bot", „računar" i „AI" se ne pojavljuju nigdje u UI-ju (HARD RULE 5).
 > Svako pravilo koje vlasnik treba da potvrdi nosi oznaku **(P-n)**. Kad se potvrdi ili promijeni, postaje **(odluka N)** u sekciji „Odluke", kao u `docs/raub-spec.md`.
@@ -275,7 +275,7 @@ Nema tvrdog roka. Redoslijed je bitniji od datuma:
 | 1 — Wireframe | Tabla `UI_Bela` (B1–B12) na Claude Design platnu | Vlasnik odobri, posebno ruku od 8 karata na 360 px |
 | 2 — Motor + bot + simulacija | `game-core/src/bela/`, testovi, `simulate:bela` | **Gotovo 21.11.2026** (`feat/bela-core`): game-core 515 testova (+57). 10.000 mečeva × 501 i × 1001: 0 grešaka karata, štihova i bodova, 0 odbijenih akcija. Medijan 5 ruku / 13,4 min (501), 9 ruku / 25,1 min (1001); pad 21,7 %, visi 0,8 %, štiglja 2,2 %, mus 15,6 %. Trajanje je model kao za Raub, ne mjerenje |
 | 3 — Server | Sto, socket, snapshot, Quick Play, stari klijent | E2E socket, restart usred ruke |
-| 4 — Web | `components/bela/`, `/dev/bela`, lobi (timovi, cilj) | CDP 360×640 / 390×844, E2E u pregledaču |
+| 4 — Web | `components/bela/`, `/dev/bela`, lobi (timovi, cilj) | **Urađeno 21.11.2026** (`feat/bela-table`): web 315 testova, `next build` i `build:mobile` prolaze; prava partija u headless Chromeu protiv lokalnog servera (sto za 2,1 s, 2 ruke, 0 grešaka u konzoli). **Nije provjereno na uređaju**, ni zatamnjenje nedozvoljenih karata (headless ga ne crta pouzdano) |
 | 5 — Izdanje | Staging (web + staging APK) → uređaj → `NEXT_PUBLIC_BELA=1` na Vercelu i u `TARGETS.prod` (`build-mobile.mjs`) → novi AAB na Play, obavještenje prijavljenima | Odigrana prava partija na S10e, na webu i u aplikaciji |
 
 Zavisnosti: tabla zavisi od pravila (P-2, P-6 i P-8 mijenjaju ekrane). Motor zavisi od pravila, ali ne i od table, pa faze 1 i 2 mogu teći paralelno kad je faza 0 gotova.

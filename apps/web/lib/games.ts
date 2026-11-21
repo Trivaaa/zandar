@@ -8,6 +8,7 @@ import {
 import type { CardDeck } from "@/lib/hungarianDeck";
 import { pokerLive } from "@/lib/pokerRelease";
 import { raubLive } from "@/lib/raubRelease";
+import { belaLive } from "@/lib/belaRelease";
 import { sr } from "@/lib/sr";
 
 /**
@@ -90,7 +91,7 @@ export type GameConfig = {
   listCards: readonly [CardFace, CardFace, CardFace];
 };
 
-export type GameTint = "zandar" | "poker" | "raub";
+export type GameTint = "zandar" | "poker" | "raub" | "bela";
 
 export const GAMES: readonly GameConfig[] = [
   {
@@ -161,6 +162,30 @@ export const GAMES: readonly GameConfig[] = [
       { rank: "7", suit: "clubs" },
       { rank: "A", suit: "spades" },
       { rank: "K", suit: "diamonds" },
+    ],
+  },
+  {
+    slug: "bela",
+    letter: "B",
+    suit: "hearts",
+    // Simulacija (changelog 203): Quick Play do 501, medijan ~13 min (model).
+    minutes: 15,
+    // Iza prekidača izdanja — vidi `lib/belaRelease.ts`.
+    status: belaLive ? "live" : "upcoming",
+    releasedAt: belaLive ? "2026-11-21" : null,
+    heroCards: null,
+    hasRules: true,
+    tint: "bela",
+    deck: "hungarian",
+    // Bela: kralj i dama srca (J = U, Q = O na mađaricama).
+    tileCards: [
+      { rank: "Q", suit: "hearts" },
+      { rank: "K", suit: "hearts" },
+    ],
+    listCards: [
+      { rank: "J", suit: "hearts" },
+      { rank: "9", suit: "hearts" },
+      { rank: "A", suit: "hearts" },
     ],
   },
 ];

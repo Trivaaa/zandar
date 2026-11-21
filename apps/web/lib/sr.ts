@@ -238,7 +238,9 @@ export const sr = {
         ? `${n} / ${of} igrača · Poker · 100 žetona`
         : game === "raub"
           ? `${n} / ${of} igrača · Raub · od ${pts} do 0`
-          : `${n} / ${of} igrača · ${pts} poena`,
+          : game === "bela"
+            ? `${n} / ${of} igrača · Bela · do ${pts}`
+            : `${n} / ${of} igrača · ${pts} poena`,
     invite: "Pozovi prijatelje:",
     copy: "Kopiraj",
     copied: "✓ Kopirano",
@@ -302,7 +304,7 @@ export const sr = {
       zandar: "2 ili 4 igrača · do 11 ili 21",
       poker: "Texas Hold'em · 2–4 igrača",
       remi: "2–4 igrača",
-      bela: "2–4 igrača",
+      bela: "4 igrača · 2 na 2",
       raub: "2–4 igrača · od 21 do 0",
     } as Record<string, string>,
     playGame: (name: string) => `Igraj ${name}`,
@@ -548,6 +550,117 @@ export const sr = {
     lobbyHint: "Partija počinje čim se mjesta popune.",
     chipsNote: "Žetoni važe samo u ovoj partiji i nemaju nikakvu vrijednost van nje.",
   },
+  /* Bela (docs/bela-spec.md, tabla `UI_Bela`). „MI" je tvoj tim, „VI" protivnici
+     (kao na papiru za belu), pa rečenice o timovima idu u „mi / oni". */
+  bela: {
+    phase: {
+      calling: "Zvanje aduta",
+      trick: (n: number) => `Štih ${n} od 8`,
+      handEnd: "Kraj ruke",
+      matchEnd: "Kraj partije",
+    },
+    trump: "ADUT",
+    callerOf: (suit: string) => `Adut ${suit} je zvan sa ovog mjesta`,
+    score: {
+      mi: "MI",
+      vi: "VI",
+      live: (a: number, b: number) => `ova ruka ${a} : ${b}`,
+      to: (target: number) => `do ${target}`,
+      open: "Otvori tabelu",
+    },
+    menuLine: (target: number) => `4 igrača · 2 na 2 · do ${target}`,
+    hint: {
+      lead: "Tvoj red · igraj bilo koju kartu",
+      higher: "Tvoj red · moraš ići jače",
+      follow: (suit: string) => `Tvoj red · odgovori na boju: ${suit}`,
+      overTrump: "Tvoj red · moraš nadjačati adutom",
+      trump: (suit: string) => `Tvoj red · nemaš boju, baci adut ${suit}`,
+      any: "Tvoj red · nemaš ni boju ni adut",
+      waiting: (name: string) => `Čeka se: ${name}`,
+      offline: "Nema veze sa stolom",
+    },
+    call: {
+      title: "Zovi adut",
+      must: "Moraš zvati adut",
+      mustSub: "Svi su rekli Dalje, a ti dijeliš",
+      yourTurn: (s: number) => `Tvoj red · 0:${String(Math.max(0, Math.ceil(s))).padStart(2, "0")}`,
+    },
+    bid: { pass: "Dalje" },
+    decl: {
+      terca: "Terca",
+      kvarta: "Kvarta",
+      run: (n: number) => `${n} u nizu`,
+      inSuit: (suit: string) => `u ${({ srce: "srcu", list: "listu", žir: "žiru", tikva: "tikvi" } as Record<string, string>)[suit] ?? suit}`,
+      four: (what: string) => `Četiri ${what}`,
+      calls: (n: number) => `Zove ${n}`,
+      none: "Bez zvanja",
+      say: (n: number) => `Zovi ${n}`,
+      skip: "Ne zovem",
+      sub: "prijavljuje se uz kartu",
+      shown: (name: string) => `${name} zove`,
+      shownWins: "Zvanja broje samo oni koji imaju jače",
+      bela: (n: number) => `Bela! +${n}`,
+    },
+    outcome: {
+      pass: "Prolaz",
+      fail: "Pad",
+      hang: "Visi",
+      stiglja: "Štiglja",
+      redeal: "Nova podjela",
+    },
+    sentence: {
+      pass: (we: boolean, x: number, all: number) =>
+        we ? `Zvali smo mi i prošli: ${x} od ${all}.` : `Zvali su oni i prošli: ${x} od ${all}.`,
+      fail: (we: boolean, x: number, all: number) =>
+        we
+          ? `Zvali smo mi: ${x} od ${all}. Treba više od pola, pa sve ide njima.`
+          : `Zvali su oni: ${x} od ${all}. Treba više od pola, pa sve ide nama.`,
+      hang: (we: boolean, x: number, all: number) =>
+        `Jednako: ${x} od ${all}. Bodovi ${we ? "našeg" : "njihovog"} tima vise do sljedeće ruke.`,
+      redeal: "Niko nije zvao adut — dijeli se ponovo.",
+    },
+    summary: {
+      hand: (n: number, suit: string | null) => (suit ? `Ruka ${n} · adut ${suit}` : `Ruka ${n}`),
+      cards: "Karte",
+      declarations: "Zvanja",
+      bela: "Bela",
+      total: "Ukupno",
+      awarded: "Upisuje se",
+      match: "Meč",
+      next: "Sljedeća ruka →",
+      waitingHost: (name: string) => `Čeka se: ${name}`,
+      table: "Tabela",
+    },
+    tag: { fail: "pad", hang: "visi", stiglja: "štiglja", redeal: "nova podjela" },
+    table: {
+      title: (target: number) => `Tabela · do ${target}`,
+      hand: "Ruka",
+      total: "Ukupno",
+      empty: "Još nema odigranih ruku.",
+      note: "Pad: sve ide protivniku. Visi: bodovi tima koji je zvao čekaju sljedeću ruku.",
+      close: "Zatvori",
+    },
+    end: {
+      win: "Pobjeda",
+      lose: "Poraz",
+      abandoned: "Partija prekinuta",
+      team: (a: string, b: string) => `${a} i ${b}`,
+      hands: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "ruka" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "ruke" : "ruku"}`,
+      playAgain: "Igraj ponovo",
+      rematch: "Revanš",
+      home: "Na početnu",
+      table: "Tabela",
+      waitingHost: (name: string) => `Revanš pokreće ${name}`,
+    },
+    seat: {
+      dealer: "D",
+      waitingConnection: "Čeka se veza",
+    },
+    errors: {
+      paused: "Partija je na pauzi.",
+      generic: "Potez nije prošao. Pokušaj ponovo.",
+    },
+  },
   raub: {
     phase: {
       bidding: "Licitacija",
@@ -700,7 +813,8 @@ export const sr = {
     },
     bela: {
       name: "Bela",
-      players: "2–4 igrača",
+      players: "4 igrača · 2 na 2",
+      about: "Timska klasika sa mađaricama: zovi adut, prijavi zvanja i sa partnerom stigni do cilja.",
       status: "Bela još nije dostupna.",
       body: "Razmišljamo o beli za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },

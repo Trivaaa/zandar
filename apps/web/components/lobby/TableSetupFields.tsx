@@ -19,6 +19,8 @@ export type TableSetupFieldsProps = {
   targetLabel: string;
   /** Poker nema cilj — red se ne crta. */
   showTarget?: boolean | undefined;
+  /** Ponuđeni ciljevi (Žandar 11 / 21, Bela 501 / 701 / 1001). */
+  targets?: readonly number[] | undefined;
 };
 
 const TARGETS: readonly number[] = [11, 21];
@@ -39,6 +41,7 @@ export function TableSetupFields({
   playersLabel,
   targetLabel,
   showTarget = true,
+  targets = TARGETS,
 }: TableSetupFieldsProps) {
   return (
     <>
@@ -65,7 +68,7 @@ export function TableSetupFields({
       <div className="create__field">
         <span className="create__label font-sans text-sm">{targetLabel}</span>
         <div className="create__segmented" role="radiogroup" aria-label={targetLabel}>
-          {TARGETS.map((n) => (
+          {targets.map((n) => (
             <button
               key={n}
               type="button"

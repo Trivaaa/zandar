@@ -33,6 +33,7 @@ import { LobbyScreen } from "@/components/lobby/LobbyScreen";
 import { GameScreen } from "@/components/GameScreen";
 import { PokerScreen } from "@/components/poker/PokerScreen";
 import { RaubScreen } from "@/components/raub/RaubScreen";
+import { BelaScreen } from "@/components/bela/BelaScreen";
 import { usePlayerInfo } from "@/components/profile/PlayerInfo";
 import { RoomInviteSheet } from "@/components/friends/InviteGuestSheet";
 import { shareInvite } from "@/lib/share";
@@ -42,6 +43,8 @@ import { identityUi } from "@/lib/features";
 import type { ActiveReaction } from "@/lib/reactions";
 import type {
   AbandonVote,
+  BelaAction,
+  BelaGamePayload,
   PokerActionRequest,
   PokerGamePayload,
   RaubAction,
@@ -102,6 +105,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   const [pokerState, setPokerState] = useState<PokerGamePayload | null>(null);
   // Raub sto (`game: "raub"`) — isto kao poker, zaseban oblik stanja.
   const [raubState, setRaubState] = useState<RaubGamePayload | null>(null);
+  // Bela sto (`game: "bela"`) — isto kao Raub, zaseban oblik stanja.
+  const [belaState, setBelaState] = useState<BelaGamePayload | null>(null);
   const [starting, setStarting] = useState(false);
   const [botFillLoading, setBotFillLoading] = useState(false);
   const [activeReactions, setActiveReactions] = useState<ActiveReaction[]>([]);
@@ -278,7 +283,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     function handleJoinRequested() {
       setRefreshTrigger((n) => n + 1);
     }
-    function handleGameState(state: GameStateWithDeadline | PokerGamePayload | RaubGamePayload) {
+    function handleGameState(state: GameStateWithDeadline | PokerGamePayload | RaubGamePayload | BelaGamePayload) {
       // Singleton socket: stanje druge sobe (stari server još nije napustio
       // prethodnu socket sobu, B10) ne smije se nacrtati pod ovom rutom.
       if (state.roomId !== roomId) return;
@@ -294,6 +299,7 @@ export function RoomScreen({ roomId }: { roomId: string }) {
       }
       if ("game" in state && state.game === "poker") setPokerState(state);
       else if ("game" in state && state.game === "raub") setRaubState(state);
+      else if ("game" in state && state.game === "bela") setBelaState(state);
       else setGameState(state as GameStateWithDeadline);
       // Kraj viđen za stolom → početna ne nudi „PARTIJA ZAVRŠENA" (V6) za nju.
       if (state.phase === "match_finished") markTableSeen(state);
@@ -496,6 +502,15 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     });
   }
 
+  /** Bela potez — namjera; legalnost provjerava server (`bela:action`). */
+  async function handleBelaAction(action: BelaAction): Promise<void> {
+    if (!belaState) throw new Error("Igra nije aktivna");
+    await emitAction("bela:action", {
+      ...action,
+      clientKnownStateVersion: belaState.stateVersion,
+    });
+  }
+
   /** "Sačekaj još" — resetuje rok pauze na serveru (§32.3). */
   /**
    * Izlazak sa stola (QA B1): serveru javi da igrač odlazi, pa ostali odmah
@@ -527,14 +542,15 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   async function handleFindNewTable(): Promise<void> {
     // Napusti ovaj sto i nađi novi (Quick Play sa novim igračima).
     const myName =
-      (gameState ?? pokerState ?? raubState)?.players.find((p) => p.id === session?.playerId)?.displayName ??
+      (gameState ?? pokerState ?? raubState ?? belaState)?.players.find((p) => p.id === session?.playerId)?.displayName ??
       readPlayerName() ??
       "Igrač";
     try {
       // Isti sto kakav je upravo odigran (veličina i cilj), ne podrazumijevani:
       // ko je igrao u dvoje do 11, „novi sto" očekuje opet takav.
       const prefs = readQuickPlayPrefs();
-      const seatGame = room?.game === "poker" || room?.game === "raub" ? room.game : null;
+      const seatGame =
+        room?.game === "poker" || room?.game === "raub" || room?.game === "bela" ? room.game : null;
       const res = await quickPlay({
         displayName: myName,
         // Poker i Raub: server sam postavlja 4 mjesta, cilj ne postoji.
@@ -643,6 +659,31 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   }
 
   const connectionLost = isConnectionLost({ browserOnline, socketStatus });
+
+  if (belaState) {
+    return (
+      <>
+        <ConnectionBanner show={connectionLost} />
+        <BelaScreen
+          offline={connectionLost}
+          state={belaState}
+          tableTheme={room.tableTheme}
+          isQuickPlay={room.isPublic}
+          onAction={handleBelaAction}
+          onNextHand={handleNextHand}
+          onRematch={handleRematch}
+          onNewTable={handleFindNewTable}
+          onReact={handleReact}
+          onLeave={() => void handleLeave()}
+          onWaitMore={handleWaitMore}
+          onAbandonVote={handleAbandonVote}
+          activeReactions={activeReactions}
+          onPlayerTap={onPlayerTap}
+        />
+        {playerInfo.layer}
+      </>
+    );
+  }
 
   if (raubState) {
     return (
