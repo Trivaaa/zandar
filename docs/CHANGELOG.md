@@ -2693,3 +2693,11 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Zašto.** Vlasnik sa telefona: partija je tekla iza prozora. Server pokreće Bela meč čim igrač sjedne (Quick Play odmah, botovi), pa jedini način da igra ne krene prije „Razumijem" je da zahtjev za sto ode tek poslije njega.
 
 **Provjera.** Typecheck, lint (bez novih grešaka; `JoinFlow` ima zatečenu), web 318 testova, `next build --webpack` i `build:mobile`. E2E na `/` (390×844, presretnut `fetch`): klik na Bela „Igraj" → prozor, 0 poziva `/api/quickplay`; „Razumijem" → prozor nestaje, 1 poziv, „viđeno" upisano; drugi klik → bez prozora, odmah 1 poziv. `elementFromPoint` po cijelom ekranu pogađa sloj prozora (svjetliji donji dio na CDP snimku je ista headless greška sa providnošću iz unosa 205).
+
+## 209. Poker bilježi napuštanje po igraču (2026-11-21, `fix/poker-leave-analytics`)
+
+**Šta.** `pokerMatchEndedEvents` (poker, raub, bela) računa `end_reason` po igraču: ko je sam izašao (`player.left === true`, igrač ostaje u `room.players`) dobija `abandoned` i novo polje `left: true`, bez `is_winner`; plasman ostaje. Ostali za stolom i dalje dobijaju razlog meča. Tip `match_ended.left?` u `shared-types`, opis u `docs/analytics.md`.
+
+**Zašto.** Pregled metrika 21.11: poker je imao 100 % završenih partija i 14 % pobjeda ljudi u brzoj igri. `leavePokerMatch` daje zadnje mjesto, a `finishPokerMatchEarly` zatvara meč kao `match_finished`, pa je izlazak stizao kao `completed` + poraz. 4. mjesto: 119 partija, medijan 4 ruke / 3,1 min, 56 sa ≤3 ruke — uglavnom izlasci. Bez ovoga se težina pokera ne može izmjeriti (sljedeći korak je lakši poker bot).
+
+**Provjera.** Server 320 testova (3 nova: izlazak → `abandoned`+`left`, raub bez izlaska nepromijenjen, prekinut meč), typecheck. Podaci prije objave ostaju iskrivljeni.

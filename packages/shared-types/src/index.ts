@@ -697,6 +697,11 @@ export type AnalyticsEvents = {
     is_winner?: boolean;
     /** Poker i raub: konačan plasman igrača (1 = pobjednik). */
     placement?: number;
+    /**
+     * Poker, raub, bela: igrač je sam napustio meč prije kraja (od 21.11.2026).
+     * Tada je `end_reason` `abandoned` za njega, iako se meč za ostale završio.
+     */
+    left?: boolean;
     platform?: AnalyticsPlatform;
   };
   hand_finished: {
