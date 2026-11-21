@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type {
   AbandonVote,
   BelaAction,
@@ -24,7 +24,6 @@ import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
 import { Toast } from "@/components/overlay/Toast";
 import { TrickArea, TrumpBadge } from "@/components/raub/RaubParts";
 import { runBackHandler, useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
-import { markBelaBetaSeen, readBelaBetaSeen, subscribeBelaBeta } from "@/lib/belaBeta";
 import {
   belaOverlayPhase,
   belaPhaseLabel,
@@ -45,7 +44,6 @@ import { sr } from "@/lib/sr";
 import { useCountdown } from "@/lib/useCountdown";
 
 import {
-  BelaBetaSheet,
   BelaReportSheet,
   BugButton,
   ReportMenuRow,
@@ -116,9 +114,9 @@ export function BelaScreen({
   const [rulesOpen, setRulesOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(initialTableOpen);
-  // Prijava greške sa stola (odluka 17) i beta prozor na prvoj partiji (odluka 16).
+  // Prijava greške sa stola (odluka 17). Beta prozor NIJE ovdje: iskače prije
+  // ulaska za sto (`useBelaBetaGate`), jer server pokreće partiju čim igrač sjedne.
   const [reportOpen, setReportOpen] = useState(false);
-  const betaSeen = useSyncExternalStore(subscribeBelaBeta, () => readBelaBetaSeen(), () => true);
   const [toast, setToast] = useState<string | null>(null);
   const [busyAt, setBusyAt] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
@@ -349,8 +347,6 @@ export function BelaScreen({
   const mode: "quick" | "host" | "guest" = isQuickPlay ? "quick" : me?.isHost ? "host" : "guest";
   const host = state.players.find((p) => p.isHost);
   const showSummary = handOver && !holding && state.lastHand !== null;
-  // Beta prozor: jednom po uređaju, ne preko kraja meča ni pauze.
-  const showBeta = !betaSeen && !matchOver && !interrupted && !reportOpen;
 
   const pauseFrame =
     pausePhase === "abandoned"
@@ -451,7 +447,7 @@ export function BelaScreen({
               onReact={onReact}
               disabled={interrupted}
               // Bez zvuka na Bela stolu (odluka 18): na njegovom mjestu je prijava greške.
-              aboveFab={<BugButton onClick={() => setReportOpen(true)} pulse={showBeta} />}
+              aboveFab={<BugButton onClick={() => setReportOpen(true)} />}
               style={{ bottom: "calc(var(--stage-hand-top) - var(--safe-bottom))" }}
             />
           ) : null}
@@ -552,10 +548,6 @@ export function BelaScreen({
           />
 
           <RulesModal game="bela" isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
-
-          {showBeta ? (
-            <BelaBetaSheet onClose={() => markBelaBetaSeen()} />
-          ) : null}
 
           {reportOpen ? <BelaReportSheet context={belaReportContext(state)} onClose={() => setReportOpen(false)} /> : null}
 

@@ -19,6 +19,7 @@ import {
 } from "@/lib/session";
 import { savePlayerName, usePlayerName } from "@/lib/playerName";
 import { recordInviteOpened } from "@/lib/track";
+import { useBelaBetaGate } from "@/components/bela/BelaBetaGate";
 import {
   JoinRequestScreen,
   type JoinRequestPhase,
@@ -44,6 +45,8 @@ export function JoinFlow({
   onApproved: (session: RoomSession) => void;
 }) {
   const router = useRouter();
+  // Bela beta: prozor prije zahtjeva za ulazak (partija kreće čim se sto popuni).
+  const belaBeta = useBelaBetaGate();
   const [state, setState] = useState<State | null>(null);
   // `null` = gost još nije kucao → polje nosi sačuvano ime (obrazac iz `/ime`).
   const savedName = usePlayerName();
@@ -206,6 +209,7 @@ export function JoinFlow({
         : state.kind;
 
   return (
+    <>
     <JoinRequestScreen
       players={room.players}
       playerCount={room.playerCount}
@@ -214,11 +218,13 @@ export function JoinFlow({
       phase={phase}
       displayName={displayName}
       onDisplayName={setDraft}
-      onSubmit={() => void handleSubmit()}
+      onSubmit={() => belaBeta.gate(room.game, () => void handleSubmit())}
       {...(state.kind === "pending" ? { remainingMs: remaining } : {})}
       {...(state.kind === "error" ? { message: state.message } : {})}
       noticeSlot={state.kind === "pending" ? <PushPrompt context="guest" /> : undefined}
       onBack={state.kind === "rejected" || state.kind === "expired" ? retry : () => router.push("/")}
     />
+    {belaBeta.element}
+    </>
   );
 }

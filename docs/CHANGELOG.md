@@ -2685,3 +2685,11 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Zašto.** Vlasnik sa telefona: prijava na prvom ekranu nema logike — igrač još nije igrao, pa nema šta da prijavi. Prozor treba samo da nauči gdje je dugme i kako izgleda.
 
 **Provjera.** Typecheck, lint (`BelaParts`, `BelaScreen`), web 318 testova; CDP `/dev/bela?s=trick&beta=1` 360×740 — jedno dugme.
+
+## 208. Bela beta prozor prije ulaska za sto, ne na stolu (2026-11-21, `feat/bela-beta-gate`)
+
+**Šta.** Beta prozor (odluka 16) više nije na Bela stolu. Iskače prije ulaska: `components/bela/BelaBetaGate.tsx` (`useBelaBetaGate`) — `gate(game, go)` za Belu, ako prozor nije viđen, pokaže ga u fiksnom sloju (`.bl-beta-gate`, z 90) i `go` zove tek na „Razumijem"; „nazad" zatvara bez ulaska. Ulazi: početna `start()` (svi „Igraj", web i aplikacija), `/create` („Napravi sto"), `InviteInbox` (prihvati poziv), `JoinFlow` (zahtjev preko linka). Sa stola uklonjeni prozor i pulsiranje bube.
+
+**Zašto.** Vlasnik sa telefona: partija je tekla iza prozora. Server pokreće Bela meč čim igrač sjedne (Quick Play odmah, botovi), pa jedini način da igra ne krene prije „Razumijem" je da zahtjev za sto ode tek poslije njega.
+
+**Provjera.** Typecheck, lint (bez novih grešaka; `JoinFlow` ima zatečenu), web 318 testova, `next build --webpack` i `build:mobile`. E2E na `/` (390×844, presretnut `fetch`): klik na Bela „Igraj" → prozor, 0 poziva `/api/quickplay`; „Razumijem" → prozor nestaje, 1 poziv, „viđeno" upisano; drugi klik → bez prozora, odmah 1 poziv. `elementFromPoint` po cijelom ekranu pogađa sloj prozora (svjetliji donji dio na CDP snimku je ista headless greška sa providnošću iz unosa 205).

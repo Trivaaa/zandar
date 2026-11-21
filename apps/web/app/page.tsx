@@ -11,6 +11,8 @@ import { QuickPlayNameSheet, QuickPlaySettingsSheet } from "@/components/home/Qu
 import { SignupSheet } from "@/components/home/SignupSheet";
 import { FriendsGameSheet } from "@/components/home/web/FriendsGameSheet";
 import { WebHome } from "@/components/home/web/WebHome";
+import { useBelaBetaGate } from "@/components/bela/BelaBetaGate";
+import { readBelaBetaSeen } from "@/lib/belaBeta";
 import { WebNameSheet } from "@/components/home/web/WebNameSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
@@ -62,6 +64,8 @@ type Choice = { prefs: QuickPlayPrefs; tableTheme: TableTheme; remember?: false 
 
 export default function Home() {
   const router = useRouter();
+  // Bela beta: prozor PRIJE stola, jer server pokreće partiju čim igrač sjedne.
+  const belaBeta = useBelaBetaGate();
   const history = useHomeHistory();
   const layout = useMemo(() => homeLayout(GAMES, history), [history]);
   const main = layout.main;
@@ -179,6 +183,10 @@ export default function Home() {
    */
   async function start(game: GameConfig, choice?: Choice) {
     if (busy.current) return;
+    if (game.slug === "bela" && !readBelaBetaSeen()) {
+      belaBeta.gate("bela", () => void start(game, choice));
+      return;
+    }
     const saved = readPlayerName();
     if (saved) return play(saved, game, choice);
     if (identityUi) {
@@ -407,6 +415,8 @@ export default function Home() {
           onClose={() => setRulesFor(null)}
         />
       </div>
+
+      {belaBeta.element}
     </>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { parseGameId } from "@zandar/shared-types";
 
 import { Sheet } from "@/components/sheet/Sheet";
+import { useBelaBetaGate } from "@/components/bela/BelaBetaGate";
 import { acceptInvite } from "@/lib/invites";
 import { roomPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
@@ -30,6 +31,8 @@ export function InviteInbox() {
   const expiredFromPush = useExpiredInvite();
   const expired = expiredHere || expiredFromPush;
   const [error, setError] = useState<string | null>(null);
+  // Bela beta: prozor prije ulaska (partija kreće čim se sto popuni).
+  const belaBeta = useBelaBetaGate();
 
   if (expired) {
     return (
@@ -67,6 +70,7 @@ export function InviteInbox() {
   }
 
   return (
+    <>
     <Sheet
       title={sr.invite.incomingTitle(invite.fromNickname)}
       closeLabel={sr.invite.notNow}
@@ -74,7 +78,7 @@ export function InviteInbox() {
       onClose={() => dismissInvite(invite.roomId)}
     >
       <p className="sheet__note">{sr.invite.incomingBody(parseGameId(invite.game), invite.playerCount, invite.targetScore)}</p>
-      <button type="button" className="home__cta sheet__btn" disabled={busy} aria-busy={busy} onClick={() => void join()}>
+      <button type="button" className="home__cta sheet__btn" disabled={busy} aria-busy={busy} onClick={() => belaBeta.gate(invite.game, () => void join())}>
         {sr.invite.join}
       </button>
       {error ? (
@@ -83,5 +87,7 @@ export function InviteInbox() {
         </p>
       ) : null}
     </Sheet>
+    {belaBeta.element}
+    </>
   );
 }

@@ -4938,10 +4938,6 @@
   width: 1.4rem;
   height: 1.4rem;
 }
-/* Dok je otvoren beta prozor: dugme pulsira (samo transform). */
-.bl-bug[data-pulse] {
-  animation: bl-bug-pulse var(--t-turn-pulse) var(--ease-card) infinite;
-}
 @keyframes bl-bug-pulse {
   0%,
   100% {
@@ -4987,6 +4983,13 @@
 .bl-beta__demo .bl-bug__icon {
   width: 1.75rem;
   height: 1.75rem;
+}
+/* Beta prozor prije ulaska za sto (`useBelaBetaGate`): preko cijelog ekrana,
+   iznad početne, lista i donje trake. */
+.bl-beta-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
 }
 .bl-report {
   position: absolute;

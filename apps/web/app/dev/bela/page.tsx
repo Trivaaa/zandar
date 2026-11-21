@@ -36,7 +36,7 @@ import { useQueryParam } from "@/lib/useQuery";
  *   /dev/bela?s=table    B10 · tabela
  *   /dev/bela?s=end      B11 · kraj meča (&quick=0 → Revanš)
  *   /dev/bela?s=pause | vote  prekid veze
- *   &beta=1   beta prozor ponovo (briše „viđeno" sa ovog uređaja)
+ *   &beta=1   briše „viđeno" za beta prozor (on iskače prije stola: početna, /create, poziv, link)
  *   &table=wood|cloth · &seed=N
  *
  * URL je osnova (headless Chrome ne klikće); akcije samo pišu u konzolu.

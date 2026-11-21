@@ -9,6 +9,7 @@ import { saveSession } from "@/lib/session";
 import { savePlayerName, usePlayerName } from "@/lib/playerName";
 import { readTableThemeRaw, saveTableTheme } from "@/lib/tableTheme";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
+import { useBelaBetaGate } from "@/components/bela/BelaBetaGate";
 import { BELA_DEFAULT_TARGET, BELA_TARGETS, TABLE_GAMES, pickTableGame } from "@/lib/liveGames";
 import { useQueryParam } from "@/lib/useQuery";
 import { isNative } from "@/lib/platform";
@@ -18,6 +19,8 @@ const subscribeToNothing = () => () => {};
 
 export default function CreatePage() {
   const router = useRouter();
+  // Bela beta: prozor prije pravljenja stola (sto kreće sam kad se popuni).
+  const belaBeta = useBelaBetaGate();
   const savedName = usePlayerName();
   // `null` = igrač još nije kucao → polje nosi sačuvano ime.
   const [nameDraft, setNameDraft] = useState<string | null>(null);
@@ -79,6 +82,7 @@ export default function CreatePage() {
   }
 
   return (
+    <>
     <CreateRoomScreen
       displayName={displayName}
       onDisplayName={setNameDraft}
@@ -91,10 +95,12 @@ export default function CreatePage() {
       onTableTheme={setThemeDraft}
       game={game}
       {...(TABLE_GAMES.length > 1 && !gamePicked ? { onGame: setGameDraft } : {})}
-      onCreate={() => void handleCreate()}
+      onCreate={() => belaBeta.gate(game, () => void handleCreate())}
       onBack={() => router.push("/")}
       loading={loading}
       {...(error ? { error } : {})}
     />
+    {belaBeta.element}
+    </>
   );
 }

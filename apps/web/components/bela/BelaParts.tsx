@@ -434,15 +434,13 @@ export function BelaMatchEnd({
 
 /**
  * Prijava greške sa stola (odluka 17) — okruglo dugme na mjestu zvuka (odluka
- * 18), isti izgled kao `TableSoundButton`. `pulse`: dok je otvoren beta prozor,
- * da igrač vidi gdje je.
+ * 18), isti izgled kao `TableSoundButton`.
  */
-export function BugButton({ onClick, pulse = false }: { onClick: () => void; pulse?: boolean }) {
+export function BugButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
       className="table-sound bl-bug"
-      data-pulse={pulse || undefined}
       aria-label={sr.bela.beta.report}
       onClick={onClick}
     >
@@ -463,8 +461,9 @@ export function ReportMenuRow({ onClick }: { onClick: () => void }) {
 }
 
 /**
- * Beta prozor na prvoj Bela partiji (odluka 16): igra je nova i POKAZUJE gdje
- * je dugme za prijavu greške i kako izgleda (isto okruglo dugme kao na stolu).
+ * Beta prozor prije prve Bela partije (odluka 16; `useBelaBetaGate`): igra je
+ * nova i POKAZUJE gdje je dugme za prijavu greške i kako izgleda (isto okruglo
+ * dugme kao na stolu).
  * Bez prijave odmah — igrač još nije ni igrao (vlasnik, 21.11.2026).
  * Jednom po uređaju (`lib/belaBeta.ts`).
  */
