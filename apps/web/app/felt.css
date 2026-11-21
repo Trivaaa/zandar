@@ -4979,7 +4979,14 @@
 }
 .bl-beta__demo {
   flex: none;
+  /* Pokazno dugme je veće od pravog (48 px), da se lako upamti kako izgleda. */
+  width: 3.5rem;
+  height: 3.5rem;
   animation: bl-bug-pulse var(--t-turn-pulse) var(--ease-card) infinite;
+}
+.bl-beta__demo .bl-bug__icon {
+  width: 1.75rem;
+  height: 1.75rem;
 }
 .bl-report {
   position: absolute;

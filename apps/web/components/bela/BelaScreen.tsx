@@ -554,13 +554,7 @@ export function BelaScreen({
           <RulesModal game="bela" isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
 
           {showBeta ? (
-            <BelaBetaSheet
-              onClose={() => markBelaBetaSeen()}
-              onReport={() => {
-                markBelaBetaSeen();
-                setReportOpen(true);
-              }}
-            />
+            <BelaBetaSheet onClose={() => markBelaBetaSeen()} />
           ) : null}
 
           {reportOpen ? <BelaReportSheet context={belaReportContext(state)} onClose={() => setReportOpen(false)} /> : null}

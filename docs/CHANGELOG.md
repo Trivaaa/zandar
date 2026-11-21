@@ -2677,3 +2677,11 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 - `/dev/home` je imao `order = ["zandar","poker","raub"]`, pa je Bela (`indexOf` = −1 < live) uvijek bila „živa" u pregledu — dodata na spisak.
 - `markBelaBetaSeen` direktno kao `onClick` bi dobio događaj klika umjesto skladišta — omotano u `() => markBelaBetaSeen()`.
 - Python u bash heredoc-u je `\n` u TS stringu pretvorio u pravi prelom reda (test nije prolazio parsiranje) — ispravljeno ručno.
+
+## 207. Bela beta prozor: samo pokazuje dugme, bez „Prijavi grešku sada" (2026-11-21, `feat/bela-beta-copy`)
+
+**Šta.** `BelaBetaSheet` više nema dugme „Prijavi grešku sada" (ni prop `onReport`); ostaje jedno „Razumijem". Pokazna buba je veća (3.5rem, ikonica 1.75rem), a tekst kaže kad i gdje: „Kad nešto ne radi kako treba, dodirni ovo dugme — stoji desno iznad tvojih karata. Isto je i u meniju: Prijavi grešku." Uklonjen `sr.bela.beta.reportNow`.
+
+**Zašto.** Vlasnik sa telefona: prijava na prvom ekranu nema logike — igrač još nije igrao, pa nema šta da prijavi. Prozor treba samo da nauči gdje je dugme i kako izgleda.
+
+**Provjera.** Typecheck, lint (`BelaParts`, `BelaScreen`), web 318 testova; CDP `/dev/bela?s=trick&beta=1` 360×740 — jedno dugme.

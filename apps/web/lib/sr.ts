@@ -574,10 +574,9 @@ export const sr = {
     menuLine: (target: number) => `Beta · 4 igrača · 2 na 2 · do ${target}`,
     beta: {
       title: "Bela je u beta fazi",
-      body: "Igra je nova: pravila i izgled još doterujemo. Ako nešto ne radi kako treba, javi nam — svaka prijava pomaže.",
-      how: "Ovo dugme stoji desno iznad tvojih karata. Dodirni ga i napiši šta se desilo. Isto je i u meniju: Prijavi grešku.",
+      body: "Igra je nova: pravila i izgled još doterujemo. Ako tokom igre nešto ne radi kako treba, javi nam — svaka prijava pomaže.",
+      how: "Kad nešto ne radi kako treba, dodirni ovo dugme — stoji desno iznad tvojih karata. Isto je i u meniju: Prijavi grešku.",
       ok: "Razumijem",
-      reportNow: "Prijavi grešku sada",
       report: "Prijavi grešku",
     },
     hint: {

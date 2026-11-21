@@ -463,11 +463,12 @@ export function ReportMenuRow({ onClick }: { onClick: () => void }) {
 }
 
 /**
- * Beta prozor na prvoj Bela partiji (odluka 16): igra je nova, a greška se
- * prijavljuje — i POKAZUJE kako: isto okruglo dugme kao na stolu, uz opis gdje
- * stoji. Jednom po uređaju (`lib/belaBeta.ts`).
+ * Beta prozor na prvoj Bela partiji (odluka 16): igra je nova i POKAZUJE gdje
+ * je dugme za prijavu greške i kako izgleda (isto okruglo dugme kao na stolu).
+ * Bez prijave odmah — igrač još nije ni igrao (vlasnik, 21.11.2026).
+ * Jednom po uređaju (`lib/belaBeta.ts`).
  */
-export function BelaBetaSheet({ onClose, onReport }: { onClose: () => void; onReport: () => void }) {
+export function BelaBetaSheet({ onClose }: { onClose: () => void }) {
   return (
     <div className="pk-card-scrim bl-beta-scrim">
       <div className="pk-card bl-beta" role="dialog" aria-modal="true" aria-labelledby="bl-beta-title">
@@ -483,9 +484,6 @@ export function BelaBetaSheet({ onClose, onReport }: { onClose: () => void; onRe
         <div className="pk-card__actions">
           <button type="button" className="pk-card__primary" onClick={onClose}>
             {sr.bela.beta.ok}
-          </button>
-          <button type="button" className="pk-card__secondary" onClick={onReport}>
-            {sr.bela.beta.reportNow}
           </button>
         </div>
       </div>
