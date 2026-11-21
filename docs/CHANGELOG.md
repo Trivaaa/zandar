@@ -2623,3 +2623,16 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Dopuna 2 (isti dan):** dvije zaštite više.
 - `verifyAnalyticsInBundle` (`build-mobile.mjs`) poslije `next build` traži stvarnu vrijednost ključa u izvezenom JS-u. `build-apk.mjs` je zove prije `cap sync`, a `build:mobile` na kraju. Ispis nosi `✓ PostHog ključ u bundle-u: phc_xxxx…`. Ovo hvata i slučajeve koje provjera okruženja ne vidi (prazna vrijednost, bundler izbacio granu).
 - PostHog upozorenje „Android igrači bez klijentskih događaja": broji igrače sa serverskim `match_started` (`platform = android`) koji istog dana nisu poslali nijedan klijentski događaj (`$host = localhost`). Istorija od 31.10.: 0 svaki dan (jednom 2), a 19.11. 9 i 20.11. 13. Obični prag na broju događaja ne radi, jer saobraćaj iz aplikacije skače od 0 do 16.000 dnevno, a stare verzije šalju dok traje prelazak. MCP veza prema PostHog-u je samo za čitanje, pa upozorenje pravi vlasnik u PostHog-u.
+
+## 203. Bela: spec, tabla i motor (2026-11-21, `feat/bela-core`)
+
+**Šta.** Nova igra Bela, za sada samo kao spec, wireframe i čist motor. Spec `docs/bela-spec.md` (v0.3): 4 igrača 2 na 2, mađarice, web i aplikacija (odluke 1–5). Vlasnik ne zna pouzdano varijantu, pa su pravila napisana kao nacrt P-1…P-17 sa prijedlogom i alternativom; prihvaćena su kako su predložena (odluka 7), a ispravke iz feedbacka igrača mijenjaju samo parametar u `BelaRulesConfig`, kao kod Rauba. Tabla `UI_Bela` (B1–B12) na platnu „Kartaonica · identitet". Motor: `shared-types/src/bela.ts`, `game-core/src/bela/` (`cards`, `config`, `declarations`, `match`, `view`, `bot`, `simulate`), skripta `simulate:bela`.
+
+**Zašto ovako.**
+- *Ruka u dva reda (odluka 8).* Prvi nacrt je bio jedan red, karta 64 px i korak 38 px, što daje 330 px. Vlasnik ga je ocijenio sitnim. Dva reda po 4 sa kartom 84×132 px izabrana su poređenjem na tabli `UI_Bela2Reda`. Cijena: ruka je visoka 196 px, sto gubi ~85 px, tvoje sjedište se ne crta (potez pokazuje traka iznad ruke), a na 360×640 dno donjeg reda je 7 px od ivice.
+- *Zvanje uz prvu kartu (odluka 9).* Spec je imao posebne korake „uzmi talon" i „prijavi zvanja". Motor ih je spojio: talon ide u ruku čim je adut zvan, a `play` nosi `declare` (bez polja = prijavi). Tako se igra i za pravim stolom, a štedi četiri poteza sa tajmerom po ruci. Faze su samo `calling` i `tricks`.
+- *`"bela"` van `GameId` (odluka 10).* `parseGameId` bi je odmah prihvatio, pa bi server pravio Bela sobe bez stola. Dodaje se u fazi 3.
+
+**Mjerenja.** game-core 458 → 515 testova. `simulate:bela`, 10.000 mečeva (seed 1), za 501 i 1001: 0 grešaka karata, štihova i bodova, 0 odbijenih akcija, 0 zaglavljenih mečeva. Do 501: medijan 5 ruku, 13,4 min (p10 10,3, p90 16,2). Do 1001: medijan 9 ruku, 25,1 min. Prolaz 77,6 %, pad 21,7 % (kontrolni raspon iz speca 15–30 %), visi 0,8 %, štiglja 2,2 %, mus 15,6 %. Trajanje je isti model kao za Raub, ne mjerenje.
+
+**Zamke.** Ugrađena izolacija worktree-a za agenta pada na ovoj mašini zbog razlike `c:` / `C:` u putanji („core.worktree redirect"); worktree se pravi ručno (`git worktree add -b … ../zandar-bela main`), kao `zandar-raub`.

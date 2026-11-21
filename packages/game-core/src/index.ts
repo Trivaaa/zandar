@@ -29,4 +29,7 @@ export * from "./poker";
 // Raub — zasebna igra, imena sa prefiksom `raub`/`Raub`.
 export * from "./raub";
 
+// Bela — zasebna igra, imena sa prefiksom `bela`/`Bela`.
+export * from "./bela";
+
 export const VERSION = "0.0.1";

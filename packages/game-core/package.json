@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "simulate:poker": "tsx scripts/simulate-poker.ts",
-    "simulate:raub": "tsx scripts/simulate-raub.ts"
+    "simulate:raub": "tsx scripts/simulate-raub.ts",
+    "simulate:bela": "tsx scripts/simulate-bela.ts"
   },
   "dependencies": {
     "@zandar/shared-types": "workspace:*"

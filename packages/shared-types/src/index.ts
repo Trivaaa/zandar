@@ -925,5 +925,8 @@ export * from "./poker";
 // Raub — tipovi stanja i pogleda.
 export * from "./raub";
 
+// Bela — tipovi stanja i pogleda (motor; server i web još ne znaju za nju).
+export * from "./bela";
+
 // „Vrati se za sto" na početnoj (QA 10-24 P2).
 export * from "./activeTable";
