@@ -2693,3 +2693,13 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Zašto.** Vlasnik sa telefona: partija je tekla iza prozora. Server pokreće Bela meč čim igrač sjedne (Quick Play odmah, botovi), pa jedini način da igra ne krene prije „Razumijem" je da zahtjev za sto ode tek poslije njega.
 
 **Provjera.** Typecheck, lint (bez novih grešaka; `JoinFlow` ima zatečenu), web 318 testova, `next build --webpack` i `build:mobile`. E2E na `/` (390×844, presretnut `fetch`): klik na Bela „Igraj" → prozor, 0 poziva `/api/quickplay`; „Razumijem" → prozor nestaje, 1 poziv, „viđeno" upisano; drugi klik → bez prozora, odmah 1 poziv. `elementFromPoint` po cijelom ekranu pogađa sloj prozora (svjetliji donji dio na CDP snimku je ista headless greška sa providnošću iz unosa 205).
+
+## 209. Raub odluka 32: sedmicu koju djelilac preskoči mogu uzeti ostali (2026-11-21, `fix/raub-seven-open-to-all`)
+
+**Šta.** Kad je prva okrenuta karta 7 i djelilac kaže „Dalje”, korak `seven_choice` ne okreće odmah novu kartu: „Štih / Dalje” redom u smjeru igre dobija svaki sljedeći igrač. Prvi koji kaže „Štih” nosi adut kao djelilac (mora 1, pad +2, uz refu ×1 — odluke 27–28). Kad krug dođe nazad do djelioca, svi su rekli „Dalje” → `flipNext`. `takeStih(state, playerId)` umjesto tvrdog `dealerId`; `raubDealerBlind` u `seven_choice` važi samo dok je djelilac na potezu, pa vidi karte čim odgovori. Prekidač `sevenOpenToAll` (podrazumijevano da). Pravila za stolom (`RaubRules`) dopunjena.
+
+**Zašto.** Prijava igrača (Stefan, 21.11.2026), vlasnik isti dan: tako se igra za stolom.
+
+**Back-compat.** Bez novog polja u snapshotu: krug se izvodi iz `currentPlayerId` (sljedeći poslije onoga ko je rekao „Dalje” je djelilac → nova karta). Ruka zatečena u `seven_choice` ima djelioca na potezu, pa nastavlja po novom. Protokol `raub:2` isti (akcija `stih` već postoji), panel „Štih / Dalje” je već crtan za igrača na potezu, bot i auto-akcija rade za svakoga.
+
+**Provjera.** game-core 522 (7 novih, 6 starih prilagođeno pomoćnom `passSeven`), server 317, web 318, typecheck. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke (isto), refa 3,1 → 2,7 %, Štih 20.684 → 29.374. **Nije provjereno na uređaju ni u pregledaču.**

@@ -100,6 +100,12 @@ export interface RaubRules {
    * Viša karta iste boje se licitira normalno. Bez polja = da.
    */
   lowerOfPassedSuitDead?: boolean;
+  /**
+   * Odluka 32: sedmica na prvoj karti — kad djelilac kaže „Dalje”, redom u
+   * smjeru igre je mogu uzeti ostali („Štih”, mora 1, isto kao djelilac).
+   * Nova karta se okreće tek kad svi kažu „Dalje”. Bez polja = da.
+   */
+  sevenOpenToAll?: boolean;
 }
 
 /**
@@ -111,7 +117,8 @@ export interface RaubRules {
 export type RaubPhase = "playing" | "hand_complete" | "match_finished" | "abandoned";
 
 /**
- * Korak ruke. `seven_choice`: sedmica je na talonu, djelilac bira Štih / Dalje.
+ * Korak ruke. `seven_choice`: sedmica je na talonu, djelilac bira Štih / Dalje
+ * (odluka 32: poslije njegovog „Dalje” redom i ostali).
  * `await_open`: SAMO stari snapshot (raub naslijepo je uklonjen, odluka 13) —
  * hidracija ga prevodi u `bidding`, motor ga više ne pravi.
  * `swap_seven`: nosilac iz licitacije bira zamjenu sedmice za talon.

@@ -114,6 +114,14 @@ function ex(s: RaubGameState, pid: string, cardIds: string[] = [], discardId?: s
 /** Sedmica na talonu: djelilac kaže „Štih" (odluka 13 — više nije automatski). */
 const stih = (s: RaubGameState) => act(s, s.dealerId, { type: "stih", take: true });
 
+/** Sedmica na talonu: svi redom „Dalje" (odluka 32 — poslije djelioca pitaju se i ostali). */
+function passSeven(s: RaubGameState): RaubGameState {
+  while (s.phase === "playing" && s.step === "seven_choice") {
+    s = act(s, s.currentPlayerId!, { type: "stih", take: false });
+  }
+  return s;
+}
+
 /** Špil u kojem je `talon` prva okrenuta karta (indeks 2n), ostalo redom. */
 function deckWithTalon(talon: Card, n: number): Card[] {
   const rest = createRaubDeck().filter((x) => x.id !== talon.id);
@@ -209,8 +217,8 @@ describe("raub scenarij 1 — sedmica (Štih)", () => {
     expect(() => act(s, "a", { type: "bid", bid: "pass" })).toThrow("INVALID_ACTION");
     expect(getRaubAutoAction(s, "a")).toEqual({ type: "stih", take: false });
 
-    // Dalje: odmah nova karta i obična licitacija; sedmica ostaje prigušena ispod.
-    const next = act(s, "a", { type: "stih", take: false });
+    // Svi Dalje (odluka 32): nova karta i obična licitacija; sedmica ostaje prigušena ispod.
+    const next = passSeven(s);
     expect(next.step).toBe("bidding");
     expect(next.talonFlips).toBe(2);
     expect(next.talon.map((x) => x.id)).toEqual(["diamonds-7", "hearts-Q"]);
@@ -220,7 +228,7 @@ describe("raub scenarij 1 — sedmica (Štih)", () => {
 
   it("bez Štiha na trećoj karti: refa", () => {
     let s = match({ hands: HANDS4, talon: D("7"), rules: { maxTalonFlips: 2 }, next: [H("Q")] });
-    s = act(s, "a", { type: "stih", take: false });
+    s = passSeven(s);
     for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
     expect(s.lastHand!.void).toBe(true);
   });
@@ -405,7 +413,7 @@ describe("raub odluka 13 — Raub samo na A/K/Q/J, Moja, bez naslijepo", () => {
   });
 
   it("odluka 15: prva karta 7, djelilac Dalje — na drugu kartu nema Rauba", () => {
-    const s = act(match({ hands: HANDS4, talon: D("7"), next: [H("Q")] }), "a", { type: "stih", take: false });
+    const s = passSeven(match({ hands: HANDS4, talon: D("7"), next: [H("Q")] }));
     expect(s.step).toBe("bidding");
     expect(s.talonFlips).toBe(2);
     expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: true });
@@ -751,7 +759,7 @@ describe("raub refa djelioca (odluka 23)", () => {
     expect(() => act(s, "a", { type: "refa" })).toThrow("INVALID_ACTION");
 
     let t = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
-    t = act(t, "a", { type: "stih", take: false });
+    t = passSeven(t);
     expect(t.talonFlips).toBe(2);
     expect(() => act(t, "a", { type: "refa" })).toThrow("INVALID_ACTION");
   });
@@ -1271,7 +1279,7 @@ describe("raub refa se prenosi preko Štiha (odluka 27)", () => {
 
   it("„Dalje\" na sedmicu pa Moja: i dalje ×2 i troši refu", () => {
     let s = afterRefa(D("7"));
-    s = act(s, s.dealerId, { type: "stih", take: false });
+    s = passSeven(s);
     expect(s.multiplier).toBe(2);
     // Svi dalje dok neko ne može Moja ili ruka ne propadne u refu.
     while (s.phase === "playing" && s.step === "bidding") {
@@ -1444,9 +1452,12 @@ describe("raub odluka 26 — djelilac odlučuje naslijepo", () => {
     const base = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
     expect(hidden(base, "a")).toBe(true);
     expect(hidden(act(base, "a", { type: "stih", take: true }), "a")).toBe(false);
+    // Odluka 32: poslije djeliočevog „Dalje" sedmicu bira sljedeći, a djelilac već vidi karte.
     const passed = act(base, "a", { type: "stih", take: false });
-    expect(passed.talonFlips).toBe(2);
+    expect(passed.step).toBe("seven_choice");
+    expect(passed.currentPlayerId).toBe("b");
     expect(hidden(passed, "a")).toBe(false);
+    expect(passSeven(passed).talonFlips).toBe(2);
   });
 
   it("Refa naslijepo završava ruku i otkriva karte", () => {
@@ -1747,5 +1758,97 @@ describe("raub Moja sa sedmicom čeka zamjenu (odluka 30)", () => {
       s = ex(s, id);
     }
     expect(s.step).toBe("tricks");
+  });
+});
+
+describe("raub odluka 32 — sedmicu koju djelilac preskoči mogu uzeti ostali", () => {
+  it("djelilac Dalje → pita se sljedeći; on kaže Štih i nosi adut, mora 1", () => {
+    let s = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
+    s = act(s, "a", { type: "stih", take: false });
+    expect(s.step).toBe("seven_choice");
+    expect(s.currentPlayerId).toBe("b");
+    expect(s.talonFlips).toBe(1);
+    expect(getRaubView(s, "b").myCardsHidden).toBe(false);
+    expect(raubCanRefa(s, "b")).toBe(false);
+    expect(() => act(s, "b", { type: "refa" })).toThrow("INVALID_ACTION");
+    expect(() => act(s, "a", { type: "stih", take: true })).toThrow("NOT_YOUR_TURN");
+    expect(getRaubAutoAction(s, "b")).toEqual({ type: "stih", take: false });
+
+    s = act(s, "b", { type: "stih", take: true });
+    expect(s.scenario).toBe("seven");
+    expect(s.declarerId).toBe("b");
+    expect(s.trumpSuit).toBe("diamonds");
+    expect(s.requiredTricks).toBe(1);
+    expect(s.talonTakenBy).toBe("b");
+    expect(raubTalonPending(s)).toBe(true);
+    expect(s.step).toBe("going");
+    expect(s.currentPlayerId).toBe("c");
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("treći u krugu uzima; sedmica prelazi kod njega tek poslije zamjene i odbacivanja", () => {
+    let s = match({ hands: HANDS4, talon: D("7") });
+    s = act(s, "a", { type: "stih", take: false });
+    s = act(s, "b", { type: "stih", take: false });
+    s = act(s, "c", { type: "stih", take: true });
+    expect(s.declarerId).toBe("c");
+    for (const id of ["d", "a", "b"]) s = act(s, id, { type: "go", go: true });
+    expect(s.step).toBe("exchange");
+    expect(s.currentPlayerId).toBe("c");
+    s = ex(s, "c", [], "clubs-Q");
+    const c = s.seats.find((x) => x.playerId === "c")!;
+    expect(c.hand.map((x) => x.id)).toContain("diamonds-7");
+    expect(c.hand).toHaveLength(4);
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("svi Dalje → druga karta, licitacija od djelioca", () => {
+    const s = passSeven(match({ hands: HANDS4, talon: D("7"), next: [H("Q")] }));
+    expect(s.step).toBe("bidding");
+    expect(s.talonFlips).toBe(2);
+    expect(s.currentPlayerId).toBe("a");
+    expect(s.declarerId).toBeNull();
+  });
+
+  it("2 igrača: djelilac Dalje, protivnik Štih", () => {
+    let s = match({ ids: ["a", "b"], hands: { a: HANDS4.a!, b: HANDS4.b! }, talon: D("7") });
+    s = act(s, "a", { type: "stih", take: false });
+    expect(s.currentPlayerId).toBe("b");
+    s = act(s, "b", { type: "stih", take: true });
+    expect(s.declarerId).toBe("b");
+    expect(s.requiredTricks).toBe(1);
+    expect(s.step).toBe("exchange");
+    expect(s.currentPlayerId).toBe("b");
+  });
+
+  it("refa čeka: tuđi Štih ide ×1, refa ostaje za sljedeću ruku (odluka 27)", () => {
+    let s = match({ hands: HANDS4, talon: H("Q") });
+    s = act(s, "a", { type: "refa" });
+    s = startRaubHand(s, makeLcg(11), { deck: deckWithTalon(D("7"), 4) });
+    expect(s.multiplier).toBe(2);
+    s = act(s, s.dealerId, { type: "stih", take: false });
+    s = act(s, s.currentPlayerId!, { type: "stih", take: true });
+    expect(s.declarerId).not.toBe(s.dealerId);
+    expect(s.multiplier).toBe(1);
+    s = autoToHandEnd(s);
+    expect(s.lastHand!.multiplier).toBe(1);
+    expect(s.pendingRefas).toBe(1);
+  });
+
+  it("parametar: sevenOpenToAll false = djelilac Dalje odmah okreće novu kartu", () => {
+    const s = act(
+      match({ hands: HANDS4, talon: D("7"), next: [H("Q")], rules: { sevenOpenToAll: false } }),
+      "a",
+      { type: "stih", take: false },
+    );
+    expect(s.step).toBe("bidding");
+    expect(s.talonFlips).toBe(2);
+  });
+
+  it("bot koji nije djelilac odlučuje o sedmici sa otvorenim kartama", () => {
+    const s = act(match({ hands: HANDS4, talon: D("7") }), "a", { type: "stih", take: false });
+    const action = selectRaubBotAction(getRaubView(s, "b"), DEFAULT_RAUB_BOT_CONFIG, makeLcg(3));
+    expect(action.type).toBe("stih");
+    expect(() => act(s, "b", action)).not.toThrow();
   });
 });
