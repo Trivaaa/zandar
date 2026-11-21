@@ -332,6 +332,7 @@ export const sr = {
       zandar: "4 igrača · odmah, bez registracije",
       poker: "2–4 igrača · odmah, bez registracije",
       raub: "4 igrača · odmah, bez registracije",
+      bela: "2 na 2 · odmah, bez registracije",
     } as Record<string, string>,
     friends: "Igraj s prijateljima",
     friendsSub: "Napravi sto i pošalji pozivnicu",
@@ -552,6 +553,8 @@ export const sr = {
   },
   /* Bela (docs/bela-spec.md, tabla `UI_Bela`). „MI" je tvoj tim, „VI" protivnici
      (kao na papiru za belu), pa rečenice o timovima idu u „mi / oni". */
+  /** Oznaka igre u beta fazi (odluka 16) — na karticama i u beta prozoru. */
+  beta: { tag: "BETA", aria: "u beta fazi" },
   bela: {
     phase: {
       calling: "Zvanje aduta",
@@ -568,7 +571,15 @@ export const sr = {
       to: (target: number) => `do ${target}`,
       open: "Otvori tabelu",
     },
-    menuLine: (target: number) => `4 igrača · 2 na 2 · do ${target}`,
+    menuLine: (target: number) => `Beta · 4 igrača · 2 na 2 · do ${target}`,
+    beta: {
+      title: "Bela je u beta fazi",
+      body: "Igra je nova: pravila i izgled još doterujemo. Ako nešto ne radi kako treba, javi nam — svaka prijava pomaže.",
+      how: "Ovo dugme stoji desno iznad tvojih karata. Dodirni ga i napiši šta se desilo. Isto je i u meniju: Prijavi grešku.",
+      ok: "Razumijem",
+      reportNow: "Prijavi grešku sada",
+      report: "Prijavi grešku",
+    },
     hint: {
       lead: "Tvoj red · igraj bilo koju kartu",
       higher: "Tvoj red · moraš ići jače",
@@ -873,6 +884,10 @@ export const sr = {
     title: "Pošalji utisak",
     kindLabel: "Šta nam pišeš?",
     kinds: { bug: "Greška", idea: "Prijedlog", praise: "Pohvala" },
+    tableTitle: "Prijavi grešku",
+    tableNote: "Partija teče dok pišeš — ako istekne vrijeme, potez se odigra sam.",
+    backToTable: "Nazad za sto",
+    closeLabel: "Zatvori",
     textLabel: "Poruka",
     placeholders: {
       bug: "Šta se desilo, a šta je trebalo da se desi?",

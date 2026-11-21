@@ -40,6 +40,8 @@ export type FeedbackRecord = {
   appVersion?: string;
   platform: AnalyticsPlatform;
   userAgent?: string;
+  /** Odakle je prijava (sto, igra, ruka) — samo za prijave sa stola; stari zapisi ga nemaju. */
+  context?: string;
   /** Samo iz PROVJERENOG tokena — klijentu se na riječ ne vjeruje. */
   uid?: string;
   nickname?: string;
@@ -60,6 +62,8 @@ export function feedbackDir(): string {
 
 const APP_VERSION_MAX = 40;
 const USER_AGENT_MAX = 400;
+/** Kontekst partije sa stola (Bela beta): jedan red, npr. „Bela · sto ab12cd · ruka 3 · štih 5". */
+const CONTEXT_MAX = 200;
 
 /** Kontrolni znakovi osim reda i taba — nevidljivi su u mejlu, a kvare CSV/terminal. */
 // eslint-disable-next-line no-control-regex
@@ -94,6 +98,7 @@ export type ParsedFeedback = {
   email?: string;
   appVersion?: string;
   userAgent?: string;
+  context?: string;
   platform: AnalyticsPlatform;
   guestId?: string;
   images: FeedbackImage[];
@@ -139,6 +144,7 @@ export function parseFeedback(raw: unknown): ParseResult {
   const guestId = typeof body.guestId === "string" && body.guestId.length <= 64 ? body.guestId : undefined;
   const appVersion = cleanLine(body.appVersion, APP_VERSION_MAX);
   const userAgent = cleanLine(body.userAgent, USER_AGENT_MAX);
+  const context = cleanLine(body.context, CONTEXT_MAX);
 
   return {
     ok: true,
@@ -148,6 +154,7 @@ export function parseFeedback(raw: unknown): ParseResult {
       ...(email ? { email } : {}),
       ...(appVersion ? { appVersion } : {}),
       ...(userAgent ? { userAgent } : {}),
+      ...(context ? { context } : {}),
       platform: parsePlatform(body.platform) ?? "web",
       ...(guestId ? { guestId } : {}),
       images,
@@ -261,7 +268,7 @@ export function feedbackToCsv(records: readonly FeedbackRecord[]): string {
     const safe = /^[=+@-]/.test(value) ? `'${value}` : value;
     return `"${safe.replaceAll('"', '""')}"`;
   };
-  const header = ["id", "createdAt", "kind", "text", "email", "nickname", "uid", "appVersion", "platform", "userAgent", "attachments"];
+  const header = ["id", "createdAt", "kind", "text", "email", "nickname", "uid", "appVersion", "platform", "userAgent", "context", "attachments"];
   const rows = records.map((r) =>
     [
       r.id,
@@ -274,6 +281,7 @@ export function feedbackToCsv(records: readonly FeedbackRecord[]): string {
       r.appVersion ?? "",
       r.platform,
       r.userAgent ?? "",
+      r.context ?? "",
       String(r.attachments?.length ?? 0),
     ].map(cell),
   );
@@ -307,6 +315,7 @@ export function buildFeedbackMail(record: FeedbackRecord, to: string, images: re
     `Nalog: ${account}`,
     `Verzija: ${record.appVersion ?? "?"} · ${record.platform}`,
     `Uređaj: ${record.userAgent ?? "?"}`,
+    ...(record.context ? [`Partija: ${record.context}`] : []),
     `Vrijeme: ${new Date(record.createdAt).toISOString()}`,
     `ID: ${record.id}`,
     `Prilozi: ${record.attachments.length}`,
@@ -377,6 +386,7 @@ export function registerFeedbackRoutes(app: FastifyInstance, deps: FeedbackDeps)
         ...(input.appVersion ? { appVersion: input.appVersion } : {}),
         platform: input.platform,
         ...(input.userAgent ? { userAgent: input.userAgent } : {}),
+        ...(input.context ? { context: input.context } : {}),
         ...(user ? { uid: user.uid } : {}),
         ...(user?.nickname ? { nickname: user.nickname } : {}),
         createdAt,

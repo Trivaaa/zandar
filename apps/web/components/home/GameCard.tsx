@@ -1,5 +1,6 @@
 "use client";
 
+import { BetaTag } from "@/components/home/BetaTag";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { gameMeta } from "@/components/home/GameTile";
 import { ArrowRightIcon, FriendsIcon, StarIcon } from "@/components/icons";
@@ -43,6 +44,7 @@ export function GameCard({ game, pinned, compact, loading, error, onPlay, onCrea
           <div className="game-table__titles">
             <h1 id="game-card-title" className="game-card__title">
               {name}
+              <BetaTag game={game} />
             </h1>
             <p className="game-card__meta" data-error={Boolean(error)} role="status">
               {error ?? gameMeta(game)}

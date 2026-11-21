@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import type {
   AbandonVote,
   BelaAction,
@@ -14,7 +14,6 @@ import type {
 import { ReactionFab } from "@/components/ReactionFab";
 import { RulesModal } from "@/components/RulesModal";
 import { FeltHeader } from "@/components/felt/FeltHeader";
-import { TableSoundButton } from "@/components/felt/TableSoundButton";
 import { PlayerSeat } from "@/components/felt/PlayerSeat";
 import { SeatCaption } from "@/components/felt/SeatCaption";
 import { CardDeckContext } from "@/components/felt/cardDeck";
@@ -25,10 +24,12 @@ import { PauseAbandonOverlay } from "@/components/overlay/PauseAbandonOverlay";
 import { Toast } from "@/components/overlay/Toast";
 import { TrickArea, TrumpBadge } from "@/components/raub/RaubParts";
 import { runBackHandler, useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
+import { markBelaBetaSeen, readBelaBetaSeen, subscribeBelaBeta } from "@/lib/belaBeta";
 import {
   belaOverlayPhase,
   belaPhaseLabel,
   belaPlayHint,
+  belaReportContext,
   belaSeatCaption,
   declarationsLine,
   sortBelaHand,
@@ -44,6 +45,10 @@ import { sr } from "@/lib/sr";
 import { useCountdown } from "@/lib/useCountdown";
 
 import {
+  BelaBetaSheet,
+  BelaReportSheet,
+  BugButton,
+  ReportMenuRow,
   BelaHand,
   BelaHandSummary,
   BelaMatchEnd,
@@ -111,6 +116,9 @@ export function BelaScreen({
   const [rulesOpen, setRulesOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(initialTableOpen);
+  // Prijava greške sa stola (odluka 17) i beta prozor na prvoj partiji (odluka 16).
+  const [reportOpen, setReportOpen] = useState(false);
+  const betaSeen = useSyncExternalStore(subscribeBelaBeta, () => readBelaBetaSeen(), () => true);
   const [toast, setToast] = useState<string | null>(null);
   const [busyAt, setBusyAt] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
@@ -197,6 +205,7 @@ export function BelaScreen({
   useBackHandler(menuOpen, () => setMenuOpen(false));
   useBackHandler(rulesOpen, () => setRulesOpen(false));
   useBackHandler(tableOpen, () => setTableOpen(false));
+  useBackHandler(reportOpen, () => setReportOpen(false));
   useBrowserBackGuard(!isNative, !matchOver, () => void runBackHandler());
 
   function showError(err: unknown) {
@@ -340,6 +349,8 @@ export function BelaScreen({
   const mode: "quick" | "host" | "guest" = isQuickPlay ? "quick" : me?.isHost ? "host" : "guest";
   const host = state.players.find((p) => p.isHost);
   const showSummary = handOver && !holding && state.lastHand !== null;
+  // Beta prozor: jednom po uređaju, ne preko kraja meča ni pauze.
+  const showBeta = !betaSeen && !matchOver && !interrupted && !reportOpen;
 
   const pauseFrame =
     pausePhase === "abandoned"
@@ -439,7 +450,8 @@ export function BelaScreen({
             <ReactionFab
               onReact={onReact}
               disabled={interrupted}
-              aboveFab={<TableSoundButton />}
+              // Bez zvuka na Bela stolu (odluka 18): na njegovom mjestu je prijava greške.
+              aboveFab={<BugButton onClick={() => setReportOpen(true)} pulse={showBeta} />}
               style={{ bottom: "calc(var(--stage-hand-top) - var(--safe-bottom))" }}
             />
           ) : null}
@@ -493,6 +505,14 @@ export function BelaScreen({
                 <GameMenuSheet
                   title={sr.games.bela.name}
                   subtitle={sr.bela.menuLine(target)}
+                  extra={
+                    <ReportMenuRow
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setReportOpen(true);
+                      }}
+                    />
+                  }
                   onRules={() => {
                     setMenuOpen(false);
                     setRulesOpen(true);
@@ -532,6 +552,18 @@ export function BelaScreen({
           />
 
           <RulesModal game="bela" isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
+
+          {showBeta ? (
+            <BelaBetaSheet
+              onClose={() => markBelaBetaSeen()}
+              onReport={() => {
+                markBelaBetaSeen();
+                setReportOpen(true);
+              }}
+            />
+          ) : null}
+
+          {reportOpen ? <BelaReportSheet context={belaReportContext(state)} onClose={() => setReportOpen(false)} /> : null}
 
           {leaveOpen ? (
             <LeaveTableSheet

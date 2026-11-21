@@ -87,6 +87,8 @@ export type GameConfig = {
   deck?: CardDeck;
   /** Dvije prave karte na pločici igre (i na stolu, kad igra nema `heroCards`). */
   tileCards: readonly [CardFace, CardFace];
+  /** Igra u beta fazi (Bela, odluka 16): oznaka „BETA" uz ime na svim karticama. */
+  beta?: true;
   /** Tri karte na slici kartice u listi igara (tabla „UI · Početna — opcija 1 Lista"). */
   listCards: readonly [CardFace, CardFace, CardFace];
 };
@@ -175,6 +177,7 @@ export const GAMES: readonly GameConfig[] = [
     releasedAt: belaLive ? "2026-11-21" : null,
     heroCards: null,
     hasRules: true,
+    beta: true,
     tint: "bela",
     deck: "hungarian",
     // Bela: kralj i dama srca (J = U, Q = O na mađaricama).

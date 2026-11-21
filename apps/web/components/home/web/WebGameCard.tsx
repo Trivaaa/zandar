@@ -1,5 +1,6 @@
 "use client";
 
+import { BetaTag } from "@/components/home/BetaTag";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { ArrowRightIcon } from "@/components/icons";
 import type { GameBadge, GameConfig } from "@/lib/games";
@@ -62,6 +63,7 @@ export function WebGameCard({
           <span className="web-card__text">
             <span className="web-card__name">
               {name}
+              <BetaTag game={game} />
               {badge ? (
                 <span className="web-card__tag" data-badge={badge}>
                   {badgeText[badge]}

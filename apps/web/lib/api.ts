@@ -387,6 +387,8 @@ export async function sendFeedback(input: {
   text: string;
   email?: string;
   images: string[];
+  /** Prijava sa stola: igra, sto, ruka (`lib/belaView.ts` `belaReportContext`). */
+  context?: string;
 }): Promise<void> {
   const body: FeedbackRequest = {
     ...input,

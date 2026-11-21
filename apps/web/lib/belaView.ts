@@ -228,3 +228,15 @@ export function belaScoreTable(history: readonly BelaHandResult[], myTeam: BelaT
 /** Koliko je koji tim blizu cilja (traka u tabeli), 0–100. */
 export const progressPercent = (score: number, target: number) =>
   Math.max(0, Math.min(100, Math.round((score / Math.max(1, target)) * 100)));
+
+/**
+ * Red o partiji uz prijavu greške sa stola (odluka 17): igra, sto, ruka,
+ * faza, verzija stanja i adut. Samo javno — nikad tuđe karte (HARD RULE 3).
+ */
+export function belaReportContext(
+  v: Pick<BelaPlayerView, "roomId" | "dealNo" | "phase" | "step" | "tricks" | "stateVersion" | "trumpSuit">,
+): string {
+  const parts = [`Bela · sto ${v.roomId}`, `ruka ${v.dealNo}`, belaPhaseLabel(v), `v${v.stateVersion}`];
+  if (v.trumpSuit) parts.push(`adut ${HU_SUIT_NAME[v.trumpSuit]}`);
+  return parts.join(" · ");
+}

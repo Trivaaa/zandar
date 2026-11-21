@@ -13,6 +13,7 @@ import {
 import { parseTableTheme, type BelaGamePayload, type BelaGameState, type PublicPlayer } from "@zandar/shared-types";
 
 import { BelaScreen } from "@/components/bela/BelaScreen";
+import { BELA_BETA_KEY } from "@/lib/belaBeta";
 import { useQueryParam } from "@/lib/useQuery";
 
 /**
@@ -35,6 +36,7 @@ import { useQueryParam } from "@/lib/useQuery";
  *   /dev/bela?s=table    B10 · tabela
  *   /dev/bela?s=end      B11 · kraj meča (&quick=0 → Revanš)
  *   /dev/bela?s=pause | vote  prekid veze
+ *   &beta=1   beta prozor ponovo (briše „viđeno" sa ovog uređaja)
  *   &table=wood|cloth · &seed=N
  *
  * URL je osnova (headless Chrome ne klikće); akcije samo pišu u konzolu.
@@ -150,6 +152,17 @@ export default function BelaDevPage() {
   // Tabela i kraj: kraći meč, da se do njih stigne brzo.
   const target = s === "end" || s === "table" ? 1001 : 501;
   const [now] = useState(() => Date.now());
+  // `beta=1`: zaboravi „viđeno" prije prvog crtanja stola (samo pregled).
+  const betaParam = useQueryParam("beta");
+  useState(() => {
+    if (betaParam !== "1" || typeof window === "undefined") return null;
+    try {
+      window.localStorage.removeItem(BELA_BETA_KEY);
+    } catch {
+      // pregled radi i bez skladišta
+    }
+    return null;
+  });
   const view = useMemo(() => scenario(s, seed, now, target), [s, seed, now, target]);
   const log = (label: string) => async (...args: unknown[]) => console.info(`[bela dev] ${label}`, ...args);
   return (

@@ -107,6 +107,17 @@ describe("parseFeedback", () => {
     assert.equal(res.value.appVersion, "1.2.0");
     assert.equal(res.value.platform, "android");
   });
+
+  test("kontekst partije (prijava sa stola): jedan red, skraćen; bez njega nema polja", () => {
+    const res = parseFeedback(valid({ context: "Bela · sto ab12cd\n · ruka 3".padEnd(500, "x") }));
+    assert.ok(res.ok);
+    assert.ok(res.value.context?.startsWith("Bela · sto ab12cd  · ruka 3"));
+    assert.ok(!res.value.context?.includes("\n"));
+    assert.ok((res.value.context?.length ?? 0) <= 200);
+    const none = parseFeedback(valid());
+    assert.ok(none.ok);
+    assert.equal("context" in none.value, false);
+  });
 });
 
 describe("disk", () => {
@@ -153,6 +164,11 @@ describe("buildFeedbackMail", () => {
     assert.equal(anon.replyTo, undefined);
     assert.ok(anon.subject.startsWith("[Kartaonica · Pohvala]"));
     assert.ok(anon.text.includes("Nalog: gost"));
+    assert.ok(!anon.text.includes("Partija:"));
+
+    const fromTable = buildFeedbackMail(record({ context: "Bela · sto ab12cd · ruka 3" }), "v@p.com", []);
+    assert.ok(fromTable.text.includes("Partija: Bela · sto ab12cd · ruka 3"));
+    assert.ok(feedbackToCsv([record({ context: "Bela · sto ab12cd" })]).includes('"Bela · sto ab12cd"'));
   });
 });
 

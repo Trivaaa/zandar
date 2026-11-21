@@ -58,7 +58,7 @@ export function WebHome({
         {isStaging ? <span className="home__env web-home__env">STAGING</span> : null}
         {/* Desktop (V4): uz traku naslov kaže „Ili izaberi novu igru". */}
         <h1 className="web-home__title">{resumeSlot ? sr.homeResume.orNew : sr.homeWeb.title}</h1>
-        <ul className="web-home__games">
+        <ul className="web-home__games" data-count={items.length}>
           {items.map(({ game, badge }) => {
             const mine = loadingSlug === game.slug;
             return (

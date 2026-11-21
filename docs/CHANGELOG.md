@@ -2661,3 +2661,19 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 - Turbopack je servirao ustajao `felt.css` (pravila iz zadnjih izmjena nisu bila u CSS-u) — `rm -rf apps/web/.next` i restart (zamka iz CLAUDE.md, ponovo plaćena). Provjera: `curl` na serviran CSS i `grep` po selektoru.
 - `next dev` ponovo upisao `apps/web/AGENTS.md` i `CLAUDE.md` — obrisani.
 - Testovi početne su pretpostavljali tačno tri igre (`games.test.ts`, `homePrefs.test.ts` sa `bela` kao „igrom koje nema") — ispravljeni.
+
+## 206. Bela beta: oznaka, prozor prvi put, prijava greške sa stola; 4 igre na web početnoj (2026-11-21, `feat/bela-beta`)
+
+**Šta.** Zahtjevi vlasnika poslije prve probe na stagingu (`docs/bela-spec.md` odluke 16–18).
+- **BETA:** `GameConfig.beta` (Bela), oznaka `BetaTag` uz ime u `WebGameCard`, `GameList`, `GameTile`, `GameCard`; u meniju stola „Beta · 4 igrača…". Zasebno od `gameBadge` (Novo / Zakačeno ostaju).
+- **Prozor na prvoj partiji:** `BelaBetaSheet` — šta je beta i KAKO se prijavljuje (isto okruglo dugme kao na stolu, pulsira dok je prozor otvoren). Jednom po uređaju: `lib/belaBeta.ts`, ključ `kartaonica:bela:beta-seen`, čita se kroz `useSyncExternalStore`, skladište u `try/catch` (bez njega „viđeno" važi do kraja sesije).
+- **Prijava greške sa stola:** `BugButton` na mjestu `TableSoundButton` (`ReactionFab aboveFab`) i red „Prijavi grešku" u meniju → `BelaReportSheet` = postojeći `FeedbackForm` sa `table={{ context }}` (X umjesto strelice, „Prijavi grešku", napomena da partija teče, „Nazad za sto"). `context` iz `belaReportContext` (sto, ruka, faza, verzija stanja, adut — bez karata). `FeedbackRequest.context?` u shared-types; server (`feedback.ts`) ga čisti kroz `cleanLine` (≤ 200), upisuje, šalje u mejlu („Partija: …") i izvozi u CSV. Opciono polje — stari klijenti i zapisi rade.
+- **Bez zvuka na Bela stolu** (samo Bela; zvuk ostaje pločica u meniju).
+- **Web početna sa 4 igre:** desktop red je bio za 3 kartice; `data-count="4"` → 4 jednake u redu. Produkcija i dalje bez Bele dok vlasnik ne upali `NEXT_PUBLIC_BELA=1`.
+
+**Mjerenja.** Web 315 → 318 testova (`belaBeta`, `belaReportContext`), server 316 → 317 (`context` u parse/mejl/CSV); typecheck; lint po fajlu bez grešaka; `next build --webpack` i `build:mobile` (beta tekst u izvozu). CDP: beta prozor 360×740, sto sa bubom i bez zvuka, forma preko stola, početna 1280×800 (4 u redu) i 390×844. E2E: prijava poslata iz forme na Bela stolu u `/dev/bela` → lokalni server → zapis u `_feedback` sa `context` „Bela · sto dev · ruka 3 · Štih 2 od 8 · v83 · adut žir".
+
+**Zamke.**
+- `/dev/home` je imao `order = ["zandar","poker","raub"]`, pa je Bela (`indexOf` = −1 < live) uvijek bila „živa" u pregledu — dodata na spisak.
+- `markBelaBetaSeen` direktno kao `onClick` bi dobio događaj klika umjesto skladišta — omotano u `() => markBelaBetaSeen()`.
+- Python u bash heredoc-u je `\n` u TS stringu pretvorio u pravi prelom reda (test nije prolazio parsiranje) — ispravljeno ručno.

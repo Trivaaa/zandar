@@ -1,5 +1,6 @@
 "use client";
 
+import { BetaTag } from "@/components/home/BetaTag";
 import type { CardDeck } from "@/lib/hungarianDeck";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { BellIcon, SuitIcon } from "@/components/icons";
@@ -52,7 +53,10 @@ export function GameTile({ game, isNew, onOpen }: { game: GameConfig; isNew: boo
     >
       <TileCards cards={game.tileCards} prefix={`tile-${game.slug}`} deck={game.deck} />
       {isNew ? <span className="game-tile__new">{sr.home.isNew}</span> : null}
-      <span className="game-tile__name">{name}</span>
+      <span className="game-tile__name">
+        {name}
+        <BetaTag game={game} />
+      </span>
       <span className="game-tile__meta">{gameMeta(game)}</span>
     </button>
   );
@@ -74,7 +78,10 @@ export function UpcomingTile({ game, onNotify }: { game: GameConfig; onNotify: (
       aria-label={sr.home.notifyFor(name)}
     >
       <TileCards cards={game.tileCards} prefix={`soon-${game.slug}`} deck={game.deck} />
-      <span className="game-tile__name">{name}</span>
+      <span className="game-tile__name">
+        {name}
+        <BetaTag game={game} />
+      </span>
       <span className="game-tile__bell" aria-hidden="true">
         <BellIcon className="game-tile__bell-icon" />
       </span>

@@ -1,5 +1,6 @@
 "use client";
 
+import { BetaTag } from "@/components/home/BetaTag";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { ArrowRightIcon, FriendsIcon } from "@/components/icons";
 import type { GameBadge, GameConfig } from "@/lib/games";
@@ -66,7 +67,10 @@ export function GameList({
                 ))}
               </span>
               <div className="home-list__text">
-                <h2 className="home-list__name">{name}</h2>
+                <h2 className="home-list__name">
+                  {name}
+                  <BetaTag game={game} />
+                </h2>
                 <p className="home-list__sub" data-error={mine && Boolean(error)} role="status">
                   {mine && error ? error : sr.home.listSub[game.slug]}
                 </p>

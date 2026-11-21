@@ -2243,6 +2243,11 @@
   .web-card {
     flex: 0 1 calc((100% - 2 * var(--web-gap)) / 3);
   }
+  /* Četiri igre (Bela): sve u jednom redu, jednake širine. */
+  .web-home__games[data-count="4"] .web-card {
+    flex: 1 1 0;
+    min-width: 0;
+  }
   .web-card__hit {
     gap: 0.625rem;
     padding: 0.625rem;
@@ -2581,4 +2586,25 @@ button.resume-bar:focus-visible {
 .resume-bar[data-tint="bela"] {
   --tint-1: var(--game-bela-1);
   --tint-2: var(--game-bela-2);
+}
+
+/* Oznaka igre u beta fazi (Bela, odluka 16): mala pilula uz ime. */
+.game-beta {
+  display: inline-block;
+  margin-left: 0.4em;
+  padding: 0.15em 0.45em;
+  border-radius: 999px;
+  vertical-align: 0.2em;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  font: 700 0.625rem/1.2 var(--font-sans);
+  letter-spacing: 0.08em;
+  text-shadow: none;
+}
+
+/* Forma za grešku preko stola (`BelaReportSheet`): napomena da partija teče. */
+.fbform__table-note {
+  margin: 0 var(--funnel-pad, 1rem) 0.5rem;
+  font: 400 0.8125rem/1.4 var(--font-sans);
+  color: var(--text-soft);
 }

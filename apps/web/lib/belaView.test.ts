@@ -5,6 +5,7 @@ import type { BelaHandResult, BelaTeamHand, BelaTrick, Card, Rank, Suit } from "
 
 import {
   belaHandRows,
+  belaReportContext,
   belaHandTable,
   belaOutcome,
   belaOutcomeSentence,
@@ -226,4 +227,22 @@ describe("belaView: kraj ruke i tabela", () => {
     assert.equal(progressPercent(431, 1001), 43);
     assert.equal(progressPercent(1200, 1001), 100);
   });
+});
+
+test("red o partiji uz prijavu greške: igra, sto, ruka, faza, verzija, adut — bez karata", () => {
+  const ctx = belaReportContext({
+    roomId: "ab12cd",
+    dealNo: 3,
+    phase: "playing",
+    step: "tricks",
+    tricks: [trick([["a", c("A", "clubs")]], "a"), trick([])],
+    stateVersion: 41,
+    trumpSuit: "hearts",
+  });
+  assert.equal(ctx, "Bela · sto ab12cd · ruka 3 · Štih 2 od 8 · v41 · adut srce");
+  assert.ok(!ctx.includes("clubs"));
+  assert.equal(
+    belaReportContext({ roomId: "x", dealNo: 1, phase: "playing", step: "calling", tricks: [], stateVersion: 2, trumpSuit: null }),
+    "Bela · sto x · ruka 1 · Zvanje aduta · v2",
+  );
 });

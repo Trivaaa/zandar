@@ -4931,3 +4931,63 @@
   font: 700 0.875rem/1 var(--font-sans);
   letter-spacing: 0.08em;
 }
+
+/* ---- Bela beta: dugme za grešku, beta prozor, forma preko stola ---------- */
+
+.bl-bug__icon {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+/* Dok je otvoren beta prozor: dugme pulsira (samo transform). */
+.bl-bug[data-pulse] {
+  animation: bl-bug-pulse var(--t-turn-pulse) var(--ease-card) infinite;
+}
+@keyframes bl-bug-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+.bl-menu-bug,
+.bl-menu-chev {
+  width: 1.375rem;
+  height: 1.375rem;
+  flex: none;
+}
+.bl-beta {
+  text-align: left;
+}
+.bl-beta__tag {
+  margin: 0 0 0.5rem;
+}
+.bl-beta__how {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0.25rem;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+  background-color: color-mix(in oklab, var(--text) 6%, transparent);
+}
+.bl-beta__how p {
+  margin: 0;
+  font-size: var(--type-sm, 0.875rem);
+  color: var(--text);
+}
+.bl-beta__demo {
+  flex: none;
+  animation: bl-bug-pulse var(--t-turn-pulse) var(--ease-card) infinite;
+}
+.bl-report {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  overflow-y: auto;
+  background-color: var(--surface);
+}
+.bl-report .screen {
+  min-height: 100%;
+}

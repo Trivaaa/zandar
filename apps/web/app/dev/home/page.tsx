@@ -18,7 +18,7 @@ import { useQueryParam } from "@/lib/useQuery";
 /**
  * Harness za početnu preko CIJELOG viewporta (pregib se mjeri ovdje, ne u
  * okviru `/dev/funnel`). Konfiguracija se bira u URL-u, bez izmjene `GAMES`:
- *   ?live=1|2|3   koliko igara je živo (Žandar, pa Poker, pa Raub) — H1/H2/H3
+ *   ?live=1|2|3|4 koliko igara je živo (Žandar, pa Poker, pa Raub, pa Bela) — H1/H2/H3
  *   &pin=poker    zakačena igra — H5
  *   &last=poker   zadnja igrana igra (bez nje niko nije igrao ništa)
  *   &err=1        greška traženja stola (stoji na mjestu mete)
@@ -92,7 +92,7 @@ export default function DevHomePage() {
     ) : null;
 
   const { layout, history } = useMemo(() => {
-    const order: GameSlug[] = ["zandar", "poker", "raub"];
+    const order: GameSlug[] = ["zandar", "poker", "raub", "bela"];
     const games: GameConfig[] = GAMES.map((g) =>
       order.indexOf(g.slug) < live
         ? { ...g, status: "live", releasedAt: g.releasedAt ?? "2026-10-20" }

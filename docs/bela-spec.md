@@ -1,6 +1,6 @@
 # Kartaonica — Bela modul (Spec v0.1, nacrt)
 
-Nov 21, 2026 · @Igor · v0.2: pravila P-1…P-17 prihvaćena kako su predložena **(odluka 7)** · v0.3: ruka u dva reda **(odluka 8)**, motor i odluke 9–14 · v0.4: server (odluka 15) i ekran
+Nov 21, 2026 · @Igor · v0.2: pravila P-1…P-17 prihvaćena kako su predložena **(odluka 7)** · v0.3: ruka u dva reda **(odluka 8)**, motor i odluke 9–14 · v0.4: server (odluka 15) i ekran · v0.5: beta, prijava greške sa stola (odluke 16–18)
 
 > Status: faze 0–4 završene na granama `feat/bela-core` → `feat/bela-server` → `feat/bela-table` (nije spojeno u `main`). Preostaje faza 5: staging, uređaj, izdanje.
 > Dizajn: tabla „UI · Bela" (`UI_Bela`) na Claude Design platnu „Kartaonica · identitet", https://claude.ai/artifact/1DkTrJNEv2148shhQUC3de#artboard-UI_Bela — nacrt B1–B12 od 21.11.2026, čeka odobrenje vlasnika. Gdje se tabla i ovaj tekst razilaze, važi tekst.
@@ -307,3 +307,6 @@ Zavisnosti: tabla zavisi od pravila (P-2, P-6 i P-8 mijenjaju ekrane). Motor zav
 | 13 | Visi više puta zaredom | Bodovi koji vise idu pobjedniku sljedeće ruke; ako i ona visi, sabiraju se i čekaju dalje | Dopuna P-12 |
 | 14 | Podsijecanje | Ko nema boju mora baciti adut i kad ne može nadjačati; kad štih nosi adut, boja se prati bilo kojom kartom te boje | Dopuna P-10, uobičajeno pravilo |
 | 15 | Timovi u privatnom stolu | Po redu ulaska: mjesta 0 i 2 protiv 1 i 3 (`seatIndex % 2`), isto kao 4P Žandar. Izbor timova dolazi kasnije, uz ekran | Vlasnik, 21.11.2026: Žandar sa 4 igrača takav izbor nema; spec ga je tražio |
+| 16 | Beta | Bela nosi oznaku „BETA" uz ime na svim karticama igara (web i aplikacija) i u meniju stola. Na prvoj Bela partiji na uređaju iskače prozor „Bela je u beta fazi" koji pokazuje dugme za prijavu greške (jednom po uređaju, `kartaonica:bela:beta-seen`) | Vlasnik, 21.11.2026: igra još nije provjerena sa pravim igračima; prijave trebaju odmah |
+| 17 | Prijava greške sa stola | Okruglo dugme sa bubom desno iznad ruke i red „Prijavi grešku" u meniju otvaraju postojeću formu „Pošalji utisak" kao sloj preko stola (partija teče). Uz prijavu ide red o partiji (`context`: sto, ruka, faza, verzija stanja, adut — bez karata); server ga čuva, šalje u mejlu i izvozi u CSV | Vlasnik, 21.11.2026. Forma je ista kao `/utisak` (bez nove rute ni novog servisa) |
+| 18 | Bez zvuka na Bela stolu | Dugme za zvuk nije na Bela stolu; na njegovom mjestu je dugme za grešku. Zvuk ostaje u meniju (pločica „Zvuk"). Ostali stolovi se ne mijenjaju | Vlasnik, 21.11.2026 |

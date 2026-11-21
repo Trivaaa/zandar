@@ -12,7 +12,9 @@ import type {
   Suit,
 } from "@zandar/shared-types";
 
+import { FeedbackForm } from "@/components/feedback/FeedbackForm";
 import { PlayerHand } from "@/components/felt/PlayerHand";
+import { BugIcon, ChevronRightIcon } from "@/components/icons";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { PokerAvatar } from "@/components/poker/PokerParts";
 import { withSuits } from "@/components/raub/RaubParts";
@@ -426,6 +428,76 @@ export function BelaMatchEnd({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Prijava greške sa stola (odluka 17) — okruglo dugme na mjestu zvuka (odluka
+ * 18), isti izgled kao `TableSoundButton`. `pulse`: dok je otvoren beta prozor,
+ * da igrač vidi gdje je.
+ */
+export function BugButton({ onClick, pulse = false }: { onClick: () => void; pulse?: boolean }) {
+  return (
+    <button
+      type="button"
+      className="table-sound bl-bug"
+      data-pulse={pulse || undefined}
+      aria-label={sr.bela.beta.report}
+      onClick={onClick}
+    >
+      <BugIcon className="bl-bug__icon" />
+    </button>
+  );
+}
+
+/** Red „Prijavi grešku" u meniju stola (drugi put do iste forme). */
+export function ReportMenuRow({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="gamemenu__row" onClick={onClick}>
+      <BugIcon className="bl-menu-bug" />
+      <span className="gamemenu__row-label">{sr.bela.beta.report}</span>
+      <ChevronRightIcon className="bl-menu-chev" />
+    </button>
+  );
+}
+
+/**
+ * Beta prozor na prvoj Bela partiji (odluka 16): igra je nova, a greška se
+ * prijavljuje — i POKAZUJE kako: isto okruglo dugme kao na stolu, uz opis gdje
+ * stoji. Jednom po uređaju (`lib/belaBeta.ts`).
+ */
+export function BelaBetaSheet({ onClose, onReport }: { onClose: () => void; onReport: () => void }) {
+  return (
+    <div className="pk-card-scrim bl-beta-scrim">
+      <div className="pk-card bl-beta" role="dialog" aria-modal="true" aria-labelledby="bl-beta-title">
+        <span className="game-beta bl-beta__tag">{sr.beta.tag}</span>
+        <h3 id="bl-beta-title">{sr.bela.beta.title}</h3>
+        <p>{sr.bela.beta.body}</p>
+        <div className="bl-beta__how">
+          <span className="table-sound bl-bug bl-beta__demo" aria-hidden="true">
+            <BugIcon className="bl-bug__icon" />
+          </span>
+          <p>{sr.bela.beta.how}</p>
+        </div>
+        <div className="pk-card__actions">
+          <button type="button" className="pk-card__primary" onClick={onClose}>
+            {sr.bela.beta.ok}
+          </button>
+          <button type="button" className="pk-card__secondary" onClick={onReport}>
+            {sr.bela.beta.reportNow}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Forma za grešku kao sloj preko stola — partija ostaje otvorena ispod. */
+export function BelaReportSheet({ context, onClose }: { context: string; onClose: () => void }) {
+  return (
+    <div className="bl-report" role="dialog" aria-modal="true" aria-label={sr.feedback.tableTitle}>
+      <FeedbackForm onBack={onClose} onDone={onClose} table={{ context }} />
     </div>
   );
 }

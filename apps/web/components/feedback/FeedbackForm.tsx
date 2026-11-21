@@ -18,12 +18,23 @@ const KIND_ICONS: Record<FeedbackKind, ComponentType<{ className?: string }>> = 
 
 type Status = "idle" | "sending" | "done";
 
+export type FeedbackFormProps = {
+  onBack: () => void;
+  onDone: () => void;
+  /**
+   * Prijava sa stola (Bela beta, odluka 17): forma je sloj preko stola —
+   * naslov „Prijavi grešku", X umjesto strelice, napomena da partija teče,
+   * a uz prijavu ide red o partiji (`context`, bez tuđih karata).
+   */
+  table?: { context: string } | undefined;
+};
+
 /**
  * „Pošalji utisak" (tabla A2): vrsta, poruka, do 3 slike, e-mail za odgovor.
  * Verzija i telefon idu sami (`sendFeedback`). Gost nema nalog — zato polje
  * za e-mail; prijavljenom igraču je unaprijed popunjeno adresom naloga.
  */
-export function FeedbackForm({ onBack, onDone }: { onBack: () => void; onDone: () => void }) {
+export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
   const [kind, setKind] = useState<FeedbackKind>("bug");
   const [text, setText] = useState("");
   const [images, setImages] = useState<string[]>([]);
@@ -88,7 +99,13 @@ export function FeedbackForm({ onBack, onDone }: { onBack: () => void; onDone: (
     setStatus("sending");
     setProblem(null);
     try {
-      await sendFeedback({ kind, text: trimmed, images, ...(address ? { email: address } : {}) });
+      await sendFeedback({
+        kind,
+        text: trimmed,
+        images,
+        ...(address ? { email: address } : {}),
+        ...(table ? { context: table.context } : {}),
+      });
       setStatus("done");
     } catch (err) {
       const message = err instanceof Error && err.message !== "Greška" ? err.message : sr.feedback.error;
@@ -104,7 +121,7 @@ export function FeedbackForm({ onBack, onDone }: { onBack: () => void; onDone: (
           <h1 className="fbform__done-title">{sr.feedback.doneTitle}</h1>
           <p className="fbform__done-body">{email.trim() ? sr.feedback.doneBodyEmail : sr.feedback.doneBody}</p>
           <button type="button" className="home__cta fbform__submit" onClick={onDone}>
-            {sr.feedback.backHome}
+            {table ? sr.feedback.backToTable : sr.feedback.backHome}
           </button>
         </div>
       </main>
@@ -114,11 +131,17 @@ export function FeedbackForm({ onBack, onDone }: { onBack: () => void; onDone: (
   return (
     <main className="screen fbform">
       <header className="fbform__head">
-        <button type="button" className="fbform__back" onClick={onBack} aria-label={sr.backLabel}>
-          <ArrowLeftIcon className="fbform__back-icon" />
+        <button
+          type="button"
+          className="fbform__back"
+          onClick={onBack}
+          aria-label={table ? sr.feedback.closeLabel : sr.backLabel}
+        >
+          {table ? <CloseIcon className="fbform__back-icon" /> : <ArrowLeftIcon className="fbform__back-icon" />}
         </button>
-        <h1 className="fbform__title">{sr.feedback.title}</h1>
+        <h1 className="fbform__title">{table ? sr.feedback.tableTitle : sr.feedback.title}</h1>
       </header>
+      {table ? <p className="fbform__table-note">{sr.feedback.tableNote}</p> : null}
 
       <form
         className="fbform__form"

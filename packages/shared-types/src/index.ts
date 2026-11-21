@@ -572,6 +572,11 @@ export type FeedbackRequest = {
   userAgent?: string;
   guestId?: string;
   platform?: "web" | "native";
+  /**
+   * Gdje je prijava poslata — za prijavu sa stola (Bela beta): igra, sto, ruka,
+   * faza. Jedan red, bez tuđih karata. Stari klijenti ga ne šalju.
+   */
+  context?: string;
 };
 
 export type FeedbackResponse = { ok: true };
