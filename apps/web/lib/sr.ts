@@ -16,8 +16,8 @@ import { pluralForm } from "./plural";
 const MISSING_WORDS = ["", "jedan", "dva", "tri"] as const;
 
 /** Ime igre u genitivu — „partija Žandara / Pokera / Rauba". */
-const GAME_GENITIVE: Record<GameId, string> = { zandar: "Žandara", poker: "Pokera", raub: "Rauba" };
-const GAME_NAME: Record<GameId, string> = { zandar: "Žandar", poker: "Poker", raub: "Raub" };
+const GAME_GENITIVE: Record<GameId, string> = { zandar: "Žandara", poker: "Pokera", raub: "Rauba", bela: "Bele" };
+const GAME_NAME: Record<GameId, string> = { zandar: "Žandar", poker: "Poker", raub: "Raub", bela: "Bela" };
 
 /** „jedan na jedan" / „dva na dva" (samo Žandar ima timove) / „u troje" / „u četvoro". */
 function lineupPhrase(game: GameId, players: number): string {

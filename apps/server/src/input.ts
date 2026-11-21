@@ -25,9 +25,14 @@ export function parseDisplayName(value: unknown): string | null {
 /**
  * Cilj privatne sobe (`/api/rooms`): isti izbor kao brza igra i pozivi (11 ili
  * 21), izostavljen → 21. Poker i Raub nemaju izbor cilja — upisuje se 21 samo
- * da `rulesConfig` ostane istog oblika, šta god klijent poslao. `null` → 400.
+ * da `rulesConfig` ostane istog oblika, šta god klijent poslao. Bela: 501, 701
+ * ili 1001 (P-16), izostavljen → 1001. `null` → 400.
  */
-export function parseRoomTargetScore(value: unknown, game: GameId): 11 | 21 | null {
+export function parseRoomTargetScore(value: unknown, game: GameId): number | null {
+  if (game === "bela") {
+    if (value === undefined || value === null) return 1001;
+    return value === 501 || value === 701 || value === 1001 ? value : null;
+  }
   if (game !== "zandar" || value === undefined || value === null) return 21;
   return value === 11 || value === 21 ? value : null;
 }

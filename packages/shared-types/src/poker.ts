@@ -6,12 +6,12 @@
 import type { Card, PublicPlayer } from "./index";
 
 /** Igre koje se stvarno igraju za stolom. Soba bez polja `game` je Žandar. */
-export const GAME_IDS = ["zandar", "poker", "raub"] as const;
+export const GAME_IDS = ["zandar", "poker", "raub", "bela"] as const;
 export type GameId = (typeof GAME_IDS)[number];
 
 /** Nepoznata ili nedostajuća vrijednost = Žandar (stari klijenti, stari snapshoti). */
 export function parseGameId(value: unknown): GameId {
-  return value === "poker" || value === "raub" ? value : "zandar";
+  return value === "poker" || value === "raub" || value === "bela" ? value : "zandar";
 }
 
 /**
@@ -23,6 +23,7 @@ export function parseGameId(value: unknown): GameId {
 export function inviteSummary(game: GameId, playerCount: number, targetScore: number): string {
   if (game === "poker") return `Poker · ${playerCount} igrača · 100 žetona`;
   if (game === "raub") return `Raub · ${playerCount} igrača · od ${targetScore} do 0`;
+  if (game === "bela") return `Bela · ${playerCount} igrača · do ${targetScore}`;
   return `Žandar · ${playerCount} igrača · do ${targetScore}`;
 }
 
@@ -286,4 +287,4 @@ export function clientSupportsGame(games: unknown, game: GameId): boolean {
  * (Štih / Moja, bez rauba naslijepo): APK 1.4.0 zna Raub, ali ne i nove
  * korake, pa dobija „ažuriraj aplikaciju" umjesto stola koji ne radi.
  */
-export const GAME_PROTOCOL: Partial<Record<GameId, string>> = { raub: "raub:2" };
+export const GAME_PROTOCOL: Partial<Record<GameId, string>> = { raub: "raub:2", bela: "bela:1" };

@@ -87,6 +87,38 @@ export function describeSeat(room: LobbyRoom, playerId: string): ActiveTable | n
     };
   }
 
+  if (room.game === "bela") {
+    const s = room.bela;
+    if (!s) return room.status === "waiting" ? lobby() : null;
+    if (s.phase === "abandoned") return null;
+    const seat = s.seats.find((x) => x.playerId === playerId);
+    if (!seat) return null;
+    // Timska igra: rezultat je „naš tim : njihov tim", kao 4P Žandar.
+    const mine = s.scores[seat.team];
+    const theirs = s.scores[seat.team === 0 ? 1 : 0];
+    const state = { kind: "score" as const, mine, theirs, team: true };
+    if (s.phase === "match_finished" || room.status === "finished") {
+      const place = s.placements.find((p) => p.playerId === playerId)?.place ?? null;
+      if (place === null) return null;
+      return {
+        ...base,
+        game: "bela",
+        matchId: s.matchId,
+        phase: "finished",
+        state,
+        result: { kind: "score", won: place === 1, mine, theirs },
+      };
+    }
+    return {
+      ...base,
+      game: "bela",
+      matchId: s.matchId,
+      phase: "playing",
+      myTurn: s.phase === "playing" && s.currentPlayerId === playerId,
+      state,
+    };
+  }
+
   // Žandar
   const gs = room.gameState;
   if (!gs) return room.status === "waiting" ? lobby() : null;

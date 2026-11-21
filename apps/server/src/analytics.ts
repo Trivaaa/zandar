@@ -133,7 +133,7 @@ type AnalyticsGame = AnalyticsEvents["friend_invite_sent"]["game"];
 
 /** Bez polja = Žandar (isto kao soba). */
 function analyticsGame(game: string | undefined): AnalyticsGame {
-  return game === "poker" || game === "raub" ? game : "zandar";
+  return game === "poker" || game === "raub" || game === "bela" ? game : "zandar";
 }
 
 type IdentityLike = { guestId?: string | undefined; platform?: AnalyticsPlatform | undefined };
@@ -243,7 +243,7 @@ type SeatMatchLike = {
   seats: readonly { playerId: string; place: number | null }[];
 };
 
-type SeatGame = "poker" | "raub";
+type SeatGame = "poker" | "raub" | "bela";
 
 /** Raub stanje u obliku koji dijeli sa pokerom (`dealNo` = broj ruke). */
 export function raubMatchLike(s: {
@@ -252,6 +252,26 @@ export function raubMatchLike(s: {
   seats: readonly { playerId: string; place: number | null }[];
 }): SeatMatchLike {
   return { matchId: s.matchId, handNo: s.dealNo, seats: s.seats };
+}
+
+/**
+ * Bela stanje u istom obliku: plasman je timski (1 = pobjednički tim, 2 = drugi)
+ * i postoji tek na kraju meča (`placements`); do tada `null`.
+ */
+export function belaMatchLike(s: {
+  matchId: string;
+  dealNo: number;
+  seats: readonly { playerId: string }[];
+  placements: readonly { playerId: string; place: number }[];
+}): SeatMatchLike {
+  return {
+    matchId: s.matchId,
+    handNo: s.dealNo,
+    seats: s.seats.map((x) => ({
+      playerId: x.playerId,
+      place: s.placements.find((p) => p.playerId === x.playerId)?.place ?? null,
+    })),
+  };
 }
 
 /** `match_started` za poker — isti događaj, `game: "poker"`, bez cilja. */

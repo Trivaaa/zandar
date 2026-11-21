@@ -629,7 +629,7 @@ export type AnalyticsEvents = {
   app_install_attributed: InstallCampaign & { has_room: boolean };
   /** `game` od pokera (6.11.2026); bez njega je Žandar. */
   /** `guest`: igrač je preskočio ime i ide kao „Gost NN" (web, 16.11.2026). */
-  play_requested: { mode: MatchMode; game?: "zandar" | "poker" | "raub"; guest?: true };
+  play_requested: { mode: MatchMode; game?: "zandar" | "poker" | "raub" | "bela"; guest?: true };
   teaser_opened: { game: string };
   upcoming_games_viewed: NoProps;
   /** Dodir na pločicu najavljene igre na početnoj, bez obzira na to da li je ostavljena adresa. */
@@ -659,13 +659,13 @@ export type AnalyticsEvents = {
     room_id: string;
     invited_count: number;
     source: "new_room" | "lobby";
-    game: "zandar" | "poker" | "raub";
+    game: "zandar" | "poker" | "raub" | "bela";
     platform?: AnalyticsPlatform;
   };
   /** Pozvani prijatelj ušao u sobu (bez odobrenja hosta). `wait_ms` = od poziva do ulaska. */
   friend_invite_accepted: {
     room_id: string;
-    game: "zandar" | "poker" | "raub";
+    game: "zandar" | "poker" | "raub" | "bela";
     wait_ms: number;
     platform?: AnalyticsPlatform;
   };
@@ -673,7 +673,7 @@ export type AnalyticsEvents = {
     mode: MatchMode;
     match_id: string;
     /** Igra (od pokera). Događaji bez polja su Žandar. */
-    game?: "zandar" | "poker" | "raub";
+    game?: "zandar" | "poker" | "raub" | "bela";
     player_count: number;
     human_count: number;
     bot_count: number;
@@ -685,7 +685,7 @@ export type AnalyticsEvents = {
   match_ended: {
     mode: MatchMode;
     match_id: string;
-    game?: "zandar" | "poker" | "raub";
+    game?: "zandar" | "poker" | "raub" | "bela";
     end_reason: MatchEndReason;
     hands_played: number;
     duration_ms?: number;
@@ -720,7 +720,7 @@ export type AnalyticsEvents = {
    * prelazi sa drugog uređaja istog naloga.
    */
   table_resume_click: {
-    game: "zandar" | "poker" | "raub";
+    game: "zandar" | "poker" | "raub" | "bela";
     phase: "lobby" | "playing" | "finished";
     my_turn: boolean;
     place: "bar" | "sheet";

@@ -94,7 +94,7 @@ export function shuffleSeats<P extends ShuffleSeatPlayer>(
   });
 }
 
-const GAME_NAME: Record<GameId, string> = { zandar: "Žandar", poker: "Poker", raub: "Raub" };
+const GAME_NAME: Record<GameId, string> = { zandar: "Žandar", poker: "Poker", raub: "Raub", bela: "Bela" };
 
 /** Red iznad naslova: igra, broj igrača, cilj (samo Žandar ima cilj u bodovima). */
 export function shuffleKicker(room: { game?: GameId | undefined; playerCount: number; targetScore: number }): string {

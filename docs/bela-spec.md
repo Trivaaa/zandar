@@ -44,7 +44,7 @@ Rizik je u dvije stvari:
 - Kao igrač, hoću da u svakom trenutku vidim adut, ko je zvao i koliko moj tim ima u ovoj ruci i u meču.
 
 **Društvo od četvoro**
-- Kao host, hoću da napravim sto i pozovem trojicu prijatelja, i da biram ko je s kim u timu.
+- Kao host, hoću da napravim sto i pozovem trojicu prijatelja (timovi po redu ulaska u V1, odluka 15; izbor timova kasnije).
 - Kao igrač u privatnom stolu, hoću da prazna mjesta mogu popuniti „igrači" kad nas je troje.
 
 **Igrač koji ne zna belu dobro**
@@ -163,7 +163,7 @@ Svi prijedlozi su prihvaćeni 21.11.2026 **(odluka 7)**. Ispravke dolaze kasnije
 Dijeljenje (6 + 2 zatvorene) → zvanje aduta (jedan krug, djelilac mora) → talon odmah u ruku (8 karata) → štih 1, svako prijavljuje zvanje uz svoju kartu → pokazivanje zvanja → štihovi 2–8 (bela kad padne druga karta) → bodovanje (prolaz / pad / visi / štiglja) → pregled ruke, host pokreće sljedeću ruku → kraj meča kad tim pređe cilj.
 
 - **Ulazak za sto:** Quick Play odmah smješta igrača za sto s 4 mjesta, a prazna mjesta dobijaju botove. Timovi u Quick Playu su nasumični.
-- **Privatni sto:** host bira timove (kao 4P Žandar) i cilj. Prazna mjesta može popuniti samo izričito („Popuni prazna mjesta i počni").
+- **Privatni sto:** timovi po redu ulaska, kao 4P Žandar: 1. i 3. protiv 2. i 4. **(odluka 15)**. Cilj 501, 701 ili 1001 (`targetScore`, bez polja 1001). Meč kreće sam kad se popune sva 4 mjesta. Prazna mjesta može popuniti samo izričito („Popuni prazna mjesta i počni").
 - **Kraj ruke:** pregled stoji dok host ne pritisne „Sljedeća ruka →", kao Žandar i Raub.
 - **Kraj meča:** Igraj ponovo / Revanš / Na početnu, kao Raub (odluka 7).
 
@@ -228,7 +228,7 @@ Isti okvir kao Poker i Raub, ništa novo u infrastrukturi:
 - `GameId` + `"bela"`, `LobbyRoom.bela` (nikad `gameState`), motor u `packages/game-core/src/bela/` (čist, `rng` se ubrizgava, `crypto.randomInt` na serveru), sto u `apps/server/src/bela/table.ts`, socket `bela:action`, ekran `apps/web/components/bela/`, prikaz u `lib/belaView.ts`, preview `/dev/bela?s=…`.
 - Faze ruke: `calling` → `tricks` (talon prelazi u ruku čim je adut zvan; zvanje putuje uz prvu kartu: akcija `play` nosi `declare`, bez polja = prijavi) **(odluka 9)**.
 - Server šalje listu dozvoljenih karata i opcija (`myDeclarations` za zvanja), UI samo crta. Javno: `declaredPoints` odmah po bacanju, `shownDeclarations` poslije prvog štiha, samo za tim koji boduje.
-- `"bela"` se dodaje u `GameId` / `GAME_PROTOCOL` tek u fazi 3: `parseGameId` bi je odmah prihvatio i server bi počeo praviti Bela sobe **(odluka 10)**.
+- `"bela"` je u `GameId` / `GAME_PROTOCOL` od faze 3 (odluka 10). Server: `apps/server/src/bela/table.ts` (`BelaTables`), socket `bela:action`; `LobbyRoom.bela`, nikad `gameState`. Rok poteza `BELA_TURN_MS` (25 s), Quick Play prozor `BELA_MATCH_WINDOW_MS` (2 s).
 - **Vidljivost:** igrač vidi svoje karte i odigrane karte. Ne vidi talon drugih, tuđe karte ni špil, ni na kraju ruke, osim karata zvanja koje se pokazuju po pravilu P-6.
 - **Stari klijenti:** `games` / `auth.games` mora nositi `"bela"` (`GAME_PROTOCOL` `"bela:1"`), inače 426 `update_required`.
 - **Prekidač izdanja `belaLive`:** staging i dev uključeno, produkcija tek uz `NEXT_PUBLIC_BELA=1`.
@@ -306,3 +306,4 @@ Zavisnosti: tabla zavisi od pravila (P-2, P-6 i P-8 mijenjaju ekrane). Motor zav
 | 12 | Dužina niza u poređenju | Između vrijednosti i više karte poredi se dužina niza: niz od 6 pobjeđuje niz od 5, iako oba vrijede 100 | Spec nije rekao; dopuna P-7 |
 | 13 | Visi više puta zaredom | Bodovi koji vise idu pobjedniku sljedeće ruke; ako i ona visi, sabiraju se i čekaju dalje | Dopuna P-12 |
 | 14 | Podsijecanje | Ko nema boju mora baciti adut i kad ne može nadjačati; kad štih nosi adut, boja se prati bilo kojom kartom te boje | Dopuna P-10, uobičajeno pravilo |
+| 15 | Timovi u privatnom stolu | Po redu ulaska: mjesta 0 i 2 protiv 1 i 3 (`seatIndex % 2`), isto kao 4P Žandar. Izbor timova dolazi kasnije, uz ekran | Vlasnik, 21.11.2026: Žandar sa 4 igrača takav izbor nema; spec ga je tražio |

@@ -1,6 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import type {
   AnalyticsPlatform,
+  BelaGameState,
   GameId,
   GameState,
   PokerGameState,
@@ -83,7 +84,12 @@ export type LobbyRoom = {
    * poker, Raub soba NIKAD nema `gameState` (docs/raub-spec.md).
    */
   raub?: RaubGameState | null;
-  /** Poker i Raub Quick Play: do kad sto čeka druge prave igrače prije botova (epoch ms). */
+  /**
+   * Stanje Bela meča (samo server — špil, tuđe ruke, talon). Kao poker i Raub,
+   * Bela soba NIKAD nema `gameState` (docs/bela-spec.md).
+   */
+  bela?: BelaGameState | null;
+  /** Poker, Raub i Bela Quick Play: do kad sto čeka druge prave igrače prije botova (epoch ms). */
   matchingUntil?: number;
 };
 
