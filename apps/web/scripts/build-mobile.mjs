@@ -33,6 +33,9 @@ export const TARGETS = {
     // slanja na pregled. Web isto pali `NEXT_PUBLIC_POKER/RAUB=1` na Vercelu.
     NEXT_PUBLIC_POKER: "1",
     NEXT_PUBLIC_RAUB: "1",
+    // Izdanje 1.5.0 (odluka vlasnika 2026-11-22): Bela kao BETA. Web isto pali
+    // `NEXT_PUBLIC_BELA=1` na Vercelu.
+    NEXT_PUBLIC_BELA: "1",
   },
   staging: {
     NEXT_PUBLIC_API_URL: "https://zandar-production.up.railway.app",
