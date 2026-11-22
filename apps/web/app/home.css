@@ -2243,6 +2243,11 @@
   .web-card {
     flex: 0 1 calc((100% - 2 * var(--web-gap)) / 3);
   }
+  /* Pet ili šest igara (lažna vrata): dva reda po tri, ista širina kao sa tri. */
+  .web-home__games[data-count="5"],
+  .web-home__games[data-count="6"] {
+    flex-wrap: wrap;
+  }
   /* Četiri igre (Bela): sve u jednom redu, jednake širine. */
   .web-home__games[data-count="4"] .web-card {
     flex: 1 1 0;
@@ -2586,6 +2591,18 @@ button.resume-bar:focus-visible {
 .resume-bar[data-tint="bela"] {
   --tint-1: var(--game-bela-1);
   --tint-2: var(--game-bela-2);
+}
+
+/* Lažna vrata (Tablić, Remi): iste kartice kao prave igre, samo svoja boja. */
+.home-list__card[data-tint="tablic"],
+.web-card[data-tint="tablic"] {
+  --tint-1: var(--game-tablic-1);
+  --tint-2: var(--game-tablic-2);
+}
+.home-list__card[data-tint="remi"],
+.web-card[data-tint="remi"] {
+  --tint-1: var(--game-remi-1);
+  --tint-2: var(--game-remi-2);
 }
 
 /* Oznaka igre u beta fazi (Bela, odluka 16): mala pilula uz ime. */

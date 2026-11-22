@@ -16,6 +16,8 @@ export type WebHomeProps = {
   loadingSlug: string | null;
   error?: string | undefined;
   onPlay: (game: GameConfig) => void;
+  /** Lažna vrata: kartica viđena (analitika). */
+  onSeen?: ((game: GameConfig) => void) | undefined;
   onFriends: () => void;
   onFeedback: () => void;
   /** Desktop zaglavlje Igraj · Prijatelji · Profil (uz nalog, kao donja traka). */
@@ -42,6 +44,7 @@ export function WebHome({
   loadingSlug,
   error,
   onPlay,
+  onSeen,
   onFriends,
   onFeedback,
   showNav,
@@ -70,6 +73,7 @@ export function WebHome({
                 disabled={busy}
                 error={mine ? error : undefined}
                 onPlay={() => onPlay(game)}
+                onSeen={onSeen ? () => onSeen(game) : undefined}
               />
             );
           })}

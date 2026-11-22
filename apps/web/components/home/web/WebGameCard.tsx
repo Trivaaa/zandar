@@ -5,6 +5,7 @@ import { PlayingCard } from "@/components/felt/PlayingCard";
 import { ArrowRightIcon } from "@/components/icons";
 import type { GameBadge, GameConfig } from "@/lib/games";
 import { sr } from "@/lib/sr";
+import { useSeenOnce } from "@/lib/useSeenOnce";
 
 const badgeText: Record<Exclude<GameBadge, null>, string> = {
   pinned: sr.home.pinned,
@@ -37,6 +38,7 @@ export function WebGameCard({
   disabled,
   error,
   onPlay,
+  onSeen,
 }: {
   game: GameConfig;
   badge: GameBadge;
@@ -46,10 +48,13 @@ export function WebGameCard({
   /** Greška traženja za ovu igru — stoji umjesto podnaslova. */
   error?: string | undefined;
   onPlay: () => void;
+  /** Kartica je stvarno viđena (lažna vrata: analitika). Jednom po prikazu. */
+  onSeen?: (() => void) | undefined;
 }) {
   const name = sr.games[game.slug].name;
+  const ref = useSeenOnce<HTMLLIElement>(onSeen);
   return (
-    <li className="web-card" data-tint={game.tint}>
+    <li ref={ref} className="web-card" data-tint={game.tint}>
       <button
         type="button"
         className="web-card__hit"

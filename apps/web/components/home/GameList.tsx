@@ -5,6 +5,7 @@ import { PlayingCard } from "@/components/felt/PlayingCard";
 import { ArrowRightIcon, FriendsIcon } from "@/components/icons";
 import type { GameBadge, GameConfig } from "@/lib/games";
 import { sr } from "@/lib/sr";
+import { useSeenOnce } from "@/lib/useSeenOnce";
 
 export type GameListItem = { game: GameConfig; badge: GameBadge };
 
@@ -26,6 +27,7 @@ export function GameList({
   error,
   onPlay,
   onCreate,
+  onSeen,
 }: {
   items: readonly GameListItem[];
   /**
@@ -39,6 +41,8 @@ export function GameList({
   error?: string | undefined;
   onPlay: (game: GameConfig) => void;
   onCreate: (game: GameConfig) => void;
+  /** Kartica je stvarno viđena (lažna vrata: analitika). Jednom po prikazu. */
+  onSeen?: ((game: GameConfig) => void) | undefined;
 }) {
   const busy = loadingSlug !== null && !error;
   return (
@@ -47,7 +51,7 @@ export function GameList({
         const name = sr.games[game.slug].name;
         const mine = loadingSlug === game.slug;
         return (
-          <li key={game.slug} className="home-list__card" data-tint={game.tint}>
+          <SeenLi key={game.slug} className="home-list__card" tint={game.tint} onSeen={onSeen ? () => onSeen(game) : undefined}>
             <div className="home-list__art">
               {/* Greška traženja ima prednost nad oznakom: tekst raste nagore. */}
               {badge && !compact && !(mine && error) ? (
@@ -98,9 +102,29 @@ export function GameList({
                 {sr.home.create}
               </button>
             </div>
-          </li>
+          </SeenLi>
         );
       })}
     </ul>
+  );
+}
+
+/** `<li>` koji javi kad je viđen; bez `onSeen` je običan red. */
+function SeenLi({
+  className,
+  tint,
+  onSeen,
+  children,
+}: {
+  className: string;
+  tint: string;
+  onSeen: (() => void) | undefined;
+  children: React.ReactNode;
+}) {
+  const ref = useSeenOnce<HTMLLIElement>(onSeen);
+  return (
+    <li ref={ref} className={className} data-tint={tint}>
+      {children}
+    </li>
   );
 }

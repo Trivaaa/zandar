@@ -13,7 +13,8 @@ const KEY = "kartaonica:home";
 
 const EMPTY: HomeHistory = { pinned: null, played: {} };
 
-const isSlug = (v: unknown): v is GameSlug => GAMES.some((g) => g.slug === v);
+// Lažna vrata se nikad ne igraju ni kače, pa ih istorija ne pamti.
+const isSlug = (v: unknown): v is GameSlug => GAMES.some((g) => g.slug === v && g.status !== "door");
 
 /** Sirov zapis → istorija. Sve nepoznato (pokvaren JSON, igra koje više nema) se odbacuje. */
 export function parseHomeHistory(raw: string | null | undefined): HomeHistory {
