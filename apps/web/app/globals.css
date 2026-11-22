@@ -101,6 +101,11 @@
   /* Bela: tamna šljiva — odvojena od crvene pokera i plave Rauba. */
   --game-bela-1:    #5e3462;
   --game-bela-2:    #2c162e;
+  /* Lažna vrata (Tablić, Remi): boje odvojene od živih igara. */
+  --game-tablic-1:  #7a5a1e;
+  --game-tablic-2:  #3a2a0c;
+  --game-remi-1:    #3b3f7a;
+  --game-remi-2:    #1b1d3c;
   --game-zandar-1:  #2c6152;
   --game-zandar-2:  #10302a;
 

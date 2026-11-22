@@ -468,7 +468,7 @@ export type LastMove = {
  * tip: server je koristi za validaciju `POST /api/signups`, web za rute
  * (`generateStaticParams`) — pa ne mogu da se raziđu.
  */
-export const UPCOMING_GAME_SLUGS = ["poker", "remi", "bela", "raub"] as const;
+export const UPCOMING_GAME_SLUGS = ["poker", "remi", "bela", "raub", "tablic"] as const;
 
 export type UpcomingGameSlug = (typeof UPCOMING_GAME_SLUGS)[number];
 
@@ -639,6 +639,15 @@ export type AnalyticsEvents = {
   upcoming_games_viewed: NoProps;
   /** Dodir na pločicu najavljene igre na početnoj, bez obzira na to da li je ostavljena adresa. */
   upcoming_game_tapped: { game: string };
+  /**
+   * Lažna vrata (Tablić, Remi): igra izgleda kao prava na početnoj, a dodir
+   * otvara „dolazi uskoro". `viewed` = kartica u vidnom polju, jednom po prikazu
+   * početne; `tapped` = dodir na Igraj/Napravi sto; `signup` = ostavljen e-mail
+   * iz tog lista (server uz to šalje `signup_succeeded` samo za novu adresu).
+   */
+  fake_door_viewed: { game: UpcomingGameSlug };
+  fake_door_tapped: { game: UpcomingGameSlug; action: "play" | "create" };
+  fake_door_signup: { game: UpcomingGameSlug };
   /** Gost je postao nalog (isti `uid`). Prijava na postojeći nalog NIJE ovo. */
   account_registered: { method: "password" | "google" };
   /** Host je poslao link: sistemski meni (`share`) ili kopiranje (`copy`). Odustajanje nije ovo. */
@@ -744,6 +753,9 @@ export type ClientAnalyticsEvent =
   | "teaser_opened"
   | "upcoming_games_viewed"
   | "upcoming_game_tapped"
+  | "fake_door_viewed"
+  | "fake_door_tapped"
+  | "fake_door_signup"
   | "account_registered"
   | "invite_shared"
   | "invite_opened"

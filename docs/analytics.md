@@ -124,6 +124,9 @@ dobija svako sa `$host=localhost`, a to je svaki igrač u Android aplikaciji.
 | `teaser_opened` | klijent | Otvorena stranica buduće igre. | `game` |
 | `upcoming_games_viewed` | klijent | Sekcija budućih igara ušla u ekran. | — |
 | `upcoming_game_tapped` | klijent | Dodir na pločicu najavljene igre na početnoj (`HomeScreen`). Mjeri interes po igri, jer jedna prijava važi za SVE najavljene igre, pa `signup_succeeded` to ne govori. | `game` |
+| `fake_door_viewed` | klijent | Lažna vrata (Tablić, Remi, od 22.11.2026): kartica igre je bar 1 s bila pola u ekranu. Jednom po prikazu početne (`useSeenOnce`), web i aplikacija. | `game` (`tablic` \| `remi`) |
+| `fake_door_tapped` | klijent | Dodir na „Igraj" (web i aplikacija) ili „Napravi sto" (aplikacija) na lažnim vratima. Otvara list „{Igra} dolazi uskoro". | `game`, `action` (`play` \| `create`) |
+| `fake_door_signup` | klijent | Prijava iz lista lažnih vrata je stigla na server. Odvaja je od prijava sa `/igre/[slug]`. Ponovljena adresa takođe šalje ovaj događaj, a `signup_succeeded` ne, pa jedinstvene adrese broji `signup_succeeded`. | `game` |
 | `account_registered` | klijent | Gost je postao nalog (isti `uid`): e-mail registracija ili povezivanje Googlea (`lib/account.ts`). Prijava na postojeći nalog NE šalje događaj. | `method` (`password` \| `google`) |
 | `invite_shared` | klijent | Host poslao link kroz sistemski meni ili ga kopirao (`lib/track.ts`). Zatvoren meni NE šalje događaj. Na Androidu znači da je izabrana aplikacija, ne da je poruka stigla. | `room_id`, `method` (`share` | `copy`) |
 | `invite_opened` | klijent | Gost otvorio link sobe u kojoj nema sjedište; jednom po sobi u sesiji pregledača. Ne kad već ima zapamćen zahtjev, ni kad soba ne postoji. | `room_id`, `seats_left` |
@@ -280,3 +283,13 @@ prijema je Overview, uz kašnjenje do ~1 h. `<queries>` nije dodat namjerno: ša
 `attribution` iz Facebook aplikacije, što bi tražilo izmjenu saglasnosti.
 
 **Atribucija kampanje nije dokazana:** to vide tek pravi klikovi na reklamu.
+
+## Lažna vrata (Tablić, Remi)
+
+Igre koje ne postoje stoje na početnoj kao prave (`status: "door"` u `apps/web/lib/games.ts`). Lijevak po igri i platformi:
+
+1. **viđeno**: jedinstvene osobe sa `fake_door_viewed`;
+2. **tapnuto**: jedinstvene osobe sa `fake_door_tapped`;
+3. **ostavio e-mail**: `fake_door_signup` (osobe), a jedinstvene adrese iz `signup_succeeded` sa istim `game`.
+
+Poređenje: udio tapnutih među onima koji su vidjeli karticu, naspram istog udjela za žive igre na istom ekranu (prvi `play_requested` sa te igre). Kartica je ista kao kod pravih igara, pa dodir mjeri želju da se igra, ne radoznalost.

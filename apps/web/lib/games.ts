@@ -45,6 +45,7 @@ export const UPCOMING_GAMES: readonly UpcomingGame[] = [
   { slug: "remi", suit: "clubs", heroCards: null },
   { slug: "bela", suit: "hearts", heroCards: null },
   { slug: "raub", suit: "diamonds", heroCards: null },
+  { slug: "tablic", suit: "diamonds", heroCards: null },
 ];
 
 export function findUpcomingGame(slug: string): UpcomingGame | null {
@@ -62,7 +63,8 @@ export const HOME_HERO_CARDS: readonly CardFace[] = [
 // ====================================================
 // Igre na početnoj (SPEC_POCETNA §8) — konfiguracija, ne kod.
 // Dodavanje igre = red ovdje + blok u `sr.games`; raspored početne (H1/H2/H3)
-// zavisi SAMO od ove liste. „live" se igra, „upcoming" stoji u redu „Uskoro".
+// zavisi SAMO od ove liste. „live" se igra, „upcoming" stoji u redu „Uskoro",
+// „door" su lažna vrata: izgleda kao prava igra, a dodir otvara „dolazi uskoro".
 // ====================================================
 
 export type GameSlug = "zandar" | UpcomingGameSlug;
@@ -74,7 +76,7 @@ export type GameConfig = {
   suit: Suit;
   /** Okvirno trajanje partije u minutima („~10 min"). */
   minutes: number;
-  status: "live" | "upcoming";
+  status: "live" | "upcoming" | "door";
   /** Dan objave (ISO). NOVO stoji 7 dana od njega; `null` dok igra nije objavljena. */
   releasedAt: string | null;
   /** Motiv velike kartice; `null` → velika karta sa slovom. */
@@ -93,7 +95,7 @@ export type GameConfig = {
   listCards: readonly [CardFace, CardFace, CardFace];
 };
 
-export type GameTint = "zandar" | "poker" | "raub" | "bela";
+export type GameTint = "zandar" | "poker" | "raub" | "bela" | "tablic" | "remi";
 
 export const GAMES: readonly GameConfig[] = [
   {
@@ -191,6 +193,47 @@ export const GAMES: readonly GameConfig[] = [
       { rank: "A", suit: "hearts" },
     ],
   },
+  // Lažna vrata (21.11.2026): mjeri se ko bi igrao, prije nego što se igra pravi.
+  {
+    slug: "tablic",
+    letter: "T",
+    suit: "diamonds",
+    minutes: 15,
+    status: "door",
+    releasedAt: null,
+    heroCards: null,
+    hasRules: false,
+    tint: "tablic",
+    tileCards: [
+      { rank: "10", suit: "diamonds" },
+      { rank: "2", suit: "clubs" },
+    ],
+    listCards: [
+      { rank: "10", suit: "diamonds" },
+      { rank: "2", suit: "clubs" },
+      { rank: "A", suit: "spades" },
+    ],
+  },
+  {
+    slug: "remi",
+    letter: "R",
+    suit: "clubs",
+    minutes: 20,
+    status: "door",
+    releasedAt: null,
+    heroCards: null,
+    hasRules: false,
+    tint: "remi",
+    tileCards: [
+      { rank: "7", suit: "clubs" },
+      { rank: "8", suit: "clubs" },
+    ],
+    listCards: [
+      { rank: "7", suit: "clubs" },
+      { rank: "8", suit: "clubs" },
+      { rank: "9", suit: "clubs" },
+    ],
+  },
 ];
 
 /** Šta početna zna o igraču — sve lokalno (`lib/homePrefs.ts`). */
@@ -205,6 +248,8 @@ export type HomeLayout = {
   main: GameConfig;
   more: GameConfig[];
   upcoming: GameConfig[];
+  /** Lažna vrata: crtaju se kao igre, ali nikad ne pokreću sto. */
+  doors: GameConfig[];
 };
 
 const NEW_FOR_MS = 7 * 24 * 60 * 60 * 1000;
@@ -227,6 +272,7 @@ export function isNewGame(game: GameConfig, history: HomeHistory, now: number): 
 export function homeLayout(games: readonly GameConfig[], history: HomeHistory): HomeLayout {
   const live = games.filter((g) => g.status === "live");
   const upcoming = games.filter((g) => g.status === "upcoming");
+  const doors = games.filter((g) => g.status === "door");
   if (live.length === 0) throw new Error("Nema nijedne igre koja se igra");
 
   const playedAt = (g: GameConfig) => history.played[g.slug];
@@ -245,7 +291,7 @@ export function homeLayout(games: readonly GameConfig[], history: HomeHistory): 
     ...rest.filter((g) => playedAt(g) !== undefined).sort((a, b) => (playedAt(b) ?? 0) - (playedAt(a) ?? 0)),
     ...rest.filter((g) => playedAt(g) === undefined),
   ];
-  return { main, more, upcoming };
+  return { main, more, upcoming, doors };
 }
 
 /** Oznaka na slici kartice u listi: zakačena, nova ili zadnje igrana (tabla „Lista"). */

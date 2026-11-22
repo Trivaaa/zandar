@@ -2715,3 +2715,27 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Testovi.** Testni `match()` u `match.test.ts` sada eksplicitno postavlja `exchangeFromDealer: false`, jer je ~37 starijih testova pisano uz red od nosioca; novo pravilo ima svoj blok (4 testa: Raub djelioca, Moja igrača c bez onoga ko ne ide, 2P Štih, stari red iz snapshota). U `raubView.test.ts` dva testa iz odluke 32 su tražila „moju sedmicu” bez uslova da sam djelilac — sa odlukom 32 sedmicu bira i ne-djelilac, pa su prolazila slučajno; uslov dodat.
 
 **Provjera.** game-core 526, server 317, web 318, typecheck. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke (isto), refa 2,7 %. **Nije provjereno na uređaju ni u pregledaču.**
+
+## 211. Lažna vrata za Tablić i Remi (2026-11-22, `feat/fake-door-tablic-remi`)
+
+**Šta.** Na početnoj (web i aplikacija) stoje Tablić i Remi, kao prave igre: ista kartica, boja i „Igraj" (u aplikaciji i „Napravi sto"). Dodir otvara list „{Igra} dolazi uskoro" sa prijavom samo za tu igru. Igre ne postoje.
+
+**Zašto.** Vlasnik je htio da napravi obje igre. Dogovor je bio da se nova igra pravi tek kad se vidi potražnja (vidi PMF pragove). Lažna vrata mjere tri stvari: koliko ih vidi, koliko tapne i koliko ostavi e-mail. Odluke vlasnika: web i aplikacija (izuzetak od pravila „samo web", aplikacija ih dobija sa 1.4.7) i kartice izgledaju kao prave igre, ne „Uskoro".
+
+**Kako.**
+- `GameConfig.status` dobija `"door"`, a `homeLayout` vraća `doors`, koja nikad nisu `main`, `more` ni `upcoming`. Zato vrata nikad ne pokreću sto i nisu u „Igraj s prijateljima" ni u kačenju. Istorija početne (`homePrefs`) ih ne pamti.
+- `tablic` je ušao u `UPCOMING_GAME_SLUGS`, pa ga server prima u `POST /api/signups` i `/igre/tablic` se gradi sam.
+- `ComingSoonSheet` koristi postojeći `SignupForm`, koji je dobio `onSuccess`.
+- Novi događaji: `fake_door_viewed`, `fake_door_tapped` i `fake_door_signup` (`docs/analytics.md`).
+- Boje `--game-tablic-*` i `--game-remi-*`. Na desktopu 5–6 kartica idu u dva reda po tri.
+
+**Provjereno.**
+- Testovi: web 319, server 318 (novi: vrata u `homeLayout`, `tablic` se prima). Typecheck web i server. Lint 4 greške i 2 upozorenja, ispod osnovice.
+- E2E u headless Chrome-u protiv lokalnog servera: Tablić „Igraj", pa list, pa e-mail, pa „Prijava je stigla". Fajl prijave sa `game: "tablic"` je u `DATA_DIR/_signups`, bez grešaka u konzoli.
+- Snimci 390×844, 360×740 i 1280 (dva reda po tri). Lista u aplikaciji kroz `/dev/home?live=4`, gdje „Napravi sto" na Remiju otvara list.
+- `build:mobile` nije pokrenut.
+- Nije provjereno na uređaju.
+
+**Zamka.** Test `homePrefs` je koristio `remi` kao „igru koje više nema". Sad je u `GAMES`, pa `isSlug` u `homePrefs.ts` isključuje vrata.
+
+**Izdanje.** Server prije weba, jer bez novog `UPCOMING_GAME_SLUGS` server prijavu za Tablić odbija sa 400.
