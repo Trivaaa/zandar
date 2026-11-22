@@ -18,7 +18,7 @@ function fakeIdentity(): IdentityAdmin & { deleted: string[] } {
 
 test("T6: napušten gost — rezultati, profil i Firebase nalog nestaju", async () => {
   const store = createMemoryProfileStore();
-  await store.recordCompletedMatch("m1", "gost");
+  await store.recordCompletedMatch("m1", "gost", "zandar");
   const identity = fakeIdentity();
   await abandonGuest("gost", { store, identity });
   assert.equal(await store.getProfile("gost"), null);
@@ -27,7 +27,7 @@ test("T6: napušten gost — rezultati, profil i Firebase nalog nestaju", async 
 
 test("T6: bez Firebase admina brišu se samo podaci", async () => {
   const store = createMemoryProfileStore();
-  await store.recordCompletedMatch("m1", "gost");
+  await store.recordCompletedMatch("m1", "gost", "zandar");
   await abandonGuest("gost", { store, identity: null });
   assert.equal(await store.getProfile("gost"), null);
 });

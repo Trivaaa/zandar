@@ -21,10 +21,11 @@ test("broje se samo ljudi sa uid-om — bot i čovjek bez uid-a ne", () => {
 test("upis: svaki igrač jednom, ponovljen kraj iste partije se ne broji", async () => {
   const store = createMemoryProfileStore();
   const players = [{ uid: "u1" }, { uid: "u2" }, { isBot: true }];
-  await recordCompletedMatch(store, "m1", players);
-  await recordCompletedMatch(store, "m1", players);
-  assert.deepEqual(await store.getProfile("u1"), { completedMatches: 1 });
-  assert.deepEqual(await store.getProfile("u2"), { completedMatches: 1 });
+  await recordCompletedMatch(store, "m1", players, "raub");
+  await recordCompletedMatch(store, "m1", players, "raub");
+  const one = { completedMatches: 1, completedMatchesByGame: { raub: 1 } };
+  assert.deepEqual(await store.getProfile("u1"), one);
+  assert.deepEqual(await store.getProfile("u2"), one);
 });
 
 test("upis: greška skladišta se loguje, ne baca", async () => {
@@ -35,7 +36,7 @@ test("upis: greška skladišta se loguje, ne baca", async () => {
     },
   };
   const logged: string[] = [];
-  await recordCompletedMatch(broken, "m1", [{ uid: "u1" }], (m) => logged.push(m));
+  await recordCompletedMatch(broken, "m1", [{ uid: "u1" }], "zandar", (m) => logged.push(m));
   assert.equal(logged.length, 1);
   assert.match(logged[0] ?? "", /m1.*503/);
 });

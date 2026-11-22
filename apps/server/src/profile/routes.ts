@@ -8,7 +8,7 @@ import { abandonGuest, deleteAccount } from "./cleanup";
 import { relationOf, severOnBlock } from "./friends";
 import { SlidingWindowLimiter } from "../rateLimit";
 import { evaluateNickname } from "./nickname";
-import { REPORT_REASONS, type ProfileStore, type ReportReason } from "./store";
+import { matchesByGameFull, REPORT_REASONS, type ProfileStore, type ReportReason } from "./store";
 
 /**
  * Rute profila (SPEC_IDENTITET §6.2, §6.4, §7). Sve traže Firebase token;
@@ -65,6 +65,8 @@ export function registerProfileRoutes(
       uid: user.uid,
       anonymous: user.anonymous,
       completedMatches: profile?.completedMatches ?? 0,
+      /** Po igri, uvijek sve igre (0 = nema partija ili su odigrane prije brojača). */
+      completedMatchesByGame: matchesByGameFull(profile?.completedMatchesByGame),
       nickname: profile?.nickname ?? null,
       avatar: profile?.avatar ?? null,
       /** Kad je nadimak zaključan (P2); `null` = smije se mijenjati. */

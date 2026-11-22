@@ -55,7 +55,7 @@ test("nalog: nadimak, avatar i javni ID iz profila", async () => {
 
 test("identitet naloga: gost, nalog bez nadimka, greška i spor odgovor → sjedi kao gost", async () => {
   const store = createMemoryProfileStore();
-  await store.recordCompletedMatch("m1", "gost");
+  await store.recordCompletedMatch("m1", "gost", "zandar");
   assert.equal(await accountIdentityFor(store, undefined), null);
   assert.equal(await accountIdentityFor(store, "gost"), null);
 

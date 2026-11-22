@@ -2819,3 +2819,13 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Klijent:** `startQuickPlay` za Raub šalje `startScore` iz podešavanja Rauba (podrazumijevano 21, isti ključ kao do sada). Web početna za Raub šalje 21 (`WEB_RAUB_PREFS`), `/create` nudi 21 kao prvi izbor (`RAUB_DEFAULT_TARGET`). Pravila: „Svi počinju od 21 boda (može i kraća partija, od 11)".
 
 **Efekat bez novog paketa:** sve aplikacije na Play-u i web igraju brzu igru od 21 čim server ode na deploy. Izbor 11 u podešavanjima aplikacije radi tek sa sljedećim paketom.
+
+## 219. Profil: brojač završenih partija po igri (2026-11-22, `feat/profile-games-count`)
+
+**Šta:** SPEC_PROFIL_POSTAVKE D8 — pločica „najviše igraš" i redoslijed „Moje igre" traže broj partija po igri, a server je brojao samo ukupno.
+
+**Server:** `ProfileStore.recordCompletedMatch(matchId, uid, game)` u istom Firestore commitu uvećava `completedMatches` i `completedMatchesByGame.<igra>` (mapa na profilu), a `results/{matchId__uid}` pamti i `game`. Četiri mjesta u `index.ts` šalju svoju igru. `GET /api/me` vraća `completedMatchesByGame` sa sve četiri igre (0 = nema partija); javni profil ga ne vraća. Memorijska izvedba radi isto.
+
+**Back-compat:** profil bez mape čita se kao prazan (`decodeMatchesByGame` uzima samo poznate igre sa pozitivnim brojem), ukupan brojač ostaje kakav je. Partije prije deploya se ne raspoređuju unazad. Klijent: `Me.completedMatchesByGame` je opciono, još se nigdje ne prikazuje.
+
+**Mjereno:** server 356 testova (lažni Firestore sad gnijezdi `a.b` transformaciju kao pravi; nov test za stari profil), web 320, typecheck čist.

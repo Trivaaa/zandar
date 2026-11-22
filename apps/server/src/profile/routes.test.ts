@@ -70,6 +70,7 @@ test("/api/me: gost bez profila", async () => {
     uid: "g1",
     anonymous: true,
     completedMatches: 0,
+    completedMatchesByGame: { zandar: 0, poker: 0, raub: 0, bela: 0 },
     nickname: null,
     avatar: null,
     nicknameChangeAllowedAt: null,
@@ -158,21 +159,21 @@ test("avatar: samo a1–a10, gost ne može", async () => {
 
 test("T6 abandon: gost se briše (204), nalog ne može da obriše sebe ovom rutom (403)", async () => {
   const { app, as, store } = setup();
-  await store.recordCompletedMatch("m1", "g1");
+  await store.recordCompletedMatch("m1", "g1", "zandar");
   const res = await app.inject({ method: "POST", url: "/api/me/abandon", headers: as("anon:g1") });
   assert.equal(res.statusCode, 204);
   assert.equal(await store.getProfile("g1"), null);
 
-  await store.recordCompletedMatch("m1", "u1");
+  await store.recordCompletedMatch("m1", "u1", "zandar");
   const acc = await app.inject({ method: "POST", url: "/api/me/abandon", headers: as("user:u1") });
   assert.equal(acc.statusCode, 403);
-  assert.deepEqual(await store.getProfile("u1"), { completedMatches: 1 });
+  assert.deepEqual(await store.getProfile("u1"), { completedMatches: 1, completedMatchesByGame: { zandar: 1 } });
 });
 
 test("tok c: brisanje naloga traži nalog i prijavu iz zadnjih 5 minuta", async () => {
   const { app, as, store, unbound, setNick, now } = setup();
   await setNick("user:u1", "Marko");
-  await store.recordCompletedMatch("m1", "u1");
+  await store.recordCompletedMatch("m1", "u1", "zandar");
   const del = (who: string) => app.inject({ method: "DELETE", url: "/api/me", headers: as(who) });
 
   assert.equal((await del("anon:g1")).statusCode, 403);
@@ -192,7 +193,7 @@ test("tuđi profil: samo javno lice; nepoznat, napušten nadimak i gost → 404"
   const { app, as, store, setNick, advance } = setup();
   await setNick("user:u1", "Marko");
   await store.setAvatar("u1", "jez");
-  await store.recordCompletedMatch("m1", "u1");
+  await store.recordCompletedMatch("m1", "u1", "zandar");
   const get = (who: string, id: string) => app.inject({ method: "GET", url: `/api/profiles/${id}`, headers: as(who) });
 
   const res = await get("anon:g1", "marko");

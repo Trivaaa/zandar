@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { ProfileAvatar } from "@zandar/shared-types";
+import type { GameId, ProfileAvatar } from "@zandar/shared-types";
 
 import { authHeaders } from "@/lib/auth";
 import { resolveApiBase } from "@/lib/platform";
@@ -13,6 +13,11 @@ export type Me = {
   /** `true` = gost (anonimni Firebase nalog). */
   anonymous: boolean;
   completedMatches: number;
+  /**
+   * Završene partije po igri (SPEC_PROFIL_POSTAVKE D8). Server od 22.11.2026;
+   * opciono jer stariji server ga ne šalje. Partije prije toga nisu raspoređene.
+   */
+  completedMatchesByGame?: Record<GameId, number>;
   nickname: string | null;
   avatar: ProfileAvatar | null;
   /** Kad se nadimak smije opet mijenjati; `null` = odmah. */

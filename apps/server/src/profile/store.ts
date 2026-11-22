@@ -1,6 +1,8 @@
 import {
+  GAME_IDS,
   nicknameChangeAllowedAt,
   parseProfileAvatar,
+  type GameId,
   type ProfileAvatar,
 } from "@zandar/shared-types";
 
@@ -30,19 +32,26 @@ import {
  * (testovi, lokalni dev bez ključa — kao push bez ključa, server radi dalje).
  *
  * Kolekcije:
- * - `profiles/{uid}` — `completedMatches`, `nickname`, `nicknameKey`,
- *   `nicknameChangedAt`, `avatar`, `updatedAt`
+ * - `profiles/{uid}` — `completedMatches`, `completedMatchesByGame` (mapa
+ *   igra → broj, od 22.11.2026; stari profili je nemaju), `nickname`,
+ *   `nicknameKey`, `nicknameChangedAt`, `avatar`, `updatedAt`
  * - `nicknames/{key}` — `uid`, `nickname`, `releasedAt?`; postojanje ovog
  *   dokumenta JE jedinstvenost nadimka (ključ = mala slova)
- * - `results/{matchId__uid}` — jedan dokument po (partija, igrač); njegovo
- *   postojanje brani dvostruko brojanje
+ * - `results/{matchId__uid}` — jedan dokument po (partija, igrač, uz `game`);
+ *   njegovo postojanje brani dvostruko brojanje
  */
 
 /** Napušten nadimak (promjena, kasnije i brisanje naloga) ostaje rezervisan (Q2). */
 export const NICKNAME_RESERVATION_MS = 30 * 24 * 60 * 60 * 1000;
 
+/** Završene partije po igri (SPEC_PROFIL_POSTAVKE D8). Igra bez partija nema ključ. */
+export type MatchesByGame = Partial<Record<GameId, number>>;
+
 export type StoredProfile = {
+  /** Ukupno, sve igre — i partije prije brojača po igri. */
   completedMatches: number;
+  /** Od 22.11.2026; ranije partije nisu raspoređene po igri. */
+  completedMatchesByGame?: MatchesByGame;
   nickname?: string;
   nicknameKey?: string;
   /** Zadnja PROMJENA; prvi izbor nadimka je ne postavlja (brava kreće od prve promjene). */
@@ -65,9 +74,10 @@ export type ProfileStore = {
   getProfile(uid: string): Promise<StoredProfile | null>;
   /**
    * Završena partija za igrača. Idempotentno po (`matchId`, `uid`): ponovljen
-   * poziv (restart, dupla dostava) vraća `false` i ne broji ponovo.
+   * poziv (restart, dupla dostava) vraća `false` i ne broji ponovo. Uvećava
+   * ukupan brojač i brojač te igre u istom upisu.
    */
-  recordCompletedMatch(matchId: string, uid: string, now?: number): Promise<boolean>;
+  recordCompletedMatch(matchId: string, uid: string, game: GameId, now?: number): Promise<boolean>;
   nicknameAvailability(key: string, uid: string, now?: number): Promise<NicknameAvailability>;
   /**
    * Vlasnik nadimka (javni ID profila = ključ nadimka). `null` kad nadimak ne
@@ -181,12 +191,13 @@ export function createMemoryProfileStore(): ProfileStore {
       const p = profiles.get(uid);
       return p ? { ...p } : null;
     },
-    async recordCompletedMatch(matchId, uid) {
+    async recordCompletedMatch(matchId, uid, game) {
       const key = docId(matchId, uid);
       if (results.has(key)) return false;
       results.set(key, uid);
       const p = profileOf(uid);
-      profiles.set(uid, { ...p, completedMatches: p.completedMatches + 1 });
+      const byGame = { ...p.completedMatchesByGame, [game]: (p.completedMatchesByGame?.[game] ?? 0) + 1 };
+      profiles.set(uid, { ...p, completedMatches: p.completedMatches + 1, completedMatchesByGame: byGame });
       return true;
     },
     async nicknameAvailability(key, uid, now = Date.now()) {
@@ -294,12 +305,30 @@ export function createMemoryProfileStore(): ProfileStore {
 function decodeProfile(f: FsFields): StoredProfile {
   const n = f.completedMatches;
   const profile: StoredProfile = { completedMatches: typeof n === "number" && n > 0 ? n : 0 };
+  const byGame = decodeMatchesByGame(f.completedMatchesByGame);
+  if (byGame) profile.completedMatchesByGame = byGame;
   if (typeof f.nickname === "string") profile.nickname = f.nickname;
   if (typeof f.nicknameKey === "string") profile.nicknameKey = f.nicknameKey;
   if (typeof f.nicknameChangedAt === "number") profile.nicknameChangedAt = f.nicknameChangedAt;
   const avatar = parseProfileAvatar(f.avatar);
   if (avatar) profile.avatar = avatar;
   return profile;
+}
+
+/** Svaka igra sa brojem (0 kad nema partija) — oblik koji vraća `/api/me`. */
+export function matchesByGameFull(byGame: MatchesByGame | undefined): Record<GameId, number> {
+  return Object.fromEntries(GAME_IDS.map((g) => [g, byGame?.[g] ?? 0])) as Record<GameId, number>;
+}
+
+/** Samo poznate igre sa pozitivnim brojem; sve drugo se tiho preskače. */
+function decodeMatchesByGame(raw: unknown): MatchesByGame | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const out: MatchesByGame = {};
+  for (const game of GAME_IDS) {
+    const n = (raw as Record<string, unknown>)[game];
+    if (typeof n === "number" && n > 0) out[game] = n;
+  }
+  return Object.keys(out).length > 0 ? out : null;
 }
 
 function decodeNickname(f: FsFields): NicknameRecord {
@@ -367,7 +396,7 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
       const doc = await db.get(profilePath(uid));
       return doc ? decodeProfile(doc) : null;
     },
-    async recordCompletedMatch(matchId, uid, now = Date.now()) {
+    async recordCompletedMatch(matchId, uid, game, now = Date.now()) {
       try {
         // Jedan commit: rezultat smije nastati samo jednom, a brojač raste
         // u istom potezu — ili oboje ili ništa.
@@ -375,7 +404,7 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
           {
             kind: "set",
             path: `results/${docId(matchId, uid)}`,
-            fields: { uid, matchId, at: now },
+            fields: { uid, matchId, game, at: now },
             exists: false,
           },
           {
@@ -383,7 +412,7 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
             path: profilePath(uid),
             fields: { updatedAt: now },
             mask: ["updatedAt"],
-            increment: { completedMatches: 1 },
+            increment: { completedMatches: 1, [`completedMatchesByGame.${game}`]: 1 },
           },
         ]);
         return true;

@@ -25,13 +25,17 @@ import {
 async function resultsContract(store: ProfileStore) {
   assert.equal(await store.getProfile("u1"), null);
 
-  assert.equal(await store.recordCompletedMatch("m1", "u1"), true);
-  assert.equal(await store.recordCompletedMatch("m1", "u1"), false, "dupla dostava se ne broji");
-  assert.equal(await store.recordCompletedMatch("m1-rematch-1", "u1"), true, "revanš je nova partija");
-  assert.equal(await store.recordCompletedMatch("m1", "u2"), true, "drugi igrač iste partije");
+  assert.equal(await store.recordCompletedMatch("m1", "u1", "zandar"), true);
+  assert.equal(await store.recordCompletedMatch("m1", "u1", "zandar"), false, "dupla dostava se ne broji");
+  assert.equal(await store.recordCompletedMatch("m1-rematch-1", "u1", "zandar"), true, "revanš je nova partija");
+  assert.equal(await store.recordCompletedMatch("m1", "u2", "zandar"), true, "drugi igrač iste partije");
+  assert.equal(await store.recordCompletedMatch("r1", "u1", "raub"), true, "druga igra");
 
-  assert.deepEqual(await store.getProfile("u1"), { completedMatches: 2 });
-  assert.deepEqual(await store.getProfile("u2"), { completedMatches: 1 });
+  assert.deepEqual(await store.getProfile("u1"), {
+    completedMatches: 3,
+    completedMatchesByGame: { zandar: 2, raub: 1 },
+  });
+  assert.deepEqual(await store.getProfile("u2"), { completedMatches: 1, completedMatchesByGame: { zandar: 1 } });
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -76,21 +80,25 @@ async function nicknameContract(store: ProfileStore) {
 }
 
 async function deleteContract(store: ProfileStore) {
-  await store.recordCompletedMatch("m1", "gost");
-  await store.recordCompletedMatch("m2", "gost");
-  await store.recordCompletedMatch("m1", "drugi");
+  await store.recordCompletedMatch("m1", "gost", "zandar");
+  await store.recordCompletedMatch("m2", "gost", "zandar");
+  await store.recordCompletedMatch("m1", "drugi", "zandar");
   await store.deleteUserData("gost");
   assert.equal(await store.getProfile("gost"), null);
   // Rezultati su zaista nestali: ista partija se opet može upisati.
-  assert.equal(await store.recordCompletedMatch("m1", "gost"), true);
-  assert.deepEqual(await store.getProfile("drugi"), { completedMatches: 1 }, "drugi igrač netaknut");
-  assert.equal(await store.recordCompletedMatch("m1", "drugi"), false);
+  assert.equal(await store.recordCompletedMatch("m1", "gost", "zandar"), true);
+  assert.deepEqual(
+    await store.getProfile("drugi"),
+    { completedMatches: 1, completedMatchesByGame: { zandar: 1 } },
+    "drugi igrač netaknut",
+  );
+  assert.equal(await store.recordCompletedMatch("m1", "drugi", "zandar"), false);
 }
 
 async function deleteAccountContract(store: ProfileStore) {
   const t0 = 5_000_000_000;
   await store.setNickname("u1", "Marko", "marko", t0);
-  await store.recordCompletedMatch("m1", "u1");
+  await store.recordCompletedMatch("m1", "u1", "zandar");
   await store.deleteAccount("u1", t0 + 1);
   assert.equal(await store.getProfile("u1"), null);
   // Nadimak obrisanog naloga: 30 dana zauzet za druge (Q2), pa slobodan.
@@ -234,8 +242,17 @@ function fakeFirestore() {
         const next: Record<string, any> = w.updateMask ? { ...prev } : {};
         for (const [k, v] of Object.entries(w.update.fields)) next[k] = v;
         for (const t of w.updateTransforms ?? []) {
-          const n = Number(prev[t.fieldPath]?.integerValue ?? 0);
-          next[t.fieldPath] = { integerValue: String(n + Number(t.increment.integerValue)) };
+          // Kao pravi Firestore: `a.b` je polje `b` u mapi `a`.
+          const [head, sub] = (t.fieldPath as string).split(".");
+          if (sub === undefined) {
+            const n = Number(prev[head!]?.integerValue ?? 0);
+            next[head!] = { integerValue: String(n + Number(t.increment.integerValue)) };
+          } else {
+            const map = { ...(next[head!]?.mapValue?.fields ?? {}) };
+            const n = Number(map[sub]?.integerValue ?? 0);
+            map[sub] = { integerValue: String(n + Number(t.increment.integerValue)) };
+            next[head!] = { mapValue: { fields: map } };
+          }
         }
         docs.set(name, { fields: next, updateTime: `t${++clock}` });
       }
@@ -283,7 +300,9 @@ test("Firestore: isti ugovor; rezultat sa exists:false i inkrement u jednom comm
   assert.deepEqual(first.writes[1]?.updateMask, { fieldPaths: ["updatedAt"] });
   assert.deepEqual(first.writes[1]?.updateTransforms, [
     { fieldPath: "completedMatches", increment: { integerValue: "1" } },
+    { fieldPath: "completedMatchesByGame.zandar", increment: { integerValue: "1" } },
   ]);
+  assert.equal(first.writes[0]?.update.fields.game?.stringValue, "zandar", "rezultat pamti igru");
 });
 
 test("Firestore: nadimak sa _ . č se čita iz istog dokumenta u koji je upisan", async () => {
@@ -333,7 +352,7 @@ test("Firestore: 401 traži svjež token i ponavlja jednom", async () => {
 test("Firestore: druga greška nije tiha — baca, ne vraća false", async () => {
   const impl = (async () => new Response("boom", { status: 500 })) as typeof fetch;
   const store = createFirestoreProfileStore(createFirestore("p", tokens, impl));
-  await assert.rejects(store.recordCompletedMatch("m", "u"), /Firestore commit 500/);
+  await assert.rejects(store.recordCompletedMatch("m", "u", "zandar"), /Firestore commit 500/);
 });
 
 test("vrijednosti: kodiranje i dekodiranje su simetrični", () => {
@@ -346,4 +365,20 @@ test("docId: kosa crta i tačke ne prave putanju, dijelovi se ne miješaju", () 
   assert.equal(docId("a/b", "c"), "a%2Fb__c");
   assert.equal(docId(".."), "%2E%2E");
   assert.notEqual(docId("a_", "_b"), docId("a", "__b"));
+});
+
+test("stari profil bez brojača po igri: čita se kao prazan, ukupno ostaje", async () => {
+  const fake = fakeFirestore();
+  const store = createFirestoreProfileStore(createFirestore("p", tokens, fake.impl));
+  await store.recordCompletedMatch("m1", "u1", "poker");
+  // Dokument kakav je bio prije 22.11.2026: samo ukupan broj.
+  for (const [name, doc] of fake.docs) {
+    if (name.endsWith("/profiles/u1")) {
+      const { completedMatchesByGame: _drop, ...rest } = doc.fields;
+      fake.docs.set(name, { ...doc, fields: { ...rest, completedMatches: { integerValue: "7" } } });
+    }
+  }
+  assert.deepEqual(await store.getProfile("u1"), { completedMatches: 7 });
+  await store.recordCompletedMatch("m2", "u1", "bela");
+  assert.deepEqual(await store.getProfile("u1"), { completedMatches: 8, completedMatchesByGame: { bela: 1 } });
 });

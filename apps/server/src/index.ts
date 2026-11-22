@@ -2297,7 +2297,7 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
     );
     if (reason === "completed") {
       const seated = new Set(ps.seats.map((x) => x.playerId));
-      void recordCompletedMatch(profileStore, ps.matchId, room.players.filter((p) => seated.has(p.id)));
+      void recordCompletedMatch(profileStore, ps.matchId, room.players.filter((p) => seated.has(p.id)), "poker");
     }
     return;
   }
@@ -2321,7 +2321,7 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
     );
     if (reason === "completed") {
       const seated = new Set(rs.seats.map((x) => x.playerId));
-      void recordCompletedMatch(profileStore, rs.matchId, room.players.filter((p) => seated.has(p.id)));
+      void recordCompletedMatch(profileStore, rs.matchId, room.players.filter((p) => seated.has(p.id)), "raub");
     }
     return;
   }
@@ -2345,7 +2345,7 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
     );
     if (reason === "completed") {
       const seated = new Set(bs.seats.map((x) => x.playerId));
-      void recordCompletedMatch(profileStore, bs.matchId, room.players.filter((p) => seated.has(p.id)));
+      void recordCompletedMatch(profileStore, bs.matchId, room.players.filter((p) => seated.has(p.id)), "bela");
     }
     return;
   }
@@ -2363,7 +2363,7 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
     startedAt,
   );
   // Broj završenih partija na profilu (SPEC_IDENTITET §3) — napuštena se ne broji.
-  if (reason === "completed") void recordCompletedMatch(profileStore, gs.matchId, gs.players);
+  if (reason === "completed") void recordCompletedMatch(profileStore, gs.matchId, gs.players, "zandar");
 }
 
 /**

@@ -1,3 +1,5 @@
+import type { GameId } from "@zandar/shared-types";
+
 import type { ProfileStore } from "./store";
 
 type PlayerLike = { isBot?: boolean; uid?: string };
@@ -24,12 +26,13 @@ export function recordCompletedMatch(
   store: ProfileStore,
   matchId: string,
   players: readonly PlayerLike[],
+  game: GameId,
   log: (msg: string) => void = console.error,
 ): Promise<void> {
   const uids = completedMatchUids(players);
   return Promise.all(
     uids.map((uid) =>
-      store.recordCompletedMatch(matchId, uid).catch((err: unknown) => {
+      store.recordCompletedMatch(matchId, uid, game).catch((err: unknown) => {
         log(`[profile] rezultat nije upisan (${matchId}): ${String(err).slice(0, 300)}`);
       }),
     ),
