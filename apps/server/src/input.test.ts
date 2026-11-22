@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { DISPLAY_NAME_MAX_LENGTH, parseDisplayName, parseRoomTargetScore } from "./input";
+import { DISPLAY_NAME_MAX_LENGTH, parseDisplayName, parseRaubQuickStartScore, parseRoomTargetScore } from "./input";
 
 describe("parseDisplayName", () => {
   test("obično ime prolazi, razmaci sa ivica se skidaju", () => {
@@ -52,6 +52,19 @@ describe("parseRoomTargetScore", () => {
     assert.equal(parseRoomTargetScore(21, "raub"), 21);
     for (const value of [undefined, null, 9999, "11", 0, {}]) {
       assert.equal(parseRoomTargetScore(value, "raub"), 21);
+    }
+  });
+});
+
+describe("parseRaubQuickStartScore", () => {
+  test("izbor iz podešavanja: 11 ili 21", () => {
+    assert.equal(parseRaubQuickStartScore(11), 11);
+    assert.equal(parseRaubQuickStartScore(21), 21);
+  });
+
+  test("bez polja ili van ponude → 11 (stari klijenti, odluka 34)", () => {
+    for (const value of [undefined, null, 9999, "21", 0, {}]) {
+      assert.equal(parseRaubQuickStartScore(value), 11);
     }
   });
 });

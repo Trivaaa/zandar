@@ -45,8 +45,10 @@ export async function startQuickPlay(
       displayName,
       ...prefs,
       tableTheme,
-      // Poker i Raub šalju `game`; veličinu i cilj server za njih ignoriše (uvijek 4).
+      // Poker, Raub i Bela šalju `game`; veličinu i cilj server za njih ignoriše (uvijek 4).
       ...(game === "poker" || game === "raub" || game === "bela" ? { game } : {}),
+      // Raub: od koliko se kreće, iz podešavanja Rauba (11 ili 21).
+      ...(game === "raub" ? { startScore: prefs.targetScore } : {}),
     },
     saveName ? {} : { guest: true },
   );

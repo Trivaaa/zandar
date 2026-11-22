@@ -105,7 +105,7 @@ import {
 import { notifyDevices, notifyUser } from "./push/notify";
 import { playRecordsFromCaptures } from "./push/playRecords";
 import { reminderConfigFromEnv, startReminderScheduler } from "./push/scheduler";
-import { parseDisplayName, parseRoomTargetScore } from "./input";
+import { parseDisplayName, parseRaubQuickStartScore, parseRoomTargetScore } from "./input";
 import { parseQuickPlayConfig } from "./quickplay";
 import {
   guarded,
@@ -370,6 +370,8 @@ type CreateRoomBody = {
   displayName?: unknown;
   playerCount?: unknown;
   targetScore?: unknown;
+  /** Raub: 11 ili 21 iz podešavanja Rauba; bez polja 11 (stari klijenti). */
+  startScore?: unknown;
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
   platform?: unknown;
@@ -1159,6 +1161,8 @@ type QuickPlayBody = {
   game?: unknown; // "poker" | "raub" | "bela"; bez polja = Žandar (stari klijenti)
   playerCount?: unknown;
   targetScore?: unknown;
+  /** Raub: 11 ili 21 iz podešavanja Rauba; bez polja 11 (stari klijenti). */
+  startScore?: unknown;
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
   platform?: unknown;
@@ -1174,7 +1178,8 @@ fastify.post<{ Body: QuickPlayBody }>(
     const identity = { ...analyticsIdentity(request.body), ...(await optionalUid(request)) };
     const qpGame = parseGameId(request.body.game);
     if (qpGame === "poker" || qpGame === "raub" || qpGame === "bela") {
-      return seatGameQuickPlay(qpGame, displayName, request.body.tableTheme, identity);
+      const raubStart = qpGame === "raub" ? parseRaubQuickStartScore(request.body.startScore) : undefined;
+      return seatGameQuickPlay(qpGame, displayName, request.body.tableTheme, identity, raubStart);
     }
     // Veličinu stola i cilj bira igrač (ekran `/igraj`) — oba su korisnički unos.
     const parsed = parseQuickPlayConfig(request.body);
@@ -1283,6 +1288,8 @@ async function seatGameQuickPlay(
   displayName: string,
   tableTheme: unknown,
   identity: Pick<Player, "guestId" | "platform" | "uid">,
+  /** Raub: od koliko se kreće (11 ili 21); spajaju se samo igrači istog izbora. */
+  raubStart: number = RAUB_QUICK_START_SCORE,
 ): Promise<{ roomId: string; playerId: string; playerSessionToken: string }> {
   const playerId = createPlayerId();
   const sessionToken = createSessionToken();
@@ -1304,7 +1311,8 @@ async function seatGameQuickPlay(
       r.isPublic &&
       r.status === "waiting" &&
       (r.matchingUntil ?? 0) > now &&
-      r.players.length < r.rulesConfig.playerCount,
+      r.players.length < r.rulesConfig.playerCount &&
+      (game !== "raub" || r.rulesConfig.targetScore === raubStart),
   );
   if (open) {
     const player = seat(open.players.length, false);
@@ -1320,8 +1328,9 @@ async function seatGameQuickPlay(
   const host = seat(0, true);
   applyAccountIdentity(host, await accountIdentityFor(profileStore, identity.uid));
   const rulesConfig = createRulesConfig(4);
-  // Raub brza igra kreće od 11 (odluka 34); `RaubTables.start` čita cilj iz sobe.
-  if (game === "raub") rulesConfig.targetScore = RAUB_QUICK_START_SCORE;
+  // Raub brza igra: izbor iz podešavanja, podrazumijevano 11 (odluka 34);
+  // `RaubTables.start` čita cilj iz sobe.
+  if (game === "raub") rulesConfig.targetScore = raubStart;
   const room: LobbyRoom = {
     id: createRoomId(),
     status: "waiting",

@@ -1,4 +1,4 @@
-import { raubStartScore } from "@zandar/game-core";
+import { RAUB_QUICK_START_SCORE, RAUB_START_SCORES, raubStartScore } from "@zandar/game-core";
 import type { GameId } from "@zandar/shared-types";
 
 /**
@@ -39,4 +39,14 @@ export function parseRoomTargetScore(value: unknown, game: GameId): number | nul
   }
   if (game !== "zandar" || value === undefined || value === null) return 21;
   return value === 11 || value === 21 ? value : null;
+}
+
+/**
+ * Raub brza igra: od koliko se kreće, po izboru u podešavanjima Rauba (11 ili
+ * 21). Polje `startScore` šalju samo klijenti koji imaju taj izbor; bez njega
+ * (APK do 1.5.0, koji šalje Žandarov `targetScore` sa podrazumijevanih 21) i za
+ * sve van ponude ostaje brza partija od 11 (odluka 34). Nikad 400.
+ */
+export function parseRaubQuickStartScore(value: unknown): number {
+  return (RAUB_START_SCORES as readonly unknown[]).includes(value) ? (value as number) : RAUB_QUICK_START_SCORE;
 }
