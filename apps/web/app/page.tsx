@@ -262,7 +262,7 @@ export default function Home() {
   function playGameNow(game: GameConfig) {
     // Web (tabla „Početna za web"): svaka igra pravo za sto, bez lista — Žandar
     // 4 igrača do 11, izgled stola nasumičan. Aplikacija ostaje kakva jeste.
-    if (!isNative) void start(game, webQuickPlayChoice());
+    if (!isNative) void start(game, webQuickPlayChoice(Math.random, game.slug));
     else if (game.slug === "poker" || game.slug === "raub" || game.slug === "bela") void start(game);
     else setSheet({ kind: "setup", game });
   }

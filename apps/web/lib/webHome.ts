@@ -12,6 +12,9 @@ import type { QuickPlayPrefs } from "@/lib/quickPlayPrefs";
 /** Žandar na webu ide pravo za sto: uvijek 4 igrača, do 11 (W1). */
 export const WEB_ZANDAR_PREFS: QuickPlayPrefs = { playerCount: 4, targetScore: 11 };
 
+/** Raub na webu kreće od 21 (odluka 35); 11 se bira na „Napravi sto". */
+export const WEB_RAUB_PREFS: QuickPlayPrefs = { playerCount: 4, targetScore: 21 };
+
 /** Izgled stola za brzu igru na webu je nasumičan (W1). */
 export function randomTableTheme(rng: () => number = Math.random): TableTheme {
   const i = Math.min(TABLE_THEMES.length - 1, Math.floor(rng() * TABLE_THEMES.length));
@@ -19,14 +22,16 @@ export function randomTableTheme(rng: () => number = Math.random): TableTheme {
 }
 
 /**
- * Izbor stola za „Igraj" na webu, bez lista. Poker i Raub serveru ionako daju
- * 4 mjesta i bez cilja, pa nose iste brojeve. `remember: false`: ovaj izbor ne
+ * Izbor stola za „Igraj" na webu, bez lista. Poker i Bela serveru ionako daju
+ * 4 mjesta i bez cilja, pa nose Žandarove brojeve; Raub nosi svoj početak (21). `remember: false`: ovaj izbor ne
  * postaje „zadnji" koji čita `/create` ili Postavke → Brza igra.
  */
 export function webQuickPlayChoice(
   rng: () => number = Math.random,
+  game: GameSlug = "zandar",
 ): { prefs: QuickPlayPrefs; tableTheme: TableTheme; remember: false } {
-  return { prefs: WEB_ZANDAR_PREFS, tableTheme: randomTableTheme(rng), remember: false };
+  const prefs = game === "raub" ? WEB_RAUB_PREFS : WEB_ZANDAR_PREFS;
+  return { prefs, tableTheme: randomTableTheme(rng), remember: false };
 }
 
 /**

@@ -2810,12 +2810,12 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 
 **Provjera.** Server 322 testa (raub parser 11/21/ostalo → 21; `start` iz sobe 11/21/99 → 21 i revanš), game-core, web typecheck. Nije provjereno na uređaju ni E2E u pregledaču.
 
-## 218. Raub: brza igra prati podešavanja (11 podrazumijevano, 21 po izboru) (2026-11-22, `fix/raub-target-setting`)
+## 218. Raub: brza igra opet od 21, 11 po izboru (2026-11-22, `fix/raub-target-setting`)
 
-**Povod:** prijava igrača: „u podešavanjima je 21, a kreće od 11". Unos 217 je brzu igru Rauba zaključao na 11 na serveru, a list podešavanja Rauba u aplikaciji i dalje nudio 11/21 sa označenim 21 — izbor je putovao kao `targetScore`, ali ga server za Raub nije čitao. Odluka vlasnika: brza igra prati podešavanja, podrazumijevano 11, 21 se bira.
+**Povod:** prijava igrača: „u podešavanjima je 21, a kreće od 11". Unos 217 je brzu igru Rauba zaključao na 11 na serveru, a list podešavanja Rauba u aplikaciji nudio 11/21 sa označenim 21 — izbor je putovao kao `targetScore`, ali ga server za Raub nije čitao. Odluka vlasnika (odluka 35 u `docs/raub-spec.md`): Raub opet kreće od 21, bez nove aplikacije; 11 se bira.
 
-**Server:** `/api/quickplay` za Raub čita novo polje `startScore` (`parseRaubQuickStartScore`: 11 ili 21, sve drugo i izostavljeno → 11). Novo polje, a ne `targetScore`, jer APK do 1.5.0 šalje sačuvan/podrazumijevan 21 kao `targetScore` — da ga server sad sluša, stari klijenti bi se vratili na 21. Spajanje pravih igrača uzima samo sto istog početka.
+**Server:** `RAUB_QUICK_START_SCORE` 11 → 21. `/api/quickplay` za Raub čita novo polje `startScore` (`parseRaubQuickStartScore`: 11 ili 21, sve drugo i izostavljeno → 21). Novo polje, a ne `targetScore`, da stari APK (koji šalje sačuvan Žandarov oblik) ne odlučuje sam. Spajanje pravih igrača uzima samo sto istog početka.
 
-**Klijent:** `startQuickPlay` za Raub šalje `startScore` iz podešavanja Rauba. `defaultQuickPlayPrefs("raub")` = 4/11; ključ Rauba je nov (`kartaonica:quickplay:raub:v2`), jer stari zapis nosi 21 koji je list sam upisao pri zatvaranju, a igrač ga nije birao. Web početna i dalje šalje 11 (W1, bez lista).
+**Klijent:** `startQuickPlay` za Raub šalje `startScore` iz podešavanja Rauba (podrazumijevano 21, isti ključ kao do sada). Web početna za Raub šalje 21 (`WEB_RAUB_PREFS`), `/create` nudi 21 kao prvi izbor (`RAUB_DEFAULT_TARGET`). Pravila: „Svi počinju od 21 boda (može i kraća partija, od 11)".
 
-**Mjereno:** server 355, web 323 testa, typecheck čist. Aplikacija dobija izbor tek novim paketom; do tada stari APK igra od 11.
+**Efekat bez novog paketa:** sve aplikacije na Play-u i web igraju brzu igru od 21 čim server ode na deploy. Izbor 11 u podešavanjima aplikacije radi tek sa sljedećim paketom.

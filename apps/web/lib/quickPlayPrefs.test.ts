@@ -51,24 +51,3 @@ describe("ključevi po igri (SPEC_POCETNA §4)", () => {
     assert.equal(tableThemeKey("poker"), "kartaonica:table:poker");
   });
 });
-
-describe("Raub: podrazumijevano 11, 21 iz podešavanja", () => {
-  test("bez zapisa i sa pokvarenim ciljem → 11", () => {
-    assert.equal(parseQuickPlayPrefs(null, "raub").targetScore, 11);
-    assert.equal(parseQuickPlayPrefs('{"targetScore":15}', "raub").targetScore, 11);
-    assert.equal(parseQuickPlayPrefs("{", "raub").targetScore, 11);
-  });
-
-  test("izabrano 21 ostaje 21", () => {
-    assert.equal(parseQuickPlayPrefs('{"playerCount":4,"targetScore":21}', "raub").targetScore, 21);
-  });
-
-  test("nov ključ — stari zapis sa 21 koje niko nije birao se ne čita", () => {
-    assert.equal(quickPlayPrefsKey("raub"), "kartaonica:quickplay:raub:v2");
-  });
-
-  test("Žandar ostaje na 21", () => {
-    assert.equal(parseQuickPlayPrefs(null).targetScore, 21);
-    assert.equal(parseQuickPlayPrefs(null, "zandar").targetScore, 21);
-  });
-});

@@ -11,6 +11,10 @@ describe("web početna — Igraj pravo za sto (W1)", () => {
     assert.deepEqual(choice.prefs, { playerCount: 4, targetScore: 11 });
   });
 
+  test("Raub: od 21 (odluka 35)", () => {
+    assert.equal(webQuickPlayChoice(() => 0, "raub").prefs.targetScore, 21);
+  });
+
   test("izbor se ne pamti kao zadnji", () => {
     assert.equal(webQuickPlayChoice().remember, false);
   });

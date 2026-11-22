@@ -44,8 +44,8 @@ export function parseRoomTargetScore(value: unknown, game: GameId): number | nul
 /**
  * Raub brza igra: od koliko se kreće, po izboru u podešavanjima Rauba (11 ili
  * 21). Polje `startScore` šalju samo klijenti koji imaju taj izbor; bez njega
- * (APK do 1.5.0, koji šalje Žandarov `targetScore` sa podrazumijevanih 21) i za
- * sve van ponude ostaje brza partija od 11 (odluka 34). Nikad 400.
+ * (APK do 1.5.0) i za sve van ponude je `RAUB_QUICK_START_SCORE` = 21
+ * (odluka 35). Nikad 400.
  */
 export function parseRaubQuickStartScore(value: unknown): number {
   return (RAUB_START_SCORES as readonly unknown[]).includes(value) ? (value as number) : RAUB_QUICK_START_SCORE;

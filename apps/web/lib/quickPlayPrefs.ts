@@ -17,25 +17,11 @@ export const QUICK_PLAY_TARGETS: readonly QuickPlayTarget[] = [11, 21];
 export const DEFAULT_QUICK_PLAY_PREFS: QuickPlayPrefs = { playerCount: 4, targetScore: 21 };
 
 /**
- * Raub brza igra kreće od 11 (odluka 34), a 21 se bira u podešavanjima Rauba.
- * Raub se uvijek igra u 4, pa je broj igrača tu samo da oblik ostane isti.
- */
-export const DEFAULT_RAUB_QUICK_PLAY_PREFS: QuickPlayPrefs = { playerCount: 4, targetScore: 11 };
-
-export function defaultQuickPlayPrefs(game: string = "zandar"): QuickPlayPrefs {
-  return game === "raub" ? DEFAULT_RAUB_QUICK_PLAY_PREFS : DEFAULT_QUICK_PLAY_PREFS;
-}
-
-/**
  * Izbor važi po igri (SPEC_POCETNA §4). Žandar zadržava zatečeni ključ
  * `zandar:quickplay` — već je upisan na uređajima i niko ne gubi izbor.
  */
 export function quickPlayPrefsKey(game: string = "zandar"): string {
-  if (game === "zandar") return "zandar:quickplay";
-  // Raub: nov ključ (22.11.2026). Stari je nosio 21 koje list prikazivao kao
-  // podrazumijevano, a server ga nije slušao — ko ga nije birao, kreće od 11.
-  if (game === "raub") return "kartaonica:quickplay:raub:v2";
-  return `kartaonica:quickplay:${game}`;
+  return game === "zandar" ? "zandar:quickplay" : `kartaonica:quickplay:${game}`;
 }
 
 /**
@@ -43,20 +29,19 @@ export function quickPlayPrefsKey(game: string = "zandar"): string {
  * pokvaren JSON, vrijednost koju više ne nudimo) pada na podrazumijevano, polje
  * po polje — pokvaren cilj ne smije odnijeti i zapamćenu veličinu stola.
  */
-export function parseQuickPlayPrefs(raw: string | null | undefined, game: string = "zandar"): QuickPlayPrefs {
-  const fallback = defaultQuickPlayPrefs(game);
-  if (!raw) return fallback;
+export function parseQuickPlayPrefs(raw: string | null | undefined): QuickPlayPrefs {
+  if (!raw) return DEFAULT_QUICK_PLAY_PREFS;
   let data: unknown;
   try {
     data = JSON.parse(raw);
   } catch {
-    return fallback;
+    return DEFAULT_QUICK_PLAY_PREFS;
   }
-  if (typeof data !== "object" || data === null) return fallback;
+  if (typeof data !== "object" || data === null) return DEFAULT_QUICK_PLAY_PREFS;
   const { playerCount, targetScore } = data as Record<string, unknown>;
   return {
-    playerCount: QUICK_PLAY_COUNTS.find((n) => n === playerCount) ?? fallback.playerCount,
-    targetScore: QUICK_PLAY_TARGETS.find((n) => n === targetScore) ?? fallback.targetScore,
+    playerCount: QUICK_PLAY_COUNTS.find((n) => n === playerCount) ?? DEFAULT_QUICK_PLAY_PREFS.playerCount,
+    targetScore: QUICK_PLAY_TARGETS.find((n) => n === targetScore) ?? DEFAULT_QUICK_PLAY_PREFS.targetScore,
   };
 }
 
@@ -74,7 +59,7 @@ export function readQuickPlayPrefsRaw(game: string = "zandar"): string | null {
 }
 
 export function readQuickPlayPrefs(game: string = "zandar"): QuickPlayPrefs {
-  return parseQuickPlayPrefs(readQuickPlayPrefsRaw(game), game);
+  return parseQuickPlayPrefs(readQuickPlayPrefsRaw(game));
 }
 
 export function saveQuickPlayPrefs(prefs: QuickPlayPrefs, game: string = "zandar"): void {
@@ -108,5 +93,5 @@ function subscribe(listener: () => void): () => void {
  */
 export function useQuickPlayPrefs(game: string = "zandar"): QuickPlayPrefs {
   const raw = useSyncExternalStore(subscribe, () => readQuickPlayPrefsRaw(game), () => null);
-  return useMemo(() => parseQuickPlayPrefs(raw, game), [raw, game]);
+  return useMemo(() => parseQuickPlayPrefs(raw), [raw]);
 }

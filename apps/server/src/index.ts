@@ -370,7 +370,7 @@ type CreateRoomBody = {
   displayName?: unknown;
   playerCount?: unknown;
   targetScore?: unknown;
-  /** Raub: 11 ili 21 iz podešavanja Rauba; bez polja 11 (stari klijenti). */
+  /** Raub: 11 ili 21 iz podešavanja Rauba; bez polja 21 (stari klijenti, odluka 35). */
   startScore?: unknown;
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
@@ -1161,7 +1161,7 @@ type QuickPlayBody = {
   game?: unknown; // "poker" | "raub" | "bela"; bez polja = Žandar (stari klijenti)
   playerCount?: unknown;
   targetScore?: unknown;
-  /** Raub: 11 ili 21 iz podešavanja Rauba; bez polja 11 (stari klijenti). */
+  /** Raub: 11 ili 21 iz podešavanja Rauba; bez polja 21 (stari klijenti, odluka 35). */
   startScore?: unknown;
   tableTheme?: unknown; // podloga stola; stari klijenti je ne šalju
   guestId?: unknown; // analitika (PostHog distinctId)
@@ -1328,7 +1328,7 @@ async function seatGameQuickPlay(
   const host = seat(0, true);
   applyAccountIdentity(host, await accountIdentityFor(profileStore, identity.uid));
   const rulesConfig = createRulesConfig(4);
-  // Raub brza igra: izbor iz podešavanja, podrazumijevano 11 (odluka 34);
+  // Raub brza igra: izbor iz podešavanja, podrazumijevano 21 (odluka 35);
   // `RaubTables.start` čita cilj iz sobe.
   if (game === "raub") rulesConfig.targetScore = raubStart;
   const room: LobbyRoom = {

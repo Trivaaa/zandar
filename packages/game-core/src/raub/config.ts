@@ -58,13 +58,14 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
 };
 
 /**
- * Odluka 34 (vlasnik, 22.11.2026, pregled metrika: partija od 21 traje 23 min,
- * 39 % se napusti poslije ~12 min): brza igra kreće od 11, privatni sto bira
- * 11 ili 21. Podrazumijevano za sve ostalo (stari klijenti, stare sobe) je 21.
+ * Odluka 34 (vlasnik, 22.11.2026): igrač bira 11 ili 21 — privatni sto na
+ * webu, brza igra u podešavanjima Rauba. Odluka 35 (vlasnik, 22.11.2026, po
+ * prijavi igrača): podrazumijevano je opet 21, i za brzu igru bez izbora
+ * (stari klijenti, web početna); 11 je samo kad ga igrač izabere.
  */
 export const RAUB_START_SCORES = [11, 21] as const;
 export type RaubStartScore = (typeof RAUB_START_SCORES)[number];
-export const RAUB_QUICK_START_SCORE: RaubStartScore = 11;
+export const RAUB_QUICK_START_SCORE: RaubStartScore = 21;
 
 /** Početni bodovi iz unosa ili sobe; sve van `RAUB_START_SCORES` → 21. */
 export function raubStartScore(value: unknown): RaubStartScore {

@@ -62,9 +62,9 @@ describe("parseRaubQuickStartScore", () => {
     assert.equal(parseRaubQuickStartScore(21), 21);
   });
 
-  test("bez polja ili van ponude → 11 (stari klijenti, odluka 34)", () => {
-    for (const value of [undefined, null, 9999, "21", 0, {}]) {
-      assert.equal(parseRaubQuickStartScore(value), 11);
+  test("bez polja ili van ponude → 21 (stari klijenti, odluka 35)", () => {
+    for (const value of [undefined, null, 9999, "11", 0, {}]) {
+      assert.equal(parseRaubQuickStartScore(value), 21);
     }
   });
 });

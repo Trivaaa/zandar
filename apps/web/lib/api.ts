@@ -317,7 +317,7 @@ export async function quickPlay(input: {
   tableTheme?: TableTheme;
   /** Poker: server sam bira 4 mjesta i ignoriše veličinu i cilj. */
   game?: GameId;
-  /** Raub: od koliko se kreće (11 ili 21); bez polja server uzima 11. */
+  /** Raub: od koliko se kreće (11 ili 21); bez polja server uzima 21. */
   startScore?: number;
 }, analytics: { guest?: true } = {}): Promise<QuickPlayResponse> {
   // `guest` ide samo u analitiku, ne serveru.

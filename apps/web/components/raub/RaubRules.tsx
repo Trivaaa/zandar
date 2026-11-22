@@ -10,7 +10,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
       <section>
         <SectionTitle>🎯 Cilj igre</SectionTitle>
         <p>
-          Svi počinju od 21 boda (brza partija od 11) i odbrojavaju prema nuli. Svaki uzet štih skida 1 bod, a neuspjeh dodaje kaznu. Ko prvi
+          Svi počinju od 21 boda (može i kraća partija, od 11) i odbrojavaju prema nuli. Svaki uzet štih skida 1 bod, a neuspjeh dodaje kaznu. Ko prvi
           stigne do 0 ili ispod, pobjeđuje. Svako igra za sebe.
         </p>
       </section>
