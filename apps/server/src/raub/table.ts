@@ -8,6 +8,7 @@ import {
   getRaubView,
   raubBotThinkMs,
   raubNoHumanInHand,
+  raubStartScore,
   selectRaubBotAction,
   startRaubHand,
   upgradeRaubState,
@@ -177,7 +178,11 @@ export class RaubTables {
       roomId: room.id,
       matchId,
       playerIds: seated.map((p) => p.id),
-      rules: createRaubRules(seated.length as 2 | 3 | 4),
+      // Početni bodovi iz sobe (odluka 32): brza igra 11, privatni sto 11 ili 21;
+      // stare sobe i sve van ponude → 21. Revanš koristi istu sobu, pa i isti cilj.
+      rules: createRaubRules(seated.length as 2 | 3 | 4, {
+        startScore: raubStartScore(room.rulesConfig.targetScore),
+      }),
       rng: this.rng,
     });
     room.status = "playing";

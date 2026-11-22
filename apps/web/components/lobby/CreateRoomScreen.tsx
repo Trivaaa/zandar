@@ -3,7 +3,8 @@
 import type { GameId, TableTheme } from "@zandar/shared-types";
 
 import { TableSetupFields } from "@/components/lobby/TableSetupFields";
-import { BELA_TARGETS, TABLE_GAMES, isSeatGame } from "@/lib/liveGames";
+import { BELA_TARGETS, RAUB_TARGETS, TABLE_GAMES, isSeatGame } from "@/lib/liveGames";
+import { isNative } from "@/lib/platform";
 import { sr } from "@/lib/sr";
 
 export type CreateRoomScreenProps = {
@@ -113,8 +114,9 @@ export function CreateRoomScreen({
         )}
 
         <TableSetupFields
-          showTarget={!isSeatGame(game)}
-          {...(game === "bela" ? { targets: BELA_TARGETS } : {})}
+          // Raub bira 11 / 21 samo na webu (odluka 32); aplikacija ostaje kakva jeste.
+          showTarget={!isSeatGame(game) || (game === "raub" && !isNative)}
+          {...(game === "bela" ? { targets: BELA_TARGETS } : game === "raub" ? { targets: RAUB_TARGETS } : {})}
           playerCount={playerCount}
           onPlayerCount={onPlayerCount}
           targetScore={targetScore}
@@ -123,7 +125,7 @@ export function CreateRoomScreen({
           onTableTheme={onTableTheme}
           counts={counts}
           playersLabel={copy.players}
-          targetLabel={copy.target}
+          targetLabel={game === "raub" ? sr.create.raubStart : copy.target}
         />
 
         <button

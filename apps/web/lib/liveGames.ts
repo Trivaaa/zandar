@@ -35,6 +35,13 @@ export const isSeatGame = (game: GameId | undefined) => game === "poker" || game
  */
 export const isServerTableGame = (game: GameId | undefined) => isSeatGame(game) || game === "bela";
 
+/**
+ * Raub: od koliko se kreće (odluka 32). Brzu igru odlučuje server (11); privatni
+ * sto na webu bira, a prvi izbor je brza partija.
+ */
+export const RAUB_TARGETS = [11, 21] as const;
+export const RAUB_DEFAULT_TARGET = 11;
+
 /** Bela: ciljevi privatnog stola (spec P-16); Quick Play je uvijek 501. */
 export const BELA_TARGETS = [501, 701, 1001] as const;
 export const BELA_DEFAULT_TARGET = 1001;

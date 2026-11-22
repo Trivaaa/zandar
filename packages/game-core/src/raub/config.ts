@@ -51,6 +51,20 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   lowerOfPassedSuitDead: true,
 };
 
+/**
+ * Odluka 32 (vlasnik, 22.11.2026, pregled metrika: partija od 21 traje 23 min,
+ * 39 % se napusti poslije ~12 min): brza igra kreće od 11, privatni sto bira
+ * 11 ili 21. Podrazumijevano za sve ostalo (stari klijenti, stare sobe) je 21.
+ */
+export const RAUB_START_SCORES = [11, 21] as const;
+export type RaubStartScore = (typeof RAUB_START_SCORES)[number];
+export const RAUB_QUICK_START_SCORE: RaubStartScore = 11;
+
+/** Početni bodovi iz unosa ili sobe; sve van `RAUB_START_SCORES` → 21. */
+export function raubStartScore(value: unknown): RaubStartScore {
+  return (RAUB_START_SCORES as readonly unknown[]).includes(value) ? (value as RaubStartScore) : 21;
+}
+
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */
 export const RAUB_RECONNECT_GRACE_SECONDS = 60;
 

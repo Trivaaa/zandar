@@ -7,6 +7,7 @@ import {
   createInitialGameState,
   createRulesConfig,
   DEFAULT_BOT_CONFIGS,
+  RAUB_QUICK_START_SCORE,
   ZANDAR_BOT_TIERS,
   zandarBotTier,
   DEFAULT_POKER_CONFIG,
@@ -840,7 +841,8 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
   if (game === "bela" && playerCount !== 4) {
     return reply.code(400).send({ error: "Bela se igra u 4 igrača" });
   }
-  // Poker i raub nemaju izbor cilja; upisuje se 21 samo da `rulesConfig` ostane istog oblika.
+  // Poker nema izbor cilja; upisuje se 21 samo da `rulesConfig` ostane istog oblika.
+  // Raub: 11 ili 21 (odluka 32), sve drugo 21 — `parseRoomTargetScore` ne odbija.
   if (game === "zandar" && targetScore !== 11 && targetScore !== 21) {
     return reply.code(400).send({ error: "targetScore mora biti 11 ili 21" });
   }
@@ -856,7 +858,12 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
   const { room, playerId, sessionToken } = await createPrivateRoom({
     displayName: me.nickname,
     playerCount,
-    targetScore: game === "zandar" ? (targetScore as number) : (belaTarget ?? 21),
+    targetScore:
+      game === "zandar"
+        ? (targetScore as number)
+        : game === "raub"
+          ? (parseRoomTargetScore(targetScore, "raub") ?? 21)
+          : (belaTarget ?? 21),
     tableTheme: body.tableTheme,
     identity: { ...analyticsIdentity(body), uid: me.uid },
     game,
@@ -1293,12 +1300,15 @@ async function seatGameQuickPlay(
 
   const host = seat(0, true);
   applyAccountIdentity(host, await accountIdentityFor(profileStore, identity.uid));
+  const rulesConfig = createRulesConfig(4);
+  // Raub brza igra kreće od 11 (odluka 32); `RaubTables.start` čita cilj iz sobe.
+  if (game === "raub") rulesConfig.targetScore = RAUB_QUICK_START_SCORE;
   const room: LobbyRoom = {
     id: createRoomId(),
     status: "waiting",
     hostPlayerId: playerId,
     players: [host],
-    rulesConfig: createRulesConfig(4),
+    rulesConfig,
     gameState: null,
     sessionTokens: new Map([[playerId, hashToken(sessionToken)]]),
     joinRequests: new Map(),

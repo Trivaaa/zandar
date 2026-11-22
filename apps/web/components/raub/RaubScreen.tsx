@@ -634,6 +634,7 @@ export function RaubScreen({
 
         {tableOpen ? (
           <ScoreTableSheet
+            startScore={state.rules.startScore}
             history={state.history}
             seats={state.seats}
             pendingRefas={state.pendingRefas}

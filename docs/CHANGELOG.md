@@ -2721,3 +2721,17 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Mjerenje — tier 3 je jači, ali malo.** Botovi protiv botova, cijele ruke, udio bodova (3.000 ruku, strana ne zavisi od djelioca): 2P t3:t2 51,2 %, t2:t1 53,0 %, t3:t1 54,2 %; 4P t3:t2 51,7 %, t2:t1 53,0 %, t3:t1 54,1 %. **Zamka koja je skoro prošla:** prvo mjerenje je pokazivalo da je tier 3 SLABIJI (44 % u 2P), jer je strana A bila i djelilac (`dealer = seed % n`, strana `seed % 2`) — prednost djelioca je ~6 p.p. bodova. Usput: `useDefense` nema mjerljiv efekat (t3 sa i bez njega daje identičan rezultat na 3.000 ruku), a tier 2 bez šuma i greški nije jači od tier 2 sa njima (49,9 %) — heuristika `scoreMove` je plitka, pa je razlika među tierovima mala. **Očekivanje:** pobjede ljudi padaju za nekoliko p.p. („malo teže"), ne na 50–55 %. Za veći pomak treba jači Žandar bot (gledanje unaprijed) — zaseban posao.
 
 **Provjera.** game-core: 4 testa za `zandarBotTier` + test da tim tier 3 uzima >50,5 % bodova na 2.000 ruku (djelilac razdvojen od tima). Server 320 testova, typecheck. Lokalni server: brza igra 4P → mjesta 1 i 3 tier 3, mjesto 2 tier 2, `timing.normal.maxMs` 6000; 2P → protivnik tier 3; `GET /api/rooms/:id` bez `isBot`/`botProfile`/`tier`.
+
+## 212. Raub: brza igra od 11, privatni sto bira 11 / 21 (2026-11-22, `feat/raub-quick-11`)
+
+**Šta.** Odluka 32 (`docs/raub-spec.md`). `game-core/src/raub/config.ts`: `RAUB_START_SCORES = [11, 21]`, `RAUB_QUICK_START_SCORE = 11`, `raubStartScore()` (sve van ponude → 21). `DEFAULT_RAUB_RULES.startScore` ostaje 21. Server: Raub brza igra upisuje 11 u `rulesConfig.targetScore`; `parseRoomTargetScore` za Raub prima 11/21, a sve drugo daje 21 (nikad 400, jer je Raub do sada primao bilo šta — stari klijenti); `/api/invites` isto; `RaubTables.start` gradi `rules.startScore` iz sobe (i za revanš). Web (samo web, `isNative`): na `/create` red „Kreće se od" 11 / 21 za Raub, prvi izbor 11; aplikacija šalje 21 kao do sada. Tekstovi: lista igara „od 11 ili 21 do 0", tabela rezultata „Svi kreću od {start}" (`ScoreTableSheet startScore`), pravila „od 21 boda (brza partija od 11)", opis bez broja. Simulacija: `simulate:raub -- --start 11` (`simulateRaubMatches({ rules })`).
+
+**Zašto.** Pregled metrika 21.11: završena partija Rauba traje 23 min (p90 36), 39 % partija se napusti poslije ~12 min / 8 ruku. Raub ima najbolji D1 (44 % kod novih web igrača kojima je prva igra), pa je dužina najveća prepreka.
+
+**Mjerenje (5.000 mečeva, 0 grešaka karata/štihova, 0 odbijenih, 0 zaglavljenih).** Medijan ruku od 21 → od 11: 2P 11 → 5, 3P 16 → 7, 4P 23 → 9. Model trajanja za 4P od 21 daje 36 min, a izmjereno je 23 min (model precjenjuje ~1,5×), pa je stvarna partija od 11 za 4 vjerovatno ~9 min.
+
+**Aplikacija.** Brza igra u aplikaciji dobija 11 odmah sa servera (sto i meni čitaju `rules.startScore`), ali tekst pravila u APK-u kaže „od 21" do sljedećeg paketa; privatni Raub u aplikaciji ostaje 21 bez izbora.
+
+**Usput.** `/create`: Bela 501 pa prelazak na Žandar slao je 501 → server 400; Žandar sada pada na 21 kad cilj nije 11/21.
+
+**Provjera.** Server 322 testa (raub parser 11/21/ostalo → 21; `start` iz sobe 11/21/99 → 21 i revanš), game-core, web typecheck. Nije provjereno na uređaju ni E2E u pregledaču.
