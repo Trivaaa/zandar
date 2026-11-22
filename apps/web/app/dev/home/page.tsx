@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ActiveTable } from "@zandar/shared-types";
+import type { ActiveTable, UpcomingGameSlug } from "@zandar/shared-types";
 
 import { HomeScreen } from "@/components/funnel/HomeScreen";
+import { ComingSoonSheet } from "@/components/home/ComingSoonSheet";
 import { GameSheet } from "@/components/home/GameSheet";
 import { ResumeBar } from "@/components/home/ResumeBar";
 import { ResumeSheet } from "@/components/home/ResumeSheet";
@@ -29,6 +30,8 @@ import { useQueryParam } from "@/lib/useQuery";
  *   &resume=…     traka „Vrati se za sto" (tabla `UI_VratiSe`): zandar (V1, na
  *                 potezu), poker (V2), raub (V3, bez tebe), duel (2P), lobby,
  *                 pause, done (V6); &sheet=1 list „Već igraš" (V5)
+ *   &door=tablic|remi  list lažnih vrata („dolazi uskoro"); dodir na Igraj
+ *                 Tablića ili Remija otvara isti list
  * Dodir na red igre otvara pravi list igre (H4); Zakači/Otkači mijenja glavnu.
  */
 const NOW = Date.parse("2026-10-23");
@@ -75,6 +78,19 @@ export default function DevHomePage() {
   const [resumeHidden, setResumeHidden] = useState(false);
   const resume = resumeParam && !resumeHidden ? (RESUME[resumeParam] ?? null) : null;
   const sheetParam = useQueryParam("sheet") === "1";
+  const doorParam = useQueryParam("door");
+  // undefined = po URL-u, null = zatvoren, slug = otvoren dodirom.
+  const [doorPick, setDoorPick] = useState<UpcomingGameSlug | null | undefined>(undefined);
+  const doorOpen =
+    doorPick === undefined ? (doorParam === "tablic" || doorParam === "remi" ? doorParam : null) : doorPick;
+  const doorSheet = doorOpen ? (
+    <ComingSoonSheet game={doorOpen} onSignedUp={() => undefined} onClose={() => setDoorPick(null)} />
+  ) : null;
+  /** Dodir na igru: vrata otvaraju list, ostalo radi šta je i radilo. */
+  const tap = (game: GameConfig, other: () => void) => {
+    if (game.status === "door" && game.slug !== "zandar") setDoorPick(game.slug);
+    else other();
+  };
   const [sheetClosed, setSheetClosed] = useState(false);
   const resumeBar = resume ? (
     <ResumeBar table={resume} onResume={() => undefined} onDismiss={() => setResumeHidden(true)} />
@@ -94,7 +110,9 @@ export default function DevHomePage() {
   const { layout, history } = useMemo(() => {
     const order: GameSlug[] = ["zandar", "poker", "raub", "bela"];
     const games: GameConfig[] = GAMES.map((g) =>
-      order.indexOf(g.slug) < live
+      g.status === "door"
+        ? g
+        : order.indexOf(g.slug) < live
         ? { ...g, status: "live", releasedAt: g.releasedAt ?? "2026-10-20" }
         : { ...g, status: "upcoming", releasedAt: null },
     );
@@ -107,15 +125,16 @@ export default function DevHomePage() {
 
   if (web) {
     const games = [layout.main, ...layout.more];
+    const cards = [...games, ...layout.doors];
     // Ručno otvoren list (dodir na Igraj) ima prednost nad `&name=`.
     const nameFor = nameGame === null ? null : (nameGame ?? (nameParam ? layout.main : null));
     return (
       <>
         <WebHome
-          items={games.map((game) => ({ game, badge: gameBadge(game, history, NOW) }))}
+          items={cards.map((game) => ({ game, badge: gameBadge(game, history, NOW) }))}
           loadingSlug={err ? layout.main.slug : null}
           {...(err ? { error: sr.quickSetup.error } : {})}
-          onPlay={(game) => setNameGame(game)}
+          onPlay={(game) => tap(game, () => setNameGame(game))}
           onFriends={() => setFriends(true)}
           onFeedback={() => undefined}
           showNav
@@ -125,6 +144,7 @@ export default function DevHomePage() {
         />
         <TabBar className="tabbar--web-home" />
         {resumeSheet}
+        {doorSheet}
         {friendsOpen ? (
           <FriendsGameSheet games={games} onPick={() => setFriends(false)} onClose={() => setFriends(false)} />
         ) : null}
@@ -160,19 +180,20 @@ export default function DevHomePage() {
         {...(layout.more.length > 0
           ? {
               list: {
-                items: [layout.main, ...layout.more].map((game) => ({
+                items: [layout.main, ...layout.more, ...layout.doors].map((game) => ({
                   game,
                   badge: gameBadge(game, history, NOW),
                 })),
                 loadingSlug: err ? layout.main.slug : null,
-                onPlay: () => undefined,
-                onCreate: () => undefined,
+                onPlay: (game: GameConfig) => tap(game, () => undefined),
+                onCreate: (game: GameConfig) => tap(game, () => undefined),
               },
             }
           : {})}
       />
       <TabBar />
       {resumeSheet}
+      {doorSheet}
       {open ? (
         <GameSheet
           game={open}

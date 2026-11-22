@@ -36,11 +36,14 @@ export function SignupForm({
   onBackToGame,
   backLabel = sr.signup.backToGame,
   successBody = sr.signup.successBody,
+  onSuccess,
 }: {
   games: readonly UpcomingGameSlug[];
   onBackToGame: () => void;
   backLabel?: string;
   successBody?: string;
+  /** Prijava je stigla na server (analitika domaćina, npr. lažna vrata). */
+  onSuccess?: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
@@ -75,6 +78,7 @@ export function SignupForm({
     try {
       await Promise.all(games.map((game) => submitSignup({ game, email })));
       setPhase("done");
+      onSuccess?.();
     } catch {
       setProblem("network");
       setPhase("form");

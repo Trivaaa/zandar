@@ -9,7 +9,9 @@ const DAY = 24 * 60 * 60 * 1000;
 /** Konfiguracija sa TAČNO izabranim živim igrama (ostale najavljene) — ne zavisi od `pokerLive`. */
 function withLive(...live: string[]): GameConfig[] {
   return GAMES.map((g) =>
-    live.includes(g.slug)
+    g.status === "door"
+      ? g
+      : live.includes(g.slug)
       ? { ...g, status: "live" as const, releasedAt: g.releasedAt ?? "2026-10-01" }
       : { ...g, status: "upcoming" as const, releasedAt: null },
   );
@@ -49,6 +51,14 @@ describe("homeLayout (SPEC_POCETNA §3, §5)", () => {
     const l = homeLayout(games, { pinned: "poker", played: { zandar: 500 } });
     assert.equal(l.main.slug, "poker");
     assert.deepEqual(slugs(l.more), ["zandar", "raub"]);
+  });
+
+  test("lažna vrata (Tablić, Remi) su samo u `doors`, nikad glavna ni u listi", () => {
+    const l = homeLayout(withLive("zandar", "poker", "raub", "bela"), { pinned: "remi", played: { tablic: 999 } });
+    assert.equal(l.main.slug, "zandar");
+    assert.deepEqual(slugs(l.more), ["poker", "raub", "bela"]);
+    assert.deepEqual(slugs(l.upcoming), []);
+    assert.deepEqual(slugs(l.doors), ["tablic", "remi"]);
   });
 
   test("zakačena ili igrana igra koja nije živa se ignoriše", () => {

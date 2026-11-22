@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 
-import { normalizeEmail } from "@zandar/shared-types";
+import { isUpcomingGameSlug, normalizeEmail } from "@zandar/shared-types";
 
 import {
   listSignups,
@@ -44,6 +44,14 @@ describe("normalizeEmail", () => {
 
   test("odbija preko 254 znaka", () => {
     assert.equal(normalizeEmail(`${"a".repeat(60)}@${"b".repeat(200)}.com`), null);
+  });
+});
+
+describe("igre za prijavu", () => {
+  test("lažna vrata: Tablić i Remi se primaju, nepoznata igra ne", () => {
+    assert.equal(isUpcomingGameSlug("tablic"), true);
+    assert.equal(isUpcomingGameSlug("remi"), true);
+    assert.equal(isUpcomingGameSlug("preferans"), false);
   });
 });
 

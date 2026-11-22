@@ -303,9 +303,10 @@ export const sr = {
     listSub: {
       zandar: "2 ili 4 igrača · do 11 ili 21",
       poker: "Texas Hold'em · 2–4 igrača",
-      remi: "2–4 igrača",
+      remi: "2–4 igrača · slaži nizove",
       bela: "4 igrača · 2 na 2",
       raub: "2–4 igrača · od 21 do 0",
+      tablic: "2–4 igrača · nosi zbirom",
     } as Record<string, string>,
     playGame: (name: string) => `Igraj ${name}`,
     createGame: (name: string) => `Napravi sto: ${name}`,
@@ -333,6 +334,8 @@ export const sr = {
       poker: "2–4 igrača · odmah, bez registracije",
       raub: "4 igrača · odmah, bez registracije",
       bela: "2 na 2 · odmah, bez registracije",
+      tablic: "2–4 igrača · odmah, bez registracije",
+      remi: "2–4 igrača · odmah, bez registracije",
     } as Record<string, string>,
     friends: "Igraj s prijateljima",
     friendsSub: "Napravi sto i pošalji pozivnicu",
@@ -835,6 +838,20 @@ export const sr = {
       status: "Raub još nije dostupan.",
       body: "Razmišljamo o raubu za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },
+    tablic: {
+      name: "Tablić",
+      players: "2–4 igrača",
+      status: "Tablić još nije dostupan.",
+      body: "Razmišljamo o tabliću za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
+    },
+  },
+  /* Lažna vrata (Tablić, Remi): kartica izgleda kao prava igra, a dodir otvara
+     ovaj list. Iskreno odmah na vrhu: igra još ne postoji. */
+  door: {
+    title: (name: string) => `${name} dolazi uskoro`,
+    body: (name: string) =>
+      `${name} još pravimo. Ostavi e-adresu i javićemo ti čim otvorimo prve stolove.`,
+    successBody: "Javićemo ti čim otvorimo prve stolove.",
   },
   teaser: {
     title: "Za stolom se ne žuri.",

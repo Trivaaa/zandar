@@ -2,12 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { parseGameId, parseTableTheme, type TableTheme } from "@zandar/shared-types";
+import { parseGameId, parseTableTheme, type TableTheme, type UpcomingGameSlug } from "@zandar/shared-types";
 
 import { RulesModal } from "@/components/RulesModal";
 import { HomeScreen } from "@/components/funnel/HomeScreen";
 import { GameSheet } from "@/components/home/GameSheet";
 import { QuickPlayNameSheet, QuickPlaySettingsSheet } from "@/components/home/QuickPlaySheets";
+import { ComingSoonSheet } from "@/components/home/ComingSoonSheet";
 import { SignupSheet } from "@/components/home/SignupSheet";
 import { FriendsGameSheet } from "@/components/home/web/FriendsGameSheet";
 import { WebHome } from "@/components/home/web/WebHome";
@@ -50,6 +51,7 @@ type Sheet =
   | { kind: "friends" }
   // „Već igraš X" (V5): novi sto dok partija traje — šta je igrač htio.
   | { kind: "resume"; next: NewTable }
+  | { kind: "door"; game: UpcomingGameSlug }
   | null;
 
 /** Radnja koja pravi novi sto; list „Već igraš X" je zadrži do odluke. */
@@ -232,7 +234,28 @@ export default function Home() {
    * sa zadnjim označenim (odluka #96).
    */
   function playGame(game: GameConfig) {
+    if (openDoor(game, "play")) return;
     newTable({ kind: "play", game });
+  }
+
+  /**
+   * Lažna vrata (Tablić, Remi): igra izgleda kao prava, ali dodir samo otvara
+   * „dolazi uskoro" sa prijavom. `true` = dodir je pripao vratima.
+   */
+  function openDoor(game: GameConfig, action: "play" | "create"): boolean {
+    if (game.status !== "door" || game.slug === "zandar") return false;
+    track("fake_door_tapped", { game: game.slug, action });
+    setSheet({ kind: "door", game: game.slug });
+    return true;
+  }
+
+  function createGame(game: GameConfig) {
+    if (openDoor(game, "create")) return;
+    newTable({ kind: "create", game });
+  }
+
+  function doorSeen(game: GameConfig) {
+    if (game.status === "door" && game.slug !== "zandar") track("fake_door_viewed", { game: game.slug });
   }
 
   function playGameNow(game: GameConfig) {
@@ -243,9 +266,12 @@ export default function Home() {
     else setSheet({ kind: "setup", game });
   }
 
-  const listItems = listMode
-    ? [layout.main, ...layout.more].map((game) => ({ game, badge: gameBadge(game, storedHistory, now) }))
-    : [];
+  // Lažna vrata stoje poslije živih igara, kao još dvije igre.
+  const homeItems = [layout.main, ...layout.more, ...layout.doors].map((game) => ({
+    game,
+    badge: gameBadge(game, storedHistory, now),
+  }));
+  const listItems = listMode ? homeItems : [];
 
   const setupName = sr.games[setupGame.slug].name;
   const sheetOpen = sheet !== null;
@@ -286,17 +312,19 @@ export default function Home() {
                   items: listItems,
                   loadingSlug: (playing || playError) && !sheetOpen ? playingSlug : null,
                   onPlay: playGame,
-                  onCreate: (game: GameConfig) => newTable({ kind: "create", game }),
+                  onCreate: createGame,
+                  onSeen: doorSeen,
                 },
               }
             : {})}
         />
       ) : (
         <WebHome
-          items={[layout.main, ...layout.more].map((game) => ({ game, badge: gameBadge(game, storedHistory, now) }))}
+          items={homeItems}
           loadingSlug={(playing || playError) && !sheetOpen ? playingSlug : null}
           {...(playError && !sheetOpen ? { error: playError } : {})}
           onPlay={playGame}
+          onSeen={doorSeen}
           onFriends={() => newTable({ kind: "friends" })}
           resumeSlot={resumeBar}
           onFeedback={() => router.push("/utisak")}
@@ -415,6 +443,14 @@ export default function Home() {
       ) : null}
 
       {sheet?.kind === "signup" ? <SignupSheet games={layout.upcoming} onClose={() => setSheet(null)} /> : null}
+
+      {sheet?.kind === "door" ? (
+        <ComingSoonSheet
+          game={sheet.game}
+          onSignedUp={() => track("fake_door_signup", { game: sheet.game })}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
 
       {/* `RulesModal` dijeli igra; omotač ga diže iznad PWA trake. */}
       <div className="home-layer">

@@ -49,6 +49,8 @@ export type HomeScreenProps = {
         loadingSlug: string | null;
         onPlay: (game: GameConfig) => void;
         onCreate: (game: GameConfig) => void;
+        /** Lažna vrata: kartica viđena (analitika). */
+        onSeen?: ((game: GameConfig) => void) | undefined;
       }
     | undefined;
   className?: string | undefined;
@@ -96,6 +98,7 @@ export function HomeScreen({
             error={error}
             onPlay={list.onPlay}
             onCreate={list.onCreate}
+            onSeen={list.onSeen}
           />
           {onFeedback ? <FeedbackRow onOpen={onFeedback} /> : null}
           {legalSlot ? <footer className="home__legal">{legalSlot}</footer> : null}
