@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(InstallReferrerPlugin.class);
         registerPlugin(AppUpdatePlugin.class);
         registerPlugin(MetaEventsPlugin.class);
+        registerPlugin(NotificationSettingsPlugin.class);
         MetaEventsPlugin.startIfConsented(this);
         super.onCreate(savedInstanceState);
         enterImmersive();

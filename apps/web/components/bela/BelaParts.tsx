@@ -31,6 +31,7 @@ import {
 } from "@/lib/belaView";
 import { SUIT_SYMBOL } from "@/lib/raubView";
 import { sr } from "@/lib/sr";
+import { PushPrompt } from "@/components/push/PushPrompt";
 
 /** Rezultat u zaglavlju: „MI 412 : 380 VI", ispod „ova ruka 34 : 21" (dodir otvara tabelu). */
 export function BelaScore({
@@ -427,6 +428,8 @@ export function BelaMatchEnd({
             {sr.bela.end.home}
           </button>
         </div>
+        {/* SPEC_PUSH_V2 A1 — samo aplikacija, ispod dugmadi. */}
+        {!abandoned ? <PushPrompt context="match_end" className="pushprompt--end" /> : null}
       </div>
     </div>
   );

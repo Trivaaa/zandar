@@ -9,6 +9,7 @@ import type { ProfileAvatar } from "@zandar/shared-types";
 import { useAccountEntry } from "@/components/account/AccountEntry";
 import { VerifyEmailSheet } from "@/components/account/AccountSheets";
 import { FeedbackToggles } from "@/components/FeedbackToggles";
+import { PushSettingsRows } from "@/components/push/PushSettingsRows";
 import { SettingsSheet } from "@/components/home/SettingsSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import {
@@ -198,7 +199,8 @@ export function ProfileScreen() {
                   setRulesOpen(true);
                 }}
                 onClose={() => setSheet(null)}
-                feedbackSlot={<FeedbackToggles showPush />}
+                feedbackSlot={<FeedbackToggles />}
+                notificationsSlot={<PushSettingsRows />}
                 storeUrl={isNative ? null : STORE_LINKS["google-play"]}
               />
             </div>

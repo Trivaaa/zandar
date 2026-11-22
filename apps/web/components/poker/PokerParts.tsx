@@ -7,6 +7,7 @@ import { PlayingCard } from "@/components/felt/PlayingCard";
 import { Avatar } from "@/components/profile/Avatar";
 import { POKER_CATEGORY_LABEL, type HandSummary, type PotChip, type ShowdownRow } from "@/lib/pokerView";
 import { sr } from "@/lib/sr";
+import { PushPrompt } from "@/components/push/PushPrompt";
 
 function initial(name: string) {
   return name.trim().slice(0, 1).toLocaleUpperCase("sr-Latn");
@@ -337,6 +338,8 @@ export function MatchEndCard({
             {sr.poker.leave}
           </button>
         </div>
+        {/* SPEC_PUSH_V2 A1 — samo aplikacija, ispod dugmadi. */}
+        {!abandoned ? <PushPrompt context="match_end" className="pushprompt--end" /> : null}
       </div>
     </div>
   );

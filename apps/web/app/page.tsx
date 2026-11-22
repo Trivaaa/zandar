@@ -33,6 +33,8 @@ import { sr } from "@/lib/sr";
 import { startQuickPlay } from "@/lib/startQuickPlay";
 import { readTableThemeRaw, saveTableTheme, useTableTheme } from "@/lib/tableTheme";
 import { track } from "@/lib/track";
+import { HOME_GAME_PARAM } from "@/lib/push";
+import { useQueryParam } from "@/lib/useQuery";
 import { guestName, webCreatePath, webQuickPlayChoice } from "@/lib/webHome";
 
 /** Nova soba za igru; Žandar ostaje na staroj adresi (linkovi, APK). */
@@ -66,7 +68,14 @@ export default function Home() {
   const router = useRouter();
   // Bela beta: prozor PRIJE stola, jer server pokreće partiju čim igrač sjedne.
   const belaBeta = useBelaBetaGate();
-  const history = useHomeHistory();
+  const storedHistory = useHomeHistory();
+  // Podsjetnik (SPEC_PUSH_V2 B6) otvara početnu sa svojom igrom na vrhu —
+  // samo za ovaj prikaz, zakačena igra se ne mijenja.
+  const focus = useQueryParam(HOME_GAME_PARAM);
+  const history = useMemo(() => {
+    const game = GAMES.find((g) => g.slug === focus && g.status === "live");
+    return game ? { ...storedHistory, pinned: game.slug } : storedHistory;
+  }, [storedHistory, focus]);
   const layout = useMemo(() => homeLayout(GAMES, history), [history]);
   const main = layout.main;
   // Više živih igara → lista kartica (tabla „Lista"); jedna → sto K1.
@@ -235,7 +244,7 @@ export default function Home() {
   }
 
   const listItems = listMode
-    ? [layout.main, ...layout.more].map((game) => ({ game, badge: gameBadge(game, history, now) }))
+    ? [layout.main, ...layout.more].map((game) => ({ game, badge: gameBadge(game, storedHistory, now) }))
     : [];
 
   const setupName = sr.games[setupGame.slug].name;
@@ -250,7 +259,7 @@ export default function Home() {
       {isNative ? (
         <HomeScreen
           layout={layout}
-          history={history}
+          history={storedHistory}
           now={now}
           loading={playing && !sheetOpen}
           {...(playError && !sheetOpen ? { error: playError } : {})}
@@ -284,7 +293,7 @@ export default function Home() {
         />
       ) : (
         <WebHome
-          items={[layout.main, ...layout.more].map((game) => ({ game, badge: gameBadge(game, history, now) }))}
+          items={[layout.main, ...layout.more].map((game) => ({ game, badge: gameBadge(game, storedHistory, now) }))}
           loadingSlug={(playing || playError) && !sheetOpen ? playingSlug : null}
           {...(playError && !sheetOpen ? { error: playError } : {})}
           onPlay={playGame}
@@ -357,7 +366,7 @@ export default function Home() {
       {sheet?.kind === "game" ? (
         <GameSheet
           game={sheet.game}
-          pinned={history.pinned === sheet.game.slug}
+          pinned={storedHistory.pinned === sheet.game.slug}
           onPlay={() => {
             const game = sheet.game;
             setSheet(null);
@@ -373,7 +382,7 @@ export default function Home() {
           onTogglePin={() => {
             // Samo jedna zakačena: novo kačenje zamjenjuje staro. List se
             // zatvara, da igrač vidi igru gore kao glavnu karticu (H5).
-            setPinnedGame(history.pinned === sheet.game.slug ? null : sheet.game.slug);
+            setPinnedGame(storedHistory.pinned === sheet.game.slug ? null : sheet.game.slug);
             setSheet(null);
           }}
           onClose={() => setSheet(null)}

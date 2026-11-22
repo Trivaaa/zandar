@@ -6,7 +6,7 @@ import posthog from "posthog-js";
 import { registerPushDevice, setPushDevicePrefs } from "@/lib/api";
 import { peekGuestId } from "@/lib/guestId";
 import { isNative } from "@/lib/platform";
-import { getPushTable, setSetting } from "@/lib/settings";
+import { getPushReminders, getPushTable, setSetting } from "@/lib/settings";
 
 /**
  * Push obavještenja (PRD §51) — samo u Android shell-u.
@@ -24,6 +24,18 @@ export const pushEnabled = isNative && process.env.NEXT_PUBLIC_PUSH === "1";
 export const TABLE_CHANNEL_ID = "sto";
 /** Zahtjevi za prijateljstvo — isti id kao `FRIENDS_CHANNEL_ID` na serveru. */
 export const FRIENDS_CHANNEL_ID = "prijatelji";
+/** Podsjetnici neaktivnim igračima — isti id kao `REMINDERS_CHANNEL_ID` na serveru (SPEC_PUSH_V2 B1). */
+export const REMINDERS_CHANNEL_ID = "podsjetnici";
+
+/**
+ * Šta ovaj paket zna da prikaže. Server šalje podsjetnik SAMO uređaju koji je
+ * javio `reminders` — stari paket nema kanal `podsjetnici`, pa bi poruka pala
+ * na podrazumijevani kanal.
+ */
+export const PUSH_CAPS = ["reminders"] as const;
+
+/** Parametar početne koji podsjetnik postavlja: `/?igra=raub` stavlja igru na vrh. */
+export const HOME_GAME_PARAM = "igra";
 
 /**
  * Emituje se kad uređaj dobije `pushId`. Soba (`room:subscribe`) i zahtjev za
@@ -34,8 +46,11 @@ export const PUSH_REGISTERED_EVENT = "zandar:push-registered";
 
 const PUSH_ID_KEY = "zandar:pushId";
 const SNOOZE_KEY = "zandar:push:snoozeUntil";
+const DISMISS_COUNT_KEY = "zandar:push:dismissCount";
 /** "Ne sada" sakriva ponudu nedjelju dana — ne pitamo pri svakom ulasku u lobi. */
 const PROMPT_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+/** Poslije ovoliko "Ne sada" ponuda ostaje samo u Postavkama (SPEC_PUSH_V2 A2). */
+export const MAX_PROMPT_DISMISSALS = 3;
 /**
  * Koliko čekamo token od Firebase-a. Izmjereno na uređaju: hladan start Play
  * Services-a (poslije restarta telefona/aplikacije) zna trajati preko 15s —
@@ -199,6 +214,8 @@ async function doRegister(): Promise<string | null> {
       tz: timeZone(),
       guestId: peekGuestId() ?? undefined,
       table: getPushTable(),
+      reminders: getPushReminders(),
+      caps: PUSH_CAPS,
     });
     writeKey(PUSH_ID_KEY, pushId);
     registeredThisSession = true;
@@ -228,13 +245,21 @@ export async function requestPushPermission(): Promise<PushPermission> {
   return result;
 }
 
+/** Odgođena ("Ne sada" u zadnjih 7 dana) ili ugašena (3 puta "Ne sada") ponuda. */
 export function isPromptSnoozed(now: number = Date.now()): boolean {
+  if (promptDismissCount() >= MAX_PROMPT_DISMISSALS) return true;
   const until = Number(readKey(SNOOZE_KEY));
   return Number.isFinite(until) && until > now;
 }
 
+export function promptDismissCount(): number {
+  const n = Number(readKey(DISMISS_COUNT_KEY));
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
 export function snoozePrompt(now: number = Date.now()): void {
   writeKey(SNOOZE_KEY, String(now + PROMPT_SNOOZE_MS));
+  writeKey(DISMISS_COUNT_KEY, String(promptDismissCount() + 1));
 }
 
 /**
@@ -245,6 +270,48 @@ export function setPushTable(enabled: boolean): void {
   setSetting("pushTable", enabled);
   const pushId = getPushId();
   if (pushId) void setPushDevicePrefs(pushId, { table: enabled }).catch(() => {});
+}
+
+/** Preklopka podsjetnika (SPEC_PUSH_V2 B1) — isti tok kao `setPushTable`. */
+export function setPushReminders(enabled: boolean): void {
+  setSetting("pushReminders", enabled);
+  const pushId = getPushId();
+  if (pushId) void setPushDevicePrefs(pushId, { reminders: enabled }).catch(() => {});
+}
+
+type NotificationSettingsPlugin = { open(): Promise<{ opened: boolean }> };
+
+/**
+ * Sistemska podešavanja obavještenja aplikacije (SPEC_PUSH_V2 A3) — jedini put
+ * nazad poslije "Ne dozvoli" na Androidu 13+. Plugin objekat se ne vraća ni ne
+ * awaituje kao vrijednost (CLAUDE.md, Capacitor proxy i `.then`).
+ */
+export async function openNotificationSettings(): Promise<boolean> {
+  if (!pushEnabled) return false;
+  try {
+    const { registerPlugin } = await import("@capacitor/core");
+    const { opened } = await registerPlugin<NotificationSettingsPlugin>("NotificationSettings").open();
+    return opened;
+  } catch {
+    return false;
+  }
+}
+
+let stateSent = false;
+
+/**
+ * `push_state` jednom po pokretanju (SPEC_PUSH_V2 A5): stanje dozvole i
+ * preklopki. Iz njega se računa doseg — koliko aktivnih igrača uopšte može
+ * dobiti obavještenje — bez pristupa serveru.
+ */
+export async function capturePushState(): Promise<void> {
+  if (!pushEnabled || stateSent) return;
+  stateSent = true;
+  capturePush("push_state", {
+    permission: await pushPermission(),
+    table: getPushTable(),
+    reminders: getPushReminders(),
+  });
 }
 
 function subscribeRegistered(onChange: () => void): () => void {

@@ -994,6 +994,11 @@ export const sr = {
       title: "Javi mi kad me neko doda ili pozove",
       body: "Zahtjev za prijateljstvo i poziv na partiju stižu i kad aplikacija nije otvorena.",
     },
+    /* SPEC_PUSH_V2 A1: kraj partije. Kaže SVE što stiže, i podsjetnike. */
+    match_end: {
+      title: "Da ti javimo?",
+      body: "Kad te prijatelj pozove ili neko pokuca na tvoj sto. Ponekad i podsjetnik na partiju, koji gasiš u Postavkama.",
+    },
     enable: "Uključi obavještenja",
     notNow: "Ne sada",
     channelName: "Sto i pozivi",
@@ -1004,6 +1009,20 @@ export const sr = {
     toggleOff: "Uključi obavještenja o stolu",
     stateOn: "Obavještenja o stolu uključena",
     stateOff: "Obavještenja o stolu isključena",
+    remindersChannelName: "Podsjetnici",
+    remindersChannelDescription: "Ponekad, kad dugo ne svratiš: revanš, nova igra.",
+    /* SPEC_PUSH_V2 A3: red „Obavještenja" u Postavkama. */
+    settings: {
+      title: "Obavještenja",
+      table: "Sto i prijatelji",
+      reminders: "Podsjetnici",
+      on: "Uključena",
+      off: "Isključena",
+      offAtPhone: "Isključena u podešavanjima telefona",
+      turnOn: "Uključi",
+      turnOff: "Isključi",
+      openSettings: "Otvori podešavanja",
+    },
   },
   /* Donja navigacija (SPEC_IDENTITET §4). */
   nav: {

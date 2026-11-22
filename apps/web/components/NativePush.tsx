@@ -6,13 +6,17 @@ import { useRouter } from "next/navigation";
 import { acceptInvite } from "@/lib/invites";
 import {
   capturePush,
+  capturePushState,
   FRIENDS_CHANNEL_ID,
+  HOME_GAME_PARAM,
   pushEnabled,
   pushPermission,
   pushRegistrationPending,
   registerForPush,
+  REMINDERS_CHANNEL_ID,
   TABLE_CHANNEL_ID,
 } from "@/lib/push";
+import { withQuery } from "@/lib/useQuery";
 import { ROOM_ID, roomPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
 import { dismissInvite, markInviteExpired } from "@/lib/userChannel";
@@ -62,14 +66,35 @@ export function NativePush() {
         visibility: 1,
         vibration: true,
       }).catch(() => {});
+      // Podsjetnici (SPEC_PUSH_V2 B1): bez iskakanja preko ekrana, gase se
+      // nezavisno od stola i prijatelja. Kanal MORA postojati prije prve poruke.
+      await PushNotifications.createChannel({
+        id: REMINDERS_CHANNEL_ID,
+        name: sr.push.remindersChannelName,
+        description: sr.push.remindersChannelDescription,
+        importance: 3,
+        visibility: 1,
+        vibration: false,
+      }).catch(() => {});
 
       const handle = await PushNotifications.addListener(
         "pushNotificationActionPerformed",
         ({ notification }) => {
-          const data = notification.data as { type?: unknown; roomId?: unknown } | undefined;
+          const data = notification.data as
+            | { type?: unknown; roomId?: unknown; step?: unknown; reason?: unknown; game?: unknown }
+            | undefined;
+          const str = (v: unknown) => (typeof v === "string" ? v : undefined);
           capturePush("push_opened", {
-            type: typeof data?.type === "string" ? data.type : "unknown",
+            type: str(data?.type) ?? "unknown",
+            ...(data?.type === "reminder"
+              ? { step: str(data.step), reason: str(data.reason), game: str(data.game) }
+              : {}),
           });
+          // SPEC_PUSH_V2 B6: podsjetnik → početna sa svojom igrom na vrhu; partija ne kreće sama.
+          if (data?.type === "reminder") {
+            router.push(withQuery("/", { [HOME_GAME_PARAM]: str(data.game) }));
+            return;
+          }
           const roomId = data?.roomId;
           // §8: zahtjev → tab Prijatelji (sekcija zahtjeva je na vrhu).
           if (data?.type === "friend_request") {
@@ -103,6 +128,8 @@ export function NativePush() {
       // Svaki start osvježava token. Bez date dozvole se ništa ne pita —
       // to radi samo `PushPrompt`, u trenutku kad igrač nešto čeka.
       if ((await pushPermission()) === "granted") void registerForPush();
+      // Doseg (SPEC_PUSH_V2 A5): stanje dozvole i preklopki, jednom po pokretanju.
+      void capturePushState();
     })().catch(() => {});
 
     return () => {

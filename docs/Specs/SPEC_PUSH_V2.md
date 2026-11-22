@@ -1,6 +1,6 @@
 # SPEC — Push v2: povratak neaktivnih igrača i uključivanje obavještenja · NACRT v1
 
-> **Status:** plan, čeka odobrenje vlasnika. Kod nije pisan.
+> **Status:** odobreno 22.11.2026 (aplikacija je izuzetak; kontrolna grupa 50 % → 10 %; tap → početna sa igrom). F1 i F2 implementirani na `feat/push-v2` (changelog 209); A4 nije rađen.
 > **Zamjenjuje:** PRD §51.5 (v2, podsjetnici na neaktivnost). PRD §51.1–51.4 (principi, v1 katalog, dozvola, arhitektura) i dalje važe.
 > **Vezano:** SPEC_RANG §5.8 (tekstovi podsjetnika iz lige — uključuju se u isti mehanizam kad liga bude gotova), `docs/analytics.md`, memorija o PMF pragovima (D1 35 / D7 15 / D30 6).
 > **Platforma:** samo Android aplikacija. Web push i iOS su van opsega.

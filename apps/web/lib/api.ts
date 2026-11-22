@@ -161,6 +161,9 @@ export async function registerPushDevice(input: {
   tz?: string | undefined;
   guestId?: string | undefined;
   table: boolean;
+  /** SPEC_PUSH_V2: preklopka podsjetnika i mogućnosti ovog paketa. */
+  reminders: boolean;
+  caps: readonly string[];
 }): Promise<{ pushId: string }> {
   const res = await fetch(`${API_BASE}/api/push/devices`, {
     method: "POST",
@@ -186,7 +189,7 @@ export async function unbindPushDevice(pushId: string): Promise<void> {
 
 export async function setPushDevicePrefs(
   pushId: string,
-  prefs: { table: boolean },
+  prefs: { table?: boolean; reminders?: boolean },
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/api/push/devices/prefs`, {
     method: "POST",

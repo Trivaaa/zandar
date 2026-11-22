@@ -942,3 +942,9 @@
     opacity: 0.75;
   }
 }
+
+/* SPEC_PUSH_V2 A1: ponuda ispod dugmadi na kraju partije (sve igre). */
+.pushprompt--end {
+  margin-top: 0.75rem;
+  text-align: left;
+}

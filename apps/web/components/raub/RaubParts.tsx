@@ -21,6 +21,7 @@ import {
   type RaubPanel,
 } from "@/lib/raubView";
 import { sr } from "@/lib/sr";
+import { PushPrompt } from "@/components/push/PushPrompt";
 
 /** Pik, herc, karo, tref — naziv boje klasičnih karata za čitač ekrana. */
 const FRENCH_SUIT_NAME: Record<Suit, string> = { spades: "pik", hearts: "herc", diamonds: "karo", clubs: "tref" };
@@ -658,6 +659,8 @@ export function RaubMatchEnd({
             {sr.poker.leave}
           </button>
         </div>
+        {/* SPEC_PUSH_V2 A1 — samo aplikacija, ispod dugmadi. */}
+        {!abandoned ? <PushPrompt context="match_end" className="pushprompt--end" /> : null}
       </div>
     </div>
   );

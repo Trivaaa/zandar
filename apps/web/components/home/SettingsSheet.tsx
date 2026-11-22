@@ -23,6 +23,8 @@ export type SettingsSheetProps = {
   onClose: () => void;
   /** Preklopke zvuka i vibracije — iste koje igra koristi. */
   feedbackSlot?: ReactNode;
+  /** Red „Obavještenja" (SPEC_PUSH_V2 A3) — samo u aplikaciji sa push-om. */
+  notificationsSlot?: ReactNode;
   /** Privatnost / uslovi / o nama — zadnja, suptilna sekcija (H6), na webu i
    * na Androidu. Isti stil kao red na dnu početne. */
   legalSlot?: ReactNode;
@@ -50,6 +52,7 @@ export function SettingsSheet({
   onRules,
   onClose,
   feedbackSlot,
+  notificationsSlot,
   legalSlot,
   storeUrl,
   className = "",
@@ -90,6 +93,8 @@ export function SettingsSheet({
         </div>
 
         {feedbackSlot ? <div className="settings__feedback">{feedbackSlot}</div> : null}
+
+        {notificationsSlot}
 
         <MetaConsentRow />
 

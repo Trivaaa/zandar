@@ -5,6 +5,7 @@ import type { HandScore, PublicPlayer } from "@zandar/shared-types";
 import { breakdownRows } from "@/lib/handBreakdown";
 import { pilesOf } from "@/lib/piles";
 import { sr } from "@/lib/sr";
+import { PushPrompt } from "@/components/push/PushPrompt";
 
 export type RoundEndOverlayProps = {
   phase: "hand_finished" | "match_finished";
@@ -188,6 +189,9 @@ export function RoundEndOverlay({
         ) : null}
 
         {isMatch ? appOffer : null}
+
+        {/* SPEC_PUSH_V2 A1 — samo aplikacija; na webu je ovdje ponuda aplikacije. */}
+        {isMatch ? <PushPrompt context="match_end" className="pushprompt--end" /> : null}
 
         {isMatch && onLeave ? (
           <button

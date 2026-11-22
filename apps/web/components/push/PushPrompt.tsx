@@ -12,8 +12,8 @@ import {
 } from "@/lib/push";
 import { sr } from "@/lib/sr";
 
-/** Koga i šta čeka: host kucanje, gost odobrenje, igrač u lobiju početak. */
-export type PushPromptContext = "host" | "guest" | "waiting" | "friends";
+/** Koga i šta čeka: host kucanje, gost odobrenje, igrač u lobiju početak; `match_end` = kraj partije (SPEC_PUSH_V2 A1). */
+export type PushPromptContext = "host" | "guest" | "waiting" | "friends" | "match_end";
 
 /**
  * Ponuda obavještenja u trenutku kad igrač nešto čeka (PRD §51).
