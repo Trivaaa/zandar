@@ -61,10 +61,16 @@ export const DEFAULT_POKER_BOT_CONFIG: PokerBotConfig = {
   reraiseChen: 12,
   defendChen: 3,
   monsterRaiseP: 0.35,
-  strongCallPotOdds: 0.35,
-  mediumCallPotOdds: 0.25,
+  // 22.11.2026 (pregled metrika: ljudi osvajali 1. mjesto u ~14–17 % brze igre
+  // za 4): bot češće odustane na tuđi ulog poslije flopa i rjeđe brani blind,
+  // pa ulog igrača češće prođe. Simulacija sa „početnikom" na mjestu 0
+  // (`simulate:poker -- --novice`, 10.000 × 4): 1. mjesto 21,2 % → 25,8 %,
+  // medijan ruku 39 → 45, trajanje u cilju 12–20 min 54 % → 82 %.
+  // Ranije: strongCallPotOdds 0.35, mediumCallPotOdds 0.25, defendPotOdds 0.35.
+  strongCallPotOdds: 0.2,
+  mediumCallPotOdds: 0.1,
   raisePotFraction: 0.75,
-  defendPotOdds: 0.35,
+  defendPotOdds: 0.25,
   openSizeBb: 2.5,
   looseCallP: 0.15,
   pushFoldBb: 12,

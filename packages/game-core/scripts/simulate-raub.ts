@@ -1,7 +1,7 @@
 /**
  * Simulacija Raub mečeva samo s botovima (spec: „Testovi").
  *
- *   pnpm --filter @zandar/game-core simulate:raub [-- --matches 10000 --players 4 --seed 1]
+ *   pnpm --filter @zandar/game-core simulate:raub [-- --matches 10000 --players 4 --seed 1 --start 21]
  *
  * Provjerava 32 karte na tačno jednom mjestu, 4 štiha po odigranoj ruci i
  * legalnost akcija, i procjenjuje trajanje meča. Model trajanja (pretpostavke,
@@ -23,9 +23,10 @@ function arg(name: string, fallback: number): number {
 const matches = arg("matches", 10_000);
 const players = arg("players", 4) as 2 | 3 | 4;
 const seed = arg("seed", 1);
+const start = arg("start", 21); // početni bodovi (odluka 34: brza igra 11)
 
 const t0 = Date.now();
-const r = simulateRaubMatches({ matches, players, seed });
+const r = simulateRaubMatches({ matches, players, seed, rules: { startScore: start } });
 const elapsed = Date.now() - t0;
 
 const sorted = (xs: number[]) => [...xs].sort((a, b) => a - b);
@@ -41,7 +42,7 @@ const minutes = r.matches.map((m) => {
   return (humanMs + botMs + m.hands * HAND_OVERHEAD_MS) / 60_000;
 });
 
-console.log(`Raub: ${matches} mečeva × ${players} igrača, seed ${seed} (${elapsed} ms)`);
+console.log(`Raub: ${matches} mečeva × ${players} igrača, od ${start}, seed ${seed} (${elapsed} ms)`);
 console.log(`greške karata ${r.cardErrors} · greške štihova ${r.trickErrors} · odbijene akcije ${r.illegalActions} · zaglavljeni ${r.stuck}`);
 console.log(`ruke po meču: medijan ${pct(hands, 0.5)}, p10 ${pct(hands, 0.1)}, p90 ${pct(hands, 0.9)}`);
 console.log(`refa: ${((voids / totalHands) * 100).toFixed(1)}% ruku · štih ${sum("seven")} · raub ${sum("bid")} · moja ${sum("moja")}`);

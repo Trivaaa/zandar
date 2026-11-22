@@ -10,7 +10,14 @@ import { savePlayerName, usePlayerName } from "@/lib/playerName";
 import { readTableThemeRaw, saveTableTheme } from "@/lib/tableTheme";
 import { CreateRoomScreen } from "@/components/lobby/CreateRoomScreen";
 import { useBelaBetaGate } from "@/components/bela/BelaBetaGate";
-import { BELA_DEFAULT_TARGET, BELA_TARGETS, TABLE_GAMES, pickTableGame } from "@/lib/liveGames";
+import {
+  BELA_DEFAULT_TARGET,
+  BELA_TARGETS,
+  RAUB_DEFAULT_TARGET,
+  RAUB_TARGETS,
+  TABLE_GAMES,
+  pickTableGame,
+} from "@/lib/liveGames";
 import { useQueryParam } from "@/lib/useQuery";
 import { isNative } from "@/lib/platform";
 import { webCreateCounts } from "@/lib/webHome";
@@ -40,14 +47,25 @@ export default function CreatePage() {
   // Broj iz druge igre koji ova ne nudi (3 → Žandar na webu) pada na 2.
   const seats: 2 | 3 | 4 =
     counts && !counts.includes(playerCount) ? (counts.includes(2) ? 2 : 4) : playerCount;
-  const [targetDraft, setTargetScore] = useState(21);
+  // `null` = igrač nije dirao cilj → podrazumijevani za igru.
+  const [targetDraft, setTargetScore] = useState<number | null>(null);
   // Cilj iz druge igre koji ova ne nudi (21 → Bela) pada na podrazumijevani.
+  // Raub (odluka 34): na webu bira 11 / 21, prvi izbor je 11; aplikacija nema
+  // izbor i šalje 21 kao do sada.
   const targetScore =
     game === "bela"
-      ? (BELA_TARGETS as readonly number[]).includes(targetDraft)
+      ? targetDraft !== null && (BELA_TARGETS as readonly number[]).includes(targetDraft)
         ? targetDraft
         : BELA_DEFAULT_TARGET
-      : targetDraft;
+      : game === "raub"
+        ? isNative
+          ? 21
+          : targetDraft !== null && (RAUB_TARGETS as readonly number[]).includes(targetDraft)
+            ? targetDraft
+            : RAUB_DEFAULT_TARGET
+        : targetDraft === 11 || targetDraft === 21
+          ? targetDraft
+          : 21; // npr. 501 iz Bele — server bi Žandaru vratio 400
   // Zadnja izabrana podloga, zajednička sa brzom igrom; `null` = nije dirano.
   const savedTheme = useSyncExternalStore(subscribeToNothing, readTableThemeRaw, () => null);
   const [themeDraft, setThemeDraft] = useState<TableTheme | null>(null);

@@ -42,10 +42,16 @@ describe("parseRoomTargetScore", () => {
     }
   });
 
-  test("poker i raub uvijek 21, šta god stiglo", () => {
-    for (const game of ["poker", "raub"] as const) {
-      assert.equal(parseRoomTargetScore(9999, game), 21);
-      assert.equal(parseRoomTargetScore(undefined, game), 21);
+  test("poker uvijek 21, šta god stiglo", () => {
+    assert.equal(parseRoomTargetScore(9999, "poker"), 21);
+    assert.equal(parseRoomTargetScore(undefined, "poker"), 21);
+  });
+
+  test("raub: 11 ili 21 (odluka 34), sve ostalo 21 — nikad 400 (stari klijenti)", () => {
+    assert.equal(parseRoomTargetScore(11, "raub"), 11);
+    assert.equal(parseRoomTargetScore(21, "raub"), 21);
+    for (const value of [undefined, null, 9999, "11", 0, {}]) {
+      assert.equal(parseRoomTargetScore(value, "raub"), 21);
     }
   });
 });

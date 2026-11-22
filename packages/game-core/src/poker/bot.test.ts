@@ -182,4 +182,27 @@ describe("simulacija samo s botovima", () => {
     expect(r.illegalActions).toBe(0);
     expect(r.matches.every((m) => m.hands > 0)).toBe(true);
   });
+
+  it("config po mjestu: svako mjesto ima plasman, tačno jedan pobjednik po meču", () => {
+    const always = { ...DEFAULT_POKER_BOT_CONFIG, looseCallP: 1, bluffP: 0 };
+    const r = simulatePokerMatches({ matches: 60, players: 4, seed: 5, seatBotConfigs: [always] });
+    expect(r.chipErrors).toBe(0);
+    expect(r.illegalActions).toBe(0);
+    for (const m of r.matches) {
+      expect(m.placeBySeat).toHaveLength(4);
+      expect(m.placeBySeat.every((p) => p >= 1 && p <= 4)).toBe(true);
+      expect(m.placeBySeat.filter((p) => p === 1)).toHaveLength(1);
+    }
+  });
+
+  it("config po mjestu mijenja igru tog mjesta (isti seed, drugačiji ishod)", () => {
+    const base = simulatePokerMatches({ matches: 40, players: 4, seed: 9 });
+    const loose = simulatePokerMatches({
+      matches: 40,
+      players: 4,
+      seed: 9,
+      seatBotConfigs: [{ ...DEFAULT_POKER_BOT_CONFIG, looseCallP: 1, openChen: { 2: -5, 3: -5, 4: -5 } }],
+    });
+    expect(loose.matches.map((m) => m.placeBySeat[0])).not.toEqual(base.matches.map((m) => m.placeBySeat[0]));
+  });
 });

@@ -7,6 +7,9 @@ import {
   createInitialGameState,
   createRulesConfig,
   DEFAULT_BOT_CONFIGS,
+  RAUB_QUICK_START_SCORE,
+  ZANDAR_BOT_TIERS,
+  zandarBotTier,
   DEFAULT_POKER_CONFIG,
   DEFAULT_RAUB_RULES,
   DEFAULT_BELA_RULES,
@@ -857,7 +860,8 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
   if (game === "bela" && playerCount !== 4) {
     return reply.code(400).send({ error: "Bela se igra u 4 igrača" });
   }
-  // Poker i raub nemaju izbor cilja; upisuje se 21 samo da `rulesConfig` ostane istog oblika.
+  // Poker nema izbor cilja; upisuje se 21 samo da `rulesConfig` ostane istog oblika.
+  // Raub: 11 ili 21 (odluka 34), sve drugo 21 — `parseRoomTargetScore` ne odbija.
   if (game === "zandar" && targetScore !== 11 && targetScore !== 21) {
     return reply.code(400).send({ error: "targetScore mora biti 11 ili 21" });
   }
@@ -873,7 +877,12 @@ fastify.post<{ Body: InviteBody }>("/api/invites", async (request, reply) => {
   const { room, playerId, sessionToken } = await createPrivateRoom({
     displayName: me.nickname,
     playerCount,
-    targetScore: game === "zandar" ? (targetScore as number) : (belaTarget ?? 21),
+    targetScore:
+      game === "zandar"
+        ? (targetScore as number)
+        : game === "raub"
+          ? (parseRoomTargetScore(targetScore, "raub") ?? 21)
+          : (belaTarget ?? 21),
     tableTheme: body.tableTheme,
     identity: { ...analyticsIdentity(body), uid: me.uid },
     game,
@@ -1253,7 +1262,8 @@ fastify.post<{ Body: QuickPlayBody }>(
       tableTheme,
     };
 
-    fillSeatsWithBots(room, 2);
+    // Bez tiera: protivnici jači, partner isti (`ZANDAR_BOT_TIERS`, 22.11.2026).
+    fillSeatsWithBots(room);
     startBotGame(room);
     storeRoom(room);
     emitMatchStarted(room);
@@ -1309,12 +1319,15 @@ async function seatGameQuickPlay(
 
   const host = seat(0, true);
   applyAccountIdentity(host, await accountIdentityFor(profileStore, identity.uid));
+  const rulesConfig = createRulesConfig(4);
+  // Raub brza igra kreće od 11 (odluka 34); `RaubTables.start` čita cilj iz sobe.
+  if (game === "raub") rulesConfig.targetScore = RAUB_QUICK_START_SCORE;
   const room: LobbyRoom = {
     id: createRoomId(),
     status: "waiting",
     hostPlayerId: playerId,
     players: [host],
-    rulesConfig: createRulesConfig(4),
+    rulesConfig,
     gameState: null,
     sessionTokens: new Map([[playerId, hashToken(sessionToken)]]),
     joinRequests: new Map(),
@@ -1954,12 +1967,28 @@ function scheduleBotWatchReaction(
 
 // ---- BOT HELPERS ----
 
+/**
+ * Popunjava prazna mjesta botovima. Bez `tier`-a, Žandar sto bira tier po mjestu
+ * (`zandarBotTier`: protivnici jači, partner isti — `ZANDAR_BOT_TIERS`), a tempo
+ * ostaje tier `timingTier`. Poker/Raub/Bela prosljeđuju tier eksplicitno (njihovi
+ * botovi ga ne koriste za odluke).
+ */
 function fillSeatsWithBots(
   room: LobbyRoom,
-  tier: 1 | 2 | 3 = 2,
+  tier?: BotSkillTier,
 ): void {
   const slots = room.rulesConfig.playerCount - room.players.length;
   if (slots <= 0) return;
+
+  const teams = room.rulesConfig.playerCount === 4;
+  const humanTeams = new Set(
+    room.players.filter((p) => !p.isBot).map((p) => p.teamId ?? p.seatIndex % 2),
+  );
+  const isZandar = room.game === undefined || room.game === "zandar";
+  const tierFor = (seatIndex: number): BotSkillTier =>
+    tier ?? (isZandar ? zandarBotTier(seatIndex, { teams, humanTeams }) : 2);
+  const timingFor = (botTier: BotSkillTier): BotMoveTiming =>
+    BOT_MOVE_TIMING[tier === undefined && isZandar ? ZANDAR_BOT_TIERS.timingTier : botTier];
 
   // Imena za stolom (ljudi — i nadimci naloga — plus postojeći botovi) → bot
   // ne smije dobiti isto ime (PRD §39, SPEC_IDENTITET T5). Generator poredi
@@ -1970,6 +1999,7 @@ function fillSeatsWithBots(
   for (let i = 0; i < slots; i++) {
     const seatIndex = room.players.length;
     const identity = identities[i]!;
+    const botTier = tierFor(seatIndex);
     const botPlayer: Player = {
       id: createPlayerId(),
       displayName: identity.displayName,
@@ -1981,9 +2011,10 @@ function fillSeatsWithBots(
       isBot: true,
       botProfile: {
         identity,
-        tier,
-        // Per-tier timing personality (§41.1): tier 1 = impulsivan, tier 3 = promišljen
-        timing: BOT_MOVE_TIMING[tier],
+        tier: botTier,
+        // Per-tier timing personality (§41.1): tier 1 = impulsivan, tier 3 = promišljen.
+        // Žandar drži tempo `ZANDAR_BOT_TIERS.timingTier` i za jače protivnike.
+        timing: timingFor(botTier),
         reactionProbability: 0.12,
       },
     };

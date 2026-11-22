@@ -2767,3 +2767,45 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Zamke.** `PushPrompt` na početnoj se montira prije nego `NativePush` upiše današnji dan (efekat djeteta ide prvi, a `NativePush` čeka uvoz plugina), pa prompt sam zove idempotentni `noteAppOpenDay()`. Apostrof u „Hold'em" lomi `node -e '…'` u bash-u — skripte za izmjenu idu u fajl.
 
 **Provjera.** Server 347 (novo: propušten poziv, `usual_time`, padeži), web 318, typecheck oba, lint = osnovica. **Nije provjereno:** uređaj (ponuda drugog dana, list propuštenog poziva sa dva prava naloga).
+
+## 214. Poker bilježi napuštanje po igraču (2026-11-21, `fix/poker-leave-analytics`)
+
+**Šta.** `pokerMatchEndedEvents` (poker, raub, bela) računa `end_reason` po igraču: ko je sam izašao (`player.left === true`, igrač ostaje u `room.players`) dobija `abandoned` i novo polje `left: true`, bez `is_winner`; plasman ostaje. Ostali za stolom i dalje dobijaju razlog meča. Tip `match_ended.left?` u `shared-types`, opis u `docs/analytics.md`.
+
+**Zašto.** Pregled metrika 21.11: poker je imao 100 % završenih partija i 14 % pobjeda ljudi u brzoj igri. `leavePokerMatch` daje zadnje mjesto, a `finishPokerMatchEarly` zatvara meč kao `match_finished`, pa je izlazak stizao kao `completed` + poraz. 4. mjesto: 119 partija, medijan 4 ruke / 3,1 min, 56 sa ≤3 ruke — uglavnom izlasci. Bez ovoga se težina pokera ne može izmjeriti (sljedeći korak je lakši poker bot).
+
+**Provjera.** Server 320 testova (3 nova: izlazak → `abandoned`+`left`, raub bez izlaska nepromijenjen, prekinut meč), typecheck. Podaci prije objave ostaju iskrivljeni.
+
+## 215. Poker lakši za ljude: bot češće odustane poslije flopa (2026-11-22, `feat/poker-easier-bots`)
+
+**Šta.** `DEFAULT_POKER_BOT_CONFIG`: `strongCallPotOdds` 0,35 → 0,2, `mediumCallPotOdds` 0,25 → 0,1, `defendPotOdds` 0,35 → 0,25. Bot češće pusti tuđi ulog poslije flopa i rjeđe brani blind uz lošu cijenu. Pravila i legalnost se ne mijenjaju (HARD RULE 2), samo kvalitet odluke. Mjerni alat: `simulatePokerMatches` prima `seatBotConfigs` i vraća `placeBySeat`; `simulate:poker -- --novice` stavlja „početnika" (labav, pasivan, bez blefa — `NOVICE_PROXY` u skripti, pretpostavka, ne mjerenje) na mjesto 0. Probne izmjene: `POKER_BOT='{"bluffP":0.05}'` (varijabla okruženja — kao argument, JSON sa navodnicima kroz pnpm shim na Windowsu objesi proces).
+
+**Zašto.** Pregled metrika 21.11: ljudi u brzoj igri za 4 osvajaju 1. mjesto u ~14 % (bez izlazaka ~17 %), D1 kod novih kojima je poker prva igra 8 %.
+
+**Mjerenje (4 igrača).** Osnova: početnik 1. mjesto 21,2 % (seed 1) / 21,0 % (seed 7). Bez efekta (±1 p.p., šum ~0,7): manje blefa i semi-blefa, `looseCallP` do 0,35, manji ulozi, slowplay, `noise` 3–4, labaviji preflop. Gore (15–17 %): strožiji poziv all-ina i podizanja — početnik koji plaća sve gubi od botova koji igraju samo jake ruke. Prava poluga je odustajanje poslije flopa: 84 % ruku se završi bez showdowna. Izabrano (10.000 × 4, seed 1): **1. mjesto 25,8 %**, medijan ruku 39 → 45, prvi bankrot u ruci 5 → 11, trajanje u cilju 12–20 min 54 % → 82 % (medijan 12,5 → 14,7 min), 0 odstupanja žetona, 0 odbijenih akcija. Cijena: početnik je zadnji u 45 % (bilo 38 %) — češće pobijedi ili ispadne, rjeđe sredina.
+
+**Provjera.** game-core 517 testova (2 nova za `seatBotConfigs`), server 320, typecheck. Uživo: % 1. mjesta za ljude bez `left` (unos 209) sedmicu poslije objave; cilj ~25 %.
+
+## 216. Žandar: protivnici tier 3, partner tier 2 (2026-11-22, `feat/zandar-opponent-tier`)
+
+**Šta.** `ZANDAR_BOT_TIERS = { opponent: 3, partner: 2, timingTier: 2 }` i `zandarBotTier()` u `game-core/src/bot.ts` (HARD RULE 7). `fillSeatsWithBots` bez tiera za Žandar sto bira po mjestu: bot u timu bez čovjeka (4P) ili svaki bot bez timova (2P/3P) je protivnik (tier 3), bot u timu sa čovjekom je partner (tier 2). Tempo je tier 2 za sve, da partija ne traje duže. Brza igra više ne prosljeđuje `2`; bot-fill u privatnoj sobi (bez tiera) dobija isto pravilo. Poker/Raub/Bela i dalje prosljeđuju `2`. Stari snapshoti nose svoj `botProfile.tier` (2) — ništa se ne hidrira drugačije.
+
+**Zašto.** Pregled metrika 21.11: ljudi pobjeđuju 69 % brze igre Žandara, a pobjeda ih ne vraća (D1 3/18). Odluka vlasnika: protivnici jači, partner isti.
+
+**Mjerenje — tier 3 je jači, ali malo.** Botovi protiv botova, cijele ruke, udio bodova (3.000 ruku, strana ne zavisi od djelioca): 2P t3:t2 51,2 %, t2:t1 53,0 %, t3:t1 54,2 %; 4P t3:t2 51,7 %, t2:t1 53,0 %, t3:t1 54,1 %. **Zamka koja je skoro prošla:** prvo mjerenje je pokazivalo da je tier 3 SLABIJI (44 % u 2P), jer je strana A bila i djelilac (`dealer = seed % n`, strana `seed % 2`) — prednost djelioca je ~6 p.p. bodova. Usput: `useDefense` nema mjerljiv efekat (t3 sa i bez njega daje identičan rezultat na 3.000 ruku), a tier 2 bez šuma i greški nije jači od tier 2 sa njima (49,9 %) — heuristika `scoreMove` je plitka, pa je razlika među tierovima mala. **Očekivanje:** pobjede ljudi padaju za nekoliko p.p. („malo teže"), ne na 50–55 %. Za veći pomak treba jači Žandar bot (gledanje unaprijed) — zaseban posao.
+
+**Provjera.** game-core: 4 testa za `zandarBotTier` + test da tim tier 3 uzima >50,5 % bodova na 2.000 ruku (djelilac razdvojen od tima). Server 320 testova, typecheck. Lokalni server: brza igra 4P → mjesta 1 i 3 tier 3, mjesto 2 tier 2, `timing.normal.maxMs` 6000; 2P → protivnik tier 3; `GET /api/rooms/:id` bez `isBot`/`botProfile`/`tier`.
+
+## 217. Raub: brza igra od 11, privatni sto bira 11 / 21 (2026-11-22, `feat/raub-quick-11`)
+
+**Šta.** Odluka 34 (`docs/raub-spec.md`). `game-core/src/raub/config.ts`: `RAUB_START_SCORES = [11, 21]`, `RAUB_QUICK_START_SCORE = 11`, `raubStartScore()` (sve van ponude → 21). `DEFAULT_RAUB_RULES.startScore` ostaje 21. Server: Raub brza igra upisuje 11 u `rulesConfig.targetScore`; `parseRoomTargetScore` za Raub prima 11/21, a sve drugo daje 21 (nikad 400, jer je Raub do sada primao bilo šta — stari klijenti); `/api/invites` isto; `RaubTables.start` gradi `rules.startScore` iz sobe (i za revanš). Web (samo web, `isNative`): na `/create` red „Kreće se od" 11 / 21 za Raub, prvi izbor 11; aplikacija šalje 21 kao do sada. Tekstovi: lista igara „od 11 ili 21 do 0", tabela rezultata „Svi kreću od {start}" (`ScoreTableSheet startScore`), pravila „od 21 boda (brza partija od 11)", opis bez broja. Simulacija: `simulate:raub -- --start 11` (`simulateRaubMatches({ rules })`).
+
+**Zašto.** Pregled metrika 21.11: završena partija Rauba traje 23 min (p90 36), 39 % partija se napusti poslije ~12 min / 8 ruku. Raub ima najbolji D1 (44 % kod novih web igrača kojima je prva igra), pa je dužina najveća prepreka.
+
+**Mjerenje (5.000 mečeva, 0 grešaka karata/štihova, 0 odbijenih, 0 zaglavljenih).** Medijan ruku od 21 → od 11: 2P 11 → 5, 3P 16 → 7, 4P 23 → 9. Model trajanja za 4P od 21 daje 36 min, a izmjereno je 23 min (model precjenjuje ~1,5×), pa je stvarna partija od 11 za 4 vjerovatno ~9 min.
+
+**Aplikacija.** Brza igra u aplikaciji dobija 11 odmah sa servera (sto i meni čitaju `rules.startScore`), ali tekst pravila u APK-u kaže „od 21" do sljedećeg paketa; privatni Raub u aplikaciji ostaje 21 bez izbora.
+
+**Usput.** `/create`: Bela 501 pa prelazak na Žandar slao je 501 → server 400; Žandar sada pada na 21 kad cilj nije 11/21.
+
+**Provjera.** Server 322 testa (raub parser 11/21/ostalo → 21; `start` iz sobe 11/21/99 → 21 i revanš), game-core, web typecheck. Nije provjereno na uređaju ni E2E u pregledaču.

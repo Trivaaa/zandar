@@ -167,6 +167,23 @@ describe("raub: sto", () => {
     assert.equal(r.gameState, null); // Žandar kod raub sobu preskače
   });
 
+  test("početni bodovi iz sobe (odluka 34): 11 i 21; stara soba / van ponude → 21; revanš isto", () => {
+    for (const [target, expected] of [
+      [11, 11],
+      [21, 21],
+      [99, 21],
+    ] as const) {
+      const r = room([human("h", 0), bot("b1", 1)]);
+      r.rulesConfig.targetScore = target;
+      const { t } = setup(r);
+      t.start(r);
+      assert.equal(r.raub!.rules.startScore, expected, `cilj ${target}`);
+      assert.ok(r.raub!.seats.every((s) => s.score === expected), "svi kreću od startScore");
+      t.start(r, "revans-1");
+      assert.equal(r.raub!.rules.startScore, expected, `revanš, cilj ${target}`);
+    }
+  });
+
   test("pogled: bez isBot, teamId, tuđih ruku, špila i odbačenih karata", async () => {
     const r = room([human("h", 0), bot("b1", 1), bot("b2", 2), bot("b3", 3)]);
     const sock = fakeSocket("h");

@@ -512,6 +512,7 @@ export function ScoreTableSheet({
   playerOf,
   myPlayerId,
   onClose,
+  startScore = 21,
 }: {
   history: readonly RaubHandResult[];
   seats: readonly RaubSeatView[];
@@ -519,6 +520,8 @@ export function ScoreTableSheet({
   playerOf: (id: string) => PublicPlayer | undefined;
   myPlayerId: string;
   onClose: () => void;
+  /** Početni bodovi meča (odluka 34: 11 ili 21). */
+  startScore?: number;
 }) {
   const rows = scoreTable(history);
   const leaders = leaderIds(seats);
@@ -528,7 +531,7 @@ export function ScoreTableSheet({
       <div className="rb-sheet" role="dialog" aria-modal="true" aria-label={sr.raub.table.title} onClick={(e) => e.stopPropagation()}>
         <span className="rb-sheet__grip" aria-hidden="true" />
         <h3>{sr.raub.table.title}</h3>
-        <p>{sr.raub.table.subtitle}</p>
+        <p>{sr.raub.table.subtitle(startScore)}</p>
         <div className="rb-sheet__scroll">
           <table className="rb-grid">
             <thead>

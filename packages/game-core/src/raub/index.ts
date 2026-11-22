@@ -8,7 +8,15 @@ export {
   beats as raubBeats,
   weakestCard as raubWeakestCard,
 } from "./cards";
-export { DEFAULT_RAUB_RULES, RAUB_RECONNECT_GRACE_SECONDS, createRaubRules } from "./config";
+export {
+  DEFAULT_RAUB_RULES,
+  RAUB_QUICK_START_SCORE,
+  RAUB_RECONNECT_GRACE_SECONDS,
+  RAUB_START_SCORES,
+  createRaubRules,
+  raubStartScore,
+} from "./config";
+export type { RaubStartScore } from "./config";
 export {
   RAUB_DECK_SIZE,
   RAUB_TRICKS_PER_HAND,

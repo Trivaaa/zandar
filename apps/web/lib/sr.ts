@@ -225,6 +225,8 @@ export const sr = {
     game: "Igra",
     players: "Broj igrača",
     target: "Ciljni broj poena",
+    /** Raub odbrojava do nule — red cilja kaže od koliko se kreće (odluka 34). */
+    raubStart: "Kreće se od",
     submit: "Napravi sobu",
     submitting: "Kreiranje...",
   },
@@ -305,7 +307,7 @@ export const sr = {
       poker: "Texas Hold'em · 2–4 igrača",
       remi: "2–4 igrača · slaži nizove",
       bela: "4 igrača · 2 na 2",
-      raub: "2–4 igrača · od 21 do 0",
+      raub: "2–4 igrača · od 11 ili 21 do 0",
       tablic: "2–4 igrača · nosi zbirom",
     } as Record<string, string>,
     playGame: (name: string) => `Igraj ${name}`,
@@ -785,7 +787,7 @@ export const sr = {
     },
     table: {
       title: "Tabela",
-      subtitle: "Svi kreću od 21. Prvi do 0 pobjeđuje. Kazne su crvene.",
+      subtitle: (start: number) => `Svi kreću od ${start}. Prvi do 0 pobjeđuje. Kazne su crvene.`,
       hand: "Ruka",
       now: "Sad",
       refaRow: (n: number) => `${n} · refa`,
@@ -834,7 +836,7 @@ export const sr = {
     raub: {
       name: "Raub",
       players: "2–4 igrača",
-      about: "Kafanska igra na štihove: od 21 do nule, ko rauba adut mora da ga i odnese.",
+      about: "Kafanska igra na štihove: odbrojava se do nule, ko rauba adut mora da ga i odnese.",
       status: "Raub još nije dostupan.",
       body: "Razmišljamo o raubu za tvoje društvo. Ostavi e-adresu i javićemo ti ako otvorimo prve stolove.",
     },

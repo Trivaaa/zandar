@@ -20,6 +20,8 @@ type PlayerLike = {
   isBot?: boolean | undefined;
   guestId?: string | undefined;
   platform?: AnalyticsPlatform | undefined;
+  /** Igrač je sam napustio meč (poker, raub, bela) — ostaje u sobi radi analitike. */
+  left?: boolean | undefined;
 };
 
 type MatchLike = {
@@ -302,6 +304,10 @@ export function pokerMatchStartedEvents(
 /**
  * `match_ended` za poker. Pobjednik = 1. mjesto; `placement` se šalje kad je
  * poznat (i igraču koji je napustio meč — on ima najlošiji preostali plasman).
+ *
+ * Razlog je po igraču, ne po meču: ko je sam izašao dobija `abandoned` i
+ * `left: true`, iako se meč za ostale završio. Do 21.11.2026 je izlazak iz
+ * pokera stizao kao `completed` sa zadnjim mjestom (vidi docs/analytics.md).
  */
 export function pokerMatchEndedEvents(
   state: SeatMatchLike,
@@ -313,6 +319,8 @@ export function pokerMatchEndedEvents(
   const atTable = players.filter((p) => state.seats.some((s) => s.playerId === p.id));
   return trackedHumans(atTable).map((p) => {
     const place = state.seats.find((s) => s.playerId === p.id)?.place ?? null;
+    const left = p.left === true;
+    const ownReason: MatchEndReason = left ? "abandoned" : reason;
     return {
       distinctId: p.guestId,
       event: "match_ended" as const,
@@ -320,11 +328,12 @@ export function pokerMatchEndedEvents(
         mode,
         match_id: state.matchId,
         game,
-        end_reason: reason,
+        end_reason: ownReason,
         hands_played: state.handNo,
         ...(startedAt !== undefined ? { duration_ms: Math.max(0, now - startedAt) } : {}),
-        ...(reason === "completed" ? { is_winner: place === 1 } : {}),
+        ...(ownReason === "completed" ? { is_winner: place === 1 } : {}),
         ...(place !== null ? { placement: place } : {}),
+        ...(left ? { left: true } : {}),
         ...(p.platform ? { platform: p.platform } : {}),
       },
     };

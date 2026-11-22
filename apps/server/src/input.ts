@@ -1,3 +1,4 @@
+import { raubStartScore } from "@zandar/game-core";
 import type { GameId } from "@zandar/shared-types";
 
 /**
@@ -24,11 +25,14 @@ export function parseDisplayName(value: unknown): string | null {
 
 /**
  * Cilj privatne sobe (`/api/rooms`): isti izbor kao brza igra i pozivi (11 ili
- * 21), izostavljen → 21. Poker i Raub nemaju izbor cilja — upisuje se 21 samo
- * da `rulesConfig` ostane istog oblika, šta god klijent poslao. Bela: 501, 701
- * ili 1001 (P-16), izostavljen → 1001. `null` → 400.
+ * 21), izostavljen → 21. Poker nema izbor cilja — upisuje se 21 samo da
+ * `rulesConfig` ostane istog oblika, šta god klijent poslao. Raub: početni
+ * bodovi 11 ili 21 (odluka 34); sve drugo → 21, nikad 400, jer je Raub do
+ * 22.11.2026 primao bilo šta. Bela: 501, 701 ili 1001 (P-16), izostavljen →
+ * 1001. `null` → 400.
  */
 export function parseRoomTargetScore(value: unknown, game: GameId): number | null {
+  if (game === "raub") return raubStartScore(value);
   if (game === "bela") {
     if (value === undefined || value === null) return 1001;
     return value === 501 || value === 701 || value === 1001 ? value : null;

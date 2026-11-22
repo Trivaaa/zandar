@@ -18,6 +18,11 @@ export interface PokerSimOptions {
   seed: number;
   config?: Partial<Pick<PokerConfig, "startStack" | "handsPerLevel" | "blindLevels">>;
   botConfig?: PokerBotConfig;
+  /**
+   * Config po mjestu (indeks = mjesto `b{i}`); mjesto bez configa igra sa
+   * `botConfig`. Služi za mjerenje težine: mjesto 0 igra kao „početnik".
+   */
+  seatBotConfigs?: readonly (PokerBotConfig | undefined)[];
 }
 
 export interface PokerSimMatch {
@@ -33,6 +38,8 @@ export interface PokerSimMatch {
   flopHands: number;
   /** Ruka u kojoj je prvi igrač ispao. */
   firstBustHand: number;
+  /** Konačan plasman po mjestu (indeks = mjesto `b{i}`, 1 = pobjednik). */
+  placeBySeat: number[];
 }
 
 export interface PokerSimResult {
@@ -70,6 +77,7 @@ export function simulatePokerMatches(opts: PokerSimOptions): PokerSimResult {
       uncontestedHands: 0,
       flopHands: 0,
       firstBustHand: 0,
+      placeBySeat: [],
     };
     let guard = 0;
     while (!isPokerMatchFinished(s)) {
@@ -80,8 +88,9 @@ export function simulatePokerMatches(opts: PokerSimOptions): PokerSimResult {
       }
       const pid = s.currentPlayerId!;
       const view = getPokerView(s, pid);
-      const action = selectPokerBotAction(view, botConfig, rng);
-      stat.thinkMs += pokerBotThinkMs(view, botConfig, rng);
+      const cfg = opts.seatBotConfigs?.[ids.indexOf(pid)] ?? botConfig;
+      const action = selectPokerBotAction(view, cfg, rng);
+      stat.thinkMs += pokerBotThinkMs(view, cfg, rng);
       stat.actions += 1;
       const handBefore = s.handNo;
       try {
@@ -101,6 +110,7 @@ export function simulatePokerMatches(opts: PokerSimOptions): PokerSimResult {
         }
       }
     }
+    stat.placeBySeat = ids.map((id) => s.placements.find((p) => p.playerId === id)?.place ?? 0);
     out.matches.push(stat);
   }
   return out;

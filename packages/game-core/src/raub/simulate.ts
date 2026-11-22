@@ -1,4 +1,4 @@
-import type { RaubGameState } from "@zandar/shared-types";
+import type { RaubGameState, RaubRules } from "@zandar/shared-types";
 import { createSeededRandom } from "../shuffle";
 import { DEFAULT_RAUB_BOT_CONFIG, raubBotThinkMs, selectRaubBotAction } from "./bot";
 import type { RaubBotConfig } from "./bot";
@@ -21,6 +21,8 @@ export interface RaubSimOptions {
   botConfig?: RaubBotConfig;
   /** Sigurnosna granica ruku po meču (meč koji je ne dostigne smatra se zaglavljenim). */
   maxHands?: number;
+  /** Izmjene pravila za simulaciju (npr. `startScore: 11`, odluka 34). */
+  rules?: Partial<Omit<RaubRules, "playerCount">>;
 }
 
 export interface RaubSimMatch {
@@ -68,7 +70,7 @@ export function simulateRaubMatches(opts: RaubSimOptions): RaubSimResult {
       roomId: "sim",
       matchId: `sim-${m}`,
       playerIds: ids,
-      rules: createRaubRules(opts.players),
+      rules: createRaubRules(opts.players, opts.rules),
       rng,
     });
     const rec: RaubSimMatch = { hands: 0, voidHands: 0, actions: 0, thinkMs: 0, seven: 0, blind: 0, bid: 0, moja: 0 };

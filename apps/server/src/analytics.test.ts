@@ -12,6 +12,8 @@ import {
   matchEndedEvents,
   matchStartedEvents,
   parsePlatform,
+  pokerMatchEndedEvents,
+  raubMatchLike,
 } from "./analytics";
 
 function player(id: string, seatIndex: number, extra: Partial<Player> = {}): Player {
@@ -194,6 +196,67 @@ describe("matchEndedEvents", () => {
       now: 0,
     });
     assert.deepEqual(events.map((e) => e.properties.is_winner), [false, true]);
+  });
+});
+
+describe("pokerMatchEndedEvents — izlazak", () => {
+  const seats = [
+    { playerId: "a", place: 1 },
+    { playerId: "b", place: 2 },
+    { playerId: "c", place: 3 },
+    { playerId: "d", place: 4 },
+  ];
+  const state = { matchId: "pk1", handNo: 3, seats };
+
+  test("ko je sam izašao dobija abandoned i left, bez is_winner; ostali ostaju completed", () => {
+    const table = [
+      player("a", 0, { isBot: true }),
+      player("b", 1, { guestId: "g-b" }),
+      player("c", 2, { isBot: true }),
+      player("d", 3, { guestId: "g-d", left: true }),
+    ];
+    const events = pokerMatchEndedEvents(state, table, { mode: "quick_play", reason: "completed", now: 0 });
+    const byId = new Map(events.map((e) => [e.distinctId, e.properties]));
+
+    const leaver = byId.get("g-d")!;
+    assert.equal(leaver.end_reason, "abandoned");
+    assert.equal(leaver.left, true);
+    assert.equal("is_winner" in leaver, false, "izlazak nije poraz");
+    assert.equal(leaver.placement, 4, "plasman ostaje");
+
+    const stayed = byId.get("g-b")!;
+    assert.equal(stayed.end_reason, "completed");
+    assert.equal(stayed.is_winner, false);
+    assert.equal("left" in stayed, false);
+  });
+
+  test("raub bez izlaska: isto kao prije (completed, pobjednik na 1. mjestu)", () => {
+    const table = [player("a", 0, { guestId: "g-a" }), player("b", 1, { guestId: "g-b" })];
+    const events = pokerMatchEndedEvents(
+      raubMatchLike({ matchId: "r1", dealNo: 9, seats: seats.slice(0, 2) }),
+      table,
+      { mode: "private_room", reason: "completed", now: 0 },
+      "raub",
+    );
+    assert.deepEqual(
+      events.map((e) => [e.properties.end_reason, e.properties.is_winner, "left" in e.properties]),
+      [
+        ["completed", true, false],
+        ["completed", false, false],
+      ],
+    );
+  });
+
+  test("prekinut meč: i onaj koji je izašao i ostali su abandoned", () => {
+    const table = [player("b", 1, { guestId: "g-b" }), player("d", 3, { guestId: "g-d", left: true })];
+    const events = pokerMatchEndedEvents(state, table, { mode: "quick_play", reason: "abandoned", now: 0 });
+    assert.deepEqual(
+      events.map((e) => [e.properties.end_reason, e.properties.left ?? false]),
+      [
+        ["abandoned", false],
+        ["abandoned", true],
+      ],
+    );
   });
 });
 
