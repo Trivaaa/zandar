@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import type { Card, GameState, Player, Rank, Suit } from "@zandar/shared-types";
-import { selectBotMove, DEFAULT_BOT_CONFIGS, type BotConfig, type BotWeights } from "./bot";
+import {
+  selectBotMove,
+  DEFAULT_BOT_CONFIGS,
+  ZANDAR_BOT_TIERS,
+  zandarBotTier,
+  type BotConfig,
+  type BotWeights,
+} from "./bot";
 import { applyMove } from "./move";
 import { createInitialGameState } from "./deal";
 import { createRulesConfig } from "./rules";
@@ -556,5 +563,83 @@ describe("selectBotMove — integracija", () => {
 
     expect(moves).toBeGreaterThan(0);
     expect(["hand_finished", "match_finished"]).toContain(state.phase);
+  });
+});
+
+// ====================================================
+// ŽANDAR: TIER PO MJESTU (protivnici jači, partner isti)
+// ====================================================
+
+describe("zandarBotTier", () => {
+  it("4P, čovjek na mjestu 0: protivnici (1, 3) tier 3, partner (2) tier 2", () => {
+    const table = { teams: true, humanTeams: new Set([0]) };
+    expect([1, 2, 3].map((s) => zandarBotTier(s, table))).toEqual([3, 2, 3]);
+  });
+
+  it("4P, ljudi u oba tima: svi botovi su partneri (tier 2)", () => {
+    const table = { teams: true, humanTeams: new Set([0, 1]) };
+    expect([2, 3].map((s) => zandarBotTier(s, table))).toEqual([2, 2]);
+  });
+
+  it("2P/3P bez timova: svaki bot je protivnik", () => {
+    const table = { teams: false, humanTeams: new Set<number>() };
+    expect([1, 2].map((s) => zandarBotTier(s, table))).toEqual([3, 3]);
+  });
+
+  it("config se poštuje (HARD RULE 7)", () => {
+    const tiers = { ...ZANDAR_BOT_TIERS, opponent: 1 as const };
+    expect(zandarBotTier(1, { teams: true, humanTeams: new Set([0]) }, tiers)).toBe(1);
+  });
+});
+
+describe("tier 3 je jači od tier 2 (4P, cijele ruke)", () => {
+  /** Odigra jednu ruku (cijeli špil) i vrati bodove timova. */
+  function playHand(seed: number, strongTeam: 0 | 1): { strong: number; weak: number } {
+    const players = makePlayers(4);
+    const state = createInitialGameState({
+      roomId: "r-tier",
+      matchId: `m-tier-${seed}`,
+      players,
+      dealerPlayerId: `p${seed % 4}`,
+      rulesConfig: createRulesConfig(4, { jackOnInitialTableBehavior: "allow_on_table" }),
+      shuffleSeed: seed,
+    });
+    const rng = makeLcg(seed * 31 + 7);
+    let moves = 0;
+    while (state.phase === "playing" && moves < 200) {
+      const pid = state.currentPlayerId;
+      const seat = Number(pid.slice(1));
+      const config = DEFAULT_BOT_CONFIGS[seat % 2 === strongTeam ? 3 : 2];
+      const { cardId, selectedCaptureCardIds } = selectBotMove(state, pid, config, rng);
+      applyMove(state, {
+        roomId: "r-tier",
+        playerId: pid,
+        cardId,
+        selectedCaptureCardIds,
+        clientMoveId: `t-${moves}`,
+        clientKnownStateVersion: state.stateVersion,
+      });
+      moves++;
+    }
+    const pts = state.handScores.at(-1)!.pointsByPile;
+    return {
+      strong: pts[`team-${strongTeam}`] ?? 0,
+      weak: pts[`team-${1 - strongTeam}`] ?? 0,
+    };
+  }
+
+  it("tim tier 3 osvaja više bodova od tima tier 2 (2000 ruku; tim ne zavisi od djelioca)", () => {
+    let strong = 0;
+    let weak = 0;
+    for (let seed = 1; seed <= 2000; seed++) {
+      // Djelilac je p{seed % 4}; jači tim se mijenja na svake 4 ruke, pa svaki
+      // tim jednako često dijeli (prednost djelioca je ~6 p.p. bodova).
+      const r = playHand(seed, (Math.floor(seed / 4) % 2) as 0 | 1);
+      strong += r.strong;
+      weak += r.weak;
+    }
+    // Razlika je mala (3000 ruku: 51,7 %), vidi changelog 211 — test čuva smjer.
+    const share = strong / (strong + weak);
+    expect(share).toBeGreaterThan(0.505);
   });
 });

@@ -7,6 +7,8 @@ import {
   createInitialGameState,
   createRulesConfig,
   DEFAULT_BOT_CONFIGS,
+  ZANDAR_BOT_TIERS,
+  zandarBotTier,
   DEFAULT_POKER_CONFIG,
   DEFAULT_RAUB_RULES,
   DEFAULT_BELA_RULES,
@@ -1234,7 +1236,8 @@ fastify.post<{ Body: QuickPlayBody }>(
       tableTheme,
     };
 
-    fillSeatsWithBots(room, 2);
+    // Bez tiera: protivnici jači, partner isti (`ZANDAR_BOT_TIERS`, 22.11.2026).
+    fillSeatsWithBots(room);
     startBotGame(room);
     storeRoom(room);
     emitMatchStarted(room);
@@ -1935,12 +1938,28 @@ function scheduleBotWatchReaction(
 
 // ---- BOT HELPERS ----
 
+/**
+ * Popunjava prazna mjesta botovima. Bez `tier`-a, Žandar sto bira tier po mjestu
+ * (`zandarBotTier`: protivnici jači, partner isti — `ZANDAR_BOT_TIERS`), a tempo
+ * ostaje tier `timingTier`. Poker/Raub/Bela prosljeđuju tier eksplicitno (njihovi
+ * botovi ga ne koriste za odluke).
+ */
 function fillSeatsWithBots(
   room: LobbyRoom,
-  tier: 1 | 2 | 3 = 2,
+  tier?: BotSkillTier,
 ): void {
   const slots = room.rulesConfig.playerCount - room.players.length;
   if (slots <= 0) return;
+
+  const teams = room.rulesConfig.playerCount === 4;
+  const humanTeams = new Set(
+    room.players.filter((p) => !p.isBot).map((p) => p.teamId ?? p.seatIndex % 2),
+  );
+  const isZandar = room.game === undefined || room.game === "zandar";
+  const tierFor = (seatIndex: number): BotSkillTier =>
+    tier ?? (isZandar ? zandarBotTier(seatIndex, { teams, humanTeams }) : 2);
+  const timingFor = (botTier: BotSkillTier): BotMoveTiming =>
+    BOT_MOVE_TIMING[tier === undefined && isZandar ? ZANDAR_BOT_TIERS.timingTier : botTier];
 
   // Imena za stolom (ljudi — i nadimci naloga — plus postojeći botovi) → bot
   // ne smije dobiti isto ime (PRD §39, SPEC_IDENTITET T5). Generator poredi
@@ -1951,6 +1970,7 @@ function fillSeatsWithBots(
   for (let i = 0; i < slots; i++) {
     const seatIndex = room.players.length;
     const identity = identities[i]!;
+    const botTier = tierFor(seatIndex);
     const botPlayer: Player = {
       id: createPlayerId(),
       displayName: identity.displayName,
@@ -1962,9 +1982,10 @@ function fillSeatsWithBots(
       isBot: true,
       botProfile: {
         identity,
-        tier,
-        // Per-tier timing personality (§41.1): tier 1 = impulsivan, tier 3 = promišljen
-        timing: BOT_MOVE_TIMING[tier],
+        tier: botTier,
+        // Per-tier timing personality (§41.1): tier 1 = impulsivan, tier 3 = promišljen.
+        // Žandar drži tempo `ZANDAR_BOT_TIERS.timingTier` i za jače protivnike.
+        timing: timingFor(botTier),
         reactionProbability: 0.12,
       },
     };

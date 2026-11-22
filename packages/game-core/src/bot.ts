@@ -57,6 +57,40 @@ export const DEFAULT_BOT_CONFIGS: Record<BotSkillTier, BotConfig> = {
   },
 };
 
+/**
+ * Koji tier dobija bot za Žandar stolom (HARD RULE 7 — config, ne hardkod).
+ *
+ * 22.11.2026 (pregled metrika): ljudi u brzoj igri pobjeđivali 69 % protiv
+ * botova koji su svi bili tier 2. Odluka vlasnika: protivnici jači, partner
+ * isti. „Protivnik" je bot u timu bez čovjeka (4P) ili svaki bot bez timova
+ * (2P/3P); „partner" je bot u timu sa čovjekom.
+ *
+ * `timingTier` drži tempo poteza na tier 2 za sve: tier 3 je sporiji, a
+ * partija ne smije trajati duže zbog ove izmjene.
+ */
+export const ZANDAR_BOT_TIERS: {
+  opponent: BotSkillTier;
+  partner: BotSkillTier;
+  timingTier: BotSkillTier;
+} = {
+  opponent: 3,
+  partner: 2,
+  timingTier: 2,
+};
+
+/**
+ * Tier za bota koji sjeda na `seatIndex`. `humanTeams` su timovi (`seatIndex % 2`)
+ * u kojima sjedi bar jedan čovjek; bez timova (`teams: false`) svaki bot je protivnik.
+ */
+export function zandarBotTier(
+  seatIndex: number,
+  table: { teams: boolean; humanTeams: ReadonlySet<number> },
+  tiers: typeof ZANDAR_BOT_TIERS = ZANDAR_BOT_TIERS,
+): BotSkillTier {
+  if (!table.teams) return tiers.opponent;
+  return table.humanTeams.has(seatIndex % 2) ? tiers.partner : tiers.opponent;
+}
+
 // ====================================================
 // INTERNAL ENRICHED MOVE
 // ====================================================
