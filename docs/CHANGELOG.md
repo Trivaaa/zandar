@@ -2701,3 +2701,13 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Zašto.** Pregled metrika 21.11: poker je imao 100 % završenih partija i 14 % pobjeda ljudi u brzoj igri. `leavePokerMatch` daje zadnje mjesto, a `finishPokerMatchEarly` zatvara meč kao `match_finished`, pa je izlazak stizao kao `completed` + poraz. 4. mjesto: 119 partija, medijan 4 ruke / 3,1 min, 56 sa ≤3 ruke — uglavnom izlasci. Bez ovoga se težina pokera ne može izmjeriti (sljedeći korak je lakši poker bot).
 
 **Provjera.** Server 320 testova (3 nova: izlazak → `abandoned`+`left`, raub bez izlaska nepromijenjen, prekinut meč), typecheck. Podaci prije objave ostaju iskrivljeni.
+
+## 210. Poker lakši za ljude: bot češće odustane poslije flopa (2026-11-22, `feat/poker-easier-bots`)
+
+**Šta.** `DEFAULT_POKER_BOT_CONFIG`: `strongCallPotOdds` 0,35 → 0,2, `mediumCallPotOdds` 0,25 → 0,1, `defendPotOdds` 0,35 → 0,25. Bot češće pusti tuđi ulog poslije flopa i rjeđe brani blind uz lošu cijenu. Pravila i legalnost se ne mijenjaju (HARD RULE 2), samo kvalitet odluke. Mjerni alat: `simulatePokerMatches` prima `seatBotConfigs` i vraća `placeBySeat`; `simulate:poker -- --novice` stavlja „početnika" (labav, pasivan, bez blefa — `NOVICE_PROXY` u skripti, pretpostavka, ne mjerenje) na mjesto 0. Probne izmjene: `POKER_BOT='{"bluffP":0.05}'` (varijabla okruženja — kao argument, JSON sa navodnicima kroz pnpm shim na Windowsu objesi proces).
+
+**Zašto.** Pregled metrika 21.11: ljudi u brzoj igri za 4 osvajaju 1. mjesto u ~14 % (bez izlazaka ~17 %), D1 kod novih kojima je poker prva igra 8 %.
+
+**Mjerenje (4 igrača).** Osnova: početnik 1. mjesto 21,2 % (seed 1) / 21,0 % (seed 7). Bez efekta (±1 p.p., šum ~0,7): manje blefa i semi-blefa, `looseCallP` do 0,35, manji ulozi, slowplay, `noise` 3–4, labaviji preflop. Gore (15–17 %): strožiji poziv all-ina i podizanja — početnik koji plaća sve gubi od botova koji igraju samo jake ruke. Prava poluga je odustajanje poslije flopa: 84 % ruku se završi bez showdowna. Izabrano (10.000 × 4, seed 1): **1. mjesto 25,8 %**, medijan ruku 39 → 45, prvi bankrot u ruci 5 → 11, trajanje u cilju 12–20 min 54 % → 82 % (medijan 12,5 → 14,7 min), 0 odstupanja žetona, 0 odbijenih akcija. Cijena: početnik je zadnji u 45 % (bilo 38 %) — češće pobijedi ili ispadne, rjeđe sredina.
+
+**Provjera.** game-core 517 testova (2 nova za `seatBotConfigs`), server 320, typecheck. Uživo: % 1. mjesta za ljude bez `left` (unos 209) sedmicu poslije objave; cilj ~25 %.
