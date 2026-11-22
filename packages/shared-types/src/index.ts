@@ -718,7 +718,25 @@ export type AnalyticsEvents = {
     has_email: boolean;
   };
   /** PRD §51 push. `type` je namjerno string, ne `PushType` — taj tip živi u apps/server/src/push. */
-  push_sent: { type: string };
+  push_sent: {
+    type: string;
+    /** Samo podsjetnici (SPEC_PUSH_V2 B9). */
+    step?: string;
+    reason?: string;
+    arm?: string;
+  };
+  /**
+   * SPEC_PUSH_V2 B7/B8: podsjetnik je bio na redu, ali nije poslat — kontrolna
+   * grupa, isključen `PUSH_REMINDERS` ili uređaj sa paketom bez kanala
+   * podsjetnika (`capable: false`). Poređenje grupa ide na istom skupu igrača.
+   */
+  reminder_would_send: {
+    step: string;
+    reason: string;
+    arm: string;
+    capable: boolean;
+    enabled: boolean;
+  };
   /**
    * „Vrati se za sto" (QA 10-24 P2): dodir na traku na početnoj (`bar`) ili
    * na „Vrati se za sto" u listu „Već igraš X" (`sheet`). `other_device` = sjedište

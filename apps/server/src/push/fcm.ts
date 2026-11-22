@@ -33,11 +33,16 @@ export function buildFcmPayload(token: string, msg: PushMessage) {
     message: {
       token,
       notification: { title: msg.title, body: msg.body },
-      // FCM `data` prima samo stringove.
-      data: { type: msg.data.type, ...(msg.data.roomId ? { roomId: msg.data.roomId } : {}) },
+      // FCM `data` prima samo stringove — prazna polja se izostavljaju.
+      data: Object.fromEntries(
+        Object.entries(msg.data).filter(
+          (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0,
+        ),
+      ),
       android: {
-        // HIGH budi telefon iz Doze — sve u katalogu je vremenski osjetljivo.
-        priority: "HIGH",
+        // HIGH budi telefon iz Doze — sve u v1 katalogu je vremenski osjetljivo.
+        // Podsjetnik nije, pa ide NORMAL (Android ga ne kažnjava kao zloupotrebu HIGH-a).
+        priority: msg.priority ?? "HIGH",
         ttl: `${Math.max(1, Math.floor(msg.ttlMs / 1000))}s`,
         collapse_key: msg.tag,
         notification: {

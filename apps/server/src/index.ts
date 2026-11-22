@@ -100,6 +100,8 @@ import {
   gameStartRecipients,
 } from "./push/messages";
 import { notifyDevices, notifyUser } from "./push/notify";
+import { playRecordsFromCaptures } from "./push/playRecords";
+import { reminderConfigFromEnv, startReminderScheduler } from "./push/scheduler";
 import { parseDisplayName, parseRoomTargetScore } from "./input";
 import { parseQuickPlayConfig } from "./quickplay";
 import {
@@ -310,6 +312,9 @@ type PushDeviceBody = {
   tz?: unknown;
   guestId?: unknown;
   table?: unknown;
+  /** SPEC_PUSH_V2: preklopka podsjetnika i mogućnosti paketa (`["reminders"]`). */
+  reminders?: unknown;
+  caps?: unknown;
 };
 
 /**
@@ -326,6 +331,8 @@ fastify.post<{ Body: PushDeviceBody }>("/api/push/devices", async (request, repl
     tz: body.tz,
     guestId: body.guestId,
     table: body.table,
+    reminders: body.reminders,
+    caps: body.caps,
     uid: (await optionalUid(request)).uid,
   });
   if (!result.ok) {
@@ -334,11 +341,11 @@ fastify.post<{ Body: PushDeviceBody }>("/api/push/devices", async (request, repl
   return { pushId: result.pushId };
 });
 
-fastify.post<{ Body: { pushId?: unknown; table?: unknown } }>(
+fastify.post<{ Body: { pushId?: unknown; table?: unknown; reminders?: unknown } }>(
   "/api/push/devices/prefs",
   async (request, reply) => {
     const body = request.body ?? {};
-    if (!deviceStore.setPrefs(body.pushId, { table: body.table })) {
+    if (!deviceStore.setPrefs(body.pushId, { table: body.table, reminders: body.reminders })) {
       return reply.code(404).send({ error: "Uređaj nije registrovan" });
     }
     return { success: true };
@@ -2198,6 +2205,29 @@ function emitMatchStarted(room: LobbyRoom): void {
   sendCaptures(matchStartedEvents(gs, roomMode(room)));
 }
 
+/**
+ * `match_ended` u PostHog + statistika igranja na uređaju igrača (SPEC_PUSH_V2
+ * B2) — isti događaji, pa podsjetnik i analitika vide isti ishod.
+ */
+function endMatchCaptures(
+  room: LobbyRoom,
+  captures: Capture<"match_ended">[],
+  game: GameId,
+  startedAt: number | undefined,
+): void {
+  sendCaptures(captures);
+  try {
+    for (const { idHash, input } of playRecordsFromCaptures(room, captures, game, {
+      startedAt,
+      endedAt: Date.now(),
+    })) {
+      deviceStore.recordPlay(idHash, input);
+    }
+  } catch (err) {
+    console.error("[reminders] statistika igranja nije upisana:", err);
+  }
+}
+
 /** `match_ended` — jednom po meču: kraj i prekid dijele ključ, pa se ne mogu oba desiti. */
 function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
   if (room.poker) {
@@ -2207,8 +2237,11 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
     analyticsEmitted.add(key);
     const startedAt = matchStartTimes.get(ps.matchId);
     matchStartTimes.delete(ps.matchId);
-    sendCaptures(
+    endMatchCaptures(
+      room,
       pokerMatchEndedEvents(ps, room.players, { mode: roomMode(room), reason, startedAt, now: Date.now() }),
+      "poker",
+      startedAt,
     );
     if (reason === "completed") {
       const seated = new Set(ps.seats.map((x) => x.playerId));
@@ -2223,13 +2256,16 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
     analyticsEmitted.add(key);
     const startedAt = matchStartTimes.get(rs.matchId);
     matchStartTimes.delete(rs.matchId);
-    sendCaptures(
+    endMatchCaptures(
+      room,
       pokerMatchEndedEvents(
         raubMatchLike(rs),
         room.players,
         { mode: roomMode(room), reason, startedAt, now: Date.now() },
         "raub",
       ),
+      "raub",
+      startedAt,
     );
     if (reason === "completed") {
       const seated = new Set(rs.seats.map((x) => x.playerId));
@@ -2244,13 +2280,16 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
     analyticsEmitted.add(key);
     const startedAt = matchStartTimes.get(bs.matchId);
     matchStartTimes.delete(bs.matchId);
-    sendCaptures(
+    endMatchCaptures(
+      room,
       pokerMatchEndedEvents(
         belaMatchLike(bs),
         room.players,
         { mode: roomMode(room), reason, startedAt, now: Date.now() },
         "bela",
       ),
+      "bela",
+      startedAt,
     );
     if (reason === "completed") {
       const seated = new Set(bs.seats.map((x) => x.playerId));
@@ -2265,8 +2304,11 @@ function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
   analyticsEmitted.add(key);
   const startedAt = matchStartTimes.get(gs.matchId);
   matchStartTimes.delete(gs.matchId);
-  sendCaptures(
+  endMatchCaptures(
+    room,
     matchEndedEvents(gs, { mode: roomMode(room), reason, startedAt, now: Date.now() }),
+    "zandar",
+    startedAt,
   );
   // Broj završenih partija na profilu (SPEC_IDENTITET §3) — napuštena se ne broji.
   if (reason === "completed") void recordCompletedMatch(profileStore, gs.matchId, gs.players);
@@ -3215,6 +3257,27 @@ fastify.log.info(
 startDeviceSweeper((removed) => {
   fastify.log.info(`🧹 Push: uklonjeno ${removed} zaboravljenih uređaja`);
 });
+
+// Podsjetnici neaktivnim igračima (SPEC_PUSH_V2). Planer radi uvijek — bilježi
+// `reminder_would_send` i vodi niz — a šalje tek uz `PUSH_REMINDERS=1`.
+{
+  const remindersOn = process.env.PUSH_REMINDERS === "1";
+  const reminderConfig = reminderConfigFromEnv();
+  const tickMs = Number(process.env.PUSH_REMINDER_TICK_MS);
+  startReminderScheduler(
+    {
+      store: deviceStore,
+      fcm,
+      sendingEnabled: remindersOn,
+      config: reminderConfig,
+      track,
+    },
+    Number.isFinite(tickMs) && tickMs >= 10_000 ? tickMs : undefined,
+  );
+  fastify.log.info(
+    `🔔 Podsjetnici: ${remindersOn ? "šalju se" : "samo bilježenje (PUSH_REMINDERS nije 1)"}${reminderConfig.dayMs ? ` · dan = ${reminderConfig.dayMs} ms` : ""}`,
+  );
+}
 
 try {
   await fastify.listen({

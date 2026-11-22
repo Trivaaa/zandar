@@ -791,6 +791,8 @@ Android aplikacija (Capacitor) dobija push obavještenja. Web/PWA push i iOS su 
 
 ### 51.5 v2 — podsjetnici na neaktivnost (nije implementirano)
 
+> **Revidirano u `docs/Specs/SPEC_PUSH_V2.md` (nacrt, 22.11.2026)** — lični sat umjesto 18–21 h, kontrolna grupa 50 % dok se ne skupi n ≥ 100, i uključivanje obavještenja na kraju partije prije slanja podsjetnika. Tekst ispod je prvobitna verzija.
+
 - Zaseban kanal `podsjetnici` i zasebna preklopka.
 - Signal: posljednje otvaranje aplikacije (već se bilježi u v1).
 - Ritam je **CONFIG** (kao §40.3): D1 → D3 → D7, pa stop; najviše 1 dnevno i 3 po periodu neaktivnosti; lokalni prozor 18–21h, nikad 22–09 (vremenska zona uređaja); igrač koji nikad nije završio partiju dobija samo D1.
