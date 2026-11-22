@@ -2703,3 +2703,15 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Back-compat.** Bez novog polja u snapshotu: krug se izvodi iz `currentPlayerId` (sljedeći poslije onoga ko je rekao „Dalje” je djelilac → nova karta). Ruka zatečena u `seven_choice` ima djelioca na potezu, pa nastavlja po novom. Protokol `raub:2` isti (akcija `stih` već postoji), panel „Štih / Dalje” je već crtan za igrača na potezu, bot i auto-akcija rade za svakoga.
 
 **Provjera.** game-core 522 (7 novih, 6 starih prilagođeno pomoćnom `passSeven`), server 317, web 318, typecheck. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke (isto), refa 3,1 → 2,7 %, Štih 20.684 → 29.374. **Nije provjereno na uređaju ni u pregledaču.**
+
+## 210. Raub odluka 33: djelilac mijenja karte zadnji (2026-11-22, `fix/raub-dealer-exchanges-last`)
+
+**Šta.** Zamjena karata kreće od prvog igrača poslije djelioca, redom u smjeru igre, a djelilac mijenja zadnji, i kad je nosilac (Raub, Štih). Ranije je kretala od nosioca, pa je djelilac sa Raubom uvijek mijenjao prvi. `beginExchange` bira početak po prekidaču `exchangeFromDealer` (podrazumijevano da). „Idem / Ne idem” i prvi štih ostaju od nosioca. Karta Rauba/Štiha i dalje čeka na stolu do nosiočeve zamjene (odluke 20, 22), samo duže. Kod „Moja” bez sedmice prednost za sedmicu aduta (odluka 29) sad ima prvi poslije djelioca. Tekst pravila za stolom ispravljen.
+
+**Zašto.** Prijava igrača (Stefan, 21.11.2026): „djelilac dobiva zadnji karte, a ne prvi, u slučaju da je raub”; vlasnik 22.11.2026.
+
+**Back-compat.** `exchangeOrder` je u snapshotu: ruka u kojoj je zamjena već počela nastavlja svojim redom (test). Bez novog polja u stanju i protokolu; APK ne treba novi paket.
+
+**Testovi.** Testni `match()` u `match.test.ts` sada eksplicitno postavlja `exchangeFromDealer: false`, jer je ~37 starijih testova pisano uz red od nosioca; novo pravilo ima svoj blok (4 testa: Raub djelioca, Moja igrača c bez onoga ko ne ide, 2P Štih, stari red iz snapshota). U `raubView.test.ts` dva testa iz odluke 32 su tražila „moju sedmicu” bez uslova da sam djelilac — sa odlukom 32 sedmicu bira i ne-djelilac, pa su prolazila slučajno; uslov dodat.
+
+**Provjera.** game-core 526, server 317, web 318, typecheck. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke (isto), refa 2,7 %. **Nije provjereno na uređaju ni u pregledaču.**

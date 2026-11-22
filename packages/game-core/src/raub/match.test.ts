@@ -78,7 +78,9 @@ function match(opts: {
     roomId: "r",
     matchId: "m",
     playerIds: ids,
-    rules: createRaubRules(ids.length as 2 | 3 | 4, opts.rules),
+    // Stariji testovi su pisani uz zamjenu od nosioca; odluka 33 ima svoj blok
+    // (`exchangeFromDealer: true` eksplicitno).
+    rules: createRaubRules(ids.length as 2 | 3 | 4, { exchangeFromDealer: false, ...opts.rules }),
     rng: makeLcg(1),
     dealerId: dealer,
     deck: deckFor({ ids, dealer, hands: opts.hands, talon: opts.talon, next: opts.next }),
@@ -1850,5 +1852,62 @@ describe("raub odluka 32 — sedmicu koju djelilac preskoči mogu uzeti ostali",
     const action = selectRaubBotAction(getRaubView(s, "b"), DEFAULT_RAUB_BOT_CONFIG, makeLcg(3));
     expect(action.type).toBe("stih");
     expect(() => act(s, "b", action)).not.toThrow();
+  });
+});
+
+describe("raub odluka 33 — zamjena od prvog poslije djelioca, djelilac zadnji", () => {
+  const NEW = { exchangeFromDealer: true } as const;
+
+  it("Raub djelioca: ostali mijenjaju prvi, djelilac zadnji, pa uzima kartu i odbacuje jednu", () => {
+    let s = raubBy(match({ hands: HANDS4, talon: H("Q"), rules: NEW }), "a");
+    expect(s.declarerId).toBe("a");
+    for (const id of ["b", "c", "d"]) s = act(s, id, { type: "go", go: true });
+    expect(s.exchangeOrder).toEqual(["b", "c", "d", "a"]);
+    expect(s.currentPlayerId).toBe("b");
+    s = ex(s, "b", ["clubs-K"]);
+    s = ex(s, "c", []);
+    s = ex(s, "d", ["spades-9"]);
+    // Karta Rauba i dalje čeka na stolu dok djelilac ne zamijeni.
+    expect(raubTalonPending(s)).toBe(true);
+    expect(s.currentPlayerId).toBe("a");
+    s = act(s, "a", { type: "exchange", cardIds: ["diamonds-8"] });
+    expect(s.step).toBe("discard_extra");
+    s = act(s, "a", { type: "discard", cardId: "clubs-A" });
+    const a = s.seats.find((x) => x.playerId === "a")!;
+    expect(a.hand.map((x) => x.id)).toContain("hearts-Q");
+    expect(a.hand).toHaveLength(4);
+    expect(s.step).toBe("tricks");
+    expect(s.tricks[0]!.leaderId).toBe("a");
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("Moja igrača c: red je i dalje od prvog poslije djelioca, bez onih koji ne idu", () => {
+    let s = match({ hands: HANDS4, talon: H("Q"), rules: NEW });
+    s = act(s, "a", { type: "bid", bid: "pass" });
+    s = act(s, "b", { type: "bid", bid: "pass" });
+    s = act(s, "c", { type: "bid", bid: "moja" });
+    expect(s.declarerId).toBe("c");
+    s = act(s, "d", { type: "go", go: false });
+    s = act(s, "a", { type: "go", go: true });
+    s = act(s, "b", { type: "go", go: true });
+    expect(s.exchangeOrder).toEqual(["b", "c", "a"]);
+  });
+
+  it("2 igrača, Štih djelioca: protivnik mijenja prvi", () => {
+    let s = match({ ids: ["a", "b"], hands: { a: HANDS4.a!, b: HANDS4.b! }, talon: D("7"), rules: NEW });
+    s = stih(s);
+    expect(s.exchangeOrder).toEqual(["b", "a"]);
+    expect(s.currentPlayerId).toBe("b");
+  });
+
+  it("podrazumijevano pravilo je novo; ruka sa već počelom zamjenom zadržava svoj red", () => {
+    expect(createRaubRules(4).exchangeFromDealer ?? true).toBe(true);
+    let s = raubBy(match({ hands: HANDS4, talon: H("Q") }), "a");
+    for (const id of ["b", "c", "d"]) s = act(s, id, { type: "go", go: true });
+    expect(s.exchangeOrder).toEqual(["a", "b", "c", "d"]);
+    // Deploy usred zamjene: pravilo se promijeni, red ostaje iz snapshota.
+    const hydrated = { ...s, rules: { ...s.rules, exchangeFromDealer: undefined } };
+    const next = ex(hydrated, "a", [], "clubs-A");
+    expect(next.currentPlayerId).toBe("b");
   });
 });

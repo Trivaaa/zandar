@@ -108,6 +108,7 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     mojaSevenAfterExchange: state.rules.mojaSevenAfterExchange ?? DEFAULT_RAUB_RULES.mojaSevenAfterExchange!,
     lowerOfPassedSuitDead: state.rules.lowerOfPassedSuitDead ?? DEFAULT_RAUB_RULES.lowerOfPassedSuitDead!,
     sevenOpenToAll: state.rules.sevenOpenToAll ?? DEFAULT_RAUB_RULES.sevenOpenToAll!,
+    exchangeFromDealer: state.rules.exchangeFromDealer ?? DEFAULT_RAUB_RULES.exchangeFromDealer!,
   };
 }
 
@@ -521,7 +522,11 @@ function continueGoing(state: RaubGameState): void {
 }
 
 function beginExchange(state: RaubGameState): void {
-  state.exchangeOrder = raubOrderFrom(state, state.declarerId!).filter((id) => isActive(state, id));
+  // Odluka 33: od prvog poslije djelioca, djelilac zadnji; ranije od nosioca.
+  const first = rulesV2(state).exchangeFromDealer
+    ? nextRaubPlayerId(state, state.dealerId)
+    : state.declarerId!;
+  state.exchangeOrder = raubOrderFrom(state, first).filter((id) => isActive(state, id));
   state.exchangeIndex = 0;
   continueExchange(state);
 }

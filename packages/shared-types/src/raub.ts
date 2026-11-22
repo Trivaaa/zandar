@@ -106,6 +106,12 @@ export interface RaubRules {
    * Nova karta se okreće tek kad svi kažu „Dalje”. Bez polja = da.
    */
   sevenOpenToAll?: boolean;
+  /**
+   * Odluka 33: zamjena karata kreće od prvog igrača poslije djelioca, a
+   * djelilac mijenja zadnji — i kad je on nosilac (Raub, Štih). Bez polja = da;
+   * ruka u kojoj je zamjena već počela zadržava svoj `exchangeOrder`.
+   */
+  exchangeFromDealer?: boolean;
 }
 
 /**

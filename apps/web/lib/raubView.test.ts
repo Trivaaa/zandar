@@ -110,7 +110,7 @@ describe("raubView: faza i panel", () => {
     const notDealer = until((s) => mine("bidding")(s) && s.dealerId !== "p0" && s.talonFlips === 1);
     const np = panelFor(getRaubView(notDealer, "p0"), name);
     assert.equal(np.kind === "bid" && np.refa, false);
-    const seven = until((s) => mine("seven_choice")(s));
+    const seven = until((s) => mine("seven_choice")(s) && s.dealerId === "p0");
     const sp = panelFor(getRaubView(seven, "p0"), name);
     assert.equal(sp.kind === "seven" && sp.refa, true);
   });
@@ -121,7 +121,7 @@ describe("raubView: faza i panel", () => {
     assert.equal(v.myCardsHidden, true);
     const rp = panelFor(v, name);
     assert.equal(rp.kind === "bid" && rp.blind, true);
-    const seven = until((s) => mine("seven_choice")(s));
+    const seven = until((s) => mine("seven_choice")(s) && s.dealerId === "p0");
     const sp = panelFor(getRaubView(seven, "p0"), name);
     assert.equal(sp.kind === "seven" && sp.blind, true);
     const notDealer = until((s) => mine("bidding")(s) && s.dealerId !== "p0");
