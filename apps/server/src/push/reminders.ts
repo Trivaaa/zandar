@@ -33,6 +33,7 @@ export type ReminderReason =
   | "rematch"
   | "win_again"
   | "first_match"
+  | "usual_time"
   | "default"
   | "last_call";
 
@@ -163,6 +164,8 @@ type ReasonRule = {
 
 type ReasonContext = {
   play: PlayStats | undefined;
+  /** Sat slanja (lični sat igrača) — `usual_time` ga provjerava u istoriji. */
+  usualHour?: number | undefined;
   lastSeenAt: number;
   now: number;
   releasedAt: Partial<Record<GameId, number>>;
@@ -180,12 +183,21 @@ function newGame(ctx: ReasonContext): GameId | null {
   return best;
 }
 
+export const USUAL_TIME_MIN_MATCHES = 3;
+
 /** Prvi tačan red pobjeđuje (SPEC_PUSH_V2 B5). Liga (SPEC_RANG §5.8) dolazi iznad. */
 const REASONS: readonly ReasonRule[] = [
   { reason: "new_game", steps: ["d3", "d7"], game: newGame, when: (c) => newGame(c) !== null },
   { reason: "rematch", steps: ["d1", "d3"], when: (c) => c.play?.lastResult === "lost" },
   { reason: "win_again", steps: ["d1", "d3"], when: (c) => c.play?.lastResult === "won" },
   { reason: "first_match", steps: ["d1"], when: (c) => !c.play || c.play.matchesFinished === 0 },
+  // „U ovo vrijeme obično igraš" — istina samo uz bar 3 partije počete u tom satu.
+  {
+    reason: "usual_time",
+    steps: ["d1", "d3"],
+    when: (c) =>
+      c.usualHour !== undefined && (c.play?.hourCounts[c.usualHour] ?? 0) >= USUAL_TIME_MIN_MATCHES,
+  },
   { reason: "default", steps: ["d1", "d3"], when: () => true },
   { reason: "last_call", steps: ["d7"], when: () => true },
 ];
@@ -249,14 +261,16 @@ export function decideReminder(
   if (now - lastSentAt < cfg.minGapMs) return null;
   if (due.needsFinishedMatch && !(play && play.matchesFinished > 0)) return null;
 
+  const usualHour = personalHour(play, cfg);
   if (cfg.dayMs === null) {
     const { hour } = localParts(now, target.tz);
     const quiet = hour >= cfg.quietFrom || hour < cfg.quietUntil;
-    if (quiet || hour < personalHour(play, cfg)) return null;
+    if (quiet || hour < usualHour) return null;
   }
 
   const { reason, game } = pickReason(due.step, {
     play,
+    usualHour,
     lastSeenAt,
     now,
     releasedAt: cfg.releasedAt,
@@ -292,27 +306,33 @@ export function assignArm(share: number, random: number): ReminderArm {
 
 // ─── poruka ─────────────────────────────────────────────────────────────────
 
-const GAME_NAME: Record<GameId, { nom: string; gen: string }> = {
-  zandar: { nom: "Žandar", gen: "Žandara" },
-  poker: { nom: "Poker", gen: "Pokera" },
-  raub: { nom: "Raub", gen: "Rauba" },
-  bela: { nom: "Bela", gen: "Bele" },
+/** Padeži su fiksni po igri (imena igara, ne nadimci). `line` = jedan red o igri za `new_game`. */
+const GAME_NAME: Record<GameId, { nom: string; gen: string; loc: string; line: string }> = {
+  zandar: { nom: "Žandar", gen: "Žandara", loc: "Žandaru", line: "Kupi karte sa stola, žandar nosi sve." },
+  poker: { nom: "Poker", gen: "Pokera", loc: "Pokeru", line: "Texas Hold'em, žetoni bez pravog novca." },
+  raub: { nom: "Raub", gen: "Rauba", loc: "Raubu", line: "Mađarice, adut i štih." },
+  bela: { nom: "Bela", gen: "Bele", loc: "Beli", line: "2 na 2, sa mađaricama." },
 };
 
 export function reminderCopy(
   reason: ReminderReason,
   game: GameId,
 ): { title: string; body: string } {
-  const { nom, gen } = GAME_NAME[game];
+  const { nom, gen, loc, line } = GAME_NAME[game];
   switch (reason) {
     case "new_game":
-      return { title: `Nova igra: ${nom}`, body: "Stigla je u Kartaonicu. Sto se postavlja za par sekundi." };
+      return { title: `Nova igra: ${nom}`, body: `${line} Sto se postavlja za par sekundi.` };
     case "rematch":
-      return { title: "Revanš?", body: `Zadnja partija ${gen} nije išla tvojim putem. Nova kreće za par sekundi.` };
+      return {
+        title: `Revanš u ${loc}?`,
+        body: `Zadnja partija ${gen} nije išla tvojim putem. Nova kreće za par sekundi.`,
+      };
     case "win_again":
-      return { title: "Još jedna?", body: `Zadnja partija ${gen} je bila tvoja.` };
+      return { title: `Zadnja partija ${gen} je bila tvoja`, body: "Možeš li opet? Sto se postavlja za par sekundi." };
     case "first_match":
-      return { title: "Probaj jednu partiju", body: "Pravila su u igri, a sto se postavlja za par sekundi." };
+      return { title: `Probaj jednu partiju ${gen}`, body: "Pravila se vide u igri. Sto se postavlja za par sekundi." };
+    case "usual_time":
+      return { title: "U ovo vrijeme obično igraš", body: `Partija ${gen}? Sto se postavlja za par sekundi.` };
     case "default":
       return { title: `Partija ${gen}?`, body: "Sto se postavlja za par sekundi." };
     case "last_call":

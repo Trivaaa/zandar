@@ -121,6 +121,7 @@ import { registerFriendRoutes } from "./profile/friendRoutes";
 import {
   addInvites,
   inviteFor,
+  missedInviteFor,
   noticeOf,
   publicInvites,
   removeInvite,
@@ -815,10 +816,21 @@ function sendInviteNotices(room: LobbyRoom, invites: RoomInvite[], push = false)
 /** Ponovna pretplata (povratak u aplikaciju): svi pozivi koji još važe. */
 function pushPendingInvites(uid: string): void {
   const now = Date.now();
+  let missed: { key: string; at: number } | null = null;
   for (const room of getAllRooms()) {
     const invite = inviteFor(room, uid, now);
-    if (invite) sendInviteNotices(room, [invite]);
+    if (invite) {
+      sendInviteNotices(room, [invite]);
+      continue;
+    }
+    const lost = missedInviteFor(room, uid, now);
+    if (lost && (!missed || lost.createdAt > missed.at)) {
+      missed = { key: `${room.id}:${lost.createdAt}`, at: lost.createdAt };
+    }
   }
+  // Propušten poziv (SPEC_PUSH_V2): samo najnoviji, samo ključ — klijent ga
+  // pokaže jednom i uz njega ponudi obavještenja. Bez imena i sobe u tekstu.
+  if (missed) io.to(`user:${uid}`).emit("user:invite_missed", { key: missed.key });
 }
 
 type InviteBody = {

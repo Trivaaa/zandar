@@ -6,6 +6,8 @@ import {
   addInvites,
   INVITE_TTL_MS,
   inviteFor,
+  MISSED_INVITE_WINDOW_MS,
+  missedInviteFor,
   publicInvites,
   removeInvite,
   type InviteRoom,
@@ -62,4 +64,20 @@ test("javni prikaz poziva: bez uid-a", () => {
   const pub = publicInvites(r, 1);
   assert.deepEqual(pub, [{ profileId: "nick1", nickname: "U1", avatar: null }]);
   assert.doesNotMatch(JSON.stringify(pub), /"u1"|uid|host/);
+});
+
+test("propušten poziv: istekao ili sto krenuo u zadnja 24 h, pozvani nije sjeo, nije odbijen", () => {
+  const r = room();
+  addInvites(r, [inv("u1", 0), inv("u2", 0)]);
+  assert.equal(missedInviteFor(r, "u1", 1), null, "još važi");
+  assert.equal(missedInviteFor(r, "u1", INVITE_TTL_MS)?.uid, "u1", "istekao");
+  assert.equal(missedInviteFor(r, "u1", MISSED_INVITE_WINDOW_MS), null, "prestar");
+
+  removeInvite(r, "u2");
+  assert.equal(missedInviteFor(r, "u2", INVITE_TTL_MS), null, "odbijen se ne javlja");
+
+  r.status = "playing";
+  assert.equal(missedInviteFor(r, "u1", 1)?.uid, "u1", "partija krenula bez njega");
+  r.players.push({ uid: "u1" });
+  assert.equal(missedInviteFor(r, "u1", 1), null, "sjeo je");
 });

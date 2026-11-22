@@ -16,6 +16,7 @@ import { readBelaBetaSeen } from "@/lib/belaBeta";
 import { WebNameSheet } from "@/components/home/web/WebNameSheet";
 import { TabBar } from "@/components/nav/TabBar";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
+import { PushPrompt } from "@/components/push/PushPrompt";
 import { ResumeBar } from "@/components/home/ResumeBar";
 import { ResumeSheet } from "@/components/home/ResumeSheet";
 import { claimTable, leaveTable, markTableSeen, useActiveTable } from "@/lib/activeTable";
@@ -307,6 +308,10 @@ export default function Home() {
       {identityUi ? <TabBar {...(isNative ? {} : { className: "tabbar--web-home" })} /> : null}
       {/* Samo ovdje: instalacija restartuje aplikaciju, pa nikad za stolom ni dok se traži sto. */}
       {isNative ? <AppUpdatePrompt hidden={playing || sheetOpen} /> : null}
+      {/* SPEC_PUSH_V2 A4: ko se vrati drugi dan, jednom dobija ponudu obavještenja. */}
+      {isNative && !playing && !sheetOpen ? (
+        <PushPrompt context="home_return" onceKey="home_return" minOpenDays={2} className="pushprompt--home" />
+      ) : null}
 
       {/* `Sheet` nosi svoj `.home-layer` i Android „nazad". */}
       {sheet?.kind === "name" && isNative ? (

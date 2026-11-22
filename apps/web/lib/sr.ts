@@ -999,6 +999,18 @@ export const sr = {
       title: "Da ti javimo?",
       body: "Kad te prijatelj pozove ili neko pokuca na tvoj sto. Ponekad i podsjetnik na partiju, koji gasiš u Postavkama.",
     },
+    /* SPEC_PUSH_V2 A4: početna, od drugog dana otvaranja. */
+    home_return: {
+      title: "Javi mi kad me neko pozove",
+      body: "Poziv prijatelja i „neko kuca na tvoj sto“ stižu i kad aplikacija nije otvorena. Ponekad i podsjetnik, koji gasiš u Postavkama.",
+    },
+    /* Propušten poziv — ponuda unutar lista „Poziv je istekao". */
+    invite_missed: {
+      title: "Javi mi sljedeći put",
+      body: "Uz obavještenja poziv stiže odmah, i kad aplikacija nije otvorena.",
+    },
+    missedTitle: "Poziv je istekao",
+    missedBody: "Stigao ti je poziv na partiju dok aplikacija nije bila otvorena, a u međuvremenu je istekao.",
     enable: "Uključi obavještenja",
     notNow: "Ne sada",
     channelName: "Sto i pozivi",

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { currentAccount } from "@/lib/account";
 import { getIdToken } from "@/lib/auth";
 import { identityUi } from "@/lib/features";
+import { pushEnabled } from "@/lib/push";
 import { getSocket } from "@/lib/socket";
 
 /**
@@ -66,11 +67,49 @@ function start(): void {
     invites = [...invites.filter((i) => i.roomId !== notice.roomId), notice];
     notify();
   });
+  // Propušten poziv (SPEC_PUSH_V2): samo u aplikaciji sa push-om, jednom po ključu.
+  socket.on("user:invite_missed", (payload: { key?: unknown }) => {
+    const key = typeof payload?.key === "string" ? payload.key : null;
+    if (!key || !pushEnabled || readLocal(MISSED_KEY) === key) return;
+    writeLocal(MISSED_KEY, key);
+    missedInvite = true;
+    notify();
+  });
   socket.on("connect", () => void subscribe());
   if (socket.connected) void subscribe();
 }
 
 let expiredInvite = false;
+let missedInvite = false;
+const MISSED_KEY = "zandar:invite:missedSeen";
+
+function readLocal(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeLocal(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // bez pamćenja — najgore je da se list pokaže još jednom
+  }
+}
+
+export function clearMissedInvite(): void {
+  missedInvite = false;
+  notify();
+}
+
+const readMissed = () => missedInvite;
+
+/** Poziv je istekao dok aplikacija nije bila otvorena (server javlja na pretplati). */
+export function useMissedInvite(): boolean {
+  return useChannel(readMissed);
+}
 
 /** F7 iz push-a: tap na poziv koji više ne važi — list prikazuje glavni ekran. */
 export function markInviteExpired(): void {

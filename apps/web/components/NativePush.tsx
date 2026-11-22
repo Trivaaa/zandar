@@ -9,6 +9,7 @@ import {
   capturePushState,
   FRIENDS_CHANNEL_ID,
   HOME_GAME_PARAM,
+  noteAppOpenDay,
   pushEnabled,
   pushPermission,
   pushRegistrationPending,
@@ -130,6 +131,8 @@ export function NativePush() {
       if ((await pushPermission()) === "granted") void registerForPush();
       // Doseg (SPEC_PUSH_V2 A5): stanje dozvole i preklopki, jednom po pokretanju.
       void capturePushState();
+      // A4: broj različitih dana otvaranja (ponuda na početnoj od drugog dana).
+      noteAppOpenDay();
     })().catch(() => {});
 
     return () => {

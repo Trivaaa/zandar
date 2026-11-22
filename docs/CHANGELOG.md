@@ -2732,3 +2732,14 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Provjera.** Server 344 testa (27 novih: ritam, sat, tiho vrijeme, dva uređaja, povratak usred niza, razlozi, grupe, stari snapshot, payload, tekst bez „bot/čeka/igrača"), web 318, typecheck oba, lint bez novih grešaka, `build-mobile.mjs staging`. E2E na lokalnom serveru (`PUSH_REMINDER_DAY_MS=60000`): registracija sa `caps` → preklopka podsjetnika tamo-nazad → posle ~61 s upisan d1 i grupa → restart na istom `DATA_DIR`: 1 uređaj hidriran, d1 se ne ponavlja. **Nije provjereno:** stvarno slanje preko FCM-a, uređaj (ponuda, tri stanja reda u Postavkama, sistemska podešavanja, tap), `next build` za web.
 
 **Prije uključivanja `PUSH_REMINDERS=1` na produkciji:** AAB 14 na Play-u, politika privatnosti (statistika igranja uz uređaj, rok 60 dana neaktivnosti), staging provjera na S10e sa `PUSH_REMINDER_DAY_MS`.
+
+## 212. Push v2: ponuda na povratku, propušten poziv, bolji tekstovi podsjetnika (2026-11-22, `feat/push-v2`)
+
+**Šta.** Po preporuci prihvaćenoj od vlasnika (ne tražiti dozvolu na prvom otvaranju, nego u trenucima kad igrač vidi korist):
+- **A4 — drugi dan.** `noteAppOpenDay()` broji različite dane otvaranja (lokalno). Od drugog dana početna jednom pokaže ponudu (`home_return`, `PushPrompt onceKey minOpenDays`), na mjestu `.appupdate`, sloj ispod nje.
+- **A6 — propušten poziv.** Ranije igrač bez obavještenja istekao poziv nikad nije vidio (server javlja samo važeće). Sad na pretplati `user:` kanala server javlja najnoviji poziv propušten u zadnja 24 h (`missedInviteFor`, `user:invite_missed { key }`): istekao, sto krenuo ili pun, pozvani nije sjeo, nije odbijen. Aplikacija (samo uz push) jednom po ključu pokaže list „Poziv je istekao" uz ponudu „Javi mi sljedeći put" (`MissedInviteSheet`) — samo kad dozvola još nije tražena i ponuda nije ugašena; inače događaj tiho briše.
+- **Tekstovi podsjetnika.** Igra u naslovu, jer se na zaključanom ekranu čita naslov: „Revanš u Raubu?", „Zadnja partija Pokera je bila tvoja" / „Možeš li opet?", „Probaj jednu partiju Žandara", za novu igru jedan red o igri. Nov razlog `usual_time` („U ovo vrijeme obično igraš") iznad opšteg — samo uz bar 3 partije počete u ličnom satu, jer tek tada je tvrdnja istinita. Padeži su fiksna tabela po igri (lokativ: Žandaru, Pokeru, Raubu, Beli).
+
+**Zamke.** `PushPrompt` na početnoj se montira prije nego `NativePush` upiše današnji dan (efekat djeteta ide prvi, a `NativePush` čeka uvoz plugina), pa prompt sam zove idempotentni `noteAppOpenDay()`. Apostrof u „Hold'em" lomi `node -e '…'` u bash-u — skripte za izmjenu idu u fajl.
+
+**Provjera.** Server 347 (novo: propušten poziv, `usual_time`, padeži), web 318, typecheck oba, lint = osnovica. **Nije provjereno:** uređaj (ponuda drugog dana, list propuštenog poziva sa dva prava naloga).

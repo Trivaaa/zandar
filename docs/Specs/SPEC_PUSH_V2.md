@@ -1,6 +1,6 @@
 # SPEC — Push v2: povratak neaktivnih igrača i uključivanje obavještenja · NACRT v1
 
-> **Status:** odobreno 22.11.2026 (aplikacija je izuzetak; kontrolna grupa 50 % → 10 %; tap → početna sa igrom). F1 i F2 implementirani na `feat/push-v2` (changelog 211); A4 nije rađen.
+> **Status:** odobreno 22.11.2026 (aplikacija je izuzetak; kontrolna grupa 50 % → 10 %; tap → početna sa igrom). F1 i F2 implementirani na `feat/push-v2` (changelog 211); A4, A6 i novi tekstovi (changelog 212).
 > **Zamjenjuje:** PRD §51.5 (v2, podsjetnici na neaktivnost). PRD §51.1–51.4 (principi, v1 katalog, dozvola, arhitektura) i dalje važe.
 > **Vezano:** SPEC_RANG §5.8 (tekstovi podsjetnika iz lige — uključuju se u isti mehanizam kad liga bude gotova), `docs/analytics.md`, memorija o PMF pragovima (D1 35 / D7 15 / D30 6).
 > **Platforma:** samo Android aplikacija. Web push i iOS su van opsega.
@@ -105,8 +105,11 @@ U Profil → Postavke, uvijek vidljiv u aplikaciji. Tri stanja:
 
 Zahtijeva mali native dodatak koji otvara `Settings.ACTION_APP_NOTIFICATION_SETTINGS` (isti obrazac kao `InstallReferrerPlugin.java`, prijavljen u `MainActivity` prije `super.onCreate`). Na povratku u prvi plan stanje se ponovo čita, pa red odmah pokazuje novu dozvolu i registracija kreće sama (postojeće `retryRegistrationOnResume`).
 
-#### A4 (P1) Ponuda na povratku
+#### A4 (P0 od 22.11.2026) Ponuda na povratku
 Igrač koji otvori aplikaciju **drugog različitog dana** (ima istoriju, a nema dozvolu) vidi ponudu na početnoj (`context: "home_return"`), jednom. Tada je već pokazao da se vraća, pa je vjerovatnije da prihvati. Isti tekst i pravila kao A1.
+
+#### A6 (P0) Propušten poziv
+Igrač bez obavještenja ne zna da je propustio poziv: server javlja samo pozive koji još važe. Na pretplati korisničkog kanala server sad javlja i najnoviji poziv koji je propušten u zadnja 24 h (`user:invite_missed`, samo ključ). Aplikacija tada, jednom po pozivu, pokaže list **Poziv je istekao** uz ponudu („Javi mi sljedeći put", `context: "invite_missed"`) — samo ako dozvola još nije tražena i ponuda nije ugašena. Ko ima obavještenja dobio je push, pa list ne vidi.
 
 #### A5 (P0) Analitika dosega
 - Postojeći događaji ostaju (`push_prompt_shown/accepted/dismissed`, `push_permission_result`), sa novim kontekstima.
@@ -166,10 +169,11 @@ Za svaki korak planer prolazi listu odozgo i šalje **prvi razlog čiji je uslov
 
 | Id | Koraci | Uslov | Naslov / tekst |
 |---|---|---|---|
-| `new_game` | d3, d7 | igra je izašla na produkciji poslije zadnjeg viđenja i igrač je nije igrao | **Stigla je {igra}** / „Nova igra u Kartaonici. Sto se postavlja za par sekundi." |
-| `rematch` | d1, d3 | zadnja partija je izgubljena | **Revanš?** / „Zadnja partija {igre} nije išla tvojim putem. Nova kreće za par sekundi." |
-| `win_again` | d1, d3 | zadnja partija je dobijena | **Još jedna?** / „Zadnja partija {igre} je bila tvoja." |
-| `first_match` | d1 | nema završene partije | **Probaj jednu partiju** / „Pravila su u igri, a sto se postavlja za par sekundi." |
+| `new_game` | d3, d7 | igra je izašla na produkciji poslije zadnjeg viđenja i igrač je nije igrao | **Nova igra: {igra}** / jedan red o igri („2 na 2, sa mađaricama.") + „Sto se postavlja za par sekundi." |
+| `rematch` | d1, d3 | zadnja partija je izgubljena | **Revanš u {igri}?** / „Zadnja partija {igre} nije išla tvojim putem. Nova kreće za par sekundi." |
+| `win_again` | d1, d3 | zadnja partija je dobijena | **Zadnja partija {igre} je bila tvoja** / „Možeš li opet? Sto se postavlja za par sekundi." |
+| `first_match` | d1 | nema završene partije | **Probaj jednu partiju {igre}** / „Pravila se vide u igri. Sto se postavlja za par sekundi." |
+| `usual_time` | d1, d3 | bar 3 partije počete u ličnom satu (u kojem podsjetnik i stiže) | **U ovo vrijeme obično igraš** / „Partija {igre}? Sto se postavlja za par sekundi." |
 | `default` | d1, d3 | uvijek | **Partija {igre}?** / „Sto se postavlja za par sekundi." |
 | `last_call` | d7 | uvijek | **Karte su tu kad poželiš** / „Ovo je posljednji podsjetnik. Možeš ih ugasiti u Postavkama." |
 
@@ -201,7 +205,6 @@ Podsjetnik otvara aplikaciju na početnoj **sa izabranom igrom iz razloga** (zad
 Povratak se pripisuje podsjetniku ako igrač otvori aplikaciju u roku od 24 h od slanja.
 
 #### P1 — poslije prve verzije
-- **A4** ponuda na povratku (gore).
 - **Najava nove igre i onima koji nisu neaktivni** (jedno obavještenje po izlasku igre, svima sa uključenim podsjetnicima). Traži odluku o učestalosti.
 - **Stanje kanala na uređaju:** `push_state` dopuniti sa važnošću kanala `podsjetnici` (Capacitor `listChannels`), da se vidi i gašenje kanala iz sistema, ne samo naša preklopka.
 
@@ -262,7 +265,7 @@ Ograničenja:
 | **F2 — paket** | A1, A2, A3, A5, B1, B6, `caps` pri registraciji | AAB 14 | odobren na Play-u; na S10e: ponuda, Postavke u sva 3 stanja, kanal postoji |
 | **F3 — slanje** | `PUSH_REMINDERS=1` na stagingu (ubrzani ritam), pa na produkciji | server env | otvorena pitanja 2 i 4 riješena |
 | **F4 — čitanje** | vodeći pokazatelji poslije 2 sedmice; D7 kad je n ≥ 100 po grupi; kontrolna grupa → 10 % | PostHog | — |
-| **F5 (P1)** | A4, najava igre svima, stanje kanala | AAB 15 | presuda iz F4 |
+| **F5 (P1)** | najava igre svima, stanje kanala | AAB 15 | presuda iz F4 |
 
 Ako ponuda na kraju meča ne dostigne 20 % prihvatanja u prve 2 sedmice, prvo se mijenja tekst i mjesto ponude, a tek onda se gleda efekat podsjetnika, jer bez dosega se efekat ne može izmjeriti.
 

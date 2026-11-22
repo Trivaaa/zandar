@@ -245,6 +245,42 @@ export async function requestPushPermission(): Promise<PushPermission> {
   return result;
 }
 
+const OPEN_DAYS_KEY = "zandar:push:openDays";
+const LAST_OPEN_DAY_KEY = "zandar:push:lastOpenDay";
+
+function localDay(now: number): string {
+  const d = new Date(now);
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+/**
+ * Broji RAZLIČITE dane u kojima je aplikacija otvorena (SPEC_PUSH_V2 A4).
+ * Zove se jednom po pokretanju; vraća broj dana uključujući današnji.
+ */
+export function noteAppOpenDay(now: number = Date.now()): number {
+  const today = localDay(now);
+  const prev = Number(readKey(OPEN_DAYS_KEY));
+  const count = Number.isFinite(prev) && prev > 0 ? Math.floor(prev) : 0;
+  if (readKey(LAST_OPEN_DAY_KEY) === today) return Math.max(1, count);
+  writeKey(LAST_OPEN_DAY_KEY, today);
+  writeKey(OPEN_DAYS_KEY, String(count + 1));
+  return count + 1;
+}
+
+export function appOpenDays(): number {
+  const n = Number(readKey(OPEN_DAYS_KEY));
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+/** Ponuda koja se pokazuje samo jednom (`PushPrompt onceKey`). */
+export function promptShownOnce(key: string): boolean {
+  return readKey(`zandar:push:once:${key}`) !== null;
+}
+
+export function markPromptShownOnce(key: string): void {
+  writeKey(`zandar:push:once:${key}`, "1");
+}
+
 /** Odgođena ("Ne sada" u zadnjih 7 dana) ili ugašena (3 puta "Ne sada") ponuda. */
 export function isPromptSnoozed(now: number = Date.now()): boolean {
   if (promptDismissCount() >= MAX_PROMPT_DISMISSALS) return true;

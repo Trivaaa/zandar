@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import {
   capturePush,
   isPromptSnoozed,
+  markPromptShownOnce,
+  noteAppOpenDay,
+  promptShownOnce,
   pushEnabled,
   pushPermission,
   requestPushPermission,
@@ -13,7 +16,16 @@ import {
 import { sr } from "@/lib/sr";
 
 /** Koga i šta čeka: host kucanje, gost odobrenje, igrač u lobiju početak; `match_end` = kraj partije (SPEC_PUSH_V2 A1). */
-export type PushPromptContext = "host" | "guest" | "waiting" | "friends" | "match_end";
+export type PushPromptContext =
+  | "host"
+  | "guest"
+  | "waiting"
+  | "friends"
+  | "match_end"
+  // SPEC_PUSH_V2 A4: početna, od drugog dana otvaranja, jednom.
+  | "home_return"
+  // Propušten poziv: list „Poziv je istekao".
+  | "invite_missed";
 
 /**
  * Ponuda obavještenja u trenutku kad igrač nešto čeka (PRD §51).
@@ -28,9 +40,15 @@ export type PushPromptContext = "host" | "guest" | "waiting" | "friends" | "matc
 export function PushPrompt({
   context,
   className = "",
+  onceKey,
+  minOpenDays,
 }: {
   context: PushPromptContext;
   className?: string;
+  /** Ponuda se pokazuje najviše jednom po ključu (npr. A4 na početnoj). */
+  onceKey?: string;
+  /** Tek od ovoliko različitih dana otvaranja aplikacije (A4: 2). */
+  minOpenDays?: number;
 }) {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -40,13 +58,17 @@ export function PushPrompt({
     let cancelled = false;
     void pushPermission().then((permission) => {
       if (cancelled || permission !== "prompt" || isPromptSnoozed()) return;
+      if (onceKey && promptShownOnce(onceKey)) return;
+      // Idempotentno u toku dana — ne zavisi od toga da li je NativePush već upisao danas.
+      if (minOpenDays && noteAppOpenDay() < minOpenDays) return;
+      if (onceKey) markPromptShownOnce(onceKey);
       setVisible(true);
       capturePush("push_prompt_shown", { context });
     });
     return () => {
       cancelled = true;
     };
-  }, [context]);
+  }, [context, onceKey, minOpenDays]);
 
   if (!visible) return null;
 

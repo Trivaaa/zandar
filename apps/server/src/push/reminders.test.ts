@@ -191,7 +191,7 @@ test("ubrzan dan (staging) ne gleda sat ni kalendar", () => {
 
 test("poruka: kanal podsjetnici, NORMAL prioritet, tap nosi korak, razlog i igru", () => {
   const msg = buildReminderPush({ step: "d1", reason: "rematch", game: "bela" });
-  assert.equal(msg.title, "Revanš?");
+  assert.equal(msg.title, "Revanš u Beli?");
   assert.match(msg.body, /Bele/);
   const payload = buildFcmPayload("tok", msg);
   assert.equal(payload.message.android.priority, "NORMAL");
@@ -200,10 +200,31 @@ test("poruka: kanal podsjetnici, NORMAL prioritet, tap nosi korak, razlog i igru
 });
 
 test("tekstovi ne pominju botove, broj ljudi ni da neko čeka", () => {
-  for (const reason of ["new_game", "rematch", "win_again", "first_match", "default", "last_call"] as const) {
+  for (const reason of ["new_game", "rematch", "win_again", "first_match", "usual_time", "default", "last_call"] as const) {
     for (const game of ["zandar", "poker", "raub", "bela"] as const) {
       const { title, body } = buildReminderPush({ step: "d1", reason, game });
       assert.doesNotMatch(`${title} ${body}`, /bot|čeka|igrača|igrači/i);
     }
   }
+});
+
+test("usual_time: samo uz bar 3 partije u ličnom satu, i iza revanša/pobjede", () => {
+  const base = { lastSeenAt: sa(20, 21), now: sa(21, 21), releasedAt: {} };
+  const often = play({ lastResult: "other", hourCounts: HOURS(21, 3) });
+  assert.equal(pickReason("d1", { ...base, play: often, usualHour: 21 }).reason, "usual_time");
+  const rare = play({ lastResult: "other", hourCounts: HOURS(21, 2) });
+  assert.equal(pickReason("d1", { ...base, play: rare, usualHour: 21 }).reason, "default");
+  assert.equal(pickReason("d1", { ...base, play: play(), usualHour: 21 }).reason, "rematch");
+  // Pravo slanje: lični sat ide iz statistike.
+  const d = device({ play: often });
+  assert.equal(decideReminder(one(d), sa(21, 21, 0))?.reason, "usual_time");
+});
+
+test("tekstovi: igra u naslovu, padeži po igri", () => {
+  assert.equal(buildReminderPush({ step: "d1", reason: "rematch", game: "zandar" }).title, "Revanš u Žandaru?");
+  assert.equal(
+    buildReminderPush({ step: "d1", reason: "win_again", game: "poker" }).title,
+    "Zadnja partija Pokera je bila tvoja",
+  );
+  assert.match(buildReminderPush({ step: "d3", reason: "new_game", game: "bela" }).body, /^2 na 2, sa mađaricama\./);
 });

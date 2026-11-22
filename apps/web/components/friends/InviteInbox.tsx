@@ -14,7 +14,9 @@ import {
   dismissInvite,
   useExpiredInvite,
   useIncomingInvites,
+  useMissedInvite,
 } from "@/lib/userChannel";
+import { MissedInviteSheet } from "@/components/push/MissedInviteSheet";
 
 /**
  * E4 — poziv dok je igrač u aplikaciji, na glavnim ekranima (gdje je donja
@@ -30,6 +32,8 @@ export function InviteInbox() {
   // F7 i iz push-a (tap na poziv koji je u međuvremenu istekao, NativePush).
   const expiredFromPush = useExpiredInvite();
   const expired = expiredHere || expiredFromPush;
+  // Poziv istekao dok aplikacija nije bila otvorena (SPEC_PUSH_V2) — tek kad nema važećeg.
+  const missed = useMissedInvite();
   const [error, setError] = useState<string | null>(null);
   // Bela beta: prozor prije ulaska (partija kreće čim se sto popuni).
   const belaBeta = useBelaBetaGate();
@@ -50,7 +54,7 @@ export function InviteInbox() {
   }
 
   const invite = invites.at(-1);
-  if (!invite) return null;
+  if (!invite) return missed ? <MissedInviteSheet /> : null;
 
   async function join() {
     if (!invite) return;

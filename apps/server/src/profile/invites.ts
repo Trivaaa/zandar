@@ -45,6 +45,22 @@ export function inviteFor(room: InviteRoom, uid: string, now: number): RoomInvit
   return activeInvites(room, now).find((i) => i.uid === uid) ?? null;
 }
 
+/** Koliko unazad se propušten poziv još javlja (SPEC_PUSH_V2 — „Poziv je istekao"). */
+export const MISSED_INVITE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Poziv koji je pozvani propustio: poslat u zadnja 24 h, više ne važi (istekao,
+ * partija krenula ili sto pun), a pozvani nije sjeo. Odbijen poziv
+ * (`removeInvite`) ovdje ne postoji, pa se ne javlja kao propušten.
+ */
+export function missedInviteFor(room: InviteRoom, uid: string, now: number): RoomInvite | null {
+  const invite = (room.invites ?? []).find((i) => i.uid === uid);
+  if (!invite || now - invite.createdAt >= MISSED_INVITE_WINDOW_MS) return null;
+  if (inviteFor(room, uid, now)) return null;
+  if (room.players.some((p) => p.uid === uid)) return null;
+  return invite;
+}
+
 /** Dodaj pozive; ponovljen poziv istom igraču zamjenjuje stari (novi rok). */
 export function addInvites(room: InviteRoom, invites: RoomInvite[]): void {
   const fresh = new Set(invites.map((i) => i.uid));
