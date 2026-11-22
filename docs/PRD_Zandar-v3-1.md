@@ -548,6 +548,8 @@ In-game: botovi se predstavljaju kao igrači — OK za neunovčive coins, standa
 
 ### 46.3 Izmijenjen go/no-go za mobile
 
+> **Zamijenjeno 21.11.2026:** važeći PMF pragovi i faze su u `docs/PMF_PLAN.md` (D1 ≥ 35 %, D7 ≥ 15 %, D30 ≥ 6 %). Aplikacija je već izašla, pa ovaj go/no-go ostaje samo kao istorija. Princip da se botovima napumpane brojke ne računaju kao PMF i dalje važi.
+
 Iz našeg razgovora: web validira **ljepljivost loop-a**, ne monetizaciju. Botovi čine loop **testabilnim na nuli**, ali pazi —
 
 > **Native go/no-go se oslanja na human-to-human ljepljivost, NE na bot-padded brojke.**

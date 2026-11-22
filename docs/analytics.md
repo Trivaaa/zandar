@@ -173,9 +173,10 @@ Uklonjeni (ostaju u istoriji PostHoga, bez backfill-a): `game_started`,
 | Poziv prijatelja → ulazak | `friend_invite_accepted` ÷ zbir `invited_count` iz `friend_invite_sent`, po `room_id` |
 | Propali zahtjevi | `join_requested` − `join_approved`: zbir odbijenih i isteklih, ne razlikuju se; `wait_ms` blizu 120000 znači da je host kasnio |
 
-Orijentiri (casual kartaške igre, zapisani PRIJE podataka): D1 30–35%, D7
-12–15%, D30 ~5%, aktivacija 50–60%, završetak ≥70%, DAU/MAU 15–20%. Sedmična
-kohorta ispod ~100 novih igrača se ne čita kao broj — samo trend.
+**Pragovi i pravila čitanja su u `docs/PMF_PLAN.md`** (od 21.11.2026: D1 ≥ 35 %,
+D7 ≥ 15 %, D30 ≥ 6 %, povratak tačno N-ti dan, presuda tek sa n ≥ 100 po grupi).
+Stari orijentiri (zapisani prije podataka: D1 30–35 %, D7 12–15 %, D30 ~5 %) više ne važe.
+Za aktivaciju (50–60 %) i završetak (≥ 70 %) orijentiri ostaju.
 
 Timezone projekta: `Europe/Sarajevo`, ne mijenja se.
 
