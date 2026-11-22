@@ -49,6 +49,12 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // Odluka 31 (vlasnik, 18.11.2026, po feedbacku igrača): poslije „Dalje” na
   // kartu, niža karta iste boje u toj ruci je mrtva (samo „Dalje”).
   lowerOfPassedSuitDead: true,
+  // Odluka 32 (vlasnik, 21.11.2026, po prijavi igrača): kad djelilac kaže
+  // „Dalje" na sedmicu, redom je mogu uzeti ostali (isto kao Štih: mora 1).
+  sevenOpenToAll: true,
+  // Odluka 33 (vlasnik, 22.11.2026, po prijavi igrača): zamjena kreće od
+  // prvog poslije djelioca, djelilac mijenja zadnji (i kad je nosilac Rauba).
+  exchangeFromDealer: true,
 };
 
 /** Rok za povratak poslije prekida veze prije pauze (server; isto kao Žandar). */

@@ -107,6 +107,8 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     mojaTalonSeven: state.rules.mojaTalonSeven ?? DEFAULT_RAUB_RULES.mojaTalonSeven!,
     mojaSevenAfterExchange: state.rules.mojaSevenAfterExchange ?? DEFAULT_RAUB_RULES.mojaSevenAfterExchange!,
     lowerOfPassedSuitDead: state.rules.lowerOfPassedSuitDead ?? DEFAULT_RAUB_RULES.lowerOfPassedSuitDead!,
+    sevenOpenToAll: state.rules.sevenOpenToAll ?? DEFAULT_RAUB_RULES.sevenOpenToAll!,
+    exchangeFromDealer: state.rules.exchangeFromDealer ?? DEFAULT_RAUB_RULES.exchangeFromDealer!,
   };
 }
 
@@ -133,7 +135,8 @@ export function raubTalonDead(state: Pick<RaubGameState, "rules" | "talon">): bo
 export function raubDealerBlind(state: RaubGameState): boolean {
   if (!rulesV2(state).dealerBlindFirstFlip) return false;
   if (state.phase !== "playing" || state.talonFlips !== 1 || state.trumpSuit !== null) return false;
-  if (state.step === "seven_choice") return true;
+  // Odluka 32: poslije djeliočevog „Dalje" sedmicu biraju ostali — on tada vidi karte.
+  if (state.step === "seven_choice") return state.currentPlayerId === state.dealerId;
   if (state.step !== "bidding") return false;
   const dealer = state.seats.find((s) => s.playerId === state.dealerId);
   return !!dealer && dealer.bid == null && raubCanRaub(state, state.dealerId);
@@ -326,7 +329,7 @@ function startHand(
       // Sedmica: djelilac bira „Štih" (mora 1) ili „Dalje" (nova karta).
       state.step = "seven_choice";
       state.currentPlayerId = state.dealerId;
-    } else takeStih(state);
+    } else takeStih(state, state.dealerId);
   } else {
     state.step = "bidding";
     state.currentPlayerId = firstBidderId(state);
@@ -405,14 +408,15 @@ function settlePendingTalon(state: RaubGameState, playerId: string): void {
 
 
 /**
- * Scenarij 1: djelilac uzima sedmicu s talona, nosi adut i mora 1 štih.
+ * Scenarij 1: djelilac (ili, odluka 32, prvi poslije njega koji kaže „Štih")
+ * uzima sedmicu s talona, nosi adut i mora 1 štih.
  * Odluka 27: ruka sa Štihom ide ×1, pa refa ostaje za sljedeću ruku.
  */
-function takeStih(state: RaubGameState): void {
+function takeStih(state: RaubGameState, playerId: string): void {
   state.scenario = "seven";
   if (rulesV2(state).stihSkipsRefa) state.multiplier = 1;
-  declare(state, state.dealerId, 1);
-  claimTalon(state, state.dealerId);
+  declare(state, playerId, 1);
+  claimTalon(state, playerId);
   afterTrump(state);
 }
 
@@ -518,7 +522,11 @@ function continueGoing(state: RaubGameState): void {
 }
 
 function beginExchange(state: RaubGameState): void {
-  state.exchangeOrder = raubOrderFrom(state, state.declarerId!).filter((id) => isActive(state, id));
+  // Odluka 33: od prvog poslije djelioca, djelilac zadnji; ranije od nosioca.
+  const first = rulesV2(state).exchangeFromDealer
+    ? nextRaubPlayerId(state, state.dealerId)
+    : state.declarerId!;
+  state.exchangeOrder = raubOrderFrom(state, first).filter((id) => isActive(state, id));
   state.exchangeIndex = 0;
   continueExchange(state);
 }
@@ -721,8 +729,15 @@ export function applyRaubAction(
     case "stih": {
       if (step !== "seven_choice") throw new Error("INVALID_ACTION");
       if (typeof request.take !== "boolean") throw new Error("INVALID_ACTION");
-      if (request.take) takeStih(state);
-      else flipNext(state);
+      if (request.take) takeStih(state, playerId);
+      else if (!rulesV2(state).sevenOpenToAll) flipNext(state);
+      else {
+        // Odluka 32: sedmicu redom nude i ostalima; djelilac je bio prvi, pa
+        // kad krug dođe do njega, svi su rekli „Dalje" — nova karta.
+        const next = nextRaubPlayerId(state, playerId);
+        if (next === state.dealerId) flipNext(state);
+        else state.currentPlayerId = next;
+      }
       break;
     }
     case "bid": {

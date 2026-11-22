@@ -2694,7 +2694,29 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 
 **Provjera.** Typecheck, lint (bez novih grešaka; `JoinFlow` ima zatečenu), web 318 testova, `next build --webpack` i `build:mobile`. E2E na `/` (390×844, presretnut `fetch`): klik na Bela „Igraj" → prozor, 0 poziva `/api/quickplay`; „Razumijem" → prozor nestaje, 1 poziv, „viđeno" upisano; drugi klik → bez prozora, odmah 1 poziv. `elementFromPoint` po cijelom ekranu pogađa sloj prozora (svjetliji donji dio na CDP snimku je ista headless greška sa providnošću iz unosa 205).
 
-## 209. Push v2: podsjetnici neaktivnim igračima i uključivanje obavještenja (2026-11-22, `feat/push-v2`)
+## 209. Raub odluka 32: sedmicu koju djelilac preskoči mogu uzeti ostali (2026-11-21, `fix/raub-seven-open-to-all`)
+
+**Šta.** Kad je prva okrenuta karta 7 i djelilac kaže „Dalje”, korak `seven_choice` ne okreće odmah novu kartu: „Štih / Dalje” redom u smjeru igre dobija svaki sljedeći igrač. Prvi koji kaže „Štih” nosi adut kao djelilac (mora 1, pad +2, uz refu ×1 — odluke 27–28). Kad krug dođe nazad do djelioca, svi su rekli „Dalje” → `flipNext`. `takeStih(state, playerId)` umjesto tvrdog `dealerId`; `raubDealerBlind` u `seven_choice` važi samo dok je djelilac na potezu, pa vidi karte čim odgovori. Prekidač `sevenOpenToAll` (podrazumijevano da). Pravila za stolom (`RaubRules`) dopunjena.
+
+**Zašto.** Prijava igrača (Stefan, 21.11.2026), vlasnik isti dan: tako se igra za stolom.
+
+**Back-compat.** Bez novog polja u snapshotu: krug se izvodi iz `currentPlayerId` (sljedeći poslije onoga ko je rekao „Dalje” je djelilac → nova karta). Ruka zatečena u `seven_choice` ima djelioca na potezu, pa nastavlja po novom. Protokol `raub:2` isti (akcija `stih` već postoji), panel „Štih / Dalje” je već crtan za igrača na potezu, bot i auto-akcija rade za svakoga.
+
+**Provjera.** game-core 522 (7 novih, 6 starih prilagođeno pomoćnom `passSeven`), server 317, web 318, typecheck. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke (isto), refa 3,1 → 2,7 %, Štih 20.684 → 29.374. **Nije provjereno na uređaju ni u pregledaču.**
+
+## 210. Raub odluka 33: djelilac mijenja karte zadnji (2026-11-22, `fix/raub-dealer-exchanges-last`)
+
+**Šta.** Zamjena karata kreće od prvog igrača poslije djelioca, redom u smjeru igre, a djelilac mijenja zadnji, i kad je nosilac (Raub, Štih). Ranije je kretala od nosioca, pa je djelilac sa Raubom uvijek mijenjao prvi. `beginExchange` bira početak po prekidaču `exchangeFromDealer` (podrazumijevano da). „Idem / Ne idem” i prvi štih ostaju od nosioca. Karta Rauba/Štiha i dalje čeka na stolu do nosiočeve zamjene (odluke 20, 22), samo duže. Kod „Moja” bez sedmice prednost za sedmicu aduta (odluka 29) sad ima prvi poslije djelioca. Tekst pravila za stolom ispravljen.
+
+**Zašto.** Prijava igrača (Stefan, 21.11.2026): „djelilac dobiva zadnji karte, a ne prvi, u slučaju da je raub”; vlasnik 22.11.2026.
+
+**Back-compat.** `exchangeOrder` je u snapshotu: ruka u kojoj je zamjena već počela nastavlja svojim redom (test). Bez novog polja u stanju i protokolu; APK ne treba novi paket.
+
+**Testovi.** Testni `match()` u `match.test.ts` sada eksplicitno postavlja `exchangeFromDealer: false`, jer je ~37 starijih testova pisano uz red od nosioca; novo pravilo ima svoj blok (4 testa: Raub djelioca, Moja igrača c bez onoga ko ne ide, 2P Štih, stari red iz snapshota). U `raubView.test.ts` dva testa iz odluke 32 su tražila „moju sedmicu” bez uslova da sam djelilac — sa odlukom 32 sedmicu bira i ne-djelilac, pa su prolazila slučajno; uslov dodat.
+
+**Provjera.** game-core 526, server 317, web 318, typecheck. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke (isto), refa 2,7 %. **Nije provjereno na uređaju ni u pregledaču.**
+
+## 211. Push v2: podsjetnici neaktivnim igračima i uključivanje obavještenja (2026-11-22, `feat/push-v2`)
 
 **Šta.** Implementiran `docs/Specs/SPEC_PUSH_V2.md` (revizija PRD §51.5), faze F1 (server) i F2 (klijent za AAB 14). Odluke vlasnika 22.11.2026: aplikacija je izuzetak od „samo web"; kontrolna grupa 50 % dok obje grupe nemaju 100 igrača, zatim 10 %; dodir na podsjetnik otvara početnu sa igrom na vrhu, partija ne kreće sama.
 
