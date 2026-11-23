@@ -294,6 +294,31 @@ export function homeLayout(games: readonly GameConfig[], history: HomeHistory): 
   return { main, more, upcoming, doors };
 }
 
+/**
+ * Web početna: redoslijed kartica za igrača koji još ništa nije igrao ni
+ * zakačio (odluka vlasnika 23.11.2026, slika „Izaberi igru i sjedi za sto").
+ * Na desktopu to su dva reda po tri. Aplikacija ga ne koristi.
+ */
+export const WEB_FIRST_VISIT_ORDER: readonly GameSlug[] = ["raub", "bela", "poker", "zandar", "tablic", "remi"];
+
+/**
+ * Kartice web početne: žive igre pa lažna vrata. Igrač bez istorije dobija
+ * `WEB_FIRST_VISIT_ORDER` (igra van spiska ide na kraj, redom kojim je
+ * stigla); igrač sa istorijom dobija raspored iz `homeLayout` (zadnja igrana
+ * prva). Igra koja nije u rasporedu (najavljena) se ne pojavljuje.
+ */
+export function webHomeOrder(layout: HomeLayout, history: HomeHistory): GameConfig[] {
+  const games = [layout.main, ...layout.more, ...layout.doors];
+  const fresh = history.pinned === null && Object.keys(history.played).length === 0;
+  if (!fresh) return games;
+  const rank = (g: GameConfig) => {
+    const i = WEB_FIRST_VISIT_ORDER.indexOf(g.slug);
+    return i === -1 ? WEB_FIRST_VISIT_ORDER.length : i;
+  };
+  // `sort` je stabilan: igre van spiska zadržavaju međusobni redoslijed.
+  return [...games].sort((a, b) => rank(a) - rank(b));
+}
+
 /** Oznaka na slici kartice u listi: zakačena, nova ili zadnje igrana (tabla „Lista"). */
 export type GameBadge = "pinned" | "last" | "new" | null;
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { GAMES, gameBadge, homeLayout, isNewGame, type GameConfig, type HomeHistory } from "./games";
+import { GAMES, gameBadge, homeLayout, isNewGame, webHomeOrder, type GameConfig, type HomeHistory } from "./games";
 
 const NONE: HomeHistory = { pinned: null, played: {} };
 const DAY = 24 * 60 * 60 * 1000;
@@ -119,5 +119,28 @@ describe("gameBadge (lista igara)", () => {
   test("igra koja nije zadnja igrana nema oznaku", () => {
     assert.equal(gameBadge(zandar, { pinned: null, played: { zandar: 5, poker: 9 } }, now), null);
     assert.equal(gameBadge(zandar, NONE, now), null);
+  });
+});
+
+describe("webHomeOrder (web početna, novi igrač)", () => {
+  const all = withLive("zandar", "poker", "raub", "bela");
+
+  test("bez istorije: Raub, Bela, Poker / Žandar, Tablić, Remi", () => {
+    assert.deepEqual(slugs(webHomeOrder(homeLayout(all, NONE), NONE)), ["raub", "bela", "poker", "zandar", "tablic", "remi"]);
+  });
+
+  test("Bela ugašena: ne pojavljuje se, ostale istim redom", () => {
+    const games = withLive("zandar", "poker", "raub");
+    assert.deepEqual(slugs(webHomeOrder(homeLayout(games, NONE), NONE)), ["raub", "poker", "zandar", "tablic", "remi"]);
+  });
+
+  test("sa istorijom: raspored kao do sada, zadnja igrana prva", () => {
+    const h: HomeHistory = { pinned: null, played: { zandar: 5 } };
+    assert.deepEqual(slugs(webHomeOrder(homeLayout(all, h), h)), ["zandar", "poker", "raub", "bela", "tablic", "remi"]);
+  });
+
+  test("zakačena igra: raspored kao do sada", () => {
+    const h: HomeHistory = { pinned: "poker", played: {} };
+    assert.equal(webHomeOrder(homeLayout(all, h), h)[0]!.slug, "poker");
   });
 });

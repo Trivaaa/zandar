@@ -12,7 +12,7 @@ import { TabBar } from "@/components/nav/TabBar";
 import { FriendsGameSheet } from "@/components/home/web/FriendsGameSheet";
 import { WebHome } from "@/components/home/web/WebHome";
 import { WebNameSheet } from "@/components/home/web/WebNameSheet";
-import { GAMES, gameBadge, homeLayout, type GameConfig, type GameSlug, type HomeHistory } from "@/lib/games";
+import { GAMES, gameBadge, homeLayout, webHomeOrder, type GameConfig, type GameSlug, type HomeHistory } from "@/lib/games";
 import { sr } from "@/lib/sr";
 import { useQueryParam } from "@/lib/useQuery";
 
@@ -125,7 +125,7 @@ export default function DevHomePage() {
 
   if (web) {
     const games = [layout.main, ...layout.more];
-    const cards = [...games, ...layout.doors];
+    const cards = webHomeOrder(layout, history);
     // Ručno otvoren list (dodir na Igraj) ima prednost nad `&name=`.
     const nameFor = nameGame === null ? null : (nameGame ?? (nameParam ? layout.main : null));
     return (

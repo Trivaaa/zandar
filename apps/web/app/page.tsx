@@ -25,7 +25,7 @@ import { blocksNewTable } from "@/lib/resumeView";
 import { roomPath } from "@/lib/routes";
 import { useBackHandler } from "@/lib/backHandlers";
 import { identityUi } from "@/lib/features";
-import { GAMES, gameBadge, homeLayout, type GameConfig, type GameSlug } from "@/lib/games";
+import { GAMES, gameBadge, homeLayout, webHomeOrder, type GameConfig, type GameSlug } from "@/lib/games";
 import { setPinnedGame, useHomeHistory } from "@/lib/homePrefs";
 import { isNative } from "@/lib/platform";
 import { readPlayerName, savePlayerName } from "@/lib/playerName";
@@ -267,8 +267,10 @@ export default function Home() {
     else setSheet({ kind: "setup", game });
   }
 
-  // Lažna vrata stoje poslije živih igara, kao još dvije igre.
-  const homeItems = [layout.main, ...layout.more, ...layout.doors].map((game) => ({
+  // Lažna vrata stoje poslije živih igara, kao još dvije igre. Web: novi
+  // igrač dobija stalan redoslijed (`WEB_FIRST_VISIT_ORDER`); aplikacija ne.
+  const homeGames = isNative ? [layout.main, ...layout.more, ...layout.doors] : webHomeOrder(layout, history);
+  const homeItems = homeGames.map((game) => ({
     game,
     badge: gameBadge(game, storedHistory, now),
   }));

@@ -2829,3 +2829,11 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Back-compat:** profil bez mape čita se kao prazan (`decodeMatchesByGame` uzima samo poznate igre sa pozitivnim brojem), ukupan brojač ostaje kakav je. Partije prije deploya se ne raspoređuju unazad. Klijent: `Me.completedMatchesByGame` je opciono, još se nigdje ne prikazuje.
 
 **Mjereno:** server 356 testova (lažni Firestore sad gnijezdi `a.b` transformaciju kao pravi; nov test za stari profil), web 320, typecheck čist.
+
+## 220. Web početna: stalan redoslijed kartica za novog igrača (2026-11-23, `feat/web-home-order`)
+
+**Šta:** igrač koji na webu još ništa nije igrao ni zakačio vidi kartice redom Raub, Bela, Poker / Žandar, Tablić, Remi (desktop: dva reda po tri; telefon: istim redom jedna ispod druge). Do sada je dobijao Žandar prvi, pa ostale redom iz `GAMES`.
+
+**Kako:** `WEB_FIRST_VISIT_ORDER` + čista `webHomeOrder(layout, history)` u `lib/games.ts`. Bez istorije (`pinned === null`, `played` prazan) kartice se slažu po spisku (igra van spiska ide na kraj); sa istorijom ostaje raspored iz `homeLayout` (zadnja igrana / zakačena prva). Podsjetnik sa `?igra=` postavlja `pinned`, pa njegova igra ostaje prva. Ugašena igra (npr. Bela bez `NEXT_PUBLIC_BELA=1`) se ne pojavljuje, ostale zadržavaju red. `homeLayout` i `GAMES` netaknuti; aplikacija (`isNative`) i dalje koristi `[main, ...more, ...doors]`. `/dev/home?web=1` koristi istu funkciju.
+
+**Mjereno:** web 324 testa (4 nova), typecheck, lint; snimak `/dev/home?web=1&live=4` na 1280×800 i 390×844. CSS nije mijenjan. Nije provjereno na uređaju.
