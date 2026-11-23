@@ -42,6 +42,8 @@ import type { ActiveReaction } from "@/lib/reactions";
 import { arrangeSeats } from "@/lib/seating";
 import { sr } from "@/lib/sr";
 import { useCountdown } from "@/lib/useCountdown";
+import { trickSnapOf } from "@/lib/trickSound";
+import { useTrickSound } from "@/lib/useTrickSound";
 
 import {
   BelaReportSheet,
@@ -141,6 +143,13 @@ export function BelaScreen({
     state.phase === "playing" && !interrupted && !offline && state.currentPlayerId === state.myPlayerId;
   const totalSeconds = state.rules.turnTimeoutSeconds;
   const turnSeconds = useCountdown(state.turnDeadline, totalSeconds);
+
+  // Zvuk i vibracija na prelaz stanja (dijeljenje, karta, štih, moj red, kraj).
+  // Štih „moj" = moj tim (vibracija i kad ga odnese partner).
+  useTrickSound(trickSnapOf(state, myTurn), {
+    mine: (id) => state.myTeam !== null && state.seats.find((s) => s.playerId === id)?.team === state.myTeam,
+    holdMs: TRICK_HOLD_MS,
+  });
   const pauseTotalMs = state.interruption ? Math.max(1, state.interruption.endsAt - state.interruption.startedAt) : 1;
   const pauseSeconds = useCountdown(state.interruption?.endsAt, pauseTotalMs / 1000);
   const waiting =

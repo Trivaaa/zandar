@@ -57,6 +57,8 @@ import { arrangeSeats } from "@/lib/seating";
 import { CardDeckContext } from "@/components/felt/cardDeck";
 import { sr } from "@/lib/sr";
 import { useCountdown } from "@/lib/useCountdown";
+import { trickSnapOf } from "@/lib/trickSound";
+import { useTrickSound } from "@/lib/useTrickSound";
 
 import {
   ActionPanel,
@@ -166,6 +168,12 @@ export function RaubScreen({
     state.phase === "playing" && !interrupted && !offline && state.currentPlayerId === state.myPlayerId;
   const totalSeconds = state.rules.turnTimeoutSeconds;
   const turnSeconds = useCountdown(state.turnDeadline, totalSeconds);
+
+  // Zvuk i vibracija na prelaz stanja (dijeljenje, karta, štih, moj red, kraj).
+  useTrickSound(trickSnapOf(state, myTurn, state.talonTakenBy), {
+    mine: (id) => id === state.myPlayerId,
+    holdMs: TRICK_HOLD_MS,
+  });
 
   // Pauza/glasanje: apsolutni rok sa servera, isti sat kao za potez.
   const pauseTotalMs = state.interruption ? Math.max(1, state.interruption.endsAt - state.interruption.startedAt) : 1;

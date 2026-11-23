@@ -29,6 +29,11 @@ let master: GainNode | null = null;
 
 function ensureCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
+  // „closed" se ne može nastaviti — napravi novi kontekst.
+  if (ctx && ctx.state === "closed") {
+    ctx = null;
+    master = null;
+  }
   if (!ctx) {
     const AC =
       window.AudioContext ??
@@ -40,18 +45,21 @@ function ensureCtx(): AudioContext | null {
     master.gain.value = 0.22; // suptilno
     master.connect(ctx.destination);
   }
-  if (ctx.state === "suspended") void ctx.resume();
+  // Ne samo "suspended": Android WebView poslije poziva ili pozadine zna
+  // prijaviti i "interrupted", a takav kontekst inače ostaje nijem do restarta.
+  if (ctx.state !== "running") void ctx.resume().catch(() => {});
   return ctx;
 }
 
-// Autoplay policy: otključaj kontekst na prvi gest bilo gdje na stranici.
+// Autoplay policy: otključaj kontekst na gest bilo gdje na stranici. Slušač
+// ostaje (ne samo prvi gest): poslije pozadine, poziva ili gašenja ekrana
+// sistem zna zaustaviti kontekst, a nastavak bez gesta pregledač smije odbiti.
 if (typeof window !== "undefined") {
   const unlock = () => {
+    if (ctx?.state === "running") return;
     ensureCtx();
-    window.removeEventListener("pointerdown", unlock);
-    window.removeEventListener("keydown", unlock);
   };
-  window.addEventListener("pointerdown", unlock);
+  window.addEventListener("pointerdown", unlock, { passive: true });
   window.addEventListener("keydown", unlock);
 }
 
@@ -165,6 +173,17 @@ export function playSfx(name: SfxName): void {
   if (now - (lastAt[name] ?? 0) < MIN_GAP_MS) return;
   lastAt[name] = now;
   const c = ensureCtx();
-  if (!c || c.state !== "running") return; // nije otključan (autoplay policy)
-  render(name);
+  if (!c) return;
+  if (c.state === "running") {
+    render(name);
+    return;
+  }
+  // Kontekst se upravo nastavlja (povratak iz pozadine): pusti kad krene, ali
+  // samo ako je to brzo — zakašnjeli zvuk je gori od nikakvog.
+  const asked = Date.now();
+  c.resume()
+    .then(() => {
+      if (c.state === "running" && Date.now() - asked < 250) render(name);
+    })
+    .catch(() => {});
 }

@@ -1,5 +1,6 @@
 package com.kartaonica.zandar;
 
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.view.Window;
 
@@ -21,6 +22,9 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NotificationSettingsPlugin.class);
         MetaEventsPlugin.startIfConsented(this);
         super.onCreate(savedInstanceState);
+        // Tipke za jačinu mijenjaju zvuk medija (zvukovi stola), ne zvono —
+        // zvukovi su kratki, pa bi Android između njih inače mijenjao zvono.
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
         enterImmersive();
     }
 
