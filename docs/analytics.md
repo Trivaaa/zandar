@@ -105,6 +105,17 @@ skida). U PostHogu: *Filter out internal and test users* → `is_tester ≠ true
 (postavljeno 1.11.2026.). ⚠ **Ne koristiti kohortu `$internal_or_test_user`:** nju
 dobija svako sa `$host=localhost`, a to je svaki igrač u Android aplikaciji.
 
+**Izbaciti iz čitanja metrika (po `person_id`)** — aplikacija nema `?tester=1`, pa se
+uređaji vlasnika i testera izbacuju ručno u svakom upitu
+(`AND person_id NOT IN (...)`). Server događaji nose isti `person_id`.
+
+| person_id | Ko | Uređaj | Od |
+|---|---|---|---|
+| `c0b97962-99a7-5a93-8dd3-518a7da59ea2` | vlasnik | Galaxy S10e (SM-G970F), produkcijska aplikacija | 16.11.2026 |
+
+Vlasnik može imati i druge `person_id`-eve (web na računaru, staro izdanje aplikacije).
+Dopuniti spisak kad se nađu.
+
 ## Događaji
 
 | Događaj | Gdje | Kad / idempotentnost | Parametri |
