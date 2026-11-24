@@ -129,6 +129,8 @@ export function SettingsScreen() {
         ) : null}
       </div>
 
+      {/* Privatnost / uslovi / o nama — jedino mjesto u Profilu i Postavkama
+          (odluka vlasnika 24.11.2026: skinuto sa dna Profila). */}
       <footer className="home__legal">
         <Link href="/privatnost">{sr.home.privacy}</Link>
         <Link href="/uslovi">{sr.home.terms}</Link>

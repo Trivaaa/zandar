@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -33,17 +32,6 @@ import { namePath, profileStartPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
 import { track } from "@/lib/track";
 import { useQueryParam } from "@/lib/useQuery";
-
-// Privatnost / uslovi / o nama — tihi red na dnu Profila, na webu i u
-// aplikaciji (odluka vlasnika 2026-10-25: skinut sa početne). ⚠ Google OAuth
-// provjera može tražiti link na politiku sa početne — tada ga vratiti tamo.
-const legalSlot = (
-  <>
-    <Link href="/privatnost">{sr.home.privacy}</Link>
-    <Link href="/uslovi">{sr.home.terms}</Link>
-    <Link href="/o-nama">{sr.home.about}</Link>
-  </>
-);
 
 type ProfileSheet = { kind: "identity" } | { kind: "avatar" } | { kind: "game"; game: GameConfig } | null;
 
@@ -234,7 +222,6 @@ export function ProfileScreen() {
           </div>
         ) : null}
       </div>
-      <footer className="home__legal">{legalSlot}</footer>
       <TabBar />
       {entry.sheet}
 

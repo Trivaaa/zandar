@@ -45,7 +45,7 @@ Redom odozgo:
 
 **Gotovo kad (360×740):** bez skrola se vide dugme Postavke, kartica igrača, pločice i — kod gosta — kartica „Sačuvaj napredak"; kod naloga bar tri igre. Mjeri se CDP-om, ne procjenom.
 
-Uklanja se: spisak „Uz nalog:", dugmad „Registruj se" / „Prijavi se" kao dva velika dugmeta, red „Postavke" u sredini, „Nazad na igru".
+Uklanja se: red Privatnost · Uslovi · O nama sa dna Profila (stoji na dnu Postavki — odluka vlasnika 24.11.2026); spisak „Uz nalog:", dugmad „Registruj se" / „Prijavi se" kao dva velika dugmeta, red „Postavke" u sredini, „Nazad na igru".
 
 ## 4. Postavke — A3
 
