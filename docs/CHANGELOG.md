@@ -2907,3 +2907,19 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Nije provjereno:** stanje „spreman" i nalog (lokalni server bez servisnog ključa vraća grešku na `/api/me`, pa je viđeno samo stanje greške), broj prijatelja, `IdentitySheet`, odjava iz Postavki, Android nazad, uređaj.
 
 **Dopuna — pravila u listu igre (24.11.2026, želja vlasnika):** na dnu lista „{Igra} · kako igraš", ispod „Igraj", red „Pravila Rauba ›" (i za Žandar, Poker, Belu) otvara isti `RulesModal` kao za stolom; Android nazad zatvara prvo pravila, pa list. Naslovi pravila su sada jedna mapa `sr.rulesTitle`. **Zamka:** `RulesModal` ima `z-50`, a `.home-layer` lista `z-index: 70` — pravila su se otvarala ISPOD lista; zato su u svom sloju `.game-settings__rules-layer` (z 80), van `Sheet`-a. Provjereno CDP snimkom 360×740 (otvaranje i zatvaranje); Android nazad na uređaju nije provjeren.
+
+## 226. Bela: bela i zvanja vidljivi, prijava greške sa snimkom stanja (2026-11-24, `fix/bela-call-visibility` → `feat/report-snapshot`)
+
+**Povod:** prijava `20261124-091237-626d79b7` iz aplikacije 1.5.0 (Redmi, Android 16): „nemogu pozvat”, Bela, ruka 1, štih 2 od 8, adut list, bez e-maila. Spec u dokumentu „Kartaonica – spec: zvanja/bela i prijava greške”.
+
+**Uzrok (vjerovatan, nepotvrđen stanjem):** bela se boduje sama (P-8) i nije imala nikakav znak u UI-ju. Igrač s K i O aduta nije vidio ni dugme ni oznaku, a svoje „Bela! +20” nije mogao vidjeti jer se njegovo sjedište ne crta. U 2. štihu je tražio kako da je „pozove”. Traka zvanja se vidjela samo dok je igrač na potezu u 1. štihu. Stanje stola 1054ee v7 se ne može vratiti: server čuva samo zadnji snapshot sobe, a odbijene `bela:action` se nisu logovale.
+
+**Odluke vlasnika (24.11.2026):** P-8 ostaje (spec B1 „Zovi belu / Bez bele” se ne radi, bela se samo prikazuje); prijava šalje karte prijavitelja uz napomenu i dopunu politike, bez kućice; popravka i u aplikaciji (paket `versionCode 15`). Spec B2 potvrda prije prve karte izostavljena (zvanje je već podrazumijevano uključeno); pejzaž nije provjeravan (aplikacija je zaključana na portret).
+
+**Šta je urađeno:**
+- game-core: `BelaPlayerView.canDeclare` i `myBela` (`holding`/`scored`, samo za vlasnika; tuđi `belaHolderId` ne izlazi). Novi testovi za zvanja i belu (četiri iste i niz iz iste karte, više zvanja, bela u adutskom nizu, bela protivniku na padu, `declare` poslije prve karte, auto-potez).
+- web: `belaAboveHand` — traka zvanja od zvanja aduta do moje prve karte, pilule „Imaš belu (K i O aduta) · +20”, „Bela! +20” i „Zvanje prijavljeno: N”. Sto se skuplja za njihovu visinu (`--bl-decl-h` 5.75rem, `--bl-notes-h`; izmjereno 360×640 i 390×844, traka 83 px). Dugmad zvanja 48 × 48 px. Pregled `/dev/bela?s=declWait|belaHold|belaMine`.
+- server: `⚠ Bela odbijeno <kod> · <sto> · <vrsta> · <faza> · štih N · vN` za svaku odbijenu akciju (bez karata i imena).
+- prijava: `belaReportSnapshot` (moje karte, javni štihovi, zvanja, bela, ekran i uvlake, zadnjih 20 dodira iz `lib/uiTrail.ts`) ide kao `snapshot`; server ga čuva (≤ 16 KB) i šalje kao `stanje.json` uz sažetak u tijelu mejla. Kratka prijava sa stola nudi teme (`topic` u naslovu mejla: `[Kartaonica · Greška · Bela] …`). Bez e-maila forma jednom podsjeti. Politika privatnosti dopunjena.
+
+**Provjereno:** game-core 545, server 369, web 356 testova; typecheck svuda; lint izmijenjenih fajlova čist. CDP snimci 360×640, 360×740, 390×844. E2E: forma iz `/dev/bela` → lokalni server → zapis u `_feedback` sa temom, snimkom (919 B) i sažetkom; prvi dodir bez e-maila dao je podsjetnik, drugi poslao. **Nije provjereno:** uređaj (S10e, Android 16 s gestama), pravi mejl preko Resenda, `build:mobile`. Aplikacija dobija sve tek novim AAB-om; server ide na deploy prije weba (stari server bi ignorisao `topic`/`snapshot` — ne pada).
