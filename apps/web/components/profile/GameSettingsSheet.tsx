@@ -1,9 +1,13 @@
 "use client";
 
-import { TABLE_THEMES, type TableTheme } from "@zandar/shared-types";
+import { useState } from "react";
 
-import { ArrowRightIcon, CheckIcon } from "@/components/icons";
+import { GAME_IDS, TABLE_THEMES, type GameId, type TableTheme } from "@zandar/shared-types";
+
+import { RulesModal } from "@/components/RulesModal";
+import { ArrowRightIcon, BookIcon, CheckIcon, ChevronRightIcon } from "@/components/icons";
 import { Sheet } from "@/components/sheet/Sheet";
+import { useBackHandler } from "@/lib/backHandlers";
 import type { GameSlug } from "@/lib/games";
 import { gamePlayHint, gameSettingsShape } from "@/lib/profileView";
 import {
@@ -21,6 +25,10 @@ import { track } from "@/lib/track";
 type TrackedGame = "zandar" | "poker" | "raub" | "bela";
 
 const DECKS: readonly RaubDeck[] = ["hungarian", "french"];
+
+/** Igre koje imaju pravila (`RulesModal`); najavljene igre ih nemaju. */
+const rulesGame = (slug: GameSlug): GameId | null =>
+  (GAME_IDS as readonly string[]).includes(slug) ? (slug as GameId) : null;
 
 /**
  * List igre iz Profila → „Moje igre" (SPEC_PROFIL_POSTAVKE §5, G1/G2).
@@ -45,95 +53,119 @@ export function GameSettingsSheet({
   const theme = useTableTheme(game);
   const [deck, setDeck] = useRaubDeck();
   const hint = gamePlayHint(game, prefs);
+  // Pravila na dnu lista (želja vlasnika 24.11.2026): isti prozor kao za stolom.
+  // Android nazad zatvara prvo pravila (stog je LIFO), pa list.
+  const rules = rulesGame(game);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  useBackHandler(rulesOpen, () => setRulesOpen(false));
 
   const changed = (setting: "players" | "target" | "start_score" | "deck" | "table", value: string | number) =>
     track("game_setting_changed", { game: game as TrackedGame, setting, value });
 
   return (
-    <Sheet title={t.sheetTitle(name)} closeLabel={t.close} onClose={onClose}>
-      <div className="qp-sheet game-settings">
-        {shape.players ? (
-          <Segmented
-            label={t.playersLabel}
-            options={QUICK_PLAY_COUNTS.map((n) => ({ value: n, label: String(n) }))}
-            selected={prefs.playerCount}
-            onSelect={(playerCount) => {
-              if (playerCount === prefs.playerCount) return;
-              // Svjež zapis, ne `prefs` iz rendera: dva brza dodira se ne gaze.
-              saveQuickPlayPrefs({ ...readQuickPlayPrefs(game), playerCount }, game);
-              changed("players", playerCount);
-            }}
-          />
-        ) : null}
+    <>
+      <Sheet title={t.sheetTitle(name)} closeLabel={t.close} onClose={onClose}>
+        <div className="qp-sheet game-settings">
+          {shape.players ? (
+            <Segmented
+              label={t.playersLabel}
+              options={QUICK_PLAY_COUNTS.map((n) => ({ value: n, label: String(n) }))}
+              selected={prefs.playerCount}
+              onSelect={(playerCount) => {
+                if (playerCount === prefs.playerCount) return;
+                // Svjež zapis, ne `prefs` iz rendera: dva brza dodira se ne gaze.
+                saveQuickPlayPrefs({ ...readQuickPlayPrefs(game), playerCount }, game);
+                changed("players", playerCount);
+              }}
+            />
+          ) : null}
 
-        {shape.target ? (
-          <Segmented
-            label={shape.target === "from" ? t.fromLabel : t.toLabel}
-            options={QUICK_PLAY_TARGETS.map((n) => ({
-              value: n,
-              label: String(n),
-              note: n === 11 ? t.shorter : t.longer,
-            }))}
-            selected={prefs.targetScore}
-            onSelect={(targetScore) => {
-              if (targetScore === prefs.targetScore) return;
-              saveQuickPlayPrefs({ ...readQuickPlayPrefs(game), targetScore }, game);
-              changed(shape.target === "from" ? "start_score" : "target", targetScore);
-            }}
-          />
-        ) : null}
+          {shape.target ? (
+            <Segmented
+              label={shape.target === "from" ? t.fromLabel : t.toLabel}
+              options={QUICK_PLAY_TARGETS.map((n) => ({
+                value: n,
+                label: String(n),
+                note: n === 11 ? t.shorter : t.longer,
+              }))}
+              selected={prefs.targetScore}
+              onSelect={(targetScore) => {
+                if (targetScore === prefs.targetScore) return;
+                saveQuickPlayPrefs({ ...readQuickPlayPrefs(game), targetScore }, game);
+                changed(shape.target === "from" ? "start_score" : "target", targetScore);
+              }}
+            />
+          ) : null}
 
-        {shape.deck ? (
-          <Segmented
-            label={t.deckLabel}
-            options={DECKS.map((d) => ({ value: d, label: t.deckNames[d] }))}
-            selected={deck}
-            onSelect={(next) => {
-              if (next === deck) return;
-              setDeck(next);
-              changed("deck", next);
-            }}
-          />
-        ) : null}
+          {shape.deck ? (
+            <Segmented
+              label={t.deckLabel}
+              options={DECKS.map((d) => ({ value: d, label: t.deckNames[d] }))}
+              selected={deck}
+              onSelect={(next) => {
+                if (next === deck) return;
+                setDeck(next);
+                changed("deck", next);
+              }}
+            />
+          ) : null}
 
-        <div className="create__field">
-          <span className="create__label font-sans text-sm">{sr.tableTheme.label}</span>
-          <div className="create__themes" role="radiogroup" aria-label={sr.tableTheme.label}>
-            {TABLE_THEMES.map((th: TableTheme) => (
-              <button
-                key={th}
-                type="button"
-                role="radio"
-                aria-checked={theme === th}
-                className="create__theme font-sans text-sm"
-                data-selected={theme === th}
-                onClick={() => {
-                  if (th === theme) return;
-                  saveTableTheme(th, game);
-                  changed("table", th);
-                }}
-              >
-                <span className="create__theme-thumb" data-table={th} aria-hidden="true" />
-                {sr.tableTheme.names[th]}
-              </button>
-            ))}
+          <div className="create__field">
+            <span className="create__label font-sans text-sm">{sr.tableTheme.label}</span>
+            <div className="create__themes" role="radiogroup" aria-label={sr.tableTheme.label}>
+              {TABLE_THEMES.map((th: TableTheme) => (
+                <button
+                  key={th}
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === th}
+                  className="create__theme font-sans text-sm"
+                  data-selected={theme === th}
+                  onClick={() => {
+                    if (th === theme) return;
+                    saveTableTheme(th, game);
+                    changed("table", th);
+                  }}
+                >
+                  <span className="create__theme-thumb" data-table={th} aria-hidden="true" />
+                  {sr.tableTheme.names[th]}
+                </button>
+              ))}
+            </div>
           </div>
+
+          <p className="game-settings__saved">
+            <CheckIcon className="game-settings__saved-icon" />
+            {t.saved}
+          </p>
+
+          <button type="button" className="home__cta sheet__btn game-settings__play" onClick={onPlay}>
+            <span>{t.play}</span>
+            <span className="game-settings__hint">
+              {hint}
+              <ArrowRightIcon className="home__cta-arrow" />
+            </span>
+          </button>
+
+          {rules ? (
+            <button type="button" className="profile__item game-settings__rules" onClick={() => setRulesOpen(true)}>
+              <span className="profile__item-label">
+                <BookIcon className="profile__item-icon" />
+                {sr.rulesTitle[rules]}
+              </span>
+              <ChevronRightIcon className="profile__item-chevron" />
+            </button>
+          ) : null}
         </div>
-
-        <p className="game-settings__saved">
-          <CheckIcon className="game-settings__saved-icon" />
-          {t.saved}
-        </p>
-
-        <button type="button" className="home__cta sheet__btn game-settings__play" onClick={onPlay}>
-          <span>{t.play}</span>
-          <span className="game-settings__hint">
-            {hint}
-            <ArrowRightIcon className="home__cta-arrow" />
-          </span>
-        </button>
-      </div>
-    </Sheet>
+      </Sheet>
+      {/* Van lista, ne u njemu (animirani panel bi zarobio `position: fixed`), i u
+          svom sloju iznad `.home-layer` (70) — modal sam ima samo z-50. */}
+      {rules && rulesOpen ? (
+        <div className="game-settings__rules-layer">
+          <RulesModal game={rules} isOpen onClose={() => setRulesOpen(false)} />
+        </div>
+      ) : null}
+    </>
   );
 }
 

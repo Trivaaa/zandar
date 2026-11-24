@@ -906,6 +906,13 @@ export const sr = {
     groupPrivacy: "Privatnost",
     groupAccount: "Nalog",
   },
+  /* Naslov pravila po igri — prozor pravila i red „Pravila …" u listu igre. */
+  rulesTitle: {
+    zandar: "Pravila Žandara",
+    poker: "Pravila pokera",
+    raub: "Pravila Rauba",
+    bela: "Pravila Bele",
+  },
   /* Profil → „Moje igre" i list po igri (SPEC_PROFIL_POSTAVKE §3, §5). */
   profileGames: {
     title: "Moje igre · kako igraš",

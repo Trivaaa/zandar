@@ -1593,6 +1593,12 @@
   justify-content: space-between;
 }
 
+/* Pravila otvorena iz lista igre: iznad `.home-layer` (z-index 70). */
+.game-settings__rules-layer {
+  position: relative;
+  z-index: 80;
+}
+
 .game-settings__hint {
   display: inline-flex;
   align-items: center;
