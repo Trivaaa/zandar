@@ -559,7 +559,29 @@ export const FEEDBACK_LIMITS = {
   imagesMax: 3,
   /** Po slici, poslije dekodiranja. Klijent je smanjuje mnogo ispod ovoga. */
   imageBytesMax: 1_500_000,
+  /** Snimak stanja partije, serijalizovan (JSON). */
+  snapshotBytesMax: 16_000,
+  /** Poruka kraća od ovoga dobija ponuđene teme (spec C2). */
+  topicHintBelow: 20,
 } as const;
+
+/**
+ * Tema kratke prijave sa stola (spec C2): ide u naslov mejla, npr.
+ * „[Kartaonica · Greška · Bela] ne mogu pozvat".
+ */
+export const FEEDBACK_TOPICS = ["bela", "zvanja", "adut", "prijatelji", "drugo"] as const;
+export type FeedbackTopic = (typeof FEEDBACK_TOPICS)[number];
+
+export function isFeedbackTopic(value: unknown): value is FeedbackTopic {
+  return typeof value === "string" && (FEEDBACK_TOPICS as readonly string[]).includes(value);
+}
+
+/**
+ * Snimak stanja partije uz prijavu sa stola (spec C1). Klijent ga sastavlja iz
+ * SVOG pogleda (vlastite karte + javno stanje, nikad tuđe karte); server ga
+ * samo čuva i šalje kao prilog. `summary` su redovi za tijelo mejla.
+ */
+export type FeedbackSnapshot = { summary?: string[] } & Record<string, unknown>;
 
 export type FeedbackRequest = {
   kind: FeedbackKind;
@@ -577,6 +599,10 @@ export type FeedbackRequest = {
    * faza. Jedan red, bez tuđih karata. Stari klijenti ga ne šalju.
    */
   context?: string;
+  /** Tema kratke prijave (spec C2). Stari klijenti je ne šalju. */
+  topic?: FeedbackTopic;
+  /** Snimak stanja partije (spec C1), samo sa stola. Stari klijenti ga ne šalju. */
+  snapshot?: FeedbackSnapshot;
 };
 
 export type FeedbackResponse = { ok: true };

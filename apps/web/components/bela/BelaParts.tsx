@@ -10,6 +10,7 @@ import type {
   Card,
   PublicPlayer,
   Suit,
+  FeedbackSnapshot,
 } from "@zandar/shared-types";
 
 import { FeedbackForm } from "@/components/feedback/FeedbackForm";
@@ -503,10 +504,18 @@ export function BelaBetaSheet({ onClose }: { onClose: () => void }) {
 }
 
 /** Forma za grešku kao sloj preko stola — partija ostaje otvorena ispod. */
-export function BelaReportSheet({ context, onClose }: { context: string; onClose: () => void }) {
+export function BelaReportSheet({
+  context,
+  snapshot,
+  onClose,
+}: {
+  context: string;
+  snapshot?: FeedbackSnapshot;
+  onClose: () => void;
+}) {
   return (
     <div className="bl-report" role="dialog" aria-modal="true" aria-label={sr.feedback.tableTitle}>
-      <FeedbackForm onBack={onClose} onDone={onClose} table={{ context }} />
+      <FeedbackForm onBack={onClose} onDone={onClose} table={{ context, ...(snapshot ? { snapshot } : {}) }} />
     </div>
   );
 }

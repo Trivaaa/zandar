@@ -118,8 +118,11 @@ export function PrivacyPolicyBody() {
             pohvala), tekst, slike koje sam priložiš i e-adresa za odgovor ako je
             upišeš. Uz to idu verzija aplikacije, podaci o uređaju i pregledaču
             (uključujući model telefona) i, ako imaš nalog, tvoj nadimak i
-            identifikator naloga. Tekst i adresu ne šaljemo u statistiku
-            korišćenja.
+            identifikator naloga. Kad grešku prijaviš iz partije, uz poruku
+            ide i stanje te partije: tvoje karte u ruci, karte koje su već
+            odigrane, zvanja, čiji je potez, veličina ekrana i tvojih zadnjih
+            dvadesetak dodira na stolu. Karte drugih igrača ne šaljemo. Tekst i
+            adresu ne šaljemo u statistiku korišćenja.
           </li>
           <li>
             <strong>Podaci za obavještenja</strong> — samo u Android aplikaciji
@@ -195,7 +198,8 @@ export function PrivacyPolicyBody() {
           <li>
             <strong>Resend</strong> (Sjedinjene Američke Države) — dostava
             utiska koji pošalješ, kao e-mail našem timu: tekst, slike, e-adresa
-            za odgovor i podaci o uređaju navedeni gore.
+            za odgovor, podaci o uređaju i, za prijavu iz partije, stanje
+            partije navedeno gore.
           </li>
           <li>
             <strong>PostHog</strong> (Evropska unija) — statistika korišćenja,

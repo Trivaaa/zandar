@@ -6,6 +6,9 @@ import type { FastifyInstance } from "fastify";
 import {
   FEEDBACK_LIMITS,
   isFeedbackKind,
+  isFeedbackTopic,
+  type FeedbackSnapshot,
+  type FeedbackTopic,
   normalizeEmail,
   type AnalyticsEvents,
   type AnalyticsPlatform,
@@ -42,6 +45,10 @@ export type FeedbackRecord = {
   userAgent?: string;
   /** Odakle je prijava (sto, igra, ruka) — samo za prijave sa stola; stari zapisi ga nemaju. */
   context?: string;
+  /** Tema kratke prijave (spec C2); stari zapisi je nemaju. */
+  topic?: FeedbackTopic;
+  /** Snimak stanja partije (spec C1); stari zapisi ga nemaju. */
+  snapshot?: FeedbackSnapshot;
   /** Samo iz PROVJERENOG tokena — klijentu se na riječ ne vjeruje. */
   uid?: string;
   nickname?: string;
@@ -64,6 +71,9 @@ const APP_VERSION_MAX = 40;
 const USER_AGENT_MAX = 400;
 /** Kontekst partije sa stola (Bela beta): jedan red, npr. „Bela · sto ab12cd · ruka 3 · štih 5". */
 const CONTEXT_MAX = 200;
+/** Sažetak snimka u tijelu mejla: nekoliko kratkih redova. */
+const SUMMARY_LINES = 8;
+const SUMMARY_LINE_MAX = 300;
 
 /** Kontrolni znakovi osim reda i taba — nevidljivi su u mejlu, a kvare CSV/terminal. */
 // eslint-disable-next-line no-control-regex
@@ -99,6 +109,8 @@ export type ParsedFeedback = {
   appVersion?: string;
   userAgent?: string;
   context?: string;
+  topic?: FeedbackTopic;
+  snapshot?: FeedbackSnapshot;
   platform: AnalyticsPlatform;
   guestId?: string;
   images: FeedbackImage[];
@@ -145,6 +157,24 @@ export function parseFeedback(raw: unknown): ParseResult {
   const appVersion = cleanLine(body.appVersion, APP_VERSION_MAX);
   const userAgent = cleanLine(body.userAgent, USER_AGENT_MAX);
   const context = cleanLine(body.context, CONTEXT_MAX);
+  const topic = isFeedbackTopic(body.topic) ? body.topic : undefined;
+
+  let snapshot: FeedbackSnapshot | undefined;
+  if (body.snapshot !== undefined && body.snapshot !== null) {
+    const raw = body.snapshot;
+    if (typeof raw !== "object" || Array.isArray(raw)) return { ok: false, error: "Neispravno stanje partije" };
+    if (Buffer.byteLength(JSON.stringify(raw), "utf8") > FEEDBACK_LIMITS.snapshotBytesMax) {
+      return { ok: false, error: "Stanje partije je preveliko" };
+    }
+    const summaryRaw = (raw as { summary?: unknown }).summary;
+    const summary = Array.isArray(summaryRaw)
+      ? summaryRaw
+          .slice(0, SUMMARY_LINES)
+          .map((line) => cleanLine(line, SUMMARY_LINE_MAX))
+          .filter((x): x is string => !!x)
+      : [];
+    snapshot = { ...(raw as Record<string, unknown>), summary };
+  }
 
   return {
     ok: true,
@@ -155,6 +185,8 @@ export function parseFeedback(raw: unknown): ParseResult {
       ...(appVersion ? { appVersion } : {}),
       ...(userAgent ? { userAgent } : {}),
       ...(context ? { context } : {}),
+      ...(topic ? { topic } : {}),
+      ...(snapshot ? { snapshot } : {}),
       platform: parsePlatform(body.platform) ?? "web",
       ...(guestId ? { guestId } : {}),
       images,
@@ -268,12 +300,13 @@ export function feedbackToCsv(records: readonly FeedbackRecord[]): string {
     const safe = /^[=+@-]/.test(value) ? `'${value}` : value;
     return `"${safe.replaceAll('"', '""')}"`;
   };
-  const header = ["id", "createdAt", "kind", "text", "email", "nickname", "uid", "appVersion", "platform", "userAgent", "context", "attachments"];
+  const header = ["id", "createdAt", "kind", "topic", "text", "email", "nickname", "uid", "appVersion", "platform", "userAgent", "context", "snapshot", "attachments"];
   const rows = records.map((r) =>
     [
       r.id,
       new Date(r.createdAt).toISOString(),
       r.kind,
+      r.topic ?? "",
       r.text,
       r.email ?? "",
       r.nickname ?? "",
@@ -282,6 +315,7 @@ export function feedbackToCsv(records: readonly FeedbackRecord[]): string {
       r.platform,
       r.userAgent ?? "",
       r.context ?? "",
+      r.snapshot ? "da" : "",
       String(r.attachments?.length ?? 0),
     ].map(cell),
   );
@@ -295,6 +329,17 @@ export const FEEDBACK_KIND_LABELS: Record<FeedbackKind, string> = {
   idea: "Prijedlog",
   praise: "Pohvala",
 };
+
+export const FEEDBACK_TOPIC_LABELS: Record<FeedbackTopic, string> = {
+  bela: "Bela",
+  zvanja: "Zvanja",
+  adut: "Adut",
+  prijatelji: "Poziv prijatelja",
+  drugo: "Nešto drugo",
+};
+
+/** Ime priloga sa snimkom stanja u mejlu. */
+export const SNAPSHOT_FILENAME = "stanje.json";
 
 const SUBJECT_SNIPPET = 60;
 
@@ -316,19 +361,31 @@ export function buildFeedbackMail(record: FeedbackRecord, to: string, images: re
     `Verzija: ${record.appVersion ?? "?"} · ${record.platform}`,
     `Uređaj: ${record.userAgent ?? "?"}`,
     ...(record.context ? [`Partija: ${record.context}`] : []),
+    ...(record.topic ? [`Tema: ${FEEDBACK_TOPIC_LABELS[record.topic]}`] : []),
+    ...(record.snapshot
+      ? [`Stanje (prilog ${SNAPSHOT_FILENAME}):`, ...(record.snapshot.summary ?? []).map((line) => `  ${line}`)]
+      : []),
     `Vrijeme: ${new Date(record.createdAt).toISOString()}`,
     `ID: ${record.id}`,
     `Prilozi: ${record.attachments.length}`,
   ].join("\n");
+  const label = record.topic
+    ? `${FEEDBACK_KIND_LABELS[record.kind]} · ${FEEDBACK_TOPIC_LABELS[record.topic]}`
+    : FEEDBACK_KIND_LABELS[record.kind];
   return {
     to,
-    subject: `[Kartaonica · ${FEEDBACK_KIND_LABELS[record.kind]}] ${snippet}`,
+    subject: `[Kartaonica · ${label}] ${snippet}`,
     text,
     ...(record.email ? { replyTo: record.email } : {}),
-    attachments: images.map((image, i) => ({
-      filename: record.attachments[i] ?? `prilog-${i + 1}.${image.ext}`,
-      content: image.bytes,
-    })),
+    attachments: [
+      ...images.map((image, i) => ({
+        filename: record.attachments[i] ?? `prilog-${i + 1}.${image.ext}`,
+        content: image.bytes,
+      })),
+      ...(record.snapshot
+        ? [{ filename: SNAPSHOT_FILENAME, content: Buffer.from(JSON.stringify(record.snapshot, null, 2), "utf8") }]
+        : []),
+    ],
   };
 }
 
@@ -387,6 +444,8 @@ export function registerFeedbackRoutes(app: FastifyInstance, deps: FeedbackDeps)
         platform: input.platform,
         ...(input.userAgent ? { userAgent: input.userAgent } : {}),
         ...(input.context ? { context: input.context } : {}),
+        ...(input.topic ? { topic: input.topic } : {}),
+        ...(input.snapshot ? { snapshot: input.snapshot } : {}),
         ...(user ? { uid: user.uid } : {}),
         ...(user?.nickname ? { nickname: user.nickname } : {}),
         createdAt,

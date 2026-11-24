@@ -1397,6 +1397,28 @@
   font-weight: 700;
 }
 
+.fbform__topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fbform__topic {
+  min-height: 3rem;
+  padding: 0 1rem;
+  border: 1px solid color-mix(in oklab, var(--text-muted) 45%, transparent);
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
+  color: var(--text-muted);
+  font: 600 var(--type-sm) / 1 var(--font-sans-stack);
+  cursor: pointer;
+}
+
+.fbform__topic[aria-pressed="true"] {
+  border: 2px solid var(--accent);
+  color: var(--text);
+}
+
 .fbform__kind-icon {
   width: 1.4rem;
   height: 1.4rem;

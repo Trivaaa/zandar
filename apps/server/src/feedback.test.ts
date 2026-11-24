@@ -120,6 +120,39 @@ describe("parseFeedback", () => {
   });
 });
 
+describe("parseFeedback: tema i snimak stanja (spec C1, C2)", () => {
+  test("tema: poznata prolazi, nepoznata se ignoriše", () => {
+    const res = parseFeedback(valid({ topic: "bela" }));
+    assert.ok(res.ok);
+    assert.equal(res.value.topic, "bela");
+    const bad = parseFeedback(valid({ topic: "<b>" }));
+    assert.ok(bad.ok);
+    assert.equal("topic" in bad.value, false);
+  });
+
+  test("snimak: objekat prolazi, sažetak se čisti i skraćuje", () => {
+    const res = parseFeedback(
+      valid({ snapshot: { game: "bela", myCards: ["hearts-K"], summary: ["Faza:\nštih 2", 5, "x".repeat(400), ...Array(10).fill("r")] } }),
+    );
+    assert.ok(res.ok);
+    assert.equal(res.value.snapshot?.game, "bela");
+    const summary = res.value.snapshot?.summary ?? [];
+    assert.equal(summary[0], "Faza: štih 2");
+    assert.ok(summary.every((line) => typeof line === "string" && line.length <= 300));
+    assert.ok(summary.length <= 8);
+  });
+
+  test("snimak: niz, broj ili prevelik — 400", () => {
+    assert.equal(parseFeedback(valid({ snapshot: [1, 2] })).ok, false);
+    assert.equal(parseFeedback(valid({ snapshot: "x" })).ok, false);
+    const big = parseFeedback(valid({ snapshot: { blob: "x".repeat(FEEDBACK_LIMITS.snapshotBytesMax) } }));
+    assert.equal(big.ok, false);
+    const none = parseFeedback(valid({ snapshot: null }));
+    assert.ok(none.ok);
+    assert.equal("snapshot" in none.value, false);
+  });
+});
+
 describe("disk", () => {
   test("upis: prilozi pa zapis, čitanje sortirano", async () => {
     await saveFeedback(record({ id: "b", createdAt: 2 }), [], dir);
@@ -170,6 +203,27 @@ describe("buildFeedbackMail", () => {
     assert.ok(fromTable.text.includes("Partija: Bela · sto ab12cd · ruka 3"));
     assert.ok(feedbackToCsv([record({ context: "Bela · sto ab12cd" })]).includes('"Bela · sto ab12cd"'));
   });
+
+  test("tema u naslovu, sažetak u tijelu, snimak kao prilog stanje.json", () => {
+    const mail = buildFeedbackMail(
+      record({
+        text: "nemogu pozvat",
+        topic: "bela",
+        snapshot: { game: "bela", myCards: ["hearts-K"], summary: ["Faza: štih 2 od 8", "Bela: drži K i O"] },
+      }),
+      "v@p.com",
+      [],
+    );
+    assert.equal(mail.subject, "[Kartaonica · Greška · Bela] nemogu pozvat");
+    assert.ok(mail.text.includes("Tema: Bela"));
+    assert.ok(mail.text.includes("  Bela: drži K i O"));
+    const att = mail.attachments.find((a) => a.filename === "stanje.json");
+    assert.ok(att);
+    assert.deepEqual(JSON.parse(att.content.toString("utf8")).myCards, ["hearts-K"]);
+    const csv = feedbackToCsv([record({ topic: "bela", snapshot: { summary: [] } })]);
+    assert.ok(csv.split("\n")[1]?.includes('"bela"'));
+    assert.ok(csv.split("\n")[1]?.includes('"da"'));
+  });
 });
 
 describe("POST /api/feedback", () => {
@@ -219,6 +273,18 @@ describe("POST /api/feedback", () => {
     assert.equal(sent[0]?.attachments?.length, 1);
     assert.deepEqual(tracked, [{ kind: "bug", platform: "web", has_attachments: true, has_email: true }]);
     assert.ok(!JSON.stringify(tracked).includes("Karte"));
+    await app.close();
+  });
+
+  test("prijava sa stola: tema i snimak na disku i u mejlu", async () => {
+    const { app, sent, post } = await setup({ to: "vlasnik@primjer.com" });
+    const res = await post(valid({ text: "ne mogu", topic: "zvanja", snapshot: { game: "bela", summary: ["Faza: štih 1 od 8"] } }));
+    assert.equal(res.statusCode, 200);
+    const [saved] = await listFeedback(dir);
+    assert.equal(saved?.topic, "zvanja");
+    assert.equal(saved?.snapshot?.game, "bela");
+    assert.ok(sent[0]?.subject.startsWith("[Kartaonica · Greška · Zvanja] "));
+    assert.equal(sent[0]?.attachments?.at(-1)?.filename, "stanje.json");
     await app.close();
   });
 

@@ -6,6 +6,7 @@ import type {
   BelaSeatView,
   BelaTeam,
   Card,
+  FeedbackSnapshot,
   GamePhase,
   Rank,
   Suit,
@@ -265,4 +266,88 @@ export function belaReportContext(
   const parts = [`Bela · sto ${v.roomId}`, `ruka ${v.dealNo}`, belaPhaseLabel(v), `v${v.stateVersion}`];
   if (v.trumpSuit) parts.push(`adut ${HU_SUIT_NAME[v.trumpSuit]}`);
   return parts.join(" · ");
+}
+
+export type BelaSnapshotView = Pick<
+  BelaPlayerView,
+  | "roomId"
+  | "dealNo"
+  | "stateVersion"
+  | "phase"
+  | "step"
+  | "tricks"
+  | "trumpSuit"
+  | "currentPlayerId"
+  | "callerId"
+  | "belaBy"
+  | "myPlayerId"
+  | "myCards"
+  | "legalCardIds"
+  | "myDeclarations"
+  | "canDeclare"
+  | "myBela"
+  | "seats"
+  | "shownDeclarations"
+>;
+
+/**
+ * Snimak stanja uz prijavu greške sa stola (spec C1). SAMO iz pogleda
+ * prijavitelja: njegove karte + javno stanje (odigrane karte, prijavljeni
+ * bodovi, pokazana zvanja). Tuđe ruke pogled ni nema. Igrači su označeni
+ * brojem mjesta, ja sam „ja". `summary` ide u tijelo mejla.
+ */
+export function belaReportSnapshot(
+  v: BelaSnapshotView,
+  extra: { ui: unknown[]; viewport: unknown; lastError: string | null },
+): FeedbackSnapshot {
+  const seatNo = new Map(v.seats.map((s) => [s.playerId, s.seatNo]));
+  const who = (id: string | null) => (id === null ? null : id === v.myPlayerId ? "ja" : `m${seatNo.get(id) ?? "?"}`);
+  const onTurn = v.phase === "playing" && v.currentPlayerId === v.myPlayerId;
+  const mine = v.seats.find((s) => s.playerId === v.myPlayerId)?.declaredPoints ?? null;
+  const decl = declarationsLine(v.myDeclarations);
+  const ui = extra.viewport as { w?: number; h?: number; inset?: { top?: number; bottom?: number } } | null;
+
+  const summary = [
+    `Faza: ${belaPhaseLabel(v)} · na potezu: ${onTurn ? "da" : `ne (${who(v.currentPlayerId) ?? "-"})`}${
+      v.trumpSuit ? ` · adut ${HU_SUIT_NAME[v.trumpSuit]}` : ""
+    }`,
+    `Moje karte: ${v.myCards.map((c) => cardLabel(c)).join(", ") || "-"}`,
+    `Zvanja: ${
+      decl ? `moguće ${decl.label} (prozor otvoren)` : mine ? `prijavljeno ${mine}` : mine === 0 || v.canDeclare ? "nema" : "prozor zatvoren"
+    }`,
+    `Bela: ${v.myBela === "holding" ? "ima K i O aduta, još nisu bačene obje" : v.myBela === "scored" ? "pala" : "nema"}`,
+    ...(ui?.w ? [`Ekran: ${ui.w}×${ui.h} · uvlaka gore ${ui.inset?.top ?? 0}, dolje ${ui.inset?.bottom ?? 0}`] : []),
+    ...(extra.lastError ? [`Zadnja greška sa servera: ${extra.lastError}`] : []),
+  ];
+
+  return {
+    game: "bela",
+    roomId: v.roomId,
+    dealNo: v.dealNo,
+    stateVersion: v.stateVersion,
+    phase: v.phase,
+    step: v.step,
+    trick: v.tricks.length,
+    trump: v.trumpSuit,
+    onTurn,
+    current: who(v.currentPlayerId),
+    caller: who(v.callerId),
+    mySeat: seatNo.get(v.myPlayerId) ?? null,
+    myCards: v.myCards.map((c) => c.id),
+    legal: v.legalCardIds,
+    canDeclare: v.canDeclare ?? null,
+    myDeclarations: v.myDeclarations.map(declarationLabel),
+    myBela: v.myBela ?? null,
+    belaBy: who(v.belaBy),
+    declaredPoints: Object.fromEntries(v.seats.map((s) => [who(s.playerId)!, s.declaredPoints])),
+    shown: v.shownDeclarations.map((p) => ({ who: who(p.playerId), decl: p.declarations.map(declarationLabel) })),
+    tricks: v.tricks.map((t) => ({
+      lead: who(t.leaderId),
+      plays: t.plays.map((p) => `${who(p.playerId)}:${p.card.id}`),
+      winner: who(t.winnerId),
+    })),
+    viewport: extra.viewport,
+    ui: extra.ui,
+    summary,
+  };
 }

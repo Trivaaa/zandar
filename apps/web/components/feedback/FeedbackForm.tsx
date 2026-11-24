@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
 
-import { FEEDBACK_KINDS, FEEDBACK_LIMITS, normalizeEmail, type FeedbackKind } from "@zandar/shared-types";
+import {
+  FEEDBACK_KINDS,
+  FEEDBACK_LIMITS,
+  FEEDBACK_TOPICS,
+  normalizeEmail,
+  type FeedbackKind,
+  type FeedbackSnapshot,
+  type FeedbackTopic,
+} from "@zandar/shared-types";
 
 import { ArrowLeftIcon, BugIcon, ChatIcon, CloseIcon, ImageIcon, SmileIcon } from "@/components/icons";
 import { sendFeedback } from "@/lib/api";
@@ -24,9 +32,10 @@ export type FeedbackFormProps = {
   /**
    * Prijava sa stola (Bela beta, odluka 17): forma je sloj preko stola —
    * naslov „Prijavi grešku", X umjesto strelice, napomena da partija teče,
-   * a uz prijavu ide red o partiji (`context`, bez tuđih karata).
+   * a uz prijavu ide red o partiji (`context`, bez tuđih karata) i snimak
+   * stanja (`snapshot`, spec C1: moje karte + javno stanje).
    */
-  table?: { context: string } | undefined;
+  table?: { context: string; snapshot?: FeedbackSnapshot } | undefined;
 };
 
 /**
@@ -44,6 +53,10 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
   const [status, setStatus] = useState<Status>("idle");
   const [problem, setProblem] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
+  // Tema kratke prijave sa stola (spec C2) i jednokratni podsjetnik za e-mail (C3).
+  const [topic, setTopic] = useState<FeedbackTopic | null>(null);
+  const [emailReminded, setEmailReminded] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +80,8 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
   const trimmed = text.trim();
   const canSubmit = status === "idle" && !reading && trimmed.length > 0;
   const room = FEEDBACK_LIMITS.imagesMax - images.length;
+  // Teme se nude samo uz kratku prijavu greške sa stola; izabrana ostaje vidljiva.
+  const showTopics = !!table && kind === "bug" && (topic !== null || trimmed.length < FEEDBACK_LIMITS.topicHintBelow);
 
   async function addFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -96,6 +111,13 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
       setProblem(sr.feedback.invalidEmail);
       return;
     }
+    if (!address && !emailReminded) {
+      // Jednom (spec C3): polje ostaje neobavezno, drugi dodir šalje.
+      setEmailReminded(true);
+      setProblem(sr.feedback.noEmail);
+      emailRef.current?.focus();
+      return;
+    }
     setStatus("sending");
     setProblem(null);
     try {
@@ -105,6 +127,8 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
         images,
         ...(address ? { email: address } : {}),
         ...(table ? { context: table.context } : {}),
+        ...(table?.snapshot ? { snapshot: table.snapshot } : {}),
+        ...(showTopics && topic ? { topic } : {}),
       });
       setStatus("done");
     } catch (err) {
@@ -183,6 +207,25 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
           onChange={(e) => setText(e.target.value)}
         />
 
+        {showTopics ? (
+          <fieldset className="fbform__field">
+            <legend className="fbform__label">{sr.feedback.topicLabel}</legend>
+            <div className="fbform__topics">
+              {FEEDBACK_TOPICS.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={topic === t}
+                  className="fbform__topic"
+                  onClick={() => setTopic(topic === t ? null : t)}
+                >
+                  {sr.feedback.topics[t]}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+
         <div className="fbform__field">
           <span className="fbform__label">{sr.feedback.attachLabel}</span>
           <div className="fbform__attach">
@@ -222,6 +265,7 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
         <label className="fbform__field">
           <span className="fbform__label">{sr.feedback.emailLabel}</span>
           <input
+            ref={emailRef}
             className="fbform__input"
             type="email"
             inputMode="email"
@@ -231,10 +275,11 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
             onChange={(e) => {
               setEmailDraft(e.target.value);
               // Stara poruka o adresi ne smije ostati dok igrač ispravlja.
-              if (problem === sr.feedback.invalidEmail) setProblem(null);
+              if (problem === sr.feedback.invalidEmail || problem === sr.feedback.noEmail) setProblem(null);
             }}
           />
           <span className="fbform__note">{sr.feedback.note}</span>
+          {table?.snapshot ? <span className="fbform__note">{sr.feedback.snapshotNote}</span> : null}
         </label>
 
         <div className="fbform__foot">

@@ -4,6 +4,8 @@ import {
   CURRENT_CONSENT_TEXT_ID,
   type FeedbackKind,
   type FeedbackRequest,
+  type FeedbackSnapshot,
+  type FeedbackTopic,
   type GameId,
   type ProfileAvatar,
   type SignupListResponse,
@@ -399,6 +401,10 @@ export async function sendFeedback(input: {
   images: string[];
   /** Prijava sa stola: igra, sto, ruka (`lib/belaView.ts` `belaReportContext`). */
   context?: string;
+  /** Tema kratke prijave (spec C2). */
+  topic?: FeedbackTopic;
+  /** Snimak stanja partije (spec C1, `belaReportSnapshot`). */
+  snapshot?: FeedbackSnapshot;
 }): Promise<void> {
   const body: FeedbackRequest = {
     ...input,

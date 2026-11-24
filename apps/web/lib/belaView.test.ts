@@ -12,6 +12,7 @@ import {
   belaOutcomeSentence,
   belaPhaseLabel,
   belaPlayHint,
+  belaReportSnapshot,
   belaScoreTable,
   belaSeatCaption,
   declarationLabel,
@@ -215,6 +216,60 @@ describe("belaView: nad rukom (zvanja i bela)", () => {
     assert.deepEqual(belaAboveHand(after, false).notes, [sr.bela.decl.declared(50)]);
     assert.deepEqual(belaAboveHand({ ...after, tricks: [trick([["b", c("A", "clubs")]], "b")] }, false).notes, []);
     assert.deepEqual(belaAboveHand(base, false).notes, []);
+  });
+});
+
+describe("belaView: snimak uz prijavu greške (spec C1)", () => {
+  const seats = [
+    { playerId: "a", seatNo: 0, team: 0, handCount: 6, talonCount: 0, call: null, declaredPoints: 0 },
+    { playerId: "b", seatNo: 1, team: 1, handCount: 6, talonCount: 0, call: null, declaredPoints: 50 },
+    { playerId: "c", seatNo: 2, team: 0, handCount: 7, talonCount: 0, call: null, declaredPoints: 0 },
+    { playerId: "d", seatNo: 3, team: 1, handCount: 7, talonCount: 0, call: null, declaredPoints: 0 },
+  ] as const;
+  const mine = [c("K", "hearts"), c("Q", "hearts"), c("9", "clubs")];
+  const view = {
+    roomId: "1054ee",
+    dealNo: 1,
+    stateVersion: 7,
+    phase: "playing" as const,
+    step: "tricks" as const,
+    tricks: [
+      trick([["a", c("A", "clubs")], ["b", c("7", "clubs")], ["c", c("8", "clubs")], ["d", c("10", "clubs")]], "a"),
+      trick([["a", c("J", "hearts")], ["b", c("7", "hearts")]]),
+    ],
+    trumpSuit: "hearts" as const,
+    currentPlayerId: "c",
+    callerId: "b",
+    belaBy: null,
+    myPlayerId: "a",
+    myCards: mine,
+    legalCardIds: null,
+    myDeclarations: [],
+    canDeclare: false,
+    myBela: "holding" as const,
+    seats: seats.map((x) => ({ ...x })),
+    shownDeclarations: [],
+  };
+
+  test("moje karte, javni štihovi po mjestu, bela i sažetak", () => {
+    const snap = belaReportSnapshot(view, {
+      ui: [{ ago: 5, e: "tap-blocked", d: "hearts-K nije potez" }],
+      viewport: { w: 393, h: 873, dpr: 2.75, inset: { top: 39, right: 0, bottom: 48, left: 0 } },
+      lastError: "NOT_YOUR_TURN",
+    });
+    assert.deepEqual(snap.myCards, ["hearts-K", "hearts-Q", "clubs-9"]);
+    assert.equal(snap.myBela, "holding");
+    assert.equal(snap.current, "m2");
+    assert.deepEqual((snap.tricks as Array<{ plays: string[] }>)[1]!.plays, ["ja:hearts-J", "m1:hearts-7"]);
+    const summary = snap.summary!.join("\n");
+    assert.ok(summary.includes("Bela: ima K i O aduta"));
+    assert.ok(summary.includes("na potezu: ne (m2)"));
+    assert.ok(summary.includes("Zvanja: nema"));
+    assert.ok(summary.includes("Ekran: 393×873"));
+    assert.ok(summary.includes("NOT_YOUR_TURN"));
+    // Igrači samo kao mjesta — bez ID-jeva igrača u snimku.
+    const json = JSON.stringify([snap.tricks, snap.declaredPoints, snap.current, snap.caller, snap.shown]);
+    for (const id of ['"b"', '"c"', '"d"', '"b:', '"c:', '"d:']) assert.ok(!json.includes(id), id);
   });
 });
 

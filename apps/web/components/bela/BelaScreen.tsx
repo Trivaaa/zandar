@@ -9,6 +9,7 @@ import type {
   PublicPlayer,
   ReactionType,
   TableTheme,
+  FeedbackSnapshot,
 } from "@zandar/shared-types";
 
 import { ReactionFab } from "@/components/ReactionFab";
@@ -26,6 +27,7 @@ import { TrickArea, TrumpBadge } from "@/components/raub/RaubParts";
 import { runBackHandler, useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
 import {
   belaAboveHand,
+  belaReportSnapshot,
   belaOverlayPhase,
   belaPhaseLabel,
   belaPlayHint,
@@ -41,6 +43,7 @@ import { isNative } from "@/lib/platform";
 import type { ActiveReaction } from "@/lib/reactions";
 import { arrangeSeats } from "@/lib/seating";
 import { sr } from "@/lib/sr";
+import { uiTrail, uiTrailLastError, uiTrailSnapshot, viewportInfo } from "@/lib/uiTrail";
 import { useCountdown } from "@/lib/useCountdown";
 import { trickSnapOf } from "@/lib/trickSound";
 import { useTrickSound } from "@/lib/useTrickSound";
@@ -120,6 +123,8 @@ export function BelaScreen({
   // Prijava greške sa stola (odluka 17). Beta prozor NIJE ovdje: iskače prije
   // ulaska za sto (`useBelaBetaGate`), jer server pokreće partiju čim igrač sjedne.
   const [reportOpen, setReportOpen] = useState(false);
+  // Snimak stanja u trenutku otvaranja prijave (spec C1) — ono na šta se igrač žali.
+  const [reportSnap, setReportSnap] = useState<FeedbackSnapshot | undefined>(undefined);
   const [toast, setToast] = useState<string | null>(null);
   const [busyAt, setBusyAt] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
@@ -222,13 +227,22 @@ export function BelaScreen({
     setToast(code === "GAME_PAUSED" ? sr.bela.errors.paused : sr.bela.errors.generic);
   }
 
+  function openReport() {
+    uiTrail("report");
+    setReportSnap(belaReportSnapshot(state, { ui: uiTrailSnapshot(), viewport: viewportInfo(), lastError: uiTrailLastError() }));
+    setReportOpen(true);
+  }
+
   async function act(action: BelaAction) {
     if (busy || inflight.current) return;
     inflight.current = true;
     setBusyAt(state.stateVersion);
+    uiTrail("send", action.type === "play" ? `play ${action.cardId}${action.declare === false ? " bez zvanja" : ""}` : `call ${action.suit ?? "dalje"}`);
     try {
       await onAction(action);
+      uiTrail("ok");
     } catch (err) {
+      uiTrail("error", err instanceof Error ? err.message : "?");
       setBusyAt(null);
       showError(err);
     } finally {
@@ -265,7 +279,11 @@ export function BelaScreen({
     void act({ type: "play", cardId: card.id, ...(state.myDeclarations.length > 0 ? { declare } : {}) });
 
   function onCard(card: Card) {
-    if (!selectable(card)) return;
+    if (!selectable(card)) {
+      uiTrail("tap-blocked", `${card.id} ${!playing ? "nije potez" : busy ? "čeka" : "nedozvoljena"}`);
+      return;
+    }
+    uiTrail("tap", card.id);
     // Tap pa potvrda (isti obrazac kao Žandar i Raub): drugi dodir je potez.
     if (picked === card.id) play(card);
     else setPick({ v: state.stateVersion, id: card.id });
@@ -277,6 +295,7 @@ export function BelaScreen({
   };
   const onDragCancel = () => setPick({ v: state.stateVersion, id: preDrag.current });
   const onDragDrop = (card: Card) => {
+    uiTrail("drop", card.id);
     if (!selectable(card)) return onDragCancel();
     play(card);
   };
@@ -430,7 +449,10 @@ export function BelaScreen({
                   label={declLine.label}
                   points={declLine.points}
                   declare={declare}
-                  onChange={(on) => setSkipDecl(on ? null : state.dealNo)}
+                  onChange={(on) => {
+                    uiTrail("declare", on ? "zovi" : "ne zovem");
+                    setSkipDecl(on ? null : state.dealNo);
+                  }}
                 />
               ) : null}
               {notes.map((text) => (
@@ -464,7 +486,7 @@ export function BelaScreen({
               onReact={onReact}
               disabled={interrupted}
               // Bez zvuka na Bela stolu (odluka 18): na njegovom mjestu je prijava greške.
-              aboveFab={<BugButton onClick={() => setReportOpen(true)} />}
+              aboveFab={<BugButton onClick={() => openReport()} />}
               style={{ bottom: "calc(var(--stage-hand-top) - var(--safe-bottom))" }}
             />
           ) : null}
@@ -522,7 +544,7 @@ export function BelaScreen({
                     <ReportMenuRow
                       onClick={() => {
                         setMenuOpen(false);
-                        setReportOpen(true);
+                        openReport();
                       }}
                     />
                   }
@@ -566,7 +588,7 @@ export function BelaScreen({
 
           <RulesModal game="bela" isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
 
-          {reportOpen ? <BelaReportSheet context={belaReportContext(state)} onClose={() => setReportOpen(false)} /> : null}
+          {reportOpen ? <BelaReportSheet context={belaReportContext(state)} snapshot={reportSnap} onClose={() => setReportOpen(false)} /> : null}
 
           {leaveOpen ? (
             <LeaveTableSheet
