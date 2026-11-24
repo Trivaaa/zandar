@@ -2855,3 +2855,13 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Usput, `lib/sound.ts`:** kontekst se nastavlja za svako stanje osim `running` (ranije samo `suspended`; WebView poslije poziva/pozadine zna dati drugo stanje i ostati nijem do restarta), `closed` pravi novi kontekst, slušač gesta ostaje stalno (ranije samo prvi dodir), a zvuk zatražen dok se kontekst nastavlja svira ako krene za < 250 ms. **Android:** `MainActivity` → `setVolumeControlStream(STREAM_MUSIC)` — tipke za jačinu mijenjaju zvuk medija, ne zvono (zvukovi su kratki, pa je Android između njih mijenjao zvono); stiže tek novim AAB-om.
 
 **Mjereno:** web 334 testa (10 novih), typecheck, lint dodirnutih fajlova čist. E2E u headless Chrome-u protiv lokalnog servera (Quick Play, špijun na `createOscillator`/`createBufferSource` i `navigator.vibrate`): Raub prva ruka 37 zvučnih čvorova + vibracija na moj red; Bela 13 čvorova, vibracija na moj red i na štih mog tima. **Ušima i rukom na telefonu nije provjereno.**
+
+## 223. Kartaonica umjesto Žandra kao ime aplikacije (2026-11-24, `fix/brand-kartaonica`)
+
+**Povod:** na MacBooku je kartaonica.com nudio „Instaliraj Žandar". Ponudu za instalaciju (`PwaManager`, `beforeinstallprompt`) Chrome i Edge prikazuju na desktopu; na Androidu je ugašena u korist ponude aplikacije, pa se na telefonu nije vidjela.
+
+**Šta:** svuda gdje je Žandar stajao kao ime aplikacije sada piše Kartaonica: ponuda za instalaciju („Instaliraj Kartaonicu"), naslov i opis sajta (`layout.tsx`), naslovi i tekst pravnih stranica (`/privatnost`, `/privacy`, `/uslovi`, `/delete-account`, `/o-nama`, `PrivacyPolicyBody`). Pravne stranice imaju nov datum (24. novembar 2026.). Ispravljene i dvije netačnosti: put za brisanje podataka na Androidu („Aplikacije → Kartaonica", aplikacija se tako i zove) i „Žandar je prva i trenutno jedina igra" na `/o-nama` — rečenica sada nabraja žive igre iz `GAMES` (`listJoin` je izvezen iz `sr.ts`), pa ne može ponovo zastarjeti. Dugmad „Igraj Žandar" (poslije brisanja naloga) i „Nazad na Žandar" (`/igre/[slug]`) vode na početnu i sad tako i kažu („Nazad na početnu"). Uklonjen `GAME` iz `lib/contact.ts`.
+
+**Namjerno ostaje:** Žandar kao ime igre (kartica, pravila, sto, push podsjetnici) i pregled linka koji nabraja igre („Kartaonica — Žandar, Raub, Poker", `og-share.jpg`). Interna imena (`com.kartaonica.zandar`, `@zandar/*`, ključevi u localStorage, `/zandar/room/`) se ne mijenjaju.
+
+**Mjereno:** typecheck, web 334 testa, lint dodirnutih fajlova čist. Build i prikaz u pregledaču nisu rađeni. Aplikacija dobija pravne stranice tek novim AAB-om (izvezene su u paket).

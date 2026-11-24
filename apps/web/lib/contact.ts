@@ -26,6 +26,5 @@ export const ADDRESS_LINE = `${ADDRESS_STREET}, ${ADDRESS_CITY}, ${ADDRESS_COUNT
  */
 export const CONTACT_EMAIL = "igor.triva@gmail.com";
 
-/** Brend proizvoda i prva (trenutno jedina) igra pod njim. */
+/** Brend proizvoda (aplikacija i sajt). Igre su u `lib/games.ts`. */
 export const BRAND = "Kartaonica";
-export const GAME = "Žandar";

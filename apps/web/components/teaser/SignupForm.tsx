@@ -34,7 +34,7 @@ const MESSAGE: Record<Exclude<Problem, null>, string> = {
 export function SignupForm({
   games,
   onBackToGame,
-  backLabel = sr.signup.backToGame,
+  backLabel = sr.signup.backHome,
   successBody = sr.signup.successBody,
   onSuccess,
 }: {

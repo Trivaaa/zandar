@@ -33,7 +33,7 @@ function missingPhrase(n: number): string {
 }
 
 /** „Poker", „Poker i Raub", „Poker, Remi i Raub". */
-function listJoin(names: string[]): string {
+export function listJoin(names: string[]): string {
   if (names.length <= 1) return names[0] ?? "";
   return `${names.slice(0, -1).join(", ")} i ${names[names.length - 1]}`;
 }
@@ -881,7 +881,6 @@ export const sr = {
     manyBody: "Ostavi e-adresu i javićemo ti kad otvorimo prve stolove.",
     manySuccessBody: "Javićemo ti kad otvorimo prve stolove.",
     backHome: "Nazad na početnu",
-    backToGame: "Nazad na Žandar",
   },
   settings: {
     title: "Postavke",
@@ -1218,7 +1217,7 @@ export const sr = {
     finalBody: "Nalog i rezultati brišu se odmah i ne mogu se vratiti.",
     doneTitle: "Nalog je obrisan",
     doneBody: "Hvala na partijama. Igrati možeš i dalje, kao gost.",
-    playZandar: "Igraj Žandar",
+    backHome: "Nazad na početnu",
   },
   /* Tuđi profil i kartica igrača bez naloga (T1–T5). */
   otherProfile: {

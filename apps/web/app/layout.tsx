@@ -25,9 +25,9 @@ const plexSans = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Žandar — igraj sa prijateljima online",
+  title: "Kartaonica — kartaške igre online sa prijateljima",
   description:
-    "Tradicionalna kartaška igra. Pozovi 1–3 prijatelja preko linka i odigraj partiju u browseru.",
+    "Klasične kartaške igre online. Sjedi za sto odmah ili pozovi prijatelje preko linka — besplatno, u pregledaču ili u aplikaciji.",
   openGraph: {
     title: "Kartaonica — Žandar, Raub, Poker",
     description:

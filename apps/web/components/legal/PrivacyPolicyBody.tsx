@@ -23,13 +23,13 @@ import {
  */
 // Tekst o nalogu (SPEC_IDENTITET T8) važi tek kad nalog postoji — iza istog
 // prekidača kao i sam UI, da politika nikad ne opisuje nešto čega nema.
-export const PRIVACY_UPDATED = "8. novembar 2026.";
+export const PRIVACY_UPDATED = "24. novembar 2026.";
 
 export function PrivacyPolicyBody() {
   return (
     <>
       <p>
-        {PUBLISHER} ({LEGAL_NAME}) upravlja Kartaonicom i igrom Žandar
+        {PUBLISHER} ({LEGAL_NAME}) upravlja Kartaonicom i igrama na njoj
         (kartaonica.com i Android aplikacija). Ovdje piše koje podatke
         prikupljamo, zašto, kome ih prosljeđujemo i kako tražiš brisanje.
       </p>
