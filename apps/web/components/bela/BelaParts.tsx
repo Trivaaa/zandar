@@ -142,6 +142,15 @@ export function TurnBar({ text, active, warn }: { text: string; active: boolean;
   );
 }
 
+/** Kratka pilula nad rukom: „Imaš belu", „Bela! +20", „Zvanje prijavljeno". */
+export function BelaNote({ text }: { text: string }) {
+  return (
+    <div className="bl-note" role="status">
+      {withSuits(text)}
+    </div>
+  );
+}
+
 /**
  * Ruka u dva reda po 4 (odluka 8). Svaki red je `PlayerHand` (isti dodir,
  * prevlačenje i zatamnjenje kao u ostalim igrama); gornji red se preklapa sa

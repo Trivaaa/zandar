@@ -4,6 +4,7 @@ import { describe, test } from "node:test";
 import type { BelaHandResult, BelaTeamHand, BelaTrick, Card, Rank, Suit } from "@zandar/shared-types";
 
 import {
+  belaAboveHand,
   belaHandRows,
   belaReportContext,
   belaHandTable,
@@ -19,6 +20,7 @@ import {
   sortBelaHand,
   teamPair,
 } from "./belaView";
+import { sr } from "./sr";
 
 const c = (rank: Rank, suit: Suit): Card => ({ id: `${suit}-${rank}`, rank, suit });
 const ids = (cards: Card[]) => cards.map((x) => x.id);
@@ -177,6 +179,42 @@ describe("belaView: zvanja i natpisi", () => {
     assert.equal(belaSeatCaption(first, { call: null, declaredPoints: 0 }), "Bez zvanja");
     const later = { ...first, tricks: [trick([["i", c("10", "clubs")]], "i"), trick([])] };
     assert.equal(belaSeatCaption(later, { call: null, declaredPoints: 50 }), null);
+  });
+});
+
+describe("belaView: nad rukom (zvanja i bela)", () => {
+  const seat = (playerId: string, declaredPoints: number | null) =>
+    ({ playerId, seatNo: 0, team: 0, handCount: 8, talonCount: 0, call: null, declaredPoints }) as const;
+  const decl = { kind: "sequence" as const, points: 20, cards: [c("7", "spades"), c("8", "spades"), c("9", "spades")] };
+  const base = {
+    phase: "playing" as const,
+    step: "tricks" as const,
+    tricks: [trick([["b", c("A", "clubs")]])],
+    myDeclarations: [] as (typeof decl)[],
+    myBela: null as "holding" | "scored" | null,
+    myPlayerId: "a",
+    seats: [seat("a", null), seat("b", 0)],
+    rules: { belaPoints: 20 } as never,
+  };
+
+  test("traka zvanja i kad nisam na potezu; nema je u zvanju aduta", () => {
+    const r = belaAboveHand({ ...base, myDeclarations: [decl] }, false);
+    assert.equal(r.decl?.points, 20);
+    assert.equal(belaAboveHand({ ...base, step: "calling", myDeclarations: [decl] }, false).decl, null);
+  });
+
+  test("bela: „Imaš belu” dok je držim, „Bela! +20” kad padne, ništa u zvanju aduta", () => {
+    assert.deepEqual(belaAboveHand({ ...base, myBela: "holding" }, false).notes, [sr.bela.decl.holding(20)]);
+    assert.deepEqual(belaAboveHand({ ...base, myBela: "scored" }, true).notes, [sr.bela.decl.bela(20)]);
+    assert.deepEqual(belaAboveHand({ ...base, myBela: "scored" }, false).notes, []);
+    assert.deepEqual(belaAboveHand({ ...base, step: "calling", myBela: "holding" }, false).notes, []);
+  });
+
+  test("zvanje prijavljeno: do kraja prvog štiha, samo kad je više od 0", () => {
+    const after = { ...base, seats: [seat("a", 50), seat("b", 0)] };
+    assert.deepEqual(belaAboveHand(after, false).notes, [sr.bela.decl.declared(50)]);
+    assert.deepEqual(belaAboveHand({ ...after, tricks: [trick([["b", c("A", "clubs")]], "b")] }, false).notes, []);
+    assert.deepEqual(belaAboveHand(base, false).notes, []);
   });
 });
 

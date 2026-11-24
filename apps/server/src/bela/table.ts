@@ -332,13 +332,24 @@ export class BelaTables {
   async act(roomId: string, playerId: string, raw: unknown): Promise<Ack> {
     const room = this.deps.getRoom(roomId);
     if (!room?.bela) return { ok: false, error: "GAME_NOT_STARTED" };
-    if (room.bela.interruption) return { ok: false, error: "GAME_PAUSED" };
+    const s = room.bela;
+    // Odbijena akcija se loguje jednom linijom (prijava 20261124-091237: bez
+    // ovoga se „ne mogu" nije dalo provjeriti). Samo kod, faza i verzija —
+    // nikad karte ni imena.
+    const reject = (error: string): Ack => {
+      const kind = raw && typeof raw === "object" ? String((raw as { type?: unknown }).type).slice(0, 12) : typeof raw;
+      this.deps.log.info(
+        `⚠ Bela odbijeno ${error} · ${roomId} · ${kind} · ${s.step ?? s.phase} · štih ${s.tricks.length} · v${s.stateVersion}`,
+      );
+      return { ok: false, error };
+    };
+    if (s.interruption) return reject("GAME_PAUSED");
     const req = parseBelaAction(raw);
-    if (!req) return { ok: false, error: "INVALID_PAYLOAD" };
+    if (!req) return reject("INVALID_PAYLOAD");
     try {
-      room.bela = applyBelaAction(room.bela, playerId, req);
+      room.bela = applyBelaAction(s, playerId, req);
     } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : "INVALID_ACTION" };
+      return reject(err instanceof Error ? err.message : "INVALID_ACTION");
     }
     await this.broadcast(roomId);
     return { ok: true };

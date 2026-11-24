@@ -363,6 +363,63 @@ describe("bela tok ruke i bodovanje", () => {
   });
 });
 
+// ---- vidljivost zvanja i bele (prijava 20261124-091237) ----
+
+describe("bela pogled: zvanja i bela", () => {
+  it("canDeclare: svi u prvom štihu do svoje prve karte, bez obzira na potez", () => {
+    let s = match({ deck: deckFor("d", DECL_DEAL) });
+    expect(getBelaView(s, "a").canDeclare).toBe(false);
+    s = applyBelaAction(s, "a", { type: "call", suit: "hearts" });
+    expect(s.currentPlayerId).toBe("a");
+    expect(getBelaView(s, "b").canDeclare).toBe(true);
+    expect(getBelaView(s, "a").canDeclare).toBe(true);
+    s = applyBelaAction(s, "a", getBelaAutoAction(s, "a")!);
+    expect(getBelaView(s, "a").canDeclare).toBe(false);
+    expect(getBelaView(s, "a").myDeclarations).toEqual([]);
+    expect(getBelaView(s, "b").canDeclare).toBe(true);
+  });
+
+  it("declare poslije prve karte se ne uzima u obzir", () => {
+    let s = match({ deck: deckFor("d", DECL_DEAL) });
+    s = applyBelaAction(s, "a", { type: "call", suit: "hearts" });
+    for (let i = 0; i < 4; i++) s = applyBelaAction(s, s.currentPlayerId!, getBelaAutoAction(s, s.currentPlayerId!)!);
+    while (s.currentPlayerId !== "a") s = applyBelaAction(s, s.currentPlayerId!, getBelaAutoAction(s, s.currentPlayerId!)!);
+    const auto = getBelaAutoAction(s, "a")!;
+    s = applyBelaAction(s, "a", { ...auto, declare: false } as typeof auto);
+    expect(s.seats[0]!.declared!.map((d) => d.points)).toEqual([50]);
+  });
+
+  it("myBela: holding → scored, samo za vlasnika", () => {
+    let s = match({ deck: deckFor("d", { b: [H("K"), H("Q")] }) });
+    expect(getBelaView(s, "b").myBela).toBeNull();
+    s = applyBelaAction(s, "a", { type: "call", suit: "hearts" });
+    expect(getBelaView(s, "b").myBela).toBe("holding");
+    for (const id of ["a", "c", "d"]) expect(getBelaView(s, id).myBela).toBeNull();
+    while (s.phase === "playing" && !s.belaBy) s = applyBelaAction(s, s.currentPlayerId!, getBelaAutoAction(s, s.currentPlayerId!)!);
+    expect(getBelaView(s, "b").myBela).toBe("scored");
+    expect(getBelaView(s, "a").myBela).toBeNull();
+  });
+
+  it("myBela: K i O razdvojeni — niko", () => {
+    let s = match({ deck: deckFor("d", { b: [H("K")], c: [H("Q")] }) });
+    s = applyBelaAction(s, "a", { type: "call", suit: "hearts" });
+    for (const id of IDS) expect(getBelaView(s, id).myBela).toBeNull();
+  });
+
+  it("bela u adutskom nizu: broji se i niz i bela", () => {
+    let s = match({ deck: deckFor("d", { b: [H("Q"), H("K"), H("A")] }) });
+    s = applyBelaAction(s, "a", { type: "call", suit: "hearts" });
+    s = playOut(s);
+    expect(s.seats[1]!.declared!.some((d) => d.kind === "sequence" && d.cards.some((x) => x.id === "hearts-K"))).toBe(true);
+    expect(s.lastHand!.teams[1]!.belaPoints).toBe(20);
+  });
+
+  it("P-11 pad: bela tima koji je zvao ide protivniku", () => {
+    const r = belaHandAward({ card: [60, 102], decl: [0, 0], bela: [20, 0], callerTeam: 0, hanging: 0, rules: createBelaRules() });
+    expect(r).toEqual({ outcome: "fail", awarded: [0, 182], hanging: 0 });
+  });
+});
+
 // ---- istek roka ----
 
 describe("bela auto-potez (istek roka)", () => {
@@ -377,7 +434,7 @@ describe("bela auto-potez (istek roka)", () => {
     let s = match();
     s = applyBelaAction(s, "a", { type: "call", suit: "hearts" });
     const a = getBelaAutoAction(s, "a")!;
-    expect(a.type).toBe("play");
+    expect(a).toMatchObject({ type: "play", declare: true });
     expect(getBelaAutoAction(s, "b")).toBeNull();
   });
 });

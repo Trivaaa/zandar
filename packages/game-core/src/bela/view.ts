@@ -55,6 +55,8 @@ export function getBelaView(state: BelaGameState, viewerId: string): BelaPlayerV
     myTeam: me ? me.team : null,
     myCards: me ? me.hand.map((c) => ({ ...c })) : [],
     myDeclarations: canDeclare ? findBelaDeclarations(me!.hand) : [],
+    canDeclare,
+    myBela: state.belaBy === viewerId ? "scored" : state.belaHolderId === viewerId ? "holding" : null,
     legalCardIds: myTurn && state.step === "tricks" ? belaLegalCards(state, viewerId).map((c) => c.id) : null,
     callOptions:
       myTurn && state.step === "calling"

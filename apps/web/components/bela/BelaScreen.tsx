@@ -25,12 +25,12 @@ import { Toast } from "@/components/overlay/Toast";
 import { TrickArea, TrumpBadge } from "@/components/raub/RaubParts";
 import { runBackHandler, useBackHandler, useBrowserBackGuard } from "@/lib/backHandlers";
 import {
+  belaAboveHand,
   belaOverlayPhase,
   belaPhaseLabel,
   belaPlayHint,
   belaReportContext,
   belaSeatCaption,
-  declarationsLine,
   sortBelaHand,
   suitTitle,
   teamPair,
@@ -58,6 +58,7 @@ import {
   DeclarationBar,
   DeclarationShow,
   TurnBar,
+  BelaNote,
 } from "./BelaParts";
 
 const TOAST_MS = 3500;
@@ -257,7 +258,9 @@ export function BelaScreen({
   const selectable = (card: Card) => playing && !busy && legal.has(card.id);
   const disabledIds = handCards.filter((c) => !selectable(c)).map((c) => c.id);
   const dimmedIds = playing ? handCards.filter((c) => !legal.has(c.id)).map((c) => c.id) : [];
-  const declLine = playing ? declarationsLine(state.myDeclarations) : null;
+  // Traka zvanja od zvanja aduta do moje prve karte (ne samo na potezu) i
+  // pilule bele / prijavljenog zvanja — prijava 20261124-091237.
+  const { decl: declLine, notes } = belaAboveHand(state, belaShownFor(state.myPlayerId));
   const play = (card: Card) =>
     void act({ type: "play", cardId: card.id, ...(state.myDeclarations.length > 0 ? { declare } : {}) });
 
@@ -377,6 +380,8 @@ export function BelaScreen({
           data-table={tableTheme}
           data-tricks={inTricks ? "true" : "false"}
           data-rows={handCards.length > 4 ? "2" : "1"}
+          data-decl={declLine && !matchOver ? "true" : undefined}
+          data-notes={notes.length > 0 && !matchOver ? String(notes.length) : undefined}
         >
           <FeltHeader onMenu={() => setMenuOpen(true)}>
             <span className="rb-head bl-head">
@@ -428,6 +433,9 @@ export function BelaScreen({
                   onChange={(on) => setSkipDecl(on ? null : state.dealNo)}
                 />
               ) : null}
+              {notes.map((text) => (
+                <BelaNote key={text} text={text} />
+              ))}
               {turnText && !calling && !handOver ? (
                 <TurnBar text={turnText} active={playing} warn={playing && legal.size < handCards.length} />
               ) : null}

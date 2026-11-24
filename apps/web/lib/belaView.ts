@@ -131,6 +131,32 @@ export function declarationsLine(decls: readonly BelaDeclaration[]): { label: st
 }
 
 /**
+ * Šta stoji iznad ruke, osim panela aduta i trake poteza (prijava
+ * 20261124-091237 „nemogu pozvat"):
+ * - `decl`: traka zvanja — od zvanja aduta do moje prve karte, bez obzira na
+ *   to ko je na potezu (ranije samo kad sam na redu, pa se nije vidjela);
+ * - `notes`: kratke pilule — „Imaš belu" dok držim K i O aduta (bela se
+ *   boduje sama, P-8, ali igrač mora znati da je ima), „Bela! +20" dok je na
+ *   stolu štih u kojem je pala, i „Zvanje prijavljeno" do kraja prvog štiha
+ *   (moje sjedište se ne crta, pa „Zove 50" ne vidim).
+ */
+export function belaAboveHand(
+  v: Pick<BelaPlayerView, "phase" | "step" | "tricks" | "myDeclarations" | "myBela" | "myPlayerId" | "seats" | "rules">,
+  belaJustScored: boolean,
+): { decl: { label: string; points: number } | null; notes: string[] } {
+  const live = v.phase === "playing" && v.step === "tricks";
+  const decl = live ? declarationsLine(v.myDeclarations) : null;
+  const notes: string[] = [];
+  if (!live) return { decl, notes };
+  if (belaJustScored) notes.push(sr.bela.decl.bela(v.rules.belaPoints));
+  else if (v.myBela === "holding") notes.push(sr.bela.decl.holding(v.rules.belaPoints));
+  const first = v.tricks.length === 1 ? v.tricks[0]! : null;
+  const mine = v.seats.find((s) => s.playerId === v.myPlayerId)?.declaredPoints ?? null;
+  if (!decl && first && first.winnerId === null && mine !== null && mine > 0) notes.push(sr.bela.decl.declared(mine));
+  return { decl, notes };
+}
+
+/**
  * Natpis iznad avatara: odgovor u zvanju aduta („Dalje", „Srce ♥") ili
  * prijava zvanja u prvom štihu („Zove 50"). Ostalo vrijeme ništa.
  */

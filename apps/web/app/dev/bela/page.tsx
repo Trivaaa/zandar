@@ -29,6 +29,9 @@ import { useQueryParam } from "@/lib/useQuery";
  *   /dev/bela?s=must     B3 · mus: ti dijeliš, svi su rekli Dalje
  *   /dev/bela?s=talon    B4 · adut zvan, 8 karata u ruci
  *   /dev/bela?s=decl     B5 · prvi štih, ti na potezu sa zvanjem
+ *   /dev/bela?s=declWait    prvi štih, zvanje dok drugi igraju (prijava 20261124-091237)
+ *   /dev/bela?s=belaHold    držiš K i O aduta — pilula „Imaš belu"
+ *   /dev/bela?s=belaMine    tvoja bela upravo pala — „Bela! +20" nad rukom
  *   /dev/bela?s=trick    B6 · štih, moraš odgovoriti (zatamnjene karte)
  *   /dev/bela?s=show     B7 · pokazana zvanja poslije prvog štiha
  *   /dev/bela?s=bela     B8 · „Bela! +20" na stolu
@@ -73,6 +76,18 @@ const SCENARIOS: Record<string, Pred> = {
     if (!myTurn("tricks")(s) || s.tricks.length !== 1) return false;
     const v = getBelaView(s, ME);
     return v.myDeclarations.length > 0 && (v.legalCardIds?.length ?? 0) < v.myCards.length;
+  },
+  // Prijava 20261124-091237: zvanja vidljiva i kad nisam na potezu.
+  declWait: (s) =>
+    s.phase === "playing" && s.step === "tricks" && s.tricks.length === 1 && s.currentPlayerId !== ME &&
+    getBelaView(s, ME).myDeclarations.length > 0,
+  // Držim K i O aduta, još nisam bacio oba.
+  belaHold: (s) => s.phase === "playing" && s.step === "tricks" && s.belaHolderId === ME && !s.belaBy && s.tricks.length >= 2,
+  // Moja bela upravo pala (pilula „Bela! +20" nad rukom).
+  belaMine: (s) => {
+    if (s.phase !== "playing" || s.belaBy !== ME || !s.trumpSuit) return false;
+    const t = s.tricks.at(-1);
+    return !!t && t.winnerId === null && t.plays.some((p) => p.playerId === ME && p.card.suit === s.trumpSuit && (p.card.rank === "K" || p.card.rank === "Q"));
   },
   // B6: rana ruka, dvije karte na stolu, smiješ samo jednu (zatamnjene ostale).
   trick: (s) => {

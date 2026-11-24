@@ -273,6 +273,18 @@ export interface BelaPlayerView {
   myCards: Card[];
   /** Zvanja koja motor prepoznaje u mojoj ruci — dok ih još mogu prijaviti. */
   myDeclarations: BelaDeclaration[];
+  /**
+   * Gledalac još može prijaviti zvanja (prvi štih, prije svoje prve karte) —
+   * bez obzira na to ko je na potezu, da se izbor vidi unaprijed. Opciono:
+   * stariji server ga ne šalje.
+   */
+  canDeclare?: boolean;
+  /**
+   * Bela gledaoca (P-8, boduje se sama): `holding` = drži K i Q aduta i još
+   * nije bacio oba, `scored` = bacio drugu kartu para. Samo za vlasnika —
+   * tuđi `belaHolderId` nikad ne izlazi. Opciono: stariji server ga ne šalje.
+   */
+  myBela?: "holding" | "scored" | null;
   /** Samo kad je gledalac na potezu u štihu. */
   legalCardIds: string[] | null;
   /** Samo kad je gledalac na potezu u zvanju aduta. */

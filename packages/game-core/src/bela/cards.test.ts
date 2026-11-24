@@ -97,6 +97,20 @@ describe("bela zvanja", () => {
     expect(findBelaDeclarations(four("8"))).toHaveLength(0);
   });
 
+  it("odluka 11: ista karta u četiri iste i u nizu — broje se oba", () => {
+    const d = findBelaDeclarations([H("9"), H("10"), H("J"), S("J"), D("J"), C("J")]);
+    expect(d.map((x) => [x.kind, x.points]).sort()).toEqual([["four", 200], ["sequence", 20]]);
+  });
+
+  it("više zvanja u ruci: niz u dvije boje i četiri iste", () => {
+    const d = findBelaDeclarations([S("Q"), S("K"), S("A"), D("Q"), D("K"), D("A"), H("A"), C("A")]);
+    expect(d.reduce((a, x) => a + x.points, 0)).toBe(20 + 20 + 100);
+  });
+
+  it("bez zvanja: prazno", () => {
+    expect(findBelaDeclarations([S("7"), S("9"), D("J"), D("A"), H("8"), H("K"), C("10"), C("Q")])).toEqual([]);
+  });
+
   it("poređenje: bodovi, pa dužina, pa viša karta, pa adutski niz", () => {
     const [t20lo] = findBelaDeclarations([S("7"), S("8"), S("9")]);
     const [t20hi] = findBelaDeclarations([D("Q"), D("K"), D("A")]);
