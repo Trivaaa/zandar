@@ -109,13 +109,14 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     lowerOfPassedSuitDead: state.rules.lowerOfPassedSuitDead ?? DEFAULT_RAUB_RULES.lowerOfPassedSuitDead!,
     sevenOpenToAll: state.rules.sevenOpenToAll ?? DEFAULT_RAUB_RULES.sevenOpenToAll!,
     exchangeFromDealer: state.rules.exchangeFromDealer ?? DEFAULT_RAUB_RULES.exchangeFromDealer!,
+    mojaOnLaterSeven: state.rules.mojaOnLaterSeven ?? DEFAULT_RAUB_RULES.mojaOnLaterSeven!,
   };
 }
 
 /**
  * Odluka 31: ponuđena karta je niža od neke ranije okrenute (odbijene) karte
- * iste boje u ovoj ruci — na nju niko ne može ništa, samo „Dalje”, kao na
- * sedmicu kao drugu ili treću kartu. Tokom licitacije talon nosi samo
+ * iste boje u ovoj ruci — na nju niko ne može ništa, samo „Dalje”. Važi i za
+ * sedmicu kao drugu ili treću kartu (odluka 36). Tokom licitacije talon nosi samo
  * okrenute karte (sedmica iz „Moja” stiže tek poslije izjave).
  */
 export function raubTalonDead(state: Pick<RaubGameState, "rules" | "talon">): boolean {
@@ -184,12 +185,14 @@ export function raubHasSeven(state: RaubGameState, playerId: string): boolean {
 /**
  * Smije li igrač reći „Moja". Od odluke 15 svako, i bez sedmice; sa
  * `mojaNeedsSeven` (odluka 13) samo onaj ko drži sedmicu te boje. Djelilac koji
- * smije „Raub" bira samo Raub ili Dalje (odluka 16).
+ * smije „Raub" bira samo Raub ili Dalje (odluka 16). Od odluke 36 i na
+ * sedmicu kao drugu ili treću kartu (sedmica kao prva ide kroz `seven_choice`).
  */
 export function raubCanMoja(state: RaubGameState, playerId: string): boolean {
   const card = state.talon.at(-1);
-  if (!card || isSeven(card) || raubTalonDead(state)) return false;
+  if (!card || raubTalonDead(state)) return false;
   const rules = rulesV2(state);
+  if (isSeven(card) && !rules.mojaOnLaterSeven) return false;
   if (rules.dealerRaubOrPass && raubCanRaub(state, playerId)) return false;
   return rules.mojaNeedsSeven ? raubHasSeven(state, playerId) : true;
 }

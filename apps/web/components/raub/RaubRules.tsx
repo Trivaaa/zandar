@@ -38,7 +38,8 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
             „Moja”, nosi boju talona i mora 2 štiha. Ako ima sedmicu te boje, karta ostaje na stolu dok
             ne zamijeni karte (sedmica se ne smije mijenjati), a onda daje sedmicu i uzima talon kartu; ako je
             nema, karta ostaje na stolu — a ko poslije svoje zamjene ima sedmicu te boje (i nosilac), smije je dati za
-            tu kartu; prvi u redu zamjene ima prednost.
+            tu kartu; prvi u redu zamjene ima prednost. Na sedmicu kao drugu ili treću kartu nema Štiha, ali
+            ima „Moja” (karta ostaje na stolu).
           </li>
           <li>
             Ako svi kažu „Dalje”, okreće se nova karta (najviše 3). Ako je nova karta iste boje a niža od odbijene

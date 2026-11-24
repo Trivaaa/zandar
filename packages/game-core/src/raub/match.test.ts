@@ -600,7 +600,7 @@ describe("raub scenarij 3 — licitacija", () => {
     expect(kept.lockedCardId).toBeNull();
   });
 
-  it("svi Dalje: nova karta na talon, licitacija opet od djelioca; sedmica kao druga je obična", () => {
+  it("svi Dalje: nova karta na talon, licitacija opet od djelioca; sedmica kao druga nije Štih", () => {
     let s = match({ hands: HANDS4, talon: H("Q"), next: [S("7"), S("J")] });
     for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
     expect(s.talonFlips).toBe(2);
@@ -610,9 +610,10 @@ describe("raub scenarij 3 — licitacija", () => {
     expect(s.currentPlayerId).toBe("a");
     expect(s.seats.every((x) => x.bid === null)).toBe(true);
     expect(getRaubView(s, "b").offeredSuit).toBe("spades");
-    // Na sedmicu se ne može ni Raub ni Moja (odluka 13): sljedeća karta.
-    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: false });
+    // Na sedmicu kao drugu nema Štiha ni Rauba, ali ima „Moja” (odluka 36).
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: true });
     expect(() => act(s, "a", { type: "bid", bid: "raub" })).toThrow("INVALID_ACTION");
+    expect(() => act(s, "a", { type: "stih", take: true })).toThrow("INVALID_ACTION");
     for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
     expect(s.talonFlips).toBe(3);
     // Treća karta: ni djelilac nema Raub (odluka 15), samo Moja ili Dalje.
@@ -621,6 +622,49 @@ describe("raub scenarij 3 — licitacija", () => {
     s = act(s, "a", { type: "bid", bid: "moja" });
     expect(s.trumpSuit).toBe("spades");
     expect(s.requiredTricks).toBe(2);
+  });
+
+  it("odluka 36: Moja na sedmicu kao treću kartu — adut, mora 2, sedmica ostaje na talonu", () => {
+    // Prijava igrača: dvije bundeve pa VII žir — bilo je samo „Dalje”.
+    let s = match({ hands: HANDS4, talon: D("J"), next: [D("Q"), C("7")] });
+    for (let flip = 0; flip < 2; flip++) for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
+    expect(s.talonFlips).toBe(3);
+    expect(s.talon.at(-1)).toEqual(C("7"));
+    // Djelilac i svi ostali: „Moja” ili „Dalje”, bez Rauba.
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: true });
+    s = act(s, "a", { type: "bid", bid: "pass" });
+    expect(getRaubView(s, "b").bidOptions).toEqual({ raub: false, moja: true });
+    s = act(s, "b", { type: "bid", bid: "moja" });
+    expect(s.scenario).toBe("moja");
+    expect(s.declarerId).toBe("b");
+    expect(s.trumpSuit).toBe("clubs");
+    expect(s.requiredTricks).toBe(2);
+    // Drugu sedmicu žira niko nema: karta ostaje na talonu, niko je ne uzima.
+    expect(s.talon.at(-1)).toEqual(C("7"));
+    expect(s.talonTakenBy).toBeNull();
+    expect(s.lockedCardId).toBeNull();
+    expect(raubCardCount(s)).toBe(32);
+    s = autoToHandEnd(s);
+    expect(s.lastHand!.scenario).toBe("moja");
+    expect(raubCardCount(s)).toBe(32);
+  });
+
+  it("odluka 36: sedmica niža od odbijene karte iste boje ostaje mrtva (odluka 31)", () => {
+    let s = match({ hands: HANDS4, talon: H("J"), next: [C("8"), H("7")] });
+    for (let flip = 0; flip < 2; flip++) for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
+    expect(s.talon.at(-1)).toEqual(H("7"));
+    expect(raubTalonDead(s)).toBe(true);
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: false });
+  });
+
+  it("odluka 36: parametar mojaOnLaterSeven false = staro (samo Dalje); stari snapshot bez polja = Moja", () => {
+    const old = match({ hands: HANDS4, talon: H("Q"), next: [S("7")], rules: { mojaOnLaterSeven: false } });
+    let s = old;
+    for (const id of IDS4) s = act(s, id, { type: "bid", bid: "pass" });
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: false });
+    expect(() => act(s, "a", { type: "bid", bid: "moja" })).toThrow("INVALID_ACTION");
+    delete s.rules.mojaOnLaterSeven;
+    expect(getRaubView(s, "a").bidOptions).toEqual({ raub: false, moja: true });
   });
 
   it("niko ni poslije 3. karte: refa, ruka se ne boduje", () => {

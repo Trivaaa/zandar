@@ -112,6 +112,12 @@ export interface RaubRules {
    * ruka u kojoj je zamjena već počela zadržava svoj `exchangeOrder`.
    */
   exchangeFromDealer?: boolean;
+  /**
+   * Odluka 36: sedmica okrenuta kao druga ili treća karta nije više „obična”
+   * karta — na nju se licitira „Moja” ili „Dalje” (Štih je samo na prvoj).
+   * Drugu sedmicu te boje niko nema, pa karta ostaje na talonu. Bez polja = da.
+   */
+  mojaOnLaterSeven?: boolean;
 }
 
 /**

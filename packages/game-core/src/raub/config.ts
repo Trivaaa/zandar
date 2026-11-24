@@ -55,6 +55,9 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // Odluka 33 (vlasnik, 22.11.2026, po prijavi igrača): zamjena kreće od
   // prvog poslije djelioca, djelilac mijenja zadnji (i kad je nosilac Rauba).
   exchangeFromDealer: true,
+  // Odluka 36 (vlasnik, 23.11.2026, po prijavi igrača): sedmica kao druga ili
+  // treća karta — „Moja” ili „Dalje” (Štih ostaje samo na prvoj karti).
+  mojaOnLaterSeven: true,
 };
 
 /**

@@ -2838,6 +2838,14 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 
 **Mjereno:** web 324 testa (4 nova), typecheck, lint; snimak `/dev/home?web=1&live=4` na 1280×800 i 390×844. CSS nije mijenjan. Nije provjereno na uređaju.
 
+## 221. Raub: „Moja” na sedmicu kao drugu ili treću kartu (2026-11-23, `fix/raub-moja-later-seven`)
+
+**Povod:** prijava igrača: prve dvije okrenute karte su bile bundeve, treća VII žir, a igrač (nije djelilac) je imao samo „Dalje”. Prijavljeno je kao greška odluke 31, ali to nije bila ona, jer su boje različite. Uzrok je pravilo 4 iz speca: „sedmica kao druga ili treća karta je obična karta, nema Štiha, Rauba ni Moje” (`raubCanMoja` je odbijao svaku sedmicu). Odluka vlasnika (odluka 36): na takvu sedmicu ide „Moja” ili „Dalje”, a Štih ostaje samo na prvoj karti.
+
+**Kako:** novi parametar `mojaOnLaterSeven` (`RaubRules`, podrazumijevano da; stari snapshot bez polja dobija novo pravilo). `raubCanMoja` odbija sedmicu samo kad je parametar isključen. Sedmica kao prva karta i dalje ide kroz `seven_choice`. Ostalo radi bez izmjene, jer drugu sedmicu te boje niko nema. Karta ostaje na talonu, nosilac nosi tu boju i mora 2. `canTakeTalonWithSeven` već isključuje sedmicu, pa nema ni ponude iz odluke 29. Sedmica niža od odbijene karte iste boje ostaje mrtva (odluka 31). Server i klijent nisu dirani: dugme „Moja” dolazi iz `bidOptions`, pa ga dobija i postojeća aplikacija čim server ode na deploy. Pravila na stolu (`RaubRules.tsx`) dopunjena jednom rečenicom.
+
+**Mjereno:** game-core 536 testova (3 nova: Moja na VII žir kao treću kartu do kraja ruke; J♥ pa 7♥ mrtva; parametar isključen / stari snapshot; postojeći test druge sedmice sad očekuje `moja: true` i odbija `stih`). Simulacija 10.000 × 4P: 0 grešaka karata i štihova, 0 odbijenih akcija, 0 zaglavljenih; refa 2,7 → 2,0 %, medijan 23 ruke (35,8 min). Nije provjereno na uređaju ni u pregledaču.
+
 ## 222. Raub i Bela dobijaju zvuk i vibraciju (2026-11-23, `fix/raub-sound`)
 
 **Povod:** utisak „Nemam zvuk" (ID `20261123-154937-7f0a1b31`, Android 16, SM-A065F, 1.5.0). Po PostHogu: nov igrač iz Meta kampanje, instalirao aplikaciju sa weba, odigrao 41 min Rauba i odmah poslao prijavu. Raub je imao dugme za zvuk na stolu, ali nijedan poziv `playSfx`/`vibrate` (dug iz changeloga 128); Bela isto (bez dugmeta, zvuk u meniju). Isti propust kao poker (196).
