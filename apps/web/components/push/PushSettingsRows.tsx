@@ -72,7 +72,7 @@ export function PushSettingsRows() {
               return;
             }
             capturePush("push_prompt_accepted", { context: "settings" });
-            void requestPushPermission().then(setPermission);
+            void requestPushPermission("settings").then(setPermission);
           }}
         >
           {denied ? t.openSettings : t.turnOn}

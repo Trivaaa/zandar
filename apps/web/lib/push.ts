@@ -227,10 +227,12 @@ async function doRegister(): Promise<string | null> {
 }
 
 /**
- * Sistemski dijalog. Zove ga SAMO dugme iz `PushPrompt`-a: na Androidu 13+
- * poslije "Ne dozvoli" aplikacija ga praktično više ne može pokazati.
+ * Sistemski dijalog. Zove ga dugme iz `PushPrompt`-a, a jednom po uređaju i
+ * kraj prve partije bez kartice (`decideMatchEndAsk`, SPEC_PUSH_V2 A1). Na
+ * Androidu 13+ poslije dva "Ne dozvoli" aplikacija ga više ne može pokazati.
+ * `context` ide na `push_permission_result`: odakle je pitanje došlo.
  */
-export async function requestPushPermission(): Promise<PushPermission> {
+export async function requestPushPermission(context?: string): Promise<PushPermission> {
   if (!pushEnabled) return "unsupported";
   let result: PushPermission;
   try {
@@ -240,7 +242,7 @@ export async function requestPushPermission(): Promise<PushPermission> {
   } catch {
     return "unsupported";
   }
-  capturePush("push_permission_result", { result });
+  capturePush("push_permission_result", context ? { result, context } : { result });
   if (result === "granted") void registerForPush();
   return result;
 }

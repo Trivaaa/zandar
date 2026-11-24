@@ -82,11 +82,13 @@ Nova ponuda (`context: "match_end"`) na ekranu kraja meča, u svakoj igri, posli
 - Tekst kaže sve tri stvari koje igrač dobija, uključujući podsjetnike. Nacrt:
   **Da ti javimo?** / „Kad te prijatelj pozove ili neko pokuca na tvoj sto. Ponekad i podsjetnik na partiju, koji gasiš u Postavkama."
   Dugmad: **Uključi** · **Ne sada**.
-- Sistemski dijalog pokreće samo dugme Uključi (princip §51.1-2, ostaje).
+- ~~Sistemski dijalog pokreće samo dugme Uključi (princip §51.1-2, ostaje).~~ **Izmjena 24.11.2026 (odluka vlasnika, aplikacija 1.5.1):** na kraju **prve** završene partije na uređaju sistemski dijalog se pokaže odmah (~1,2 s poslije kraja meča), bez kartice. Kartica sa dugmetom Uključi ostaje za sljedeće partije, kao druga i zadnja prilika (Android 13+ poslije dva odbijanja više ne pita). Razlog: za 30 dana kartica `match_end` 2 „Uključi" od 52 igrača (4 %), a sistemski dijalog 10 „Dozvoli" od 12, nijedno odbijanje; dozvolu je imalo 11 od 105 aktivnih igrača 1.5.0. Odluka je `decideMatchEndAsk` (`lib/pushAsk.ts`). Ostali konteksti i dalje samo preko kartice.
 - Ne prekriva rezultat ni dugmad Revanš / Igraj ponovo; stoji ispod njih.
 
 Prihvatanje:
-- [ ] Given dozvola je `prompt` i igrač je završio prvu partiju, When se otvori kraj meča, Then ponuda se vidi i šalje se `push_prompt_shown { context: "match_end" }`.
+- [ ] Given dozvola je `prompt` i direktno pitanje nije potrošeno, When se otvori kraj meča, Then poslije ~1,2 s sistemski dijalog, kartice nema, šalje se `push_prompt_shown { context: "match_end", direct: true }` i `push_permission_result { result, context: "match_end_direct" }`. Važi i kad je kartica odgođena u drugom kontekstu.
+- [ ] Given igrač zatvori kraj meča prije isteka pauze, Then pitanja nema i prilika ostaje za sljedeću partiju.
+- [ ] Given direktno pitanje je potrošeno, dozvola je još `prompt` i igrač je završio partiju, When se otvori kraj meča, Then ponuda se vidi i šalje se `push_prompt_shown { context: "match_end" }`.
 - [ ] Given igrač je dao dozvolu ranije ili je odbio, Then ponude nema.
 - [ ] Given igrač je dodirnuo „Ne sada", Then ponude nema nigdje 7 dana.
 - [ ] Ponuda se ne vidi na webu (`pushEnabled === false`).
@@ -112,7 +114,7 @@ Igrač koji otvori aplikaciju **drugog različitog dana** (ima istoriju, a nema 
 Igrač bez obavještenja ne zna da je propustio poziv: server javlja samo pozive koji još važe. Na pretplati korisničkog kanala server sad javlja i najnoviji poziv koji je propušten u zadnja 24 h (`user:invite_missed`, samo ključ). Aplikacija tada, jednom po pozivu, pokaže list **Poziv je istekao** uz ponudu („Javi mi sljedeći put", `context: "invite_missed"`) — samo ako dozvola još nije tražena i ponuda nije ugašena. Ko ima obavještenja dobio je push, pa list ne vidi.
 
 #### A5 (P0) Analitika dosega
-- Postojeći događaji ostaju (`push_prompt_shown/accepted/dismissed`, `push_permission_result`), sa novim kontekstima.
+- Postojeći događaji ostaju (`push_prompt_shown/accepted/dismissed`, `push_permission_result`), sa novim kontekstima. Od 1.5.1: `push_prompt_shown` nosi `direct: true` kad je pitanje bez kartice, a `push_permission_result` nosi `context` (`match_end_direct` za direktno pitanje, kontekst kartice za njeno dugme, `settings` za Postavke; bez polja = paket stariji od 1.5.1).
 - Novo: `push_state` jednom po pokretanju aplikacije: `{ permission: granted|denied|prompt, reminders: bool, table: bool }`. Iz njega se računa doseg (cilj 1) bez pristupa serveru.
 
 ### Dio B — podsjetnici neaktivnim igračima

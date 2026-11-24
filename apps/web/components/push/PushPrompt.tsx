@@ -13,6 +13,7 @@ import {
   requestPushPermission,
   snoozePrompt,
 } from "@/lib/push";
+import { decideMatchEndAsk, MATCH_END_DIRECT_DELAY_MS, MATCH_END_DIRECT_KEY } from "@/lib/pushAsk";
 import { sr } from "@/lib/sr";
 
 /** Koga i šta čeka: host kucanje, gost odobrenje, igrač u lobiju početak; `match_end` = kraj partije (SPEC_PUSH_V2 A1). */
@@ -30,9 +31,12 @@ export type PushPromptContext =
 /**
  * Ponuda obavještenja u trenutku kad igrač nešto čeka (PRD §51).
  *
- * Sistemski dijalog na Androidu 13+ je praktično jednokratan — poslije
- * "Ne dozvoli" aplikacija ga više ne može pokazati. Zato ga pokreće TEK ovo
+ * Sistemski dijalog na Androidu 13+ ima dvije prilike — poslije drugog
+ * "Ne dozvoli" aplikacija ga više ne može pokazati. Zato ga pokreće ovo
  * dugme, uz rečenicu koja kaže šta se dobija, a nikad prvo pokretanje.
+ * Izuzetak (`match_end`, 24.11.2026): kraj PRVE partije na uređaju odmah
+ * pokaže sistemski dijalog bez kartice; kartica je druga prilika
+ * (`decideMatchEndAsk`).
  *
  * Ne crta se: na webu, kad je dozvola već data ili odbijena, i nedjelju dana
  * poslije "Ne sada".
@@ -56,8 +60,28 @@ export function PushPrompt({
   useEffect(() => {
     if (!pushEnabled) return;
     let cancelled = false;
+    let directTimer: ReturnType<typeof setTimeout> | undefined;
     void pushPermission().then((permission) => {
-      if (cancelled || permission !== "prompt" || isPromptSnoozed()) return;
+      if (cancelled) return;
+      if (context === "match_end") {
+        const ask = decideMatchEndAsk({
+          permission,
+          snoozed: isPromptSnoozed(),
+          directAsked: promptShownOnce(MATCH_END_DIRECT_KEY),
+        });
+        if (ask === "direct") {
+          // Ključ tek u trenutku pitanja: zatvoren ekran u pauzi ne troši priliku.
+          directTimer = setTimeout(() => {
+            if (cancelled) return;
+            markPromptShownOnce(MATCH_END_DIRECT_KEY);
+            capturePush("push_prompt_shown", { context, direct: true });
+            void requestPushPermission(MATCH_END_DIRECT_KEY);
+          }, MATCH_END_DIRECT_DELAY_MS);
+          return;
+        }
+        if (ask === null) return;
+      }
+      if (permission !== "prompt" || isPromptSnoozed()) return;
       if (onceKey && promptShownOnce(onceKey)) return;
       // Idempotentno u toku dana — ne zavisi od toga da li je NativePush već upisao danas.
       if (minOpenDays && noteAppOpenDay() < minOpenDays) return;
@@ -67,6 +91,7 @@ export function PushPrompt({
     });
     return () => {
       cancelled = true;
+      clearTimeout(directTimer);
     };
   }, [context, onceKey, minOpenDays]);
 
@@ -77,7 +102,7 @@ export function PushPrompt({
   async function enable() {
     setBusy(true);
     capturePush("push_prompt_accepted", { context });
-    await requestPushPermission();
+    await requestPushPermission(context);
     // Bez obzira na ishod: dato → registracija teče sama, odbijeno → sistem više ne pita.
     setVisible(false);
   }
