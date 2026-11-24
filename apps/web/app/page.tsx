@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseGameId, parseTableTheme, type TableTheme, type UpcomingGameSlug } from "@zandar/shared-types";
 
@@ -30,14 +30,35 @@ import { setPinnedGame, useHomeHistory } from "@/lib/homePrefs";
 import { isNative } from "@/lib/platform";
 import { readPlayerName, savePlayerName } from "@/lib/playerName";
 import { fetchMe } from "@/lib/profile";
-import { readQuickPlayPrefs, saveQuickPlayPrefs, useQuickPlayPrefs, type QuickPlayPrefs } from "@/lib/quickPlayPrefs";
+import {
+  parseQuickPlayPrefs,
+  readQuickPlayPrefs,
+  readQuickPlayPrefsRaw,
+  saveQuickPlayPrefs,
+  useQuickPlayPrefs,
+  type QuickPlayPrefs,
+} from "@/lib/quickPlayPrefs";
 import { sr } from "@/lib/sr";
 import { startQuickPlay } from "@/lib/startQuickPlay";
 import { readTableThemeRaw, saveTableTheme, useTableTheme } from "@/lib/tableTheme";
 import { track } from "@/lib/track";
 import { HOME_GAME_PARAM } from "@/lib/push";
+import { PROFILE_START_PARAM } from "@/lib/routes";
 import { useQueryParam } from "@/lib/useQuery";
 import { guestName, webCreatePath, webQuickPlayChoice } from "@/lib/webHome";
+
+/**
+ * Zapamćen izbor igre, ili `null` kad ga igrač nikad nije postavio (D10):
+ * web početna tada ostaje na stalnom izboru i nasumičnom stolu.
+ */
+function savedChoice(game: GameSlug): { prefs: QuickPlayPrefs | null; tableTheme: TableTheme | null } {
+  const prefs = readQuickPlayPrefsRaw(game);
+  const theme = readTableThemeRaw(game);
+  return {
+    prefs: prefs ? parseQuickPlayPrefs(prefs) : null,
+    tableTheme: theme ? parseTableTheme(theme) : null,
+  };
+}
 
 /** Nova soba za igru; Žandar ostaje na staroj adresi (linkovi, APK). */
 const createPath = (game: GameSlug) => (game === "zandar" ? "/create" : `/create?game=${game}`);
@@ -58,6 +79,8 @@ type Sheet =
 /** Radnja koja pravi novi sto; list „Već igraš X" je zadrži do odluke. */
 type NewTable =
   | { kind: "play"; game: GameConfig }
+  // „Igraj" iz lista igre na Profilu: izbor je već postavljen, pravo za sto.
+  | { kind: "start"; game: GameConfig }
   | { kind: "create"; game: GameConfig }
   | { kind: "friends" };
 
@@ -106,6 +129,20 @@ export default function Home() {
 
   // „Vrati se za sto" (QA 10-24 P2): za kojim stolom igrač sjedi, po serveru.
   const active = useActiveTable();
+
+  // Profil → list igre → „Igraj" (SPEC_PROFIL_POSTAVKE §5): `/?igra=X&kreni=1`.
+  // Jednom po učitavanju; adresa se odmah čisti, da „nazad" ne krene ponovo.
+  const startParam = useQueryParam(PROFILE_START_PARAM);
+  const startedFromProfile = useRef(false);
+  useEffect(() => {
+    if (startParam !== "1" || startedFromProfile.current) return;
+    const game = GAMES.find((g) => g.slug === focus && g.status === "live");
+    if (!game) return;
+    startedFromProfile.current = true;
+    router.replace(`/?${HOME_GAME_PARAM}=${game.slug}`);
+    newTable({ kind: "start", game });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- samo na dolazak sa Profila
+  }, [startParam, focus]);
   const [leaving, setLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<string | null>(null);
 
@@ -142,6 +179,7 @@ export default function Home() {
 
   function runNewTable(next: NewTable) {
     if (next.kind === "play") playGameNow(next.game);
+    else if (next.kind === "start") void start(next.game);
     else if (next.kind === "create") router.push(createPath(next.game.slug));
     else setSheet({ kind: "friends" });
   }
@@ -262,7 +300,7 @@ export default function Home() {
   function playGameNow(game: GameConfig) {
     // Web (tabla „Početna za web"): svaka igra pravo za sto, bez lista — Žandar
     // 4 igrača do 11, izgled stola nasumičan. Aplikacija ostaje kakva jeste.
-    if (!isNative) void start(game, webQuickPlayChoice(Math.random, game.slug));
+    if (!isNative) void start(game, webQuickPlayChoice(Math.random, game.slug, savedChoice(game.slug)));
     else if (game.slug === "poker" || game.slug === "raub" || game.slug === "bela") void start(game);
     else setSheet({ kind: "setup", game });
   }

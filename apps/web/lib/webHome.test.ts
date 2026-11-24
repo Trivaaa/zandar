@@ -19,6 +19,22 @@ describe("web početna — Igraj pravo za sto (W1)", () => {
     assert.equal(webQuickPlayChoice().remember, false);
   });
 
+  test("D10: zapamćen izbor iz Profila pobjeđuje stalni (Raub od 11, sto Drvo)", () => {
+    const choice = webQuickPlayChoice(() => 0, "raub", {
+      prefs: { playerCount: 4, targetScore: 11 },
+      tableTheme: "wood",
+    });
+    assert.equal(choice.prefs.targetScore, 11);
+    assert.equal(choice.tableTheme, "wood");
+    assert.equal(choice.remember, false);
+  });
+
+  test("D10: samo sto zapamćen — cilj ostaje stalni", () => {
+    const choice = webQuickPlayChoice(() => 0, "zandar", { prefs: null, tableTheme: "cloth" });
+    assert.deepEqual(choice.prefs, { playerCount: 4, targetScore: 11 });
+    assert.equal(choice.tableTheme, "cloth");
+  });
+
   test("izgled stola: svaka podloga je moguća, uvijek ponuđena", () => {
     const seen = new Set<string>();
     for (let i = 0; i < TABLE_THEMES.length; i++) {

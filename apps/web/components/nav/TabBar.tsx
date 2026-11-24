@@ -46,7 +46,8 @@ export function TabBar({ className = "" }: { className?: string } = {}) {
     <InviteInbox />
     <nav className={`tabbar ${className}`.trim()} aria-label={sr.nav.label}>
       {TABS.map(({ href, label, Icon }) => {
-        const active = samePath(pathname, href);
+        // Postavke su iza Profila (SPEC_PROFIL_POSTAVKE D1) — tab Profil ostaje označen.
+        const active = samePath(pathname, href) || (href === "/profil" && samePath(pathname, "/postavke"));
         const badge = href === "/prijatelji" && friendRequests > 0 ? friendRequests : 0;
         return (
           <Link

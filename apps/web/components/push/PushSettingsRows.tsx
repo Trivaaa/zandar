@@ -8,7 +8,6 @@ import {
   pushEnabled,
   pushPermission,
   requestPushPermission,
-  setPushReminders,
   setPushTable,
   type PushPermission,
 } from "@/lib/push";
@@ -21,7 +20,9 @@ import { sr } from "@/lib/sr";
  * „Ne dozvoli" na Androidu 13+ (sistemska podešavanja).
  *
  * Tri stanja dozvole:
- *  - `granted`: dvije preklopke, sto i prijatelji / podsjetnici;
+ *  - `granted`: preklopka „Sto i prijatelji". Zaseban red za podsjetnike
+ *    nema (odluka vlasnika 24.11.2026, SPEC_PROFIL_POSTAVKE §4) — gase se
+ *    kroz Android podešavanja obavještenja (kanal „Podsjetnici");
  *  - `prompt`:  Uključi → sistemski dijalog;
  *  - `denied`:  Otvori podešavanja → ekran obavještenja aplikacije.
  * Na povratku u prvi plan stanje se čita ponovo (igrač je možda upravo
@@ -32,7 +33,6 @@ import { sr } from "@/lib/sr";
 export function PushSettingsRows() {
   const [permission, setPermission] = useState<PushPermission | null>(null);
   const [table] = useSetting("pushTable");
-  const [reminders] = useSetting("pushReminders");
 
   useEffect(() => {
     if (!pushEnabled) return;
@@ -82,10 +82,7 @@ export function PushSettingsRows() {
   }
 
   return (
-    <>
-      <ToggleRow label={t.table} on={table} onChange={setPushTable} />
-      <ToggleRow label={t.reminders} on={reminders} onChange={setPushReminders} />
-    </>
+    <ToggleRow label={t.table} on={table} onChange={setPushTable} />
   );
 }
 

@@ -1272,3 +1272,380 @@
 .lobby__seat[data-invited="true"] .lobby__seat-name {
   color: var(--text-muted);
 }
+
+/* ------------------------------------------------------------------ *
+ * Profil v0.3 (SPEC_PROFIL_POSTAVKE §3, A1/A2) i Postavke (§4, A3)
+ * ------------------------------------------------------------------ */
+
+.profile__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 3rem;
+}
+
+/* D3: pilula sa ikonom I riječju — da se ne pogađa šta je zupčanik. */
+.profile__gear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0 0.875rem 0 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--card-face) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--card-face) 18%, transparent);
+  color: var(--text);
+  font: 600 var(--type-sm) / 1 var(--font-sans-stack);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile__gear-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Kartica igrača: cijela je jedno dugme (odluka vlasnika 24.11.2026). */
+.profile__id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile__id-hit {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  min-height: 4.75rem;
+  padding: 0.75rem 0.5rem 0.75rem 0.75rem;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--card-back) 70%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-card-play) var(--ease-snap);
+}
+
+/* Stanje pritiska na CIJELOJ površini, ne samo na tekstu. */
+.profile__id-hit:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) {
+  .profile__id-hit:hover {
+    background-color: color-mix(in oklab, var(--card-back) 85%, transparent);
+  }
+}
+
+.profile__id-letter {
+  width: 4rem;
+  height: 4rem;
+}
+
+.profile__id-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.profile__id-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font: 400 1.375rem / 1.1 var(--font-display-stack);
+  color: var(--card-face);
+  overflow-wrap: anywhere;
+}
+
+.profile__chip {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--card-face) 10%, transparent);
+  color: var(--text-soft);
+  font: 700 0.6875rem / 1.2 var(--font-sans-stack);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile__id-pencil {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  margin-inline: 0.5rem;
+  color: var(--text-soft);
+}
+
+.profile__id-error {
+  flex-wrap: wrap;
+}
+
+/* Tri pločice: partije · najviše igraš · prijatelji. */
+.profile__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.profile__stat {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.75rem 0.625rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface-raised) 70%, transparent);
+}
+
+.profile__stat-value {
+  margin: 0;
+  font: 400 1.25rem / 1 var(--font-display-stack);
+  color: var(--card-face);
+  overflow-wrap: anywhere;
+}
+
+.profile__stat-label {
+  font: 400 var(--type-xs) / 1.2 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+
+/* Samo gost (D11): iznad igara, vidi se bez skrola. */
+.profile__save {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+.profile__save-title {
+  margin: 0;
+  font: 400 1.0625rem / 1.15 var(--font-display-stack);
+  color: var(--card-face);
+}
+
+.profile__save-body {
+  margin: 0 0 0.25rem;
+  font: 400 var(--type-sm) / 1.35 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+
+.profile__save-cta {
+  justify-content: space-between;
+}
+
+.profile__save-login {
+  align-self: center;
+  min-height: 2.75rem;
+  margin-top: -0.25rem;
+  padding: 0 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  font: 400 var(--type-sm) / 1 var(--font-sans-stack);
+  cursor: pointer;
+}
+
+.profile__save-login u {
+  color: var(--text);
+  text-underline-offset: 0.2em;
+}
+
+/* Moje igre · kako igraš. */
+.profile__games {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile__section-title,
+.settings-screen__group .settings__section-title {
+  margin: 0.25rem 0 0;
+  font: 700 0.75rem / 1 var(--font-sans-stack);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.profile__game-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface-raised) 70%, transparent);
+  overflow: hidden;
+}
+
+.profile__game-list > li + li {
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--card-face) 7%, transparent);
+}
+
+.profile__game {
+  --tint-1: var(--game-zandar-1);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.75rem;
+  padding: 0 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile__game[data-tint="poker"] { --tint-1: var(--game-poker-1); }
+.profile__game[data-tint="raub"] { --tint-1: var(--game-raub-1); }
+.profile__game[data-tint="bela"] { --tint-1: var(--game-bela-1); }
+
+.profile__game:active {
+  background-color: color-mix(in oklab, var(--card-face) 6%, transparent);
+}
+
+.profile__game-dot {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background-color: var(--tint-1);
+  color: var(--card-face);
+  font: 400 0.875rem / 1 var(--font-display-stack);
+}
+
+.profile__game-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.profile__game-name {
+  font: 600 var(--type-base) / 1.15 var(--font-sans-stack);
+}
+
+.profile__game-sub {
+  overflow: hidden;
+  color: var(--text-soft);
+  font: 400 var(--type-xs) / 1.2 var(--font-sans-stack);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile__skel-id {
+  height: 4.75rem;
+  border-radius: var(--radius-lg);
+}
+
+/* List igre (§5, G1/G2): isti segmenti kao Nova soba, plus Igraj. */
+.game-settings__note {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.game-settings .create__option {
+  min-height: 3rem;
+}
+
+.game-settings__saved {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--text-soft);
+  font: 400 var(--type-xs) / 1.3 var(--font-sans-stack);
+}
+
+.game-settings__saved-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.game-settings__play {
+  justify-content: space-between;
+}
+
+.game-settings__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--type-sm);
+  opacity: 0.85;
+}
+
+/* Postavke kao ekran (A3). */
+.settings-screen__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 3rem;
+  margin-left: -0.5rem;
+  padding: 0 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--turn-active);
+  font: 600 var(--type-base) / 1 var(--font-sans-stack);
+  cursor: pointer;
+}
+
+.settings-screen__back-icon {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.settings-screen__title {
+  margin-top: -0.5rem;
+}
+
+.settings-screen__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-screen .profile__item {
+  text-decoration: none;
+}
+
+.settings-screen__two {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.settings-screen__two small {
+  color: var(--text-soft);
+  font: 400 var(--type-xs) / 1.2 var(--font-sans-stack);
+}
+
+.settings-screen .profile__delete {
+  margin-top: 0.25rem;
+}

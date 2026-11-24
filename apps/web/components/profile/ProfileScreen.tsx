@@ -1,41 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { ProfileAvatar } from "@zandar/shared-types";
 
 import { useAccountEntry } from "@/components/account/AccountEntry";
 import { VerifyEmailSheet } from "@/components/account/AccountSheets";
-import { FeedbackToggles } from "@/components/FeedbackToggles";
-import { PushSettingsRows } from "@/components/push/PushSettingsRows";
-import { SettingsSheet } from "@/components/home/SettingsSheet";
+import { RetryIcon, WarningIcon } from "@/components/icons";
 import { TabBar } from "@/components/nav/TabBar";
+import { AccountProfileError } from "@/components/profile/AccountProfile";
+import { GameSettingsSheet } from "@/components/profile/GameSettingsSheet";
 import {
-  AccountProfile,
-  AccountProfileError,
-  AccountProfileSkeleton,
-} from "@/components/profile/AccountProfile";
-import { GuestProfile } from "@/components/profile/GuestProfile";
-import { AvatarSheet, LogoutSheet } from "@/components/profile/ProfileSheets";
-import { RulesModal } from "@/components/RulesModal";
-import {
-  currentAccount,
-  refreshAccount,
-  resendVerification,
-  signOutToGuest,
-  type AccountInfo,
-} from "@/lib/account";
-import { unbindPushDevice } from "@/lib/api";
-import { useBackHandler } from "@/lib/backHandlers";
+  IdentityCard,
+  MyGames,
+  ProfileTop,
+  SaveProgressCard,
+  StatTiles,
+  type IdentityMeta,
+} from "@/components/profile/ProfileParts";
+import { AvatarSheet, IdentitySheet } from "@/components/profile/ProfileSheets";
+import { currentAccount, refreshAccount, resendVerification, type AccountInfo } from "@/lib/account";
+import { fetchFriends, peekFriends } from "@/lib/friends";
+import { GAMES, homeLayout, type GameConfig } from "@/lib/games";
+import { useHomeHistory } from "@/lib/homePrefs";
 import { isNative } from "@/lib/platform";
 import { usePlayerName } from "@/lib/playerName";
+import { mostPlayedGame, profileGames, shortEmail } from "@/lib/profileView";
 import { saveAvatar, useMe } from "@/lib/profile";
-import { getPushId } from "@/lib/push";
-import { namePath } from "@/lib/routes";
+import { namePath, profileStartPath } from "@/lib/routes";
 import { sr } from "@/lib/sr";
-import { STORE_LINKS } from "@/lib/stores";
+import { track } from "@/lib/track";
 import { useQueryParam } from "@/lib/useQuery";
 
 // Privatnost / uslovi / o nama — tihi red na dnu Profila, na webu i u
@@ -49,14 +45,19 @@ const legalSlot = (
   </>
 );
 
+type ProfileSheet = { kind: "identity" } | { kind: "avatar" } | { kind: "game"; game: GameConfig } | null;
+
 /**
- * Tab Profil: gost (A2, G1/G2) ili Moj profil (P1–P8, A7/A8, O1).
+ * Tab Profil (SPEC_PROFIL_POSTAVKE v0.3, A1/A2): ko si, šta igraš i kako.
+ * Gost i nalog imaju isti raspored; gost još i „Sačuvaj napredak" (D11, iznad
+ * igara). Postavke su poseban ekran (`/postavke`) iza pilule gore desno.
  * Nalog bez nadimka je nedovršen (Q10) — ulazak u Profil ga vraća na A5.
  */
 export function ProfileScreen() {
   const router = useRouter();
   const name = usePlayerName();
   const me = useMe();
+  const history = useHomeHistory();
   const verifyParam = useQueryParam("potvrda") === "1";
   // `undefined` = Firebase još nije pročitao sesiju (ne znamo ni da li je gost).
   const [account, setAccount] = useState<AccountInfo | null | undefined>(undefined);
@@ -67,10 +68,10 @@ export function ProfileScreen() {
   });
   const [verifyDismissed, setVerifyDismissed] = useState(false);
   const [resent, setResent] = useState(false);
-  const [sheet, setSheet] = useState<"avatar" | "logout" | "settings" | null>(null);
-  const [rulesOpen, setRulesOpen] = useState(false);
+  const [sheet, setSheet] = useState<ProfileSheet>(null);
   const [avatarFailed, setAvatarFailed] = useState<ProfileAvatar | null>(null);
-  const [loggingOut, setLoggingOut] = useState(false);
+  // Broj prijatelja (samo nalog): odmah iz keša, pa svjež sa servera.
+  const [friends, setFriends] = useState<number | null>(() => peekFriends()?.friends.length ?? null);
 
   // Firebase lokalno zna da li je ovo nalog prije nego što server odgovori —
   // nalog dok čeka vidi svoj skeleton (P7), ne ekran gosta.
@@ -78,6 +79,7 @@ export function ProfileScreen() {
   // Dok ni server ni Firebase nisu odgovorili, ekran gosta bi bljesnuo i
   // prijavljenom igraču — zato neutralni skeleton.
   const unknown = me.status !== "ready" && account === undefined;
+  const accountReady = isAccount && me.status === "ready" && !!me.me.nickname;
 
   useEffect(() => {
     if (me.status === "ready" && !me.me.anonymous && !me.me.nickname) router.replace("/nalog/nadimak");
@@ -93,9 +95,22 @@ export function ProfileScreen() {
     return () => document.removeEventListener("visibilitychange", refresh);
   }, []);
 
-  useBackHandler(rulesOpen, () => setRulesOpen(false));
-  // Postavke koriste postojeći `SettingsSheet` (bez `Sheet` omotača) — nazad ručno.
-  useBackHandler(sheet === "settings", () => setSheet(null));
+  useEffect(() => {
+    if (!accountReady) return;
+    let alive = true;
+    void fetchFriends().then(
+      (d) => alive && setFriends(d.friends.length),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [accountReady]);
+
+  const layout = useMemo(() => homeLayout(GAMES, history), [history]);
+  const games = useMemo(() => profileGames(layout, history, isNative), [layout, history]);
+  const byGame = me.status === "ready" ? me.me.completedMatchesByGame : undefined;
+  const most = mostPlayedGame(byGame, history.played, games);
 
   function resend() {
     setResent(true);
@@ -113,103 +128,144 @@ export function ProfileScreen() {
     }
   }
 
-  async function logout() {
-    setLoggingOut(true);
-    // T3: uređaj prestaje da prima obavještenja ovog naloga — prije odjave.
-    const pushId = getPushId();
-    if (pushId) await unbindPushDevice(pushId);
-    try {
-      await signOutToGuest();
-    } finally {
-      setLoggingOut(false);
-      setSheet(null);
-      setAccount(null);
-      me.retry();
-    }
+  function openSettings() {
+    track("settings_opened", { from: "profile_pill" });
+    router.push("/postavke");
+  }
+
+  function openGame(game: GameConfig) {
+    track("game_settings_opened", { game: game.slug as "zandar" | "poker" | "raub" | "bela", from: "profile" });
+    setSheet({ kind: "game", game });
   }
 
   const unverified = account?.provider === "password" && !account.emailVerified;
   const verifyOpen = verifyParam && !verifyDismissed;
+  const matches = me.status === "ready" ? me.me.completedMatches : null;
+  const stats = (
+    <StatTiles
+      matches={matches}
+      mostPlayed={most ? sr.games[most].name : null}
+      friends={isAccount ? friends : null}
+    />
+  );
+  const myGames = <MyGames games={games} onOpen={openGame} />;
 
   let body;
-  if (isAccount && me.status === "ready" && me.me.nickname) {
+  if (accountReady && me.status === "ready" && me.me.nickname) {
+    const nickname = me.me.nickname;
     body = (
-      <AccountProfile
-        nickname={me.me.nickname}
-        avatar={me.me.avatar}
-        completedMatches={me.me.completedMatches}
-        nicknameLockedUntil={me.me.nicknameChangeAllowedAt}
-        unverified={unverified}
-        onResend={resend}
-        resent={resent}
-        avatarFailed={avatarFailed !== null}
-        onRetryAvatar={() => avatarFailed && void changeAvatar(avatarFailed)}
-        onChangeNickname={() => router.push("/nalog/promijeni-nadimak")}
-        onChangeAvatar={() => setSheet("avatar")}
-        onSettings={() => setSheet("settings")}
-        onLogout={() => setSheet("logout")}
-        onDelete={() => router.push("/nalog/brisanje")}
-      />
+      <>
+        {unverified ? (
+          <div className="profile__banner" role="status">
+            <span>{sr.account.unverified}</span>
+            <button type="button" className="profile__banner-btn" onClick={resend} disabled={resent}>
+              {sr.account.sendAgain}
+            </button>
+          </div>
+        ) : null}
+        <IdentityCard
+          name={nickname}
+          avatar={me.me.avatar}
+          guest={false}
+          meta={{
+            status: "ready",
+            text: account?.email ? shortEmail(account.email) : sr.profile.matches(me.me.completedMatches),
+          }}
+          label={sr.profile.editIdentity}
+          onEdit={() => setSheet({ kind: "identity" })}
+        />
+        {stats}
+        {myGames}
+      </>
     );
   } else if (isAccount && me.status === "error") {
     body = <AccountProfileError onRetry={me.retry} />;
   } else if (isAccount || unknown) {
-    body = <AccountProfileSkeleton />;
+    body = <ProfileSkeleton />;
   } else {
+    const meta: IdentityMeta =
+      me.status === "ready"
+        ? { status: "ready", text: sr.profile.matches(me.me.completedMatches) }
+        : me.status === "error"
+          ? { status: "error", onRetry: me.retry }
+          : { status: "loading" };
     body = (
-      <GuestProfile
-        name={name}
-        completed={
-          me.status === "ready" ? { status: "ready", count: me.me.completedMatches } : { status: me.status }
-        }
-        onRetry={me.retry}
-        onRegister={entry.openRegister}
-        onLogin={entry.openLogin}
-        onBackToPlay={() => router.replace("/")}
-        onSettings={() => setSheet("settings")}
-      />
+      <>
+        <IdentityCard
+          name={name ?? sr.profile.guestNoName}
+          avatar={null}
+          // Bez upisanog imena ime je već „Gost" — oznaka bi ga ponovila.
+          guest={name !== null}
+          meta={meta}
+          label={sr.profile.editName}
+          onEdit={() => router.push(namePath("home"))}
+        />
+        {stats}
+        <SaveProgressCard
+          onRegister={() => {
+            track("account_cta_tapped", { action: "register", from: "profile_card" });
+            entry.openRegister();
+          }}
+          onLogin={() => {
+            track("account_cta_tapped", { action: "login", from: "profile_card" });
+            entry.openLogin();
+          }}
+        />
+        {myGames}
+      </>
     );
   }
 
   return (
     <main className="screen profile screen--tabbed">
-      {body}
+      <div className="profile__col">
+        <ProfileTop onSettings={openSettings} />
+        {body}
+        {avatarFailed ? (
+          <div className="profile__toast" role="alert">
+            <span className="profile__toast-text">
+              <WarningIcon className="profile__error-icon" />
+              {sr.profile.avatarSaveFailed}
+            </span>
+            <button type="button" className="profile__retry" onClick={() => void changeAvatar(avatarFailed)}>
+              <RetryIcon className="profile__retry-icon" />
+              {sr.profile.retry}
+            </button>
+          </div>
+        ) : null}
+      </div>
       <footer className="home__legal">{legalSlot}</footer>
       <TabBar />
       {entry.sheet}
 
-      {sheet === "avatar" && me.status === "ready" ? (
+      {sheet?.kind === "identity" && me.status === "ready" && me.me.nickname ? (
+        <IdentitySheet
+          nickname={me.me.nickname}
+          avatar={me.me.avatar}
+          nicknameLockedUntil={me.me.nicknameChangeAllowedAt}
+          onChangeNickname={() => {
+            setSheet(null);
+            router.push("/nalog/promijeni-nadimak");
+          }}
+          onChangeAvatar={() => setSheet({ kind: "avatar" })}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {sheet?.kind === "avatar" && me.status === "ready" ? (
         <AvatarSheet current={me.me.avatar} onSave={(a) => void changeAvatar(a)} onClose={() => setSheet(null)} />
       ) : null}
-      {sheet === "logout" ? (
-        <LogoutSheet busy={loggingOut} onConfirm={() => void logout()} onClose={() => setSheet(null)} />
+      {sheet?.kind === "game" ? (
+        <GameSettingsSheet
+          game={sheet.game.slug}
+          name={sr.games[sheet.game.slug].name}
+          onPlay={() => {
+            const slug = sheet.game.slug;
+            setSheet(null);
+            router.push(profileStartPath(slug));
+          }}
+          onClose={() => setSheet(null)}
+        />
       ) : null}
-      {sheet === "settings" ? (
-        <div className="home-layer">
-          <div className="sheet-scrim" onClick={() => setSheet(null)}>
-            <div className="sheet-scrim__inner" onClick={(e) => e.stopPropagation()}>
-              <SettingsSheet
-                playerName={name}
-                onChangeName={() => {
-                  setSheet(null);
-                  router.push(namePath("home"));
-                }}
-                onRules={() => {
-                  setSheet(null);
-                  setRulesOpen(true);
-                }}
-                onClose={() => setSheet(null)}
-                feedbackSlot={<FeedbackToggles />}
-                notificationsSlot={<PushSettingsRows />}
-                storeUrl={isNative ? null : STORE_LINKS["google-play"]}
-              />
-            </div>
-          </div>
-        </div>
-      ) : null}
-      <div className="home-layer">
-        <RulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} />
-      </div>
 
       {verifyOpen && account?.email ? (
         <VerifyEmailSheet
@@ -223,5 +279,17 @@ export function ProfileScreen() {
         />
       ) : null}
     </main>
+  );
+}
+
+/** P7 — skeleton profila (traka se i dalje vidi). */
+function ProfileSkeleton() {
+  return (
+    <div className="profile__skeleton" aria-busy="true" aria-label={sr.profile.loading}>
+      <span className="skeleton profile__skel-id" />
+      <span className="skeleton profile__skel-row" />
+      <span className="skeleton profile__skel-row" />
+      <span className="skeleton profile__skel-row profile__skel-row--sm" />
+    </div>
   );
 }

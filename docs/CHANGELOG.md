@@ -2886,3 +2886,22 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 
 **Zamka (mjerenje):** headless Chrome sa istim `--user-data-dir` je posluživao stari JS iz keša i poslije restarta `next dev`-a i brisanja `.next`, pa je snimak tri puta pokazao stari izgled. Za provjeru izgleda koristi svjež profil.
 
+
+## 225. Profil i Postavke v0.3 (2026-11-24, `feat/profile-settings`)
+
+**Šta:** novi Profil (A1 gost, A2 nalog), Postavke kao poseban ekran `/postavke` (A3/A3g) i list po igri (G1/G2) po `docs/Specs/SPEC_PROFIL_POSTAVKE.md` v0.3 i tabli „UI · Profil i Postavke" na platnu „Kartaonica · identitet". Web i aplikacija (D7); aplikacija tek sljedećim paketom.
+
+**Zašto:** igrač je u podešavanjima vidio „21", a Raub je kretao od 11 (§1), a Profil je bio reklama za nalog sa Postavkama zakopanim u sredini.
+
+**Izmjene:**
+- Profil (`components/profile/ProfileScreen.tsx`, `ProfileParts.tsx`): naslov + pilula „Postavke" (D3), kartica igrača kao JEDNO dugme (odluka vlasnika 24.11.: gost → `/ime`, nalog → novi `IdentitySheet` sa nadimkom/bravom i avatarom; olovka kao znak, bez chevrona), tri pločice (partije · najviše igraš · prijatelji), kod gosta „Sačuvaj napredak" iznad igara (D11), „Moje igre · kako igraš" redom kao početna (D12) sa oznakom u boji igre. Uklonjeni: spisak „Uz nalog", dva velika dugmeta, red „Postavke", „Nazad na igru", redovi nadimka i avatara. „Igraš od / nalog od" nije u v1 (D13 — server nema datum).
+- `lib/profileView.ts` (čist, testiran): `profileGames`, `mostPlayedGame` (nerješeno → zadnja pokrenuta, bez partija → „—"), `gameSettingsShape`, `gameSettingsSummary` („Od 11 · francuske · Drvo", Bela samo „Sto: Kafana"), `gamePlayHint`, `shortEmail`.
+- List igre (`GameSettingsSheet`): Žandar igrači + cilj + sto, Raub početak 11/21 + mađarice/francuske + sto, Poker i Bela samo sto. **Čuva se odmah**, zatvaranje ne upisuje ništa. „Igraj" vodi na `/?igra=X&kreni=1` (`profileStartPath`), a početna jednom kreće pravo za sto sa zapamćenim izborom (nova radnja `start`, prolazi kroz „Već igraš X").
+- Postavke (`components/settings/SettingsScreen.tsx`, `app/postavke/page.tsx`): Za stolom · Obavještenja (samo app sa push-om) · Pomoć · Privatnost (i gost) · Nalog (Odjava, Obriši nalog; samo nalog) · pravni red. Tab Profil ostaje označen. `SettingsSheet` i „Brza igra" su obrisani (D4).
+- **Red „Podsjetnici" uklonjen** iz `PushSettingsRows` (odluka vlasnika 24.11.). Podsjetnici se gase samo kroz Android podešavanja kanala; ko ih je ranije isključio ostaje isključen. Tekstovi push ponude koji su govorili „gasiš u Postavkama" sada kažu „u podešavanjima telefona".
+- Web početna (D10, `lib/webHome.ts`): `webQuickPlayChoice` prima zapamćen izbor i sto; bez zapisa ostaje 4 · 11 / Raub od 21 i nasumičan sto.
+- Analitika: `settings_opened`, `game_settings_opened`, `game_setting_changed`, `account_cta_tapped`; `play_requested` za Raub nosi `start_score`.
+
+**Provjereno:** web 364/364 testova (novi `profileView.test.ts`, D10 u `webHome.test.ts`), typecheck web i server, lint bez novih nalaza (4 greške + 2 upozorenja su osnovica), `build:mobile -- --webpack` (`/postavke` statička). Headless Chrome protiv lokalnog servera, 360×740 i 390×844: pilula i „Sačuvaj napredak" bez skrola (dno kartice 561 / 537 px, traka 676 / 780), list Rauba upisuje 11, francuske i Drvo i red na Profilu se odmah mijenja, Postavke → „‹ Profil" nazad, kartica gosta → `/ime`, „Igraj" iz lista → sto sa `startScore: 11` i `tableTheme: "wood"`.
+
+**Nije provjereno:** stanje „spreman" i nalog (lokalni server bez servisnog ključa vraća grešku na `/api/me`, pa je viđeno samo stanje greške), broj prijatelja, `IdentitySheet`, odjava iz Postavki, Android nazad, uređaj.

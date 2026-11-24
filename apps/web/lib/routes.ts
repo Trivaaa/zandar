@@ -55,3 +55,10 @@ export function roomIdFromLink(url: string): string | null {
  */
 export type NameNext = "home";
 export const namePath = (next: NameNext) => `/ime?next=${next}`;
+
+/**
+ * Profil → list igre → „Igraj" (SPEC_PROFIL_POSTAVKE §5): početna sa
+ * `?igra=<slug>&kreni=1` kreće pravo za sto sa zapamćenim izborom te igre.
+ */
+export const PROFILE_START_PARAM = "kreni";
+export const profileStartPath = (game: string) => `/?igra=${game}&${PROFILE_START_PARAM}=1`;

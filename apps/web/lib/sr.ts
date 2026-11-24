@@ -204,7 +204,7 @@ export const sr = {
     names: { classic: "Klasik", wood: "Drvo", cloth: "Kafana" } satisfies Record<TableTheme, string>,
   },
   /* Igraj sa početne: list sa izborom stola (zadnji izbor označen), pa za
-     sto. Isti izbor je i u Postavkama → Brza igra; ime se pita samo prvi put. */
+     sto. Isti izbor je i u Profilu → Moje igre; ime se pita samo prvi put. */
   quickSetup: {
     players: "Broj igrača",
     target: "Igra se do",
@@ -212,7 +212,7 @@ export const sr = {
     saveAndClose: "Sačuvaj i zatvori",
     cancel: "Odustani",
     nameTitle: "Kako da te zovemo?",
-    nameSub: "Pod ovim imenom te vide za stolom. Promijeniti ga možeš u Postavkama.",
+    nameSub: "Pod ovim imenom te vide za stolom. Promijeniti ga možeš na Profilu.",
     nameLabel: "Ime za stolom",
     submit: "Nađi sto",
     submitting: "Tražim sto...",
@@ -360,7 +360,7 @@ export const sr = {
       title: "Kako da te zovemo?",
       label: "Ime za stolom",
       placeholder: "Ime ili nadimak",
-      help: "Ovo ime vide ostali za stolom. Promijeniti ga možeš u Postavkama.",
+      help: "Ovo ime vide ostali za stolom. Promijeniti ga možeš na Profilu.",
       empty: "Upiši ime, pa sjedaš za sto.",
       submit: "Sjedi za sto",
       submitting: "Tražim sto…",
@@ -893,15 +893,38 @@ export const sr = {
   },
   settings: {
     title: "Postavke",
-    close: "Zatvori",
-    name: "Ime za stolom",
-    noName: "Još nije upisano",
     rules: "Pravila igara",
     deleteData: "Brisanje podataka",
     getApp: "Preuzmi aplikaciju",
-    quickPlay: "Brza igra",
-    quickPlayNote: "Igraj na početnoj kreće s ovim izborom.",
     sendFeedback: "Pošalji utisak",
+    sendFeedbackNote: "Greška, prijedlog ili pohvala",
+    /* Ekran Postavke (SPEC_PROFIL_POSTAVKE §4, A3). */
+    back: "Profil",
+    groupTable: "Za stolom",
+    groupNotifications: "Obavještenja",
+    groupHelp: "Pomoć",
+    groupPrivacy: "Privatnost",
+    groupAccount: "Nalog",
+  },
+  /* Profil → „Moje igre" i list po igri (SPEC_PROFIL_POSTAVKE §3, §5). */
+  profileGames: {
+    title: "Moje igre · kako igraš",
+    players: (n: number) => `${n} igrača`,
+    to: (n: number) => `do ${n}`,
+    from: (n: number) => `Od ${n}`,
+    tableOnly: (theme: string) => `Sto: ${theme}`,
+    deckShort: { hungarian: "mađarice", french: "francuske" },
+    sheetTitle: (game: string) => `${game} · kako igraš`,
+    playersLabel: "Igrača za stolom",
+    toLabel: "Igra se do",
+    fromLabel: "Kreće se od",
+    deckLabel: "Karte",
+    deckNames: { hungarian: "Mađarice", french: "Francuske" },
+    shorter: "kraća partija",
+    longer: "duža partija",
+    saved: "Izbor se čuva odmah.",
+    close: "Zatvori",
+    play: "Igraj",
   },
   /* „Pošalji utisak" (`/utisak`, tabla A2) i tihi red na početnoj (D1). */
   feedback: {
@@ -1024,12 +1047,12 @@ export const sr = {
     /* SPEC_PUSH_V2 A1: kraj partije. Kaže SVE što stiže, i podsjetnike. */
     match_end: {
       title: "Da ti javimo?",
-      body: "Kad te prijatelj pozove ili neko pokuca na tvoj sto. Ponekad i podsjetnik na partiju, koji gasiš u Postavkama.",
+      body: "Kad te prijatelj pozove ili neko pokuca na tvoj sto. Ponekad i podsjetnik na partiju, koji gasiš u podešavanjima telefona.",
     },
     /* SPEC_PUSH_V2 A4: početna, od drugog dana otvaranja. */
     home_return: {
       title: "Javi mi kad me neko pozove",
-      body: "Poziv prijatelja i „neko kuca na tvoj sto“ stižu i kad aplikacija nije otvorena. Ponekad i podsjetnik, koji gasiš u Postavkama.",
+      body: "Poziv prijatelja i „neko kuca na tvoj sto“ stižu i kad aplikacija nije otvorena. Ponekad i podsjetnik, koji gasiš u podešavanjima telefona.",
     },
     /* Propušten poziv — ponuda unutar lista „Poziv je istekao". */
     invite_missed: {
@@ -1081,16 +1104,8 @@ export const sr = {
       `Gost · ${n} ${pluralForm(n, "završena partija", "završene partije", "završenih partija")}`,
     /** Gost bez upisanog imena — slovo i nadimak ne smiju ostati prazni. */
     guestNoName: "Gost",
-    benefitsTitle: "Uz nalog:",
-    benefits: {
-      results: "Rezultati ostaju sačuvani",
-      nickname: "Nadimak je samo tvoj",
-      devices: "Isti nalog na svakom uređaju",
-      friends: "Možeš dodavati prijatelje",
-    },
     register: "Registruj se",
     login: "Prijavi se",
-    backToPlay: "Nazad na igru",
     loading: "Učitavam profil",
     countError: "Broj partija se nije učitao.",
     retry: "Pokušaj ponovo",
@@ -1101,6 +1116,19 @@ export const sr = {
     lockedUntil: (date: string) => `Opet od ${date}`,
     settings: "Postavke",
     logout: "Odjavi se",
+    // Profil v0.3 (A1/A2)
+    guestTag: "Gost",
+    matches: (n: number) => `${n} ${pluralForm(n, "partija", "partije", "partija")}`,
+    editIdentity: "Promijeni nadimak i avatar",
+    editName: "Promijeni ime",
+    identityTitle: "Nadimak i avatar",
+    statMatches: (n: number) => pluralForm(n, "partija", "partije", "partija"),
+    statMost: "najviše igraš",
+    statFriends: (n: number) => pluralForm(n, "prijatelj", "prijatelja", "prijatelja"),
+    saveTitle: "Sačuvaj napredak",
+    saveBody: "Rezultati, nadimak i prijatelji ostaju i na drugom telefonu.",
+    saveCta: "Napravi nalog",
+    haveAccount: "Već imaš nalog?",
     loadError: "Profil se nije učitao.",
     loadErrorBody: "Provjeri internet vezu i pokušaj ponovo.",
     avatarSaveFailed: "Avatar nije sačuvan. Ostaje stari.",

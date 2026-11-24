@@ -634,7 +634,23 @@ export type AnalyticsEvents = {
   app_install_attributed: InstallCampaign & { has_room: boolean };
   /** `game` od pokera (6.11.2026); bez njega je Žandar. */
   /** `guest`: igrač je preskočio ime i ide kao „Gost NN" (web, 16.11.2026). */
-  play_requested: { mode: MatchMode; game?: "zandar" | "poker" | "raub" | "bela"; guest?: true };
+  /** `start_score`: Raub brza igra, od koliko se kreće (11 ili 21) — SPEC_PROFIL_POSTAVKE §7. */
+  play_requested: {
+    mode: MatchMode;
+    game?: "zandar" | "poker" | "raub" | "bela";
+    guest?: true;
+    start_score?: number;
+  };
+  /** Profil i Postavke (SPEC_PROFIL_POSTAVKE §7, D9/D14). */
+  settings_opened: { from: "profile_pill" };
+  game_settings_opened: { game: "zandar" | "poker" | "raub" | "bela"; from: "profile" };
+  game_setting_changed: {
+    game: "zandar" | "poker" | "raub" | "bela";
+    setting: "players" | "target" | "start_score" | "deck" | "table";
+    value: string | number;
+  };
+  /** Dodir na „Napravi nalog" / „Prijavi se" u kartici „Sačuvaj napredak" (D14). */
+  account_cta_tapped: { action: "register" | "login"; from: "profile_card" };
   teaser_opened: { game: string };
   upcoming_games_viewed: NoProps;
   /** Dodir na pločicu najavljene igre na početnoj, bez obzira na to da li je ostavljena adresa. */
@@ -800,7 +816,11 @@ export type ClientAnalyticsEvent =
   | "invite_opened"
   | "app_update"
   | "table_resume_click"
-  | "table_load_stuck";
+  | "table_load_stuck"
+  | "settings_opened"
+  | "game_settings_opened"
+  | "game_setting_changed"
+  | "account_cta_tapped";
 
 export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;
 

@@ -201,6 +201,24 @@ export function DownloadIcon({ className }: IconProps) {
   );
 }
 
+/** Kvačica — „izbor je sačuvan". */
+export function CheckIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
+/** Štit — privatnost i podaci. */
+export function ShieldIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M12 3l7.5 3v5.5c0 4.7-3.2 7.8-7.5 9-4.3-1.2-7.5-4.3-7.5-9V6z" />
+    </svg>
+  );
+}
+
 /** Olovka — izmjena podešavanja. */
 export function PencilIcon({ className }: IconProps) {
   return (

@@ -321,7 +321,12 @@ export async function quickPlay(input: {
   startScore?: number;
 }, analytics: { guest?: true } = {}): Promise<QuickPlayResponse> {
   // `guest` ide samo u analitiku, ne serveru.
-  track("play_requested", { mode: "quick_play", game: input.game ?? "zandar", ...analytics });
+  track("play_requested", {
+    mode: "quick_play",
+    game: input.game ?? "zandar",
+    ...(input.game === "raub" && input.startScore !== undefined ? { start_score: input.startScore } : {}),
+    ...analytics,
+  });
   const res = await fetch(`${API_BASE}/api/quickplay`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(await authHeaders()) },

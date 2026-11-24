@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { NameStep } from "@/components/funnel/NameStep";
-import { SettingsSheet } from "@/components/home/SettingsSheet";
-import { FeedbackToggles } from "@/components/FeedbackToggles";
 import { sr } from "@/lib/sr";
 
 /**
@@ -34,7 +32,6 @@ export default function DevFunnelPage() {
   const [name, setName] = useState("");
   const [nameLoading, setNameLoading] = useState(false);
   const [nameError, setNameError] = useState(false);
-  const [savedName, setSavedName] = useState(true);
 
 
   return (
@@ -73,21 +70,6 @@ export default function DevFunnelPage() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="font-bold">SettingsSheet</h2>
-        <div className="flex flex-wrap gap-2">
-          <Toggle on={savedName} onClick={() => setSavedName((v) => !v)}>sačuvano ime</Toggle>
-        </div>
-        <div className="mx-auto w-[360px] max-w-full flex justify-center">
-          <SettingsSheet
-            playerName={savedName ? "Milica" : null}
-            onChangeName={() => undefined}
-            onRules={() => undefined}
-            onClose={() => undefined}
-            feedbackSlot={<FeedbackToggles />}
-          />
-        </div>
-      </section>
 
     </div>
   );

@@ -21,17 +21,25 @@ export function randomTableTheme(rng: () => number = Math.random): TableTheme {
   return TABLE_THEMES[Math.max(0, i)] ?? TABLE_THEMES[0];
 }
 
+/** Zapamćen izbor igre na ovom uređaju; `null` = igrač ga nikad nije postavio. */
+export type SavedChoice = { prefs: QuickPlayPrefs | null; tableTheme: TableTheme | null };
+
 /**
  * Izbor stola za „Igraj" na webu, bez lista. Poker i Bela serveru ionako daju
- * 4 mjesta i bez cilja, pa nose Žandarove brojeve; Raub nosi svoj početak (21). `remember: false`: ovaj izbor ne
- * postaje „zadnji" koji čita `/create` ili Postavke → Brza igra.
+ * 4 mjesta i bez cilja, pa nose Žandarove brojeve; Raub nosi svoj početak (21).
+ *
+ * D10 (SPEC_PROFIL_POSTAVKE v0.3): kad je igrač izbor već postavio (Profil →
+ * Moje igre; sto i sa `/create`), web početna kreće s njim — inače bi Profil rekao
+ * „od 11", a sto krenuo od 21. Bez zapisa ostaje stalni izbor i nasumičan sto.
+ * `remember: false`: ovaj izbor ne postaje „zadnji" sam od sebe.
  */
 export function webQuickPlayChoice(
   rng: () => number = Math.random,
   game: GameSlug = "zandar",
+  saved: SavedChoice = { prefs: null, tableTheme: null },
 ): { prefs: QuickPlayPrefs; tableTheme: TableTheme; remember: false } {
-  const prefs = game === "raub" ? WEB_RAUB_PREFS : WEB_ZANDAR_PREFS;
-  return { prefs, tableTheme: randomTableTheme(rng), remember: false };
+  const prefs = saved.prefs ?? (game === "raub" ? WEB_RAUB_PREFS : WEB_ZANDAR_PREFS);
+  return { prefs, tableTheme: saved.tableTheme ?? randomTableTheme(rng), remember: false };
 }
 
 /**
