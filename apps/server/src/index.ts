@@ -114,6 +114,7 @@ import {
   parseSubscribePayload,
 } from "./socketGuard";
 import { seatToLeave } from "./roomSwitch";
+import { silentTableReason } from "./tableWatch";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
 import { identityAdmin } from "./profile/cleanup";
@@ -2723,18 +2724,28 @@ io.on("connection", (socket) => {
       }
       const { roomId, playerId, sessionToken } = payload;
 
+      // Odbijena pretplata = klijent nikad ne dobije stanje stola i visi na
+      // „Učitavanje stola" / „Miješamo špil". Log nosi roomId, da se prijava
+      // igrača nađe u Railway logu (changelog 224).
       const room = getRoom(roomId);
       if (!room) {
+        fastify.log.warn(`⚠ room:subscribe odbijen ROOM_NOT_FOUND room=${roomId} player=${playerId}`);
         ack?.({ ok: false, error: "ROOM_NOT_FOUND" });
         return;
       }
       if (!verifyToken(room, playerId, sessionToken)) {
+        fastify.log.warn(`⚠ room:subscribe odbijen INVALID_TOKEN room=${roomId} player=${playerId}`);
         ack?.({ ok: false, error: "INVALID_TOKEN" });
         return;
       }
       if (needsUpdate(room, socket.handshake.auth?.games)) {
+        fastify.log.warn(`⚠ room:subscribe odbijen UPDATE_REQUIRED room=${roomId} player=${playerId}`);
         ack?.({ ok: false, error: "UPDATE_REQUIRED" });
         return;
+      }
+      const silent = silentTableReason(room);
+      if (silent) {
+        fastify.log.warn(`⚠ ${silent} room=${roomId} player=${playerId} game=${room.game}`);
       }
 
       // Prelazak iz druge sobe (B10): bez ovoga socket ostaje i u staroj

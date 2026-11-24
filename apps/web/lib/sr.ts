@@ -419,6 +419,14 @@ export const sr = {
     you: "Ti",
     free: "slobodno",
   },
+  tableLoad: {
+    loading: "Učitavanje stola...",
+    stuckRetry: "Sto se ne učitava. Pokušaj ponovo ili se vrati na početnu.",
+    stuckRefresh: "Za ovaj sto treba novija verzija. Osvježi stranicu.",
+    retry: "Pokušaj ponovo",
+    refresh: "Osvježi",
+    home: "Nazad na početnu",
+  },
   end: {
     handTitle: (n: number) => `Ruka #${n} gotova`,
     /* Jedan blok, dvije kolone: sta je ruka donijela i gdje si ukupno. Ranije

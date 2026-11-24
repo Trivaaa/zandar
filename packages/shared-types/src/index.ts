@@ -663,6 +663,22 @@ export type AnalyticsEvents = {
     action: "offered" | "accepted" | "declined" | "restarted" | "forced";
     version_code?: number;
   };
+  /**
+   * Ekran koji čeka prvo stanje stola („Miješamo špil" ili „Učitavanje stola…")
+   * stoji duže od roka, a `game:state` nije stigao (prijava 18.11.2026, changelog 224).
+   * Jednom po sobi u posjeti. `subscribe_error` je kod koji je server vratio
+   * na `room:subscribe` (`INVALID_TOKEN`, `UPDATE_REQUIRED`…), ako ga je bilo.
+   */
+  table_load_stuck: {
+    room_id: string;
+    game: "zandar" | "poker" | "raub" | "bela";
+    phase: "shuffle" | "loading";
+    room_status: string;
+    is_public: boolean;
+    socket_connected: boolean;
+    subscribe_error?: string;
+    ms_on_screen: number;
+  };
   // — server —
   /** Zahtjev za ulazak je primljen (lijevak pozivnice). Odbijen na serveru (sto pun) nije ovo. */
   join_requested: { room_id: string; platform?: AnalyticsPlatform };
@@ -783,7 +799,8 @@ export type ClientAnalyticsEvent =
   | "invite_shared"
   | "invite_opened"
   | "app_update"
-  | "table_resume_click";
+  | "table_resume_click"
+  | "table_load_stuck";
 
 export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;
 

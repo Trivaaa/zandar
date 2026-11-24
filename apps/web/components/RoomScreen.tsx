@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import * as Sentry from "@sentry/nextjs";
 import {
   getRoom,
   getPendingJoinRequests,
@@ -34,6 +35,8 @@ import { GameScreen } from "@/components/GameScreen";
 import { PokerScreen } from "@/components/poker/PokerScreen";
 import { RaubScreen } from "@/components/raub/RaubScreen";
 import { BelaScreen } from "@/components/bela/BelaScreen";
+import { TableLoadStuckActions, useTableLoadStuck } from "@/components/TableLoadWatch";
+import { tableWaitPhase } from "@/lib/tableLoadWatch";
 import { usePlayerInfo } from "@/components/profile/PlayerInfo";
 import { RoomInviteSheet } from "@/components/friends/InviteGuestSheet";
 import { shareInvite } from "@/lib/share";
@@ -93,6 +96,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   // Mreža je padala od zadnjeg (re)konekta → socket koji „misli da je povezan"
   // vjerovatno sjedi na mrtvom transportu.
   const wentOffline = useRef(false);
+  /** Kod sa zadnjeg odbijenog `room:subscribe` (null = prošao ili još nije stigao). */
+  const [subscribeError, setSubscribeError] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<PendingJoinRequest[]>(
     [],
   );
@@ -220,8 +225,21 @@ export function RoomScreen({ roomId }: { roomId: string }) {
           if (!res.ok) {
             console.error("Subscribe failed:", res.error);
             setSocketStatus("error");
+            setSubscribeError(res.error ?? "UNKNOWN");
+            // Odbijena pretplata = stanje stola nikad ne stiže. Bez izuzetka
+            // Sentry to ne bi vidio (prijava 18.11.2026, changelog 224).
+            try {
+              Sentry.captureMessage("room_subscribe_failed", {
+                level: "warning",
+                tags: { subscribe_error: res.error ?? "UNKNOWN" },
+                extra: { roomId },
+              });
+            } catch {
+              // praćenje nikad ne smije da obori ekran
+            }
           } else {
             setSocketStatus("connected");
+            setSubscribeError(null);
           }
           resolve(res.ok);
         },
@@ -604,6 +622,37 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     if (outcome === "copied") flashCopied();
   }
 
+  // Ekran koji čeka prvo stanje stola („Miješamo špil" / „Učitavanje stola"):
+  // poslije roka javi Sentry/PostHog, a na webu ponudi izlaz (changelog 224).
+  const tableWait = tableWaitPhase({
+    showIntro: showIntro && (!room || !!session),
+    hasSession: !!session,
+    hasTableState: !!(gameState || pokerState || raubState || belaState),
+    room,
+  });
+  const tableStuck = useTableLoadStuck({
+    roomId,
+    game: room?.game ?? "zandar",
+    phase: error ? null : tableWait,
+    room,
+    subscribeError,
+  });
+  const retryTableLoad = () => {
+    const s = getSocket();
+    if (!s.connected) s.connect(); // `connect` handler sam ponovi pretplatu
+    else void subscribeSocket();
+    setRefreshTrigger((n) => n + 1);
+  };
+  const tableStuckActions = (floating: boolean) =>
+    tableStuck ? (
+      <TableLoadStuckActions
+        subscribeError={subscribeError}
+        onRetry={retryTableLoad}
+        onHome={() => router.push("/")}
+        floating={floating}
+      />
+    ) : null;
+
   if (error) {
     return (
       <main className="min-h-screen bg-green-900 text-white p-8 flex items-center justify-center">
@@ -626,13 +675,16 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   // zna stići prije REST-a — tad „Počinjemo!" ostaje dok i soba ne stigne.
   if (showIntro && (!room || session)) {
     return (
-      <ShuffleScreen
-        kicker={room ? shuffleKicker(room) : null}
-        players={introRoster.filter((p) => p.id === session?.playerId || seatedIds.has(p.id))}
-        myPlayerId={session?.playerId ?? null}
-        playerCount={introCount}
-        exiting={introExiting}
-      />
+      <>
+        <ShuffleScreen
+          kicker={room ? shuffleKicker(room) : null}
+          players={introRoster.filter((p) => p.id === session?.playerId || seatedIds.has(p.id))}
+          myPlayerId={session?.playerId ?? null}
+          playerCount={introCount}
+          exiting={introExiting}
+        />
+        {tableStuckActions(true)}
+      </>
     );
   }
 
@@ -769,8 +821,11 @@ export function RoomScreen({ roomId }: { roomId: string }) {
   // za prave igrače) i kreće sam — do tad isti tihi ekran.
   if (room.status === "playing" || room.status === "finished" || room.isPublic) {
     return (
-      <main className="min-h-screen bg-felt text-white flex items-center justify-center">
-        <p className="text-muted">Učitavanje stola...</p>
+      <main className="min-h-screen bg-felt text-white flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+          <p className="text-muted">{sr.tableLoad.loading}</p>
+          {tableStuckActions(false)}
+        </div>
       </main>
     );
   }

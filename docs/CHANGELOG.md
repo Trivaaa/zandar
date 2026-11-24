@@ -2865,3 +2865,24 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Analitika:** `push_prompt_shown { direct: true }` za pitanje bez kartice; `push_permission_result` sad nosi `context` (`match_end_direct`, kontekst kartice, `settings`; bez polja = paket stariji od 1.5.1).
 
 **Paket:** 1.5.1 = `versionCode 15`. **Mjereno:** web 339 testova, typecheck, lint 4 greške / 2 upozorenja (sve u nedirnutim fajlovima). **Na uređaju nije provjereno** — S10e je Android 12 i dozvolu daje sam, pa provjera traži Android 13+ (ili emulator API 33+). **Poslije objave:** udio `granted` u `push_state`, `push_permission_result` po `context`, ulaz u test podsjetnika.
+
+## 224. Sto koji se ne učitava: praćenje i izlaz (2026-11-24, `fix/table-load-watch-2`)
+
+**Povod:** 18.11.2026 igrač je na produkciji ostao na „Učitavanje stola..." u pokeru. Nije bilo pada, samo tišine: ekran nema rok ni poruku, Sentry ne vidi ništa jer nema izuzetka, a PostHog ne nosi imena. Rad je tada započet (`fix/table-load-watch`, nekomitovan, broj 187 u changelogu je u međuvremenu dat drugom unosu) i ovdje je završen na današnjem `main`-u.
+
+**Šta se promijenilo od prvog pokušaja:** od 20.11. brza igra ne ide kroz „Učitavanje stola", nego kroz „Miješamo špil" (changelog 198). Taj ekran isto čeka prvo stanje stola i bez njega stoji zauvijek, pa se sada prate oba. Bela je dodata u serversku provjeru.
+
+**Mogući uzroci, do sad nevidljivi:** (1) odbijena pretplata (`ROOM_NOT_FOUND` / `INVALID_TOKEN` / `UPDATE_REQUIRED`), poslije koje klijent samo postavi `socketStatus = "error"`; (2) soba je `playing` bez stanja stola (`room.poker`/`raub`/`bela`), pa `onSubscribe` izađe bez slanja, a ack je `ok`; (3) javni sto ostane u `waiting`; (4) socket se nikad ne poveže.
+
+**Izmjene:**
+- `lib/tableLoadWatch.ts` (čist, testiran): koji ekran čeka sto (`tableWaitPhase`, ogledalo grananja u `RoomScreen`-u), rok po ekranu (uvod 12 s jer sam traje ~4 s, učitavanje 8 s), oblik prijave.
+- `components/TableLoadWatch.tsx`: `useTableLoadStuck` poslije roka šalje Sentry `captureMessage("table_load_stuck")` (tagovi `game`, `phase`, `room_status`, `is_public`, `socket_connected`, `subscribe_error`) i PostHog `table_load_stuck`, jednom po sobi. `stuck` se izvodi u renderu (lint ne dozvoljava `setState` u efektu). `TableLoadStuckActions`: na webu poruka + „Pokušaj ponovo" (ponovna pretplata, ili `connect` ako je socket mrtav, plus novo čitanje sobe) i „Nazad na početnu"; uz `UPDATE_REQUIRED` piše da treba osvježiti, a dugme radi `location.reload()` (samo web). Preko „Miješamo špil" je kartica pri dnu ekrana. Aplikacija šalje samo praćenje, izgled ostaje isti (UI rad je samo za web).
+- `RoomScreen` pamti kod odbijene pretplate i odmah ga šalje u Sentry (`room_subscribe_failed`).
+- Server: svako odbijanje `room:subscribe` ide u log sa `room` i `player`, a `silentTableReason` (`src/tableWatch.ts`, 8 testova) javlja `⚠ <igra> soba je playing bez stanja stola` i `⚠ javni <igra> sto čeka duže od 10 s` za poker, Raub i Belu. Ništa ne popravlja, samo čini vidljivim.
+
+**Gdje gledati:** Sentry `zandar-web` → poruke `table_load_stuck` / `room_subscribe_failed`, grupisane po tagu; PostHog `table_load_stuck` po danu i `phase` naspram `match_started`; Railway log `⚠ room:subscribe odbijen` / `⚠ … bez stanja`.
+
+**Provjereno:** web 349/349 i server 364/364 testova, typecheck oba, lint bez novih grešaka (tri u `RoomScreen` su osnovica). Headless Chrome 390×844 protiv lokalnog servera: normalna brza igra (uvod → sto za 4,3 s, bez lažnog alarma); pogrešan token uz uvod → kartica poslije 12,2 s; pogrešan token bez uvoda → dugmad poslije 8,2 s; „Nazad na početnu" vodi na `/`; server loguje `room:subscribe odbijen INVALID_TOKEN`. **Nije provjereno:** „Pokušaj ponovo" kad se veza stvarno vrati, uređaj, prijava u Sentry/PostHog (lokalno su ugašeni). Aplikacija dobija praćenje tek novim AAB-om.
+
+**Zamka (mjerenje):** headless Chrome sa istim `--user-data-dir` je posluživao stari JS iz keša i poslije restarta `next dev`-a i brisanja `.next`, pa je snimak tri puta pokazao stari izgled. Za provjeru izgleda koristi svjež profil.
+
