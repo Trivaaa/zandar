@@ -68,6 +68,7 @@ Isti monorepo, isti `apps/web`. `ios/` ide u git kao `android/`. Capacitor 8 kor
 - **Apple Developer Program** $99/god. **Individual** = lično ime kao prodavac. **Organization** = treba firma + D-U-N-S broj (može trajati sedmicama).
 - **EU DSA trader status.** Za distribuciju u HR/SI (EU) mora se izjasniti; ako si trader, **adresa, telefon i email su javni na stranici appa**. Kao fizičko lice to znači kućnu adresu → razlog više za firmu.
 - **`capacitor://localhost` u CORS** — bez toga app ne radi uopšte (#2).
+- **Isplata u BiH — NEPROVJERENO (24.11.2026).** Apple nema spisak „merchant zemalja" kao Google (gdje BiH NIJE podržana za prodaju). Upis kao Individual je dozvoljen bez ograničenja za BiH (developer.apple.com/programs/enroll). BiH se u finansijskim izvještajima vodi u regiji „Euro-Zone", ali nijedna stranica ne potvrđuje da banka u BiH prima isplate. Provjera prije plaćanja 99 $: pitati Apple Finance (developer.apple.com/contact/finance) ili pogledati spisak zemalja banke u App Store Connect → Agreements, Tax, and Banking.
 
 ### 🟠 Visok rizik odbijanja na reviewu
 - **4.2 Minimum functionality** — Apple odbija appove koji su „web stranica u omotaču", a isti sadržaj je javno na kartaonica.com. Protiv: native haptika (#5), share sheet (#6), bez linkova koji otvaraju browser, bez web-izgleda, offline ekran (#13). Kasnije push notifikacije („tvoj red", poziv u sobu) su najjači argument.
