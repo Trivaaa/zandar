@@ -2939,6 +2939,6 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 
 **Prijava 20261125-202556 (Android, 1.5.1):** „Kako belu da zovem?" Adut srce, igrač je u 2. štihu bacio O♥ i drži K♥; snimak stanja pokazuje `myBela: "holding"`, dakle server belu vidi. Nije greška u motoru: bela se ne zove, boduje se sama kad padne druga karta para (P-8, `match.ts`). Pilula „Imaš belu (K i O aduta) · +20" je djelovala kao poziv da se nešto pritisne, a dugmeta nema; da je automatska pisalo je samo u pravilima.
 
-**Šta je urađeno:** `belaAboveHand` (prima i `deck`, podrazumijevano mađarice) bira tekst kroz `belaHoldingNote`: dok su obje karte u ruci „Imaš belu (K i O aduta) · +20 se upiše samo kad baciš obje", a kad je jedna bačena „Imaš belu · baci i K♥, +20 se upiše samo" (karta preko `cardLabel`, ekran znak boje mijenja ikonicom). Nov string `sr.bela.decl.holdingLast`. Samo web/prikaz, server netaknut.
+**Šta je urađeno:** `belaAboveHand` (prima i `deck`, podrazumijevano mađarice) bira tekst kroz `belaHoldingNote`: dok su obje karte u ruci „Imaš belu · +20 se upiše sama", a kad je jedna bačena „Baci K♥ · bela +20 se upiše sama" (kratko, jer `.bl-note` na 360 px ima ~240 px) (karta preko `cardLabel`, ekran znak boje mijenja ikonicom). Nov string `sr.bela.decl.holdingLast`. Samo web/prikaz, server netaknut.
 
 **Provjereno:** web 372 testa (nov test: preostali K, preostala O, klasične karte), typecheck, lint izmijenjenih fajlova čist. **Nije provjereno:** snimak na uređaju (dužina pilule na 360 px). Aplikacija dobija tekst tek novim paketom.
