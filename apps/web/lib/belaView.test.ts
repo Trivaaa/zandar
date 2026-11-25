@@ -194,6 +194,8 @@ describe("belaView: nad rukom (zvanja i bela)", () => {
     myDeclarations: [] as (typeof decl)[],
     myBela: null as "holding" | "scored" | null,
     myPlayerId: "a",
+    myCards: [c("K", "hearts"), c("Q", "hearts"), c("9", "clubs")],
+    trumpSuit: "hearts" as const,
     seats: [seat("a", null), seat("b", 0)],
     rules: { belaPoints: 20 } as never,
   };
@@ -209,6 +211,15 @@ describe("belaView: nad rukom (zvanja i bela)", () => {
     assert.deepEqual(belaAboveHand({ ...base, myBela: "scored" }, true).notes, [sr.bela.decl.bela(20)]);
     assert.deepEqual(belaAboveHand({ ...base, myBela: "scored" }, false).notes, []);
     assert.deepEqual(belaAboveHand({ ...base, step: "calling", myBela: "holding" }, false).notes, []);
+  });
+
+  test("bela: kad je jedna karta para bačena, pilula imenuje onu koja je ostala (prijava 20261125-202556)", () => {
+    const one = { ...base, myBela: "holding" as const, myCards: [c("K", "hearts"), c("9", "clubs")] };
+    assert.deepEqual(belaAboveHand(one, false).notes, [sr.bela.decl.holdingLast("K♥", 20)]);
+    assert.deepEqual(belaAboveHand(one, false, "french").notes, [sr.bela.decl.holdingLast("K♥", 20)]);
+    const queen = { ...one, myCards: [c("Q", "hearts")] };
+    assert.deepEqual(belaAboveHand(queen, false).notes, [sr.bela.decl.holdingLast("O♥", 20)]);
+    assert.deepEqual(belaAboveHand(queen, false, "french").notes, [sr.bela.decl.holdingLast("Q♥", 20)]);
   });
 
   test("zvanje prijavljeno: do kraja prvog štiha, samo kad je više od 0", () => {

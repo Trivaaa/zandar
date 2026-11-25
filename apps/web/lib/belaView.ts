@@ -142,19 +142,36 @@ export function declarationsLine(decls: readonly BelaDeclaration[]): { label: st
  *   (moje sjedište se ne crta, pa „Zove 50" ne vidim).
  */
 export function belaAboveHand(
-  v: Pick<BelaPlayerView, "phase" | "step" | "tricks" | "myDeclarations" | "myBela" | "myPlayerId" | "seats" | "rules">,
+  v: Pick<
+    BelaPlayerView,
+    "phase" | "step" | "tricks" | "myDeclarations" | "myBela" | "myPlayerId" | "seats" | "rules" | "myCards" | "trumpSuit"
+  >,
   belaJustScored: boolean,
+  deck: CardDeck = "hungarian",
 ): { decl: { label: string; points: number } | null; notes: string[] } {
   const live = v.phase === "playing" && v.step === "tricks";
   const decl = live ? declarationsLine(v.myDeclarations) : null;
   const notes: string[] = [];
   if (!live) return { decl, notes };
   if (belaJustScored) notes.push(sr.bela.decl.bela(v.rules.belaPoints));
-  else if (v.myBela === "holding") notes.push(sr.bela.decl.holding(v.rules.belaPoints));
+  else if (v.myBela === "holding") notes.push(belaHoldingNote(v, deck));
   const first = v.tricks.length === 1 ? v.tricks[0]! : null;
   const mine = v.seats.find((s) => s.playerId === v.myPlayerId)?.declaredPoints ?? null;
   if (!decl && first && first.winnerId === null && mine !== null && mine > 0) notes.push(sr.bela.decl.declared(mine));
   return { decl, notes };
+}
+
+/**
+ * „Imaš belu": bela se ne zove, boduje se sama kad padne druga karta para
+ * (P-8). Igrač je to tražio kao dugme (prijava 20261125-202556 „Kako belu da
+ * zovem?"), pa pilula kaže da je automatska, a kad je jedna karta već bačena,
+ * imenuje onu koja je ostala.
+ */
+function belaHoldingNote(v: Pick<BelaPlayerView, "myCards" | "trumpSuit" | "rules">, deck: CardDeck): string {
+  const pair = v.myCards.filter((c) => c.suit === v.trumpSuit && (c.rank === "K" || c.rank === "Q"));
+  return pair.length === 1
+    ? sr.bela.decl.holdingLast(cardLabel(pair[0]!, deck), v.rules.belaPoints)
+    : sr.bela.decl.holding(v.rules.belaPoints);
 }
 
 /**

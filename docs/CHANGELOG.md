@@ -2934,3 +2934,11 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 - web: natpis faze je „Zamjena” i za ponudu sedmice poslije zamjene (bio je „Licitacija” još od odluke 29); dugme „Zamijeni 7” drži natpis u jednom omotaču (grid je razdvajao tekst i znak boje); tekst pravila; `/dev/raub?s=mojaSeven` sada pokazuje ponudu na kraju.
 
 **Provjereno:** game-core 554, server 369, web 371 testova; typecheck. Simulacija 10.000 × 4P i 5.000 × 2P: 0 grešaka (4P medijan 23 ruke, refa 2,0 %). Headless snimak `/dev/raub?s=mojaSeven&n=2`. **Nije provjereno:** uređaj. Promjena pravila je u motoru na serveru, pa je dovoljan deploy servera; natpis i dugme stižu u aplikaciju tek novim paketom.
+
+## 228. Bela: pilula „Imaš belu" kaže da je bela automatska (2026-11-25, `fix/bela-auto-hint`)
+
+**Prijava 20261125-202556 (Android, 1.5.1):** „Kako belu da zovem?" Adut srce, igrač je u 2. štihu bacio O♥ i drži K♥; snimak stanja pokazuje `myBela: "holding"`, dakle server belu vidi. Nije greška u motoru: bela se ne zove, boduje se sama kad padne druga karta para (P-8, `match.ts`). Pilula „Imaš belu (K i O aduta) · +20" je djelovala kao poziv da se nešto pritisne, a dugmeta nema; da je automatska pisalo je samo u pravilima.
+
+**Šta je urađeno:** `belaAboveHand` (prima i `deck`, podrazumijevano mađarice) bira tekst kroz `belaHoldingNote`: dok su obje karte u ruci „Imaš belu (K i O aduta) · +20 se upiše samo kad baciš obje", a kad je jedna bačena „Imaš belu · baci i K♥, +20 se upiše samo" (karta preko `cardLabel`, ekran znak boje mijenja ikonicom). Nov string `sr.bela.decl.holdingLast`. Samo web/prikaz, server netaknut.
+
+**Provjereno:** web 372 testa (nov test: preostali K, preostala O, klasične karte), typecheck, lint izmijenjenih fajlova čist. **Nije provjereno:** snimak na uređaju (dužina pilule na 360 px). Aplikacija dobija tekst tek novim paketom.
