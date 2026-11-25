@@ -116,10 +116,23 @@ function ex(s: RaubGameState, pid: string, cardIds: string[] = [], discardId?: s
 /** Sedmica na talonu: djelilac kaže „Štih" (odluka 13 — više nije automatski). */
 const stih = (s: RaubGameState) => act(s, s.dealerId, { type: "stih", take: true });
 
-/** Sedmica na talonu: svi redom „Dalje" (odluka 32 — poslije djelioca pitaju se i ostali). */
+/**
+ * Sedmica na talonu: svi redom „Dalje" — djelilac na Štih, pa ostali na istu
+ * sedmicu (odluka 38: u licitaciji; uz `sevenPassToBidding: false` stari krug
+ * Štiha iz odluke 32).
+ */
 function passSeven(s: RaubGameState): RaubGameState {
-  while (s.phase === "playing" && s.step === "seven_choice") {
-    s = act(s, s.currentPlayerId!, { type: "stih", take: false });
+  const flips = s.talonFlips;
+  while (
+    s.phase === "playing" &&
+    s.talonFlips === flips &&
+    (s.step === "seven_choice" || s.step === "bidding")
+  ) {
+    s = act(
+      s,
+      s.currentPlayerId!,
+      s.step === "seven_choice" ? { type: "stih", take: false } : { type: "bid", bid: "pass" },
+    );
   }
   return s;
 }
@@ -1498,9 +1511,9 @@ describe("raub odluka 26 — djelilac odlučuje naslijepo", () => {
     const base = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
     expect(hidden(base, "a")).toBe(true);
     expect(hidden(act(base, "a", { type: "stih", take: true }), "a")).toBe(false);
-    // Odluka 32: poslije djeliočevog „Dalje" sedmicu bira sljedeći, a djelilac već vidi karte.
+    // Odluka 38: poslije djeliočevog „Dalje" na sedmicu licitira sljedeći, a djelilac već vidi karte.
     const passed = act(base, "a", { type: "stih", take: false });
-    expect(passed.step).toBe("seven_choice");
+    expect(passed.step).toBe("bidding");
     expect(passed.currentPlayerId).toBe("b");
     expect(hidden(passed, "a")).toBe(false);
     expect(passSeven(passed).talonFlips).toBe(2);
@@ -1807,9 +1820,12 @@ describe("raub Moja sa sedmicom čeka zamjenu (odluka 30)", () => {
   });
 });
 
-describe("raub odluka 32 — sedmicu koju djelilac preskoči mogu uzeti ostali", () => {
+/** Odluka 32 bez odluke 38: krug Štiha i za ostale. */
+const OLD32 = { sevenPassToBidding: false } as const;
+
+describe("raub odluka 32 (stari put, `sevenPassToBidding: false`) — sedmicu koju djelilac preskoči mogu uzeti ostali", () => {
   it("djelilac Dalje → pita se sljedeći; on kaže Štih i nosi adut, mora 1", () => {
-    let s = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
+    let s = match({ hands: HANDS4, talon: D("7"), next: [H("Q")], rules: OLD32 });
     s = act(s, "a", { type: "stih", take: false });
     expect(s.step).toBe("seven_choice");
     expect(s.currentPlayerId).toBe("b");
@@ -1833,7 +1849,7 @@ describe("raub odluka 32 — sedmicu koju djelilac preskoči mogu uzeti ostali",
   });
 
   it("treći u krugu uzima; sedmica prelazi kod njega tek poslije zamjene i odbacivanja", () => {
-    let s = match({ hands: HANDS4, talon: D("7") });
+    let s = match({ hands: HANDS4, talon: D("7"), rules: OLD32 });
     s = act(s, "a", { type: "stih", take: false });
     s = act(s, "b", { type: "stih", take: false });
     s = act(s, "c", { type: "stih", take: true });
@@ -1849,7 +1865,7 @@ describe("raub odluka 32 — sedmicu koju djelilac preskoči mogu uzeti ostali",
   });
 
   it("svi Dalje → druga karta, licitacija od djelioca", () => {
-    const s = passSeven(match({ hands: HANDS4, talon: D("7"), next: [H("Q")] }));
+    const s = passSeven(match({ hands: HANDS4, talon: D("7"), next: [H("Q")], rules: OLD32 }));
     expect(s.step).toBe("bidding");
     expect(s.talonFlips).toBe(2);
     expect(s.currentPlayerId).toBe("a");
@@ -1857,7 +1873,7 @@ describe("raub odluka 32 — sedmicu koju djelilac preskoči mogu uzeti ostali",
   });
 
   it("2 igrača: djelilac Dalje, protivnik Štih", () => {
-    let s = match({ ids: ["a", "b"], hands: { a: HANDS4.a!, b: HANDS4.b! }, talon: D("7") });
+    let s = match({ ids: ["a", "b"], hands: { a: HANDS4.a!, b: HANDS4.b! }, talon: D("7"), rules: OLD32 });
     s = act(s, "a", { type: "stih", take: false });
     expect(s.currentPlayerId).toBe("b");
     s = act(s, "b", { type: "stih", take: true });
@@ -1868,7 +1884,7 @@ describe("raub odluka 32 — sedmicu koju djelilac preskoči mogu uzeti ostali",
   });
 
   it("refa čeka: tuđi Štih ide ×1, refa ostaje za sljedeću ruku (odluka 27)", () => {
-    let s = match({ hands: HANDS4, talon: H("Q") });
+    let s = match({ hands: HANDS4, talon: H("Q"), rules: OLD32 });
     s = act(s, "a", { type: "refa" });
     s = startRaubHand(s, makeLcg(11), { deck: deckWithTalon(D("7"), 4) });
     expect(s.multiplier).toBe(2);
@@ -1883,7 +1899,7 @@ describe("raub odluka 32 — sedmicu koju djelilac preskoči mogu uzeti ostali",
 
   it("parametar: sevenOpenToAll false = djelilac Dalje odmah okreće novu kartu", () => {
     const s = act(
-      match({ hands: HANDS4, talon: D("7"), next: [H("Q")], rules: { sevenOpenToAll: false } }),
+      match({ hands: HANDS4, talon: D("7"), next: [H("Q")], rules: { ...OLD32, sevenOpenToAll: false } }),
       "a",
       { type: "stih", take: false },
     );
@@ -1892,7 +1908,7 @@ describe("raub odluka 32 — sedmicu koju djelilac preskoči mogu uzeti ostali",
   });
 
   it("bot koji nije djelilac odlučuje o sedmici sa otvorenim kartama", () => {
-    const s = act(match({ hands: HANDS4, talon: D("7") }), "a", { type: "stih", take: false });
+    const s = act(match({ hands: HANDS4, talon: D("7"), rules: OLD32 }), "a", { type: "stih", take: false });
     const action = selectRaubBotAction(getRaubView(s, "b"), DEFAULT_RAUB_BOT_CONFIG, makeLcg(3));
     expect(action.type).toBe("stih");
     expect(() => act(s, "b", action)).not.toThrow();
@@ -1953,5 +1969,91 @@ describe("raub odluka 33 — zamjena od prvog poslije djelioca, djelilac zadnji"
     const hydrated = { ...s, rules: { ...s.rules, exchangeFromDealer: undefined } };
     const next = ex(hydrated, "a", [], "clubs-A");
     expect(next.currentPlayerId).toBe("b");
+  });
+});
+
+describe("raub odluka 38 — Štih na prvu sedmicu smije samo djelilac", () => {
+  it("djelilac Dalje → ista sedmica u licitaciji: ostali Moja/Dalje, bez Štiha", () => {
+    let s = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
+    s = act(s, "a", { type: "stih", take: false });
+    expect(s.step).toBe("bidding");
+    expect(s.currentPlayerId).toBe("b");
+    expect(s.talonFlips).toBe(1);
+    expect(s.talon.map((x) => x.id)).toEqual(["diamonds-7"]);
+    expect(() => act(s, "b", { type: "stih", take: true })).toThrow("INVALID_ACTION");
+    expect(() => act(s, "b", { type: "bid", bid: "raub" })).toThrow("INVALID_ACTION");
+    expect(getRaubView(s, "b").bidOptions).toEqual({ raub: false, moja: true });
+    expect(getRaubView(s, "b").myCardsHidden).toBe(false);
+    // Djelilac je odgovorio: vidi karte, ne smije više Refa.
+    expect(getRaubView(s, "a").myCardsHidden).toBe(false);
+    expect(s.dealerOpened).toBe(true);
+    expect(raubCanRefa(s, "b")).toBe(false);
+    expect(() => act(s, "b", { type: "refa" })).toThrow("INVALID_ACTION");
+  });
+
+  it("„Moja” na sedmicu: nosi boju, mora 2, karta ostaje na talonu", () => {
+    let s = match({ hands: HANDS4, talon: D("7") });
+    s = act(s, "a", { type: "stih", take: false });
+    s = act(s, "b", { type: "bid", bid: "pass" });
+    s = act(s, "c", { type: "bid", bid: "moja" });
+    expect(s.scenario).toBe("moja");
+    expect(s.declarerId).toBe("c");
+    expect(s.trumpSuit).toBe("diamonds");
+    expect(s.requiredTricks).toBe(2);
+    expect(s.talonTakenBy).toBeNull();
+    expect(s.talon.map((x) => x.id)).toEqual(["diamonds-7"]);
+    expect(raubCardCount(s)).toBe(32);
+    s = autoToHandEnd(s);
+    expect(s.phase).toBe("hand_complete");
+  });
+
+  it("svi ostali Dalje → druga karta, djelilac se ne pita ponovo", () => {
+    let s = match({ hands: HANDS4, talon: D("7"), next: [H("Q")] });
+    s = act(s, "a", { type: "stih", take: false });
+    for (const id of ["b", "c"]) s = act(s, id, { type: "bid", bid: "pass" });
+    expect(s.talonFlips).toBe(1);
+    s = act(s, "d", { type: "bid", bid: "pass" });
+    expect(s.talonFlips).toBe(2);
+    expect(s.talon.map((x) => x.id)).toEqual(["diamonds-7", "hearts-Q"]);
+    expect(s.step).toBe("bidding");
+    expect(s.currentPlayerId).toBe("a");
+    expect(s.seats.every((x) => x.bid === null)).toBe(true);
+  });
+
+  it("2 igrača: djelilac Dalje, protivnik Moja ili Dalje", () => {
+    const two = { ids: ["a", "b"], hands: { a: HANDS4.a!, b: HANDS4.b! }, talon: D("7"), next: [H("Q")] };
+    let s = act(match(two), "a", { type: "stih", take: false });
+    expect(s.currentPlayerId).toBe("b");
+    expect(() => act(s, "b", { type: "stih", take: true })).toThrow("INVALID_ACTION");
+    const moja = act(s, "b", { type: "bid", bid: "moja" });
+    expect(moja.declarerId).toBe("b");
+    expect(moja.requiredTricks).toBe(2);
+    s = act(s, "b", { type: "bid", bid: "pass" });
+    expect(s.talonFlips).toBe(2);
+    expect(s.currentPlayerId).toBe("a");
+  });
+
+  it("djelilac i dalje smije Štih", () => {
+    const s = act(match({ hands: HANDS4, talon: D("7") }), "a", { type: "stih", take: true });
+    expect(s.declarerId).toBe("a");
+    expect(s.requiredTricks).toBe(1);
+  });
+
+  it("ruka zatečena u starom krugu Štiha (ne-djelilac u seven_choice) završava starim putem", () => {
+    let s = act(match({ hands: HANDS4, talon: D("7"), rules: OLD32 }), "a", { type: "stih", take: false });
+    expect(s.step).toBe("seven_choice");
+    // Deploy: snapshot dobija novo pravilo dok je b na potezu.
+    s = { ...s, rules: { ...s.rules, sevenPassToBidding: true } };
+    s = act(s, "b", { type: "stih", take: true });
+    expect(s.declarerId).toBe("b");
+    expect(s.requiredTricks).toBe(1);
+  });
+
+  it("bot koji nije djelilac licitira na sedmicu dozvoljenom akcijom", () => {
+    const s = act(match({ hands: HANDS4, talon: D("7") }), "a", { type: "stih", take: false });
+    const action = selectRaubBotAction(getRaubView(s, "b"), DEFAULT_RAUB_BOT_CONFIG, makeLcg(3));
+    expect(action.type).toBe("bid");
+    expect(() => act(s, "b", action)).not.toThrow();
+    expect(getRaubAutoAction(s, "b")).toEqual({ type: "bid", bid: "pass" });
   });
 });

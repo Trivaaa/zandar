@@ -110,6 +110,7 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     sevenOpenToAll: state.rules.sevenOpenToAll ?? DEFAULT_RAUB_RULES.sevenOpenToAll!,
     exchangeFromDealer: state.rules.exchangeFromDealer ?? DEFAULT_RAUB_RULES.exchangeFromDealer!,
     mojaOnLaterSeven: state.rules.mojaOnLaterSeven ?? DEFAULT_RAUB_RULES.mojaOnLaterSeven!,
+    sevenPassToBidding: state.rules.sevenPassToBidding ?? DEFAULT_RAUB_RULES.sevenPassToBidding!,
   };
 }
 
@@ -136,7 +137,7 @@ export function raubTalonDead(state: Pick<RaubGameState, "rules" | "talon">): bo
 export function raubDealerBlind(state: RaubGameState): boolean {
   if (!rulesV2(state).dealerBlindFirstFlip) return false;
   if (state.phase !== "playing" || state.talonFlips !== 1 || state.trumpSuit !== null) return false;
-  // Odluka 32: poslije djeliočevog „Dalje" sedmicu biraju ostali — on tada vidi karte.
+  // Odluka 32 (stari put): poslije djeliočevog „Dalje" sedmicu biraju ostali — on tada vidi karte.
   if (state.step === "seven_choice") return state.currentPlayerId === state.dealerId;
   if (state.step !== "bidding") return false;
   const dealer = state.seats.find((s) => s.playerId === state.dealerId);
@@ -186,7 +187,8 @@ export function raubHasSeven(state: RaubGameState, playerId: string): boolean {
  * Smije li igrač reći „Moja". Od odluke 15 svako, i bez sedmice; sa
  * `mojaNeedsSeven` (odluka 13) samo onaj ko drži sedmicu te boje. Djelilac koji
  * smije „Raub" bira samo Raub ili Dalje (odluka 16). Od odluke 36 i na
- * sedmicu kao drugu ili treću kartu (sedmica kao prva ide kroz `seven_choice`).
+ * sedmicu kao drugu ili treću kartu (sedmica kao prva ide kroz `seven_choice`,
+ * a od odluke 38 poslije djeliočevog „Dalje" i ona dolazi ovdje).
  */
 export function raubCanMoja(state: RaubGameState, playerId: string): boolean {
   const card = state.talon.at(-1);
@@ -411,7 +413,7 @@ function settlePendingTalon(state: RaubGameState, playerId: string): void {
 
 
 /**
- * Scenarij 1: djelilac (ili, odluka 32, prvi poslije njega koji kaže „Štih")
+ * Scenarij 1: djelilac (ili, po staroj odluci 32, prvi poslije njega koji kaže „Štih")
  * uzima sedmicu s talona, nosi adut i mora 1 štih.
  * Odluka 27: ruka sa Štihom ide ×1, pa refa ostaje za sljedeću ruku.
  */
@@ -733,9 +735,16 @@ export function applyRaubAction(
       if (step !== "seven_choice") throw new Error("INVALID_ACTION");
       if (typeof request.take !== "boolean") throw new Error("INVALID_ACTION");
       if (request.take) takeStih(state, playerId);
-      else if (!rulesV2(state).sevenOpenToAll) flipNext(state);
+      else if (rulesV2(state).sevenPassToBidding && playerId === state.dealerId) {
+        // Odluka 38: Štih je samo djeliočev. Na njegovo „Dalje" ista sedmica ide
+        // u licitaciju (ostali „Moja"/„Dalje", odluka 36); on je već odgovorio,
+        // pa kad svi ostali kažu „Dalje", okreće se nova karta.
+        seat.bid = "pass";
+        state.step = "bidding";
+        state.currentPlayerId = nextRaubPlayerId(state, playerId);
+      } else if (!rulesV2(state).sevenOpenToAll) flipNext(state);
       else {
-        // Odluka 32: sedmicu redom nude i ostalima; djelilac je bio prvi, pa
+        // Odluka 32 (stari snapshot ili ruka zatečena pri deployu): sedmicu redom nude i ostalima; djelilac je bio prvi, pa
         // kad krug dođe do njega, svi su rekli „Dalje" — nova karta.
         const next = nextRaubPlayerId(state, playerId);
         if (next === state.dealerId) flipNext(state);

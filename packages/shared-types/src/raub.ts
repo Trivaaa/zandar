@@ -118,6 +118,13 @@ export interface RaubRules {
    * Drugu sedmicu te boje niko nema, pa karta ostaje na talonu. Bez polja = da.
    */
   mojaOnLaterSeven?: boolean;
+  /**
+   * Odluka 38 (zamjenjuje 32): Štih na prvu sedmicu smije samo djelilac. Kad
+   * on kaže „Dalje”, ista sedmica ide u običnu licitaciju — ostali biraju
+   * „Moja” ili „Dalje” (kao sedmica kao druga karta, odluka 36), djelilac se ne
+   * pita ponovo. Ima prednost nad `sevenOpenToAll`. Bez polja = da.
+   */
+  sevenPassToBidding?: boolean;
 }
 
 /**

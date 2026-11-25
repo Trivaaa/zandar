@@ -58,6 +58,9 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // Odluka 36 (vlasnik, 23.11.2026, po prijavi igrača): sedmica kao druga ili
   // treća karta — „Moja” ili „Dalje” (Štih ostaje samo na prvoj karti).
   mojaOnLaterSeven: true,
+  // Odluka 38 (vlasnik, 25.11.2026, po prijavi igrača; zamjenjuje 32): Štih na
+  // prvu sedmicu samo djelilac; poslije njegovog „Dalje" ostali „Moja"/„Dalje".
+  sevenPassToBidding: true,
 };
 
 /**

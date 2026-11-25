@@ -25,7 +25,7 @@ export function RaubRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
         <SectionTitle>👑 Ko nosi adut</SectionTitle>
         <ul className="list-disc pl-5 space-y-1">
           <li>
-            <b>Štih:</b> kad je na talonu sedmica, djelilac smije reći „Štih”: nosi tu boju i mora 1 štih. Ako kaže „Dalje”, sedmicu redom mogu uzeti ostali, pod istim uslovom; nova karta se okreće tek kad svi kažu „Dalje”. Sedmica ostaje na stolu dok nosilac ne zamijeni karte i odbaci jednu iz ruke; tek tada je uzima.
+            <b>Štih:</b> kad je na talonu sedmica, djelilac smije reći „Štih”: nosi tu boju i mora 1 štih. Štih smije samo djelilac. Ako kaže „Dalje”, ostali na tu sedmicu mogu samo „Moja” (mora 2) ili „Dalje”; kad svi kažu „Dalje”, okreće se nova karta. Sedmica ostaje na stolu dok nosilac ne zamijeni karte i odbaci jednu iz ruke; tek tada je uzima.
             Nije obavezno — ako kaže „Dalje”, okreće se nova karta.
           </li>
           <li>

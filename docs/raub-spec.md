@@ -53,7 +53,7 @@ Svaka ruka ima pet faza: dijeljenje, određivanje aduta, „Idem / Ne idem”, z
 
 | Način | Kada | Ko je nosilac | Talon karta | Mora uzeti |
 | --- | --- | --- | --- | --- |
-| 1. Štih | Prva okrenuta karta je 7; djelilac kaže „Štih” (nije obavezno), a poslije njegovog „Dalje” redom i ostali **(odluka 32)** | Djelilac, ili prvi poslije njega koji kaže „Štih” | Djelilac je uzima | 1 štih |
+| 1. Štih | Prva okrenuta karta je 7; **samo djelilac** kaže „Štih” (nije obavezno). Poslije njegovog „Dalje” ostali na istu sedmicu licitiraju samo „Moja” ili „Dalje” **(odluka 38, zamjenjuje 32)** | Djelilac | Djelilac je uzima | 1 štih |
 | 2. Raub | **Prva** okrenuta karta je A, K, Q (O) ili J (U); **samo djelilac** kaže „Raub” (nije obavezno) **(odluka 15)** | Djelilac | Uzima je (sedmica nije potrebna) i odbacuje jednu **(odluka 14)**, ali tek poslije svoje zamjene **(odluka 20)** i odbacivanja **(odluka 22)** | 2 štiha |
 | 3. Moja | Bilo koji igrač kaže „Moja” (na bilo koju kartu osim sedmice kao prve — odluka 36), sa sedmicom te boje ili bez nje **(odluka 15)** | Prvi koji kaže „Moja” | Sa sedmicom: karta čeka na stolu do njegove zamjene, pa je uzima, a daje sedmicu **(odluka 30)**. Bez sedmice: karta ostaje na talonu | 2 štiha |
 
@@ -63,7 +63,7 @@ Svaka ruka ima pet faza: dijeljenje, određivanje aduta, „Idem / Ne idem”, z
 
 1. Ako je prva okrenuta karta 7, djelilac bira „Štih” ili „Dalje”.
 2. „Štih”: djelilac uzima sedmicu, njena boja je adut, mora 1 štih.
-3. „Dalje”: istu ponudu redom u smjeru igre dobija svaki sljedeći igrač **(odluka 32)**. Prvi koji kaže „Štih” uzima sedmicu pod istim uslovom kao djelilac (mora 1, pad +2, refa se ne duplira). Kad svi kažu „Dalje”, okreće se sljedeća karta (broji se kao druga okrenuta) i ide licitacija. „Refa” smije samo djelilac, prije svog odgovora (odluka 23).
+3. „Dalje”: Štiha više nema — ista sedmica ide u licitaciju kao sedmica kao druga karta: ostali redom u smjeru igre biraju „Moja” (nosi tu boju, mora 2, karta ostaje na talonu jer drugu sedmicu te boje niko nema) ili „Dalje”. Djelilac se ne pita ponovo. Kad svi kažu „Dalje”, okreće se sljedeća karta (broji se kao druga okrenuta) **(odluka 38, zamjenjuje 32)**. „Refa” smije samo djelilac, prije svog odgovora (odluka 23).
 
 **Licitacija (Raub i Moja)**
 
@@ -135,7 +135,7 @@ Svi počinju s 21 bodom. Svaki osvojeni štih skida 1 bod, a neuspjeh dodaje kaz
 | Bilo koji igrač | Uzeo 1 ili više štihova (i ispunio obavezu) | −1 po štihu |
 | Igrač koji nije nosilac | 0 štihova | +2 |
 | Igrač koji je rekao „Ne idem” | Ne igra ruku | 0 |
-| Nosilac Štiha (mora 1; djelilac ili, odluka 32, drugi igrač) | 0 štihova | +2 **(odluka 28)** |
+| Nosilac Štiha (mora 1; samo djelilac, odluka 38) | 0 štihova | +2 **(odluka 28)** |
 | Nosilac poslije Rauba ili Moje (mora 2) | 1 štih | +3 |
 | Nosilac poslije Rauba ili Moje (mora 2) | 0 štihova | +4 |
 
@@ -312,7 +312,7 @@ Meč se nikad ne zaustavlja zbog jednog poteza: ko ne odigra na vrijeme, server 
 | Situacija | Ponašanje |
 | --- | --- |
 | Istekne tajmer u licitaciji | „Dalje” |
-| Istekne tajmer djeliocu kod sedmice na talonu | „Dalje” (bez štiha), okreće se nova karta |
+| Istekne tajmer djeliocu kod sedmice na talonu | „Dalje” (bez štiha); ostali na istu sedmicu „Moja” ili „Dalje” (odluka 38) |
 | Istekne tajmer djeliocu dok odlučuje naslijepo (odluka 26) | „Dalje” (ili „Dalje” na sedmicu); djelilac tada vidi svoje karte |
 | Istekne tajmer kod zamjene sedmice za talon (poslije zamjene, odluka 29; ili stari snapshot) | Ne mijenja („Ne”) |
 | Istekne tajmer kod „Idem / Ne idem” | „Ne idem” (bez kazne); zadnji upitani koji mora ići se ne pita (odluka 24); u ruci iz starog snapshota → „Idem” |
@@ -324,6 +324,7 @@ Meč se nikad ne zaustavlja zbog jednog poteza: ko ne odigra na vrijeme, server 
 | Špil se isprazni tokom zamjene | Ostali u redu ne mogu mijenjati; UI to prikazuje prije njihovog poteza („Špil je prazan”, Zamijeni ugašen) |
 | Igrač želi odbaciti kartu uzetu s talona | Nije dozvoljeno, karta je zaključana u UI-ju i na serveru |
 | Sedmica okrenuta kao druga ili treća karta | Nema Štiha ni Rauba; „Moja” ili „Dalje” kao na svaku kartu, karta ostaje na talonu (odluka 36). Ako je niža od odbijene karte iste boje, mrtva je (odluka 31) |
+| Djelilac kaže „Dalje” na prvu sedmicu | Ostali nemaju Štih: samo „Moja” (mora 2, karta ostaje na talonu) ili „Dalje”; djelilac se ne pita ponovo; kad svi kažu „Dalje”, nova karta (odluka 38) |
 | Okrenuta karta niža od ranije odbijene karte iste boje (J♥ pa 10♥) | Samo „Dalje”, okreće se sljedeća; viša karta iste boje se licitira (odluka 31) |
 | Pad servera dok djelilac bira raub naslijepo (snapshot prije odluke 13) | Hidracija prevodi ruku u licitaciju sa otvorenim kartama (`upgradeRaubState`) |
 | Tri refe zaredom | Naredne tri odigrane ruke boduju se duplo, svaka posebno |
@@ -376,6 +377,7 @@ Odluke vlasnika od 7.11.2026 i mjesta gdje je v1 usklađena s postojećim pravil
 | 34 | Brza partija od 11 | Brza igra (Quick Play) kreće od 11 bodova (`RAUB_QUICK_START_SCORE`). Privatni sto na webu bira „Kreće se od 11 / 21", prvi izbor je 11; aplikacija nema izbor i šalje 21 kao do sada. Server čuva izbor u `rulesConfig.targetScore`, a `RaubTables.start` ga prevodi u `rules.startScore` (`raubStartScore`: sve van 11/21 → 21, nikad 400 — stari klijenti i stare sobe ostaju na 21; revanš isti cilj). Protokol se ne mijenja: tabela i meni već čitaju `rules.startScore`. Simulacija 5.000 mečeva: 4P medijan 23 → 9 ruku, 3P 16 → 7, 2P 11 → 5 | Pregled metrika (21.11.2026): završena partija od 21 traje 23 min (p90 36), 39 % partija se napusti poslije ~12 min / 8 ruku; odluka vlasnika 21.11.2026 |
 | 35 | Podrazumijevano opet 21 | Brza igra bez izbora kreće od 21 (`RAUB_QUICK_START_SCORE` = 21): stare aplikacije, web početna i privatni sto na webu (prvi izbor 21). 11 ostaje kao izbor: privatni sto i podešavanja Rauba u aplikaciji (polje `startScore` na `/api/quickplay`, tek od sljedećeg paketa). Zamjenjuje podrazumijevanih 11 iz odluke 34 | Prijava igrača 22.11.2026 („u podešavanjima je 21, a kreće od 11"); odluka vlasnika 22.11.2026 |
 | 36 | Moja na sedmicu kao drugu ili treću kartu | Sedmica okrenuta kao druga ili treća karta više nije „obična”: nudi se „Moja” ili „Dalje” (Štih ostaje samo na prvoj karti, Raub nije na 7). Drugu sedmicu te boje niko nema, pa karta ostaje na talonu, a nosilac nosi tu boju i mora 2; nema ni ponude sedmice za talon (odluka 29). Sedmica niža od odbijene karte iste boje ostaje mrtva (odluka 31). Parametar `mojaOnLaterSeven` (bez polja = da). Zamjenjuje pravilo 4 („obična karta”) | Prijava igrača 23.11.2026 (dvije bundeve pa VII žir — bilo je samo „Dalje”); odluka vlasnika 23.11.2026 |
+| 38 | Štih na prvu sedmicu samo djelilac | Zamjenjuje odluku 32. Na prvoj okrenutoj sedmici „Štih” (mora 1) smije samo djelilac. Na njegovo „Dalje” ista sedmica ide u običnu licitaciju: ostali redom biraju „Moja” (nosi tu boju, mora 2, karta ostaje na talonu — drugu sedmicu te boje niko nema) ili „Dalje”, kao sedmica kao druga karta (odluka 36); djelilac je već odgovorio i ne pita se ponovo; kad svi kažu „Dalje”, okreće se druga karta. Parametar `sevenPassToBidding` (bez polja = da; ima prednost nad `sevenOpenToAll`). Ruka zatečena pri deployu sa ne-djeliocem u krugu Štiha završava starim putem. Bez promjene stanja i protokola: APK 1.5.1 crta „Moja / Dalje” iz `bidOptions`. Simulacija 10.000 × 4P: 0 grešaka, medijan 23 ruke (isto), refa 2,7 → 2,1 %, Štih 29,4k → 21,0k | Prijava igrača (25.11.2026, snimak): djelilac rekao „Dalje” na VII, a sljedećem je ponuđen „Štih · moraš 1”. „Štihovat može samo diler odma na prvu kartu ako je sedmica … ja mogu samo zaustaviti”; odluka vlasnika 25.11.2026 |
 
 ## Metrike, acceptance i otvorena pitanja
 
