@@ -2923,3 +2923,14 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 - prijava: `belaReportSnapshot` (moje karte, javni štihovi, zvanja, bela, ekran i uvlake, zadnjih 20 dodira iz `lib/uiTrail.ts`) ide kao `snapshot`; server ga čuva (≤ 16 KB) i šalje kao `stanje.json` uz sažetak u tijelu mejla. Kratka prijava sa stola nudi teme (`topic` u naslovu mejla: `[Kartaonica · Greška · Bela] …`). Bez e-maila forma jednom podsjeti. Politika privatnosti dopunjena.
 
 **Provjereno:** game-core 545, server 369, web 356 testova; typecheck svuda; lint izmijenjenih fajlova čist. CDP snimci 360×640, 360×740, 390×844. E2E: forma iz `/dev/bela` → lokalni server → zapis u `_feedback` sa temom, snimkom (919 B) i sažetkom; prvi dodir bez e-maila dao je podsjetnik, drugi poslao. **Nije provjereno:** uređaj (S10e, Android 16 s gestama), pravi mejl preko Resenda, `build:mobile`. Aplikacija dobija sve tek novim AAB-om; server ide na deploy prije weba (stari server bi ignorisao `topic`/`snapshot` — ne pada).
+
+## 227. Raub odluka 37: sedmica za kartu s talona tek kad svi zamijene (2026-11-25, `fix/raub-moja-seven-at-end`)
+
+**Prijava (25.11.2026, 2P):** na talonu 10, djelilac „Dalje”, igrač ima sedmicu te boje i kaže „Moja”. Po odluci 30 sedmica mu je zaključana, a čim on zamijeni karte, igra sama daje 7 za 10, prije protivnikove zamjene. Igrač je to doživio kao „opet odmah zamijeni”. Vlasnik: igra se kao da sedmice nema, svi zamijene, pa se pita „ima li iko sedmicu”.
+
+**Šta je urađeno:**
+- game-core: parametar `mojaSevenAtEnd` (bez polja = da). „Moja” sa sedmicom više ne zove `claimTalon`/`swapSeven`; karta ostaje na talonu, sedmica nije zaključana. `endExchangeTurn` i grana praznog špila u `continueExchange` više ne nude sedmicu po igraču; nova `offerSevenAtEnd` poslije zadnje zamjene daje `swap_seven` prvom u redu zamjene koji drži sedmicu aduta (`canTakeTalonWithSeven`). `swap_seven` sa `exchangeIndex` iza reda vodi pravo u štihove (na „Ne” bez ponovnog pitanja). Grane odluke 30 ostaju za ruke iz snapshota.
+- Testovi: `match()` u testovima gasi novo pravilo kao i odluku 33 (stari blokovi testiraju staro vrijeme); novi blok od 9 testova (2P tok iz prijave, „Ne”, sedmica data u zamjeni, istek roka i bot, Moja bez sedmice u 4P, prazan špil, podrazumijevano i stari snapshot, ruka zatečena sa kartom koja čeka).
+- web: natpis faze je „Zamjena” i za ponudu sedmice poslije zamjene (bio je „Licitacija” još od odluke 29); dugme „Zamijeni 7” drži natpis u jednom omotaču (grid je razdvajao tekst i znak boje); tekst pravila; `/dev/raub?s=mojaSeven` sada pokazuje ponudu na kraju.
+
+**Provjereno:** game-core 554, server 369, web 371 testova; typecheck. Simulacija 10.000 × 4P i 5.000 × 2P: 0 grešaka (4P medijan 23 ruke, refa 2,0 %). Headless snimak `/dev/raub?s=mojaSeven&n=2`. **Nije provjereno:** uređaj. Promjena pravila je u motoru na serveru, pa je dovoljan deploy servera; natpis i dugme stižu u aplikaciju tek novim paketom.

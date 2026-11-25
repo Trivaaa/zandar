@@ -57,9 +57,11 @@ export const cardLabel = (c: Pick<Card, "rank" | "suit">, deck: CardDeck = "hung
   `${deck === "hungarian" ? huRankLabel(c.rank) : c.rank}${SUIT_SYMBOL[c.suit]}`;
 
 /** Natpis faze na vrhu stola: „Licitacija", „Idem?", „Zamjena", „Štih 2 od 4". */
-export function phaseLabel(v: Pick<RaubPlayerView, "phase" | "step" | "tricks">): string {
+export function phaseLabel(v: Pick<RaubPlayerView, "phase" | "step" | "tricks" | "exchangeOrder">): string {
   if (v.phase === "match_finished" || v.phase === "abandoned") return sr.raub.phase.matchEnd;
   if (v.phase === "hand_complete") return sr.raub.phase.handEnd;
+  // Ponuda sedmice poslije zamjene (odluke 29, 37) je dio zamjene, ne licitacije.
+  if (v.step === "swap_seven" && v.exchangeOrder) return sr.raub.phase.exchange;
   switch (v.step) {
     case "seven_choice":
     case "await_open":

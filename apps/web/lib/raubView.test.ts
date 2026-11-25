@@ -59,12 +59,15 @@ const name = (id: string) => ({ p0: "Ti", p1: "Marko", p2: "Milica", p3: "Goga" 
 
 describe("raubView: faza i panel", () => {
   test("natpis faze prati korak", () => {
-    const base: Pick<RaubPlayerView, "tricks"> = { tricks: [] };
+    const base: Pick<RaubPlayerView, "tricks" | "exchangeOrder"> = { tricks: [], exchangeOrder: null };
     assert.equal(phaseLabel({ ...base, phase: "playing", step: "bidding" }), "Licitacija");
     assert.equal(phaseLabel({ ...base, phase: "playing", step: "going" }), "Idem?");
     assert.equal(phaseLabel({ ...base, phase: "playing", step: "exchange" }), "Zamjena");
+    // Ponuda sedmice poslije zamjene (odluke 29, 37) je zamjena; bez reda zamjene (stari snapshot) licitacija.
+    assert.equal(phaseLabel({ ...base, phase: "playing", step: "swap_seven", exchangeOrder: ["p0", "p1"] }), "Zamjena");
+    assert.equal(phaseLabel({ ...base, phase: "playing", step: "swap_seven" }), "Licitacija");
     assert.equal(
-      phaseLabel({ phase: "playing", step: "tricks", tricks: [{ leaderId: "p0", plays: [], winnerId: null }, { leaderId: "p0", plays: [], winnerId: null }] }),
+      phaseLabel({ phase: "playing", step: "tricks", exchangeOrder: null, tricks: [{ leaderId: "p0", plays: [], winnerId: null }, { leaderId: "p0", plays: [], winnerId: null }] }),
       "Štih 2 od 4",
     );
     assert.equal(phaseLabel({ ...base, phase: "hand_complete", step: null }), "Kraj ruke");

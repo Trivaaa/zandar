@@ -353,7 +353,8 @@ export function ActionPanel({
         <div className="rb-panel">
           <p className="rb-panel__hint">{withSuits(sr.raub.swap.hint(cardLabel(panel.seven), cardLabel(panel.talon)))}</p>
           {btn("pass", sr.raub.swap.no, () => onSwap(false))}
-          {btn("accent", withSuits(sr.raub.swap.yes(cardLabel(panel.seven))), () => onSwap(true))}
+          {/* Jedan omotač: dugme je grid, pa bi tekst i znak boje pali u zasebne redove. */}
+          {btn("accent", <span>{withSuits(sr.raub.swap.yes(cardLabel(panel.seven)))}</span>, () => onSwap(true))}
         </div>
       );
     case "discard":

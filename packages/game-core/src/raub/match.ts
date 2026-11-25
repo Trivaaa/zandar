@@ -110,6 +110,7 @@ function rulesV2(state: Pick<RaubGameState, "rules">) {
     sevenOpenToAll: state.rules.sevenOpenToAll ?? DEFAULT_RAUB_RULES.sevenOpenToAll!,
     exchangeFromDealer: state.rules.exchangeFromDealer ?? DEFAULT_RAUB_RULES.exchangeFromDealer!,
     mojaOnLaterSeven: state.rules.mojaOnLaterSeven ?? DEFAULT_RAUB_RULES.mojaOnLaterSeven!,
+    mojaSevenAtEnd: state.rules.mojaSevenAtEnd ?? DEFAULT_RAUB_RULES.mojaSevenAtEnd!,
   };
 }
 
@@ -551,7 +552,8 @@ function canTakeTalonWithSeven(state: RaubGameState, playerId: string): boolean 
 
 /** Igrač je završio zamjenu: ponuda sedmice za talon (odluka 29) ili sljedeći u redu. */
 function endExchangeTurn(state: RaubGameState, playerId: string): void {
-  if (canTakeTalonWithSeven(state, playerId)) {
+  // Odluka 37: ponuda tek kad svi zamijene (`offerSevenAtEnd`).
+  if (!rulesV2(state).mojaSevenAtEnd && canTakeTalonWithSeven(state, playerId)) {
     state.step = "swap_seven";
     state.currentPlayerId = playerId;
     return;
@@ -577,7 +579,7 @@ function continueExchange(state: RaubGameState): void {
       settlePendingTalon(state, id);
       return;
     }
-    if (canTakeTalonWithSeven(state, id)) {
+    if (!rulesV2(state).mojaSevenAtEnd && canTakeTalonWithSeven(state, id)) {
       // Bez zamjene (prazan špil), ali sa sedmicom aduta: ponuda i njemu (odluka 29).
       state.step = "swap_seven";
       state.currentPlayerId = id;
@@ -585,7 +587,23 @@ function continueExchange(state: RaubGameState): void {
     }
     state.exchangeIndex += 1;
   }
+  if (offerSevenAtEnd(state)) return;
   beginTricks(state);
+}
+
+/**
+ * Odluka 37: kad su svi zamijenili, pita se „ima li iko sedmicu" — igrač koji
+ * igra ruku i drži sedmicu aduta smije je dati za kartu s talona. Sedmica je
+ * jedna, pa je i ponuda najviše jedna. `exchangeIndex` ostaje iza kraja reda,
+ * po čemu `swap_seven` zna da poslije odgovora idu štihovi.
+ */
+function offerSevenAtEnd(state: RaubGameState): boolean {
+  if (!rulesV2(state).mojaSevenAtEnd) return false;
+  const id = state.exchangeOrder!.find((p) => canTakeTalonWithSeven(state, p));
+  if (!id) return false;
+  state.step = "swap_seven";
+  state.currentPlayerId = id;
+  return true;
 }
 
 function beginTricks(state: RaubGameState): void {
@@ -756,9 +774,12 @@ export function applyRaubAction(
         state.scenario = "moja";
         const hasSeven = raubHasSeven(state, playerId);
         declare(state, playerId, rulesV2(state).mojaRequiredTricks);
+        // Odluka 37: sa sedmicom karta ostaje na talonu kao bez nje, a sedmicu
+        // za nju nosilac daje tek kad svi zamijene (`offerSevenAtEnd`).
+        const sevenNow = hasSeven && !rulesV2(state).mojaSevenAtEnd;
         // Odluka 30: sa sedmicom karta čeka na stolu do nosiočeve zamjene.
-        if (hasSeven && rulesV2(state).mojaSevenAfterExchange) claimTalon(state, playerId);
-        else if (hasSeven) swapSeven(state, playerId);
+        if (sevenNow && rulesV2(state).mojaSevenAfterExchange) claimTalon(state, playerId);
+        else if (sevenNow) swapSeven(state, playerId);
         afterTrump(state);
         break;
       }
@@ -783,7 +804,10 @@ export function applyRaubAction(
       if (step !== "swap_seven") throw new Error("INVALID_ACTION");
       if (typeof request.swap !== "boolean") throw new Error("INVALID_ACTION");
       if (request.swap) swapSeven(state, playerId);
-      if (state.exchangeOrder !== null) {
+      if (state.exchangeOrder !== null && state.exchangeIndex >= state.exchangeOrder.length) {
+        // Odluka 37: ponuda poslije svih zamjena — odgovor (i „Ne") vodi u štihove.
+        beginTricks(state);
+      } else if (state.exchangeOrder !== null) {
         // Odluka 29: ponuda poslije zamjene — igrač je gotov, ide sljedeći u redu.
         state.exchangeIndex += 1;
         continueExchange(state);

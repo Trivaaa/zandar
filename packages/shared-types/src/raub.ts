@@ -118,6 +118,14 @@ export interface RaubRules {
    * Drugu sedmicu te boje niko nema, pa karta ostaje na talonu. Bez polja = da.
    */
   mojaOnLaterSeven?: boolean;
+  /**
+   * Odluka 37: sedmica za kartu s talona tek kad su SVI zamijenili. „Moja” sa
+   * sedmicom ide kao „Moja” bez nje (karta ostaje na talonu, sedmica nije
+   * zaključana), a poslije zadnje zamjene igrač koji drži sedmicu aduta dobija
+   * ponudu (`swap_seven`). Zamjenjuje odluku 30 i ponudu poslije svoje zamjene
+   * iz odluke 29. Bez polja = da.
+   */
+  mojaSevenAtEnd?: boolean;
 }
 
 /**
