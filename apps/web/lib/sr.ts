@@ -1059,8 +1059,16 @@ export const sr = {
     },
     /* SPEC_PUSH_V2 A1: kraj partije. Kaže SVE što stiže, i podsjetnike. */
     match_end: {
-      title: "Da ti javimo?",
-      body: "Kad te prijatelj pozove ili neko pokuca na tvoj sto. Ponekad i podsjetnik na partiju, koji gasiš u podešavanjima telefona.",
+      title: "Revanš kad tebi odgovara?",
+      body: "Javićemo ti kad je vrijeme za novu partiju — rijetko, otprilike jednom u par dana. Pozivi prijatelja stižu odmah.",
+    },
+    /* A/B od 1.5.2: list sa razlogom prije sistemskog dijaloga (`PushSoftAsk`). */
+    soft: {
+      title: "Revanš kad tebi odgovara?",
+      body: "Javićemo ti kad je vrijeme za novu partiju — rijetko, otprilike jednom u par dana. Pozivi prijatelja stižu odmah.",
+      note: "Gasi se u Postavkama, kad god hoćeš.",
+      enable: "Da, javi mi",
+      notNow: "Ne sada",
     },
     /* SPEC_PUSH_V2 A4: početna, od drugog dana otvaranja. */
     home_return: {

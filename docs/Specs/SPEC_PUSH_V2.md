@@ -84,6 +84,15 @@ Nova ponuda (`context: "match_end"`) na ekranu kraja meča, u svakoj igri, posli
   Dugmad: **Uključi** · **Ne sada**.
 - ~~Sistemski dijalog pokreće samo dugme Uključi (princip §51.1-2, ostaje).~~ **Izmjena 24.11.2026 (odluka vlasnika, aplikacija 1.5.1):** na kraju **prve** završene partije na uređaju sistemski dijalog se pokaže odmah (~1,2 s poslije kraja meča), bez kartice. Kartica sa dugmetom Uključi ostaje za sljedeće partije, kao druga i zadnja prilika (Android 13+ poslije dva odbijanja više ne pita). Razlog: za 30 dana kartica `match_end` 2 „Uključi" od 52 igrača (4 %), a sistemski dijalog 10 „Dozvoli" od 12, nijedno odbijanje; dozvolu je imalo 11 od 105 aktivnih igrača 1.5.0. Odluka je `decideMatchEndAsk` (`lib/pushAsk.ts`). Ostali konteksti i dalje samo preko kartice.
 - Ne prekriva rezultat ni dugmad Revanš / Igraj ponovo; stoji ispod njih.
+- **Izmjena 27.11.2026 (odluka vlasnika, aplikacija 1.5.2, changelog 231): A/B prvog pitanja.** Na 1.5.1 direktno pitanje je dalo 30 „Dozvoli" od 210 (14 %), a 177 je ostalo u `prompt`/`prompt-with-rationale` (najvjerovatnije jedno „Ne dozvoli"). Ranijih 10 od 12 bilo je na premalom broju. Novi uređaj (dozvola `prompt`, prva prilika nije potrošena) dobija grupu jednom, 50/50 (`PUSH_ASK_SOFT_SHARE`, ključ `zandar:push:askArm`): `direct` = kao 1.5.1; `soft` = list sa razlogom (`PushSoftAsk`) **„Revanš kad tebi odgovara?"** / „Javićemo ti kad je vrijeme za novu partiju — rijetko, otprilike jednom u par dana. Pozivi prijatelja stižu odmah.", dugmad **Da, javi mi** (tek tada sistemski dijalog) · **Ne sada** (= „Ne sada" kartice, sistemska prilika se NE troši). Stari uređaji ostaju van testa.
+- **Zadnja prilika (od 1.5.2):** kad je sirovo stanje `prompt-with-rationale`, prva prilika ide kao `soft` i u grupi `direct` — sistemski dijalog se nikad ne troši zadnji put bez objašnjenja.
+- **Granica kartice (od 1.5.2):** kartica `match_end` najviše jednom dnevno i najviše 5 puta po uređaju (`MATCH_END_CARD_MAX_SHOWS`). Na 1.5.1 je pokazana 383 puta za 105 ljudi, uz 1 „Uključi". Tekst kartice je isti kao `soft`.
+
+Prihvatanje (1.5.2, uz gornje):
+- [ ] Given nov uređaj u grupi `soft`, When se otvori kraj prve partije, Then poslije ~1,2 s list, sistemskog dijaloga nema dok se ne dodirne „Da, javi mi"; `push_prompt_shown { context: "match_end", soft: true }`, pa `push_prompt_accepted`/`push_prompt_dismissed { soft: true }`, i na „Da" `push_permission_result { context: "match_end_soft" }`.
+- [ ] Given „Ne sada" na listu, Then sistemska dozvola ostaje `prompt` (prilika nije potrošena), a ponuda je odgođena 7 dana kao kod kartice.
+- [ ] Given kartica je danas već pokazana ili je pokazana 5 puta, Then je nema.
+- [ ] Svi push događaji uređaja u testu nose `ask_arm`, a osoba osobinu `push_ask_arm`.
 
 Prihvatanje:
 - [ ] Given dozvola je `prompt` i direktno pitanje nije potrošeno, When se otvori kraj meča, Then poslije ~1,2 s sistemski dijalog, kartice nema, šalje se `push_prompt_shown { context: "match_end", direct: true }` i `push_permission_result { result, context: "match_end_direct" }`. Važi i kad je kartica odgođena u drugom kontekstu.
@@ -116,6 +125,7 @@ Igrač bez obavještenja ne zna da je propustio poziv: server javlja samo pozive
 #### A5 (P0) Analitika dosega
 - Postojeći događaji ostaju (`push_prompt_shown/accepted/dismissed`, `push_permission_result`), sa novim kontekstima. Od 1.5.1: `push_prompt_shown` nosi `direct: true` kad je pitanje bez kartice, a `push_permission_result` nosi `context` (`match_end_direct` za direktno pitanje, kontekst kartice za njeno dugme, `settings` za Postavke; bez polja = paket stariji od 1.5.1).
 - Novo: `push_state` jednom po pokretanju aplikacije: `{ permission: granted|denied|prompt, reminders: bool, table: bool }`. Iz njega se računa doseg (cilj 1) bez pristupa serveru.
+- Od 1.5.2: `push_state` i `push_permission_result` nose `raw` (sirovo stanje plugina, razlikuje `prompt` od `prompt-with-rationale`) i `android_sdk` (`Build.VERSION.SDK_INT`; na ≤ 32 dozvola stiže sama, bez dijaloga); `push_state` i `os_enabled`. Sve preko `NotificationSettings.info()`; paket bez te metode šalje bez polja.
 
 ### Dio B — podsjetnici neaktivnim igračima
 

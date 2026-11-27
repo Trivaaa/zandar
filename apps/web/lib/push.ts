@@ -101,6 +101,26 @@ function toPermission(receive: string): PushPermission {
   return "prompt"; // "prompt" | "prompt-with-rationale"
 }
 
+/**
+ * Sirovo stanje iz plugina. `prompt-with-rationale` znači da je Android 13+
+ * već jednom čuo „Ne dozvoli" (ili je dijalog zatvoren) — ostala je jedna
+ * sistemska prilika. Za logiku je to `prompt` (`toPermission`), za analitiku
+ * i čuvanje zadnje prilike se gleda sirovo.
+ */
+export type PushPermissionState = { permission: PushPermission; raw: string | null };
+
+const ASK_ARM_KEY = "zandar:push:askArm";
+
+/** Grupa u A/B testu prvog pitanja (`lib/pushAsk.ts`), ili null za uređaj van testa. */
+export function getPushAskArm(): "direct" | "soft" | null {
+  const v = readKey(ASK_ARM_KEY);
+  return v === "direct" || v === "soft" ? v : null;
+}
+
+export function setPushAskArm(arm: "direct" | "soft"): void {
+  writeKey(ASK_ARM_KEY, arm);
+}
+
 function timeZone(): string | undefined {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
@@ -118,8 +138,11 @@ export function capturePush(
   properties: Record<string, unknown> = {},
 ): void {
   try {
+    const arm = getPushAskArm();
     posthog.capture(event, {
       appEnv: process.env.NEXT_PUBLIC_APP_ENV ?? "development",
+      // A/B prvog pitanja: na događaju i kao osobina osobe (funnel po grupi).
+      ...(arm ? { ask_arm: arm, $set_once: { push_ask_arm: arm } } : {}),
       ...properties,
     });
   } catch {
@@ -132,15 +155,19 @@ export function getPushId(): string | null {
   return pushEnabled ? readKey(PUSH_ID_KEY) : null;
 }
 
-export async function pushPermission(): Promise<PushPermission> {
-  if (!pushEnabled) return "unsupported";
+export async function pushPermissionState(): Promise<PushPermissionState> {
+  if (!pushEnabled) return { permission: "unsupported", raw: null };
   try {
     const { PushNotifications } = await pushModule();
     const { receive } = await PushNotifications.checkPermissions();
-    return toPermission(receive);
+    return { permission: toPermission(receive), raw: receive };
   } catch {
-    return "unsupported";
+    return { permission: "unsupported", raw: null };
   }
+}
+
+export async function pushPermission(): Promise<PushPermission> {
+  return (await pushPermissionState()).permission;
 }
 
 let inFlight: Promise<string | null> | null = null;
@@ -235,14 +262,22 @@ async function doRegister(): Promise<string | null> {
 export async function requestPushPermission(context?: string): Promise<PushPermission> {
   if (!pushEnabled) return "unsupported";
   let result: PushPermission;
+  let raw: string;
   try {
     const { PushNotifications } = await pushModule();
     const { receive } = await PushNotifications.requestPermissions();
     result = toPermission(receive);
+    raw = receive;
   } catch {
     return "unsupported";
   }
-  capturePush("push_permission_result", context ? { result, context } : { result });
+  const android = await androidNotificationInfo();
+  capturePush("push_permission_result", {
+    result,
+    raw,
+    ...(context ? { context } : {}),
+    ...(android ? { android_sdk: android.sdkInt } : {}),
+  });
   if (result === "granted") void registerForPush();
   return result;
 }
@@ -283,6 +318,21 @@ export function markPromptShownOnce(key: string): void {
   writeKey(`zandar:push:once:${key}`, "1");
 }
 
+/** Brojač prikaza kartice po kontekstu (granica: `MATCH_END_CARD_MAX_SHOWS`). */
+export function promptCardShows(context: string): number {
+  const n = Number(readKey(`zandar:push:cardShows:${context}`));
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+export function promptCardShownToday(context: string, now: number = Date.now()): boolean {
+  return readKey(`zandar:push:cardDay:${context}`) === localDay(now);
+}
+
+export function notePromptCardShown(context: string, now: number = Date.now()): void {
+  writeKey(`zandar:push:cardShows:${context}`, String(promptCardShows(context) + 1));
+  writeKey(`zandar:push:cardDay:${context}`, localDay(now));
+}
+
 /** Odgođena ("Ne sada" u zadnjih 7 dana) ili ugašena (3 puta "Ne sada") ponuda. */
 export function isPromptSnoozed(now: number = Date.now()): boolean {
   if (promptDismissCount() >= MAX_PROMPT_DISMISSALS) return true;
@@ -317,7 +367,32 @@ export function setPushReminders(enabled: boolean): void {
   if (pushId) void setPushDevicePrefs(pushId, { reminders: enabled }).catch(() => {});
 }
 
-type NotificationSettingsPlugin = { open(): Promise<{ opened: boolean }> };
+type NotificationSettingsPlugin = {
+  open(): Promise<{ opened: boolean }>;
+  info(): Promise<{ sdkInt: number; enabled: boolean }>;
+};
+
+let androidInfo: Promise<{ sdkInt: number; enabled: boolean } | null> | null = null;
+
+/**
+ * Verzija Androida i da li su obavještenja aplikacije uključena (od 1.5.2).
+ * Za analitiku: bez nje se ne razlikuje Android ≤ 12 (dozvola stiže sama) od
+ * pravog „Dozvoli". Stari paket nema `info` → null. Plugin se ne vraća iz
+ * `async` funkcije (CLAUDE.md), vraća se samo plain rezultat poziva.
+ */
+export function androidNotificationInfo(): Promise<{ sdkInt: number; enabled: boolean } | null> {
+  if (!pushEnabled) return Promise.resolve(null);
+  androidInfo ??= (async () => {
+    try {
+      const { registerPlugin } = await import("@capacitor/core");
+      const info = await registerPlugin<NotificationSettingsPlugin>("NotificationSettings").info();
+      return typeof info?.sdkInt === "number" ? { sdkInt: info.sdkInt, enabled: info.enabled === true } : null;
+    } catch {
+      return null;
+    }
+  })();
+  return androidInfo;
+}
 
 /**
  * Sistemska podešavanja obavještenja aplikacije (SPEC_PUSH_V2 A3) — jedini put
@@ -345,10 +420,13 @@ let stateSent = false;
 export async function capturePushState(): Promise<void> {
   if (!pushEnabled || stateSent) return;
   stateSent = true;
+  const [{ permission, raw }, android] = await Promise.all([pushPermissionState(), androidNotificationInfo()]);
   capturePush("push_state", {
-    permission: await pushPermission(),
+    permission,
+    raw,
     table: getPushTable(),
     reminders: getPushReminders(),
+    ...(android ? { android_sdk: android.sdkInt, os_enabled: android.enabled } : {}),
   });
 }
 

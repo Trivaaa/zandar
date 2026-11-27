@@ -5,6 +5,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
 
+import androidx.core.app.NotificationManagerCompat;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -21,6 +23,19 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  */
 @CapacitorPlugin(name = "NotificationSettings")
 public class NotificationSettingsPlugin extends Plugin {
+
+    /**
+     * Verzija Androida i da li su obavještenja aplikacije uključena — samo za
+     * analitiku (od 1.5.2): bez verzije se ne razlikuje Android ≤ 12, gdje
+     * dozvola stiže sama, od pravog „Dozvoli" na 13+.
+     */
+    @PluginMethod
+    public void info(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("sdkInt", Build.VERSION.SDK_INT);
+        result.put("enabled", NotificationManagerCompat.from(getContext()).areNotificationsEnabled());
+        call.resolve(result);
+    }
 
     @PluginMethod
     public void open(PluginCall call) {
