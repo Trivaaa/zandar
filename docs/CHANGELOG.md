@@ -2964,3 +2964,18 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Namjerno ostaje:** Žandar kao ime igre (kartica, pravila, sto, push podsjetnici) i pregled linka koji nabraja igre („Kartaonica — Žandar, Raub, Poker", `og-share.jpg`). Interna imena (`com.kartaonica.zandar`, `@zandar/*`, ključevi u localStorage, `/zandar/room/`) se ne mijenjaju.
 
 **Mjereno:** typecheck, web 334 testa, lint dodirnutih fajlova čist. Build i prikaz u pregledaču nisu rađeni. Aplikacija dobija pravne stranice tek novim AAB-om (izvezene su u paket).
+
+## 233. Spec: statistika igrača po igri (2026-11-27, `docs/spec-statistika`)
+
+**Povod:** tri utiska igrača traže broj partija, omjer pobjeda i poraza i odustajanja. Jedan za Raub predlaže rang po bodovima: pobjednik dobija ono što je ostalo ostalima, a ostali gube ono što im je ostalo. Cilj je povratak igrača (D1/D7).
+
+**Šta:** nov nacrt `docs/Specs/SPEC_STATISTIKA.md` (v0.1): definicije ishoda za sve četiri igre, podaci (`profiles.stats`, nova polja u `results/`), ekrani S1–S6, mjerenje i faze F0–F3. Bez koda.
+
+**Odluke vlasnika (27.11.2026):**
+- Statistika ide prije Lige i postaje njena faza F0.
+- Raub formula iz utiska postaje bodovanje Lige za Raub; dopunjen `SPEC_RANG.md` §3.4 i zaglavlje.
+- „Završava N %" vide i drugi igrači (od 10 započetih partija).
+
+**Nađeno u kodu:** igrač koji izađe iz pokera i dalje dobije +1 `completedMatches` kad se meč završi za ostale (`recordCompletedMatch` uzima sve iz `room.players`, a `left: true` igrači ostaju u njima, changelog 214). Spec to ispravlja u F0.
+
+**Otvoreno:** aplikacija u F1 ili tek F3, prag za javni procenat, Žandar istek veze kao napuštanje, pravni pregled vidljivosti (SPEC_STATISTIKA §12).
