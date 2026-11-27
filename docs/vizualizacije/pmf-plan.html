@@ -139,8 +139,8 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
   <h1>Put do PMF-a</h1>
   <p class="lede">Tri cilja, ovim redom: prvo dokazati da se igrači vraćaju, pa da se do njih može doći po razumnoj cijeni, pa da zarađuju više nego što koštaju. Sljedeća kapija se ne otvara dok prethodna nije prošla.</p>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-    <span class="now"><span class="chip-dot" aria-hidden="true"></span>Sada: kraj faze 0, početak faze 1</span>
-    <span class="eyebrow">Brojke osvježene <span class="num">22.11.2026. u 15:46</span></span>
+    <span class="now"><span class="chip-dot" aria-hidden="true"></span>Sada: faza 1 · mjerenje, produkcija zamrznuta od 22.11.</span>
+    <span class="eyebrow">Brojke osvježene <span class="num">23.11.2026. u 9:03</span> · sljedeće čitanje <span class="num">24.11.</span> (D1) i <span class="num">29.11.</span> (D7)</span>
   </div>
 </header>
 
@@ -175,7 +175,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
 <!-- Pragovi -->
 <section aria-labelledby="h-gauges">
   <div class="sec-head"><span class="eyebrow">Kapija 1</span><h2 id="h-gauges">Pragovi PMF-a i gdje smo</h2>
-    <p class="lede">Očitano 22.11.2026. u 15:46. Povratak se broji samo ako je igrač zaigrao tačno N-ti dan, a baza su igrači koji su odigrali bar jedan meč. Nijedna grupa još nema n ≥ 100, pa su ovo trendovi, ne presude.</p></div>
+    <p class="lede">Očitano 23.11.2026. u 9:03. Povratak se broji samo ako je igrač zaigrao tačno N-ti dan, a baza su igrači koji su odigrali bar jedan meč od 1.11. Prvi dan i prva igra su dan i igra prvog meča. Nijedna grupa još nema n ≥ 100, pa su ovo trendovi, ne presude.</p></div>
   <div class="legend">
     <span><i class="sw" style="background:var(--ok)"></i>iznad praga</span>
     <span><i class="sw" style="background:var(--bad)"></i>ispod praga</span>
@@ -186,16 +186,25 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="g-head"><span class="t">D1</span><span class="th">prag <b class="num">35 %</b> · industrija ~22 %</span></div>
       <div class="bars">
         <!-- skala 0–50 % -->
-        <div class="bar"><span>Raub</span><div class="track"><div class="fill ok" style="width:75.6%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>38 %</b> 17/45</span></div>
-        <div class="bar"><span>Android</span><div class="track"><div class="fill ok" style="width:85.8%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>43 %</b> 18/42</span></div>
-        <div class="bar"><span>Žandar</span><div class="track"><div class="fill bad" style="width:42.2%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>21 %</b> 12/57</span></div>
-        <div class="bar"><span>Poker</span><div class="track"><div class="fill bad" style="width:32%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>16 %</b> 8/50</span></div>
+        <div class="bar"><span>Raub</span><div class="track"><div class="fill ok" style="width:78%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>39 %</b> 23/59</span></div>
+        <div class="bar"><span>Android</span><div class="track"><div class="fill ok" style="width:88%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>44 %</b> 26/59</span></div>
+        <div class="bar"><span>Žandar</span><div class="track"><div class="fill bad" style="width:45%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>23 %</b> 14/62</span></div>
+        <div class="bar"><span>Poker</span><div class="track"><div class="fill bad" style="width:44%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>22 %</b> 13/59</span></div>
+        <div class="bar"><span>Bela</span><div class="track"><div class="fill warn" style="width:16%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>u toku</b> 3/37</span></div>
+        <div class="bar"><span>Web</span><div class="track"><div class="fill bad" style="width:40%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>20 %</b> 24/121</span></div>
       </div>
-      <p class="g-note">Skala 0–50 %. Android i igre se preklapaju (igra je prva igra igrača).</p>
+      <p class="g-note">Skala 0–50 %. Kohorte 1.–21.11. (njihov D1 je cijeli dan). Platforme i igre se preklapaju. <b>Bela</b> je na produkciji od 22.11., pa ima samo kohortu 22.11.: njen D1 je danas, do 9:03 vratilo se 3/37 — donja granica, ne procenat. Ista kohorta za ostale: Raub 6/63, Poker 1/19, Žandar 2/13. Igra se popodne i uveče; puno čitanje 24.11. ujutro. Bela D7 stiže 29.11.</p>
     </div>
     <div class="gauge">
       <div class="g-head"><span class="t">D7</span><span class="th">prag <b class="num">15 %</b> · industrija ~4 %</span></div>
-      <div class="unk-box"><b>Još nečitljivo.</b> Tačno 7. dan: 0/15 Android, 0/27 web. Kampanja 2 dobija prve D7 kohorte od 22.11. Sljedeće čitanje 29.11.</div>
+      <div class="bars">
+        <!-- skala 0–50 % -->
+        <div class="bar"><span>Svi</span><div class="track"><div class="fill bad" style="width:27%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>14 %</b> 6/44</span></div>
+        <div class="bar"><span>Raub</span><div class="track"><div class="fill ok" style="width:83%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>42 %</b> 5/12</span></div>
+        <div class="bar"><span>Web</span><div class="track"><div class="fill ok" style="width:32%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>16 %</b> 4/25</span></div>
+        <div class="bar"><span>Android</span><div class="track"><div class="fill bad" style="width:21%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>11 %</b> 2/19</span></div>
+      </div>
+      <p class="g-note">Skala 0–50 %. Kohorte 1.–15.11. Prvi D7 signal, ali n je 12–44: interval je ±15–25 p.p. Raub 5/12 je zanimljiv, nije dokaz. Kampanja 2 i Raub oglas ulaze u D7 od 29.11.</p>
       <div class="g-head"><span class="t">D30</span><span class="th">prag <b class="num">6 %</b> · kriva D30/D7 ≥ 0,5</span></div>
       <div class="unk-box">Nema dovoljno starih kohorti.</div>
     </div>
@@ -203,23 +212,36 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="g-head"><span class="t">Aktivacija</span><span class="th">orijentir <b class="num">50–60 %</b></span></div>
       <div class="bars">
         <!-- skala 0–100 % -->
+        <div class="bar"><span>Raub oglas</span><div class="track"><div class="fill ok" style="width:57%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>57 %</b> 102/180</span></div>
         <div class="bar"><span>Android</span><div class="track"><div class="fill ok" style="width:69%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>69 %</b> 45/65</span></div>
         <div class="bar"><span>Web org.</span><div class="track"><div class="fill warn" style="width:49%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>49 %</b> 31/63</span></div>
-        <div class="bar"><span>Raub oglas</span><div class="track"><div class="fill bad" style="width:41%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>41 %</b> 9/22</span></div>
         <div class="bar"><span>Kamp. 2</span><div class="track"><div class="fill bad" style="width:18%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>≥ 18 %</b> 80/446</span></div>
       </div>
-      <p class="g-note">Skala 0–100 %, „otvorio → zaigrao". Kampanja 2 je donja granica zbog rupe u podacima 1.4.5. Raub oglas (Instagram, od 22.11. u 14:31, 5 €): od 9 igrača Raub je izabralo 4, Belu 3, Poker 2, jer link još vodi na golu početnu. Pravi prag aktivacije se izvodi iz podataka u fazi 2.</p>
+      <p class="g-note">Skala 0–100 %, „otvorio → zaigrao". Raub oglas: web, prvih 17 sati (do 23.11. u 7:42), u rasponu orijentira. Android, web organski i kampanja 2 su očitanje od 22.11. Kampanja 2 je donja granica zbog rupe u podacima 1.4.5. Pravi prag aktivacije se izvodi iz podataka u fazi 2.</p>
     </div>
     <div class="gauge">
-      <div class="g-head"><span class="t">Angažman</span><span class="th">DAU/MAU prag <b class="num">20 %</b></span></div>
+      <div class="g-head"><span class="t">Angažman</span><span class="th">DAU/MAU prag <b class="num">20 %</b> · završeno <b class="num">70 %</b></span></div>
       <div class="bars">
-        <div class="bar"><span>DAU/MAU</span><div class="track"><div class="fill warn" style="width:38.6%"></div><div class="tick" style="left:40%"></div></div><span class="val num"><b>19 %</b> 39/204</span></div>
-        <div class="bar"><span>Raub</span><div class="track"><div class="fill bad" style="width:58.2%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>58 %</b> 245/421</span></div>
-        <div class="bar"><span>Žandar</span><div class="track"><div class="fill bad" style="width:61.2%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>61 %</b> 164/268</span></div>
+        <div class="bar"><span>DAU/MAU</span><div class="track"><div class="fill warn" style="width:36%"></div><div class="tick" style="left:40%"></div></div><span class="val num"><b>18 %</b> 59/332</span></div>
+        <div class="bar"><span>Raub</span><div class="track"><div class="fill bad" style="width:59%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>59 %</b> 346/589</span></div>
+        <div class="bar"><span>Žandar</span><div class="track"><div class="fill bad" style="width:61%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>61 %</b> 190/310</span></div>
+        <div class="bar"><span>Bela</span><div class="track"><div class="fill bad" style="width:63%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>63 %</b> 85/135</span></div>
       </div>
-      <p class="g-note">DAU/MAU: prosjek DAU 15.–21.11. ÷ igrači u 30 dana, skala 0–50 %, napumpan kampanjom. Danas do 15:46: 34 igrača. Raub i Žandar: završeni mečevi od 8.11., skala 0–100 %, prag 70 %. Poker do 22.11. nije pouzdan.</p>
+      <p class="g-note">DAU/MAU: prosjek DAU 16.–22.11. ÷ igrači u 30 dana, skala 0–50 %, napumpan kampanjom (22.11. je bilo 161 igrač). Ostalo: završeni ÷ započeti mečevi od 8.11., skala 0–100 %. Kohorta Raub oglasa na webu: samo 39 od 88 Raub mečeva završeno. Poker do 22.11. nije pouzdan.</p>
+    </div>
+    <div class="gauge">
+      <div class="g-head"><span class="t">Cijena po igraču</span><span class="th">Raub oglas · <b class="num">4,59 €</b> za 17 h</span></div>
+      <div class="bars">
+        <!-- skala 0–200 igrača -->
+        <div class="bar"><span>Otvorili</span><div class="track"><div class="fill warn" style="width:98%"></div></div><span class="val num"><b>196</b> 0,023 €</span></div>
+        <div class="bar"><span>Zaigrali</span><div class="track"><div class="fill ok" style="width:58.5%"></div></div><span class="val num"><b>117</b> 0,039 €</span></div>
+        <div class="bar"><span>Meč</span><div class="track"><div class="fill ok" style="width:28.5%"></div></div><span class="val num"><b>57</b> 0,081 €</span></div>
+        <div class="bar"><span>3+ meča</span><div class="track"><div class="fill ok" style="width:15.5%"></div></div><span class="val num"><b>31</b> 0,15 €</span></div>
+      </div>
+      <p class="g-note">Skala 0–200 igrača. Web i Android zajedno (isti čovjek može imati dva ID-a). CTR 6,2 %, frekvencija 1,2: oglas nije zasićen. Poređenja radi: kampanja 2 ≤ 0,31 €, kampanja 1 4,15 € po igraču koji je zaigrao. Prva igra na webu: Raub 46, Bela 28, Poker 12, Žandar 11, jer link vodi na početnu.</p>
     </div>
   </div>
+  <p class="rule"><b>Očitanje 23.11.:</b> dolazak radi i jeftin je (0,04 € po igraču koji zaigra), ali Raub na webu gubi ljude usred partije. Bela, koja nije reklamirana, završava više mečeva od Rauba. Kandidati za glavnu igru su Raub i Bela. Sljedeći Raub oglas vodi na <code>?igra=raub</code>; budžet ostaje 5–10 € dnevno, ciljanje se ne mijenja do presude.</p>
 </section>
 
 <!-- Faze -->
@@ -228,29 +250,30 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
     <p class="lede">Svaka faza ima ulaz, rad i izlaz. Iznose budžeta određuje vlasnik; plan kaže samo koliko podataka treba.</p></div>
   <div class="track-phases">
 
-    <div class="phase current">
+    <div class="phase">
       <div class="rail"><span class="node">0</span><span class="line"></span></div>
       <div class="card">
-        <div class="card-top"><h3>Čisti podaci</h3><span class="goal-tag">PMF · sada</span></div>
+        <div class="card-top"><h3>Čisti podaci</h3><span class="goal-tag">PMF · ostalo 3 stavke</span></div>
         <ul class="check" style="margin:0;font-size:14px;display:flex;flex-direction:column;gap:4px">
           <li class="x">1.4.6 šalje klijentske događaje (od 20.11.)</li>
           <li class="x"><span><code class="num">/?igra=&lt;igra&gt;</code> stavlja igru na vrh web početne (22.11.)</span></li>
-          <li>Svaka kampanja po igri vodi na <code class="num">kartaonica.com/?igra=…</code></li>
+          <li>Svaka kampanja po igri vodi na <code class="num">kartaonica.com/?igra=…</code> (Raub oglas još vodi na početnu)</li>
           <li>Izdvojiti vlasnikove uređaje i testne naloge</li>
           <li>Sačuvan upit „kohorta po kampanji"</li>
         </ul>
       </div>
     </div>
 
-    <div class="phase next">
+    <div class="phase current">
       <div class="rail"><span class="node">1</span><span class="line"></span></div>
       <div class="card">
-        <div class="card-top"><h3>Koja igra nosi</h3><span class="goal-tag">PMF</span></div>
+        <div class="card-top"><h3>Koja igra nosi</h3><span class="goal-tag">PMF · sada, od 22.11.</span></div>
         <div class="io">
-          <div><p class="k">Ulaz</p><p>Faza 0 gotova</p></div>
-          <div><p class="k">Rad</p><ul><li>Kampanja po igri: Raub, Žandar, Poker, Bela</li><li>Isti format oglasa, link sa <code>?igra=</code></li></ul></div>
-          <div><p class="k">Izlaz</p><p>n ≥ 100 po igri + 7 dana → D1, D7 i cijena po igraču. Najbolja postaje <b>glavna igra</b>.</p></div>
+          <div><p class="k">Ulaz</p><p>Faza 0 gotova (ostale 3 stavke idu usput)</p></div>
+          <div><p class="k">Rad</p><ul><li>Raub oglas (od 22.11. u 14:31) i Bela za dijasporu</li><li>Link sa <code>?igra=</code>, 5–10 € dnevno</li><li>Produkcija zamrznuta za nove igrače ~10–14 dana</li></ul></div>
+          <div><p class="k">Izlaz</p><p>150–200 igrača po kandidatu + 7 dana → D1, D7 i cijena po igraču. Najbolja postaje <b>glavna igra</b>.</p></div>
         </div>
+        <p class="fail">Stanje 23.11.: Raub ~120 igrača kojima je to prva igra (od 1.11.), Bela ~40. Kandidati: <b style="color:var(--ink)">Raub i Bela</b>.</p>
       </div>
     </div>
 
@@ -260,7 +283,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
         <div class="card-top"><h3>Povratak na glavnoj igri</h3><span class="goal-tag">PMF</span></div>
         <div class="io">
           <div><p class="k">Ulaz</p><p>Izabrana glavna igra</p></div>
-          <div><p class="k">Rad</p><ul><li>Prag aktivacije iz podataka</li><li>Manje napuštanja (Raub 41 %, Žandar 38 %)</li><li>Push podsjetnici sa kontrolnom grupom</li><li>Prvi dan: tempo i težina za nove</li></ul></div>
+          <div><p class="k">Rad</p><ul><li>Prag aktivacije iz podataka</li><li>Manje napuštanja (Raub 41 %, Žandar 39 %, Bela 37 %)</li><li>Push podsjetnici sa kontrolnom grupom</li><li>Prvi dan: tempo i težina za nove</li></ul></div>
           <div><p class="k">Izlaz</p><p>D1 ≥ 35 % i D7 ≥ 15 % na glavnoj igri, n ≥ 100</p></div>
         </div>
       </div>
@@ -356,5 +379,5 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
   </div>
 </section>
 
-<footer>Izvor: <code>docs/PMF_PLAN.md</code> (pragovi su odluka vlasnika od 21.11.2026). Brojke su iz PostHoga, produkcija, osvježene 22.11.2026. u 15:46.</footer>
+<footer>Izvor: <code>docs/PMF_PLAN.md</code> (pragovi su odluka vlasnika od 21.11.2026). Brojke su iz PostHoga, produkcija, osvježene 23.11.2026. u 9:03; Raub oglas iz Mete i PostHoga u 7:42. Vlasnikovi uređaji još nisu izdvojeni. Zadaci: <a href="https://claude.ai/artifact/Ec4Gq48ntt6YWcxSFsLAir" target="_blank" rel="noopener">tabla</a>.</footer>
 </div>
