@@ -2965,10 +2965,43 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 
 **Mjereno:** typecheck, web 334 testa, lint dodirnutih fajlova čist. Build i prikaz u pregledaču nisu rađeni. Aplikacija dobija pravne stranice tek novim AAB-om (izvezene su u paket).
 
-<<<<<<< HEAD
+## 231. Dozvola za obavještenja: list sa razlogom protiv direktnog pitanja (A/B), čuvanje zadnje prilike, granica kartice (2026-11-27, `feat/push-soft-ask`)
+
+**Povod:** pregled 1.5.1 u PostHog-u (od 24.11. 18h). Direktno pitanje na kraju prve partije (changelog 223) dalo je 30 „Dozvoli" od 210 (14 %), 3 konačna odbijanja, a 177 je ostalo `prompt` — `toPermission` je `prompt-with-rationale` (Android 13+ poslije prvog „Ne dozvoli" ili zatvorenog dijaloga) brojao kao `prompt`. Odluka iz 223 („10 od 12") bila je na premalom broju. Dozvolu ima 65 od 316 igrača 1.5.1 (21 %). Kartica `match_end` 383 prikaza za 105 ljudi → 1 „Uključi"; `home_return` 6/85; `host` 1/21. Tekst je obećavao pozive i kucanje na sto, a većina igra brzu partiju bez prijatelja.
+
+**Šta (odluka vlasnika 27.11.2026: A/B; obećanje „revanš i partija u tvoje vrijeme"):**
+- **A/B prvog pitanja** (`lib/pushAsk.ts`): `assignPushAskArm` daje novom uređaju (dozvola `prompt`, prva prilika nepotrošena) grupu jednom, 50/50 (`PUSH_ASK_SOFT_SHARE`, `zandar:push:askArm`). `direct` = kao 1.5.1, `soft` = `components/push/PushSoftAsk.tsx` (list na `Sheet`-u, portal na `body` jer kraj meča animira `transform`): „Revanš kad tebi odgovara?", **Da, javi mi** → sistemski dijalog (`context: "match_end_soft"`), **Ne sada** → `snoozePrompt()`, sistemska prilika se ne troši. Stari uređaji ostaju van testa. `capturePush` dodaje `ask_arm` na svaki push događaj i `$set_once: { push_ask_arm }` na osobu.
+- **Zadnja prilika:** `decideMatchEndAsk` za sirovo `prompt-with-rationale` vraća `soft` i u grupi `direct`.
+- **Granica kartice:** `match_end` najviše jednom dnevno i 5 puta (`MATCH_END_CARD_MAX_SHOWS`, brojači `zandar:push:cardShows|cardDay:<context>`). Tekst kartice = tekst lista.
+- **Mjerenje:** `push_state` i `push_permission_result` nose `raw` i `android_sdk`, `push_state` i `os_enabled`, iz nove `NotificationSettings.info()` (`Build.VERSION.SDK_INT`, `NotificationManagerCompat.areNotificationsEnabled()`). Stari paket nema metodu → polja izostaju.
+
+**Odstupanje od plana:** naslov lista nema ime igre („Revanš u Žandru?") — `PushPrompt` ne zna igru, a mjesta upotrebe u 4 igre namjerno nisu dirana. `docs/analytics.md` ne opisuje push događaje (to radi SPEC_PUSH_V2 A5), pa je dopunjen spec.
+
+**Čitanje (produkcija):** funnel po `push_ask_arm`, od prvog `push_state` do `push_permission_result.result = granted` u 7 dana; presuda na ~100 uređaja po grupi (~3–4 dana); zaštitna metrika D1 po grupi. Pobjednik → `PUSH_ASK_SOFT_SHARE` 0 ili 1. `android_sdk ≤ 32` isključiti iz poređenja (dozvola stiže sama u obje grupe).
+
+**Doseg:** samo aplikacija (izuzetak za push), AAB 1.5.2 = `versionCode 16`. Web (`pushEnabled === false`) i server netaknuti.
+
+**Mjereno:** web 380 testova (13 u `pushAsk.test.ts`), typecheck, lint = osnovica (4/2), `apk:staging -- --webpack` prolazi (Java `info()` se kompajlira). Na uređaju nije provjereno; S10e je Android 12, pa list i sistemski dijalog treba vidjeti na Androidu 13+.
+
+## 232. Paket 1.5.2: Raub „Idem” sa cijenom, ponuda na povratku, utisak, ime na sjedištu, Bela do 1001 (2026-11-27, `feat/build-1-5-2`)
+
+**Povod:** vlasnik, 27.11.2026 — šta još mora u sljedeći paket (1.5.2 = `versionCode 16`, uz A/B iz 231).
+
+**Šta:**
+- **Raub „Idem / Ne idem” kaže cijenu** (QA 2026-11-09 P1, visok). Napomena na dugmadima po obrascu „Raub · moraš 2 štiha”: **Ne idem · 0 bodova**, **Idem · bez štiha +2** (×2 poslije refe: +4; panel `going` dobija `double` iz `multiplier`). Brojke iz `raubScoreDelta`; pravila netaknuta. Prvi tekst „−1 po štihu · bez štiha +2” je na 360 px gurao „Idem” van ekrana (izmjereno CDP-om), pa je ostala samo kazna — ona iznenađuje.
+- **Ponuda na povratku** (`home_return`, 6/85): isti tekst kao kraj partije i list iz 231 („Revanš kad tebi odgovara?”). `host`/`guest`/`waiting`/`friends`/`invite_missed` ostaju — obećavaju ono što igrač tada čeka.
+- **Utisak, prazno slanje** (QA 11-09 P9): „Pošalji” više nije sivo zbog praznog polja; slanje kaže „Napiši bar par riječi.” i stavlja fokus u polje (obrazac „Sjedi za sto”, changelog 180).
+- **Ime na bočnom sjedištu** (QA 11-09 B9, 10-24 B9): `overflow-wrap: anywhere` → `break-word`, a `PlayerSeat` stavlja `<wbr>` na spoj velikim slovom (`lib/seatName.ts`, `nameBreakParts`): „KomandantŠef” → „Komandant / Šef”, ne „Komanda / ntŠef”. Riječ se lomi tek kad dio sam ne stane u red. Svi stolovi (isti `PlayerSeat`).
+- **Bela do 1001** (odluka vlasnika, bela-spec odluka 19): Profil → Moje igre → Bela nudi „Igra se do 501 / 1001” (`lib/belaTarget.ts`, ključ `kartaonica:bela:target`, podrazumijevano 501); red pod igrom „do 501 · Klasik”, „Igraj · do 1001”. `startQuickPlay` šalje `belaTarget`; „Novi sto” poslije partije isti cilj. Server: `parseBelaQuickTarget` (501 | 1001, inače 501, nikad 400), `seatGameQuickPlay` upisuje cilj u `rulesConfig.targetScore` i spaja samo isti izbor, `belaTargetFor` za javni sto 1001 samo kad je upisan, inače 501 (hidrirani stolovi sa 21 ostaju 501). `play_requested` nosi `target_score` za Belu. Pravila Bele u igri pominju izbor.
+- QA 11-09 P8 („Nazad na igru”) je već bio riješen Profilom v0.3 — samo označen.
+
+**Mjereno:** web 386 testova (`seatName`, `belaTarget`, `profileView`, `raubView`), server 371, typecheck, lint = osnovica (4/2); lokalni server + curl: dva zahtjeva sa `belaTarget: 1001` u isti sto (cilj 1001), 501 i zahtjev bez polja u drugi (501). CDP 360×740 (prava mobilna emulacija; goli `--window-size` u headless Chrome-u crta na ≥ 500 px i reže snimak — lažan „overflow”): Raub panel, prazan utisak, Profil → Bela. Na uređaju nije provjereno.
+
+**Redoslijed izdanja:** server (deploy) prije paketa, inače paket šalje `belaTarget` koji stari server ignoriše → 501 (ništa ne puca).
+
 ## 234. „Završena partija" samo kad je igrač stvarno igrao; rok za „Sljedeća ruka" (2026-11-27, `fix/afk-match-end`)
 
-(Brojeve 231 i 232 zauzimaju `feat/push-soft-ask` i `docs/spec-statistika`, koji još nisu spojeni.)
+(Broj 233 je ostavljen za `docs/spec-statistika`, koji još nije spojen.)
 
 **Povod:** pisanje spec-a za statistiku (changelog 233) otvorilo je pitanje da li PostHog i profil broje partije koje igrač nije igrao.
 
@@ -3012,39 +3045,3 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Poslije deploya, za sedmicu:** udio `afk: true` po igri i raspodjela `auto_moves / (manual_moves + auto_moves)`.
 
 **Dopuna istog dana (odluka vlasnika):** rok od 10 min za „Sljedeća ruka" važi samo kad čovjek igra sam protiv botova — tačno jedno ljudsko sjedište (`stallApplies` u `afk.ts`). Čim za stolom sjede dva čovjeka (i uz botove), roka nema i host kontroliše tempo; takav sto i dalje zatvara samo sweeper (12 h). `handEndedAt` se bilježi za svaki sto, pa sweeper i tada šalje `stalled` sa trajanjem do kraja zadnje ruke. Testovi: `stallApplies` i sto sa dva čovjeka u Raubu i Beli (bez prekida poslije roka); server 393. Raub E2E (1 čovjek + bot, `NEXT_HAND_IDLE_MS=4000`) i dalje zatvara sto 4 s poslije kraja ruke.
-=======
-## 231. Dozvola za obavještenja: list sa razlogom protiv direktnog pitanja (A/B), čuvanje zadnje prilike, granica kartice (2026-11-27, `feat/push-soft-ask`)
-
-**Povod:** pregled 1.5.1 u PostHog-u (od 24.11. 18h). Direktno pitanje na kraju prve partije (changelog 223) dalo je 30 „Dozvoli" od 210 (14 %), 3 konačna odbijanja, a 177 je ostalo `prompt` — `toPermission` je `prompt-with-rationale` (Android 13+ poslije prvog „Ne dozvoli" ili zatvorenog dijaloga) brojao kao `prompt`. Odluka iz 223 („10 od 12") bila je na premalom broju. Dozvolu ima 65 od 316 igrača 1.5.1 (21 %). Kartica `match_end` 383 prikaza za 105 ljudi → 1 „Uključi"; `home_return` 6/85; `host` 1/21. Tekst je obećavao pozive i kucanje na sto, a većina igra brzu partiju bez prijatelja.
-
-**Šta (odluka vlasnika 27.11.2026: A/B; obećanje „revanš i partija u tvoje vrijeme"):**
-- **A/B prvog pitanja** (`lib/pushAsk.ts`): `assignPushAskArm` daje novom uređaju (dozvola `prompt`, prva prilika nepotrošena) grupu jednom, 50/50 (`PUSH_ASK_SOFT_SHARE`, `zandar:push:askArm`). `direct` = kao 1.5.1, `soft` = `components/push/PushSoftAsk.tsx` (list na `Sheet`-u, portal na `body` jer kraj meča animira `transform`): „Revanš kad tebi odgovara?", **Da, javi mi** → sistemski dijalog (`context: "match_end_soft"`), **Ne sada** → `snoozePrompt()`, sistemska prilika se ne troši. Stari uređaji ostaju van testa. `capturePush` dodaje `ask_arm` na svaki push događaj i `$set_once: { push_ask_arm }` na osobu.
-- **Zadnja prilika:** `decideMatchEndAsk` za sirovo `prompt-with-rationale` vraća `soft` i u grupi `direct`.
-- **Granica kartice:** `match_end` najviše jednom dnevno i 5 puta (`MATCH_END_CARD_MAX_SHOWS`, brojači `zandar:push:cardShows|cardDay:<context>`). Tekst kartice = tekst lista.
-- **Mjerenje:** `push_state` i `push_permission_result` nose `raw` i `android_sdk`, `push_state` i `os_enabled`, iz nove `NotificationSettings.info()` (`Build.VERSION.SDK_INT`, `NotificationManagerCompat.areNotificationsEnabled()`). Stari paket nema metodu → polja izostaju.
-
-**Odstupanje od plana:** naslov lista nema ime igre („Revanš u Žandru?") — `PushPrompt` ne zna igru, a mjesta upotrebe u 4 igre namjerno nisu dirana. `docs/analytics.md` ne opisuje push događaje (to radi SPEC_PUSH_V2 A5), pa je dopunjen spec.
-
-**Čitanje (produkcija):** funnel po `push_ask_arm`, od prvog `push_state` do `push_permission_result.result = granted` u 7 dana; presuda na ~100 uređaja po grupi (~3–4 dana); zaštitna metrika D1 po grupi. Pobjednik → `PUSH_ASK_SOFT_SHARE` 0 ili 1. `android_sdk ≤ 32` isključiti iz poređenja (dozvola stiže sama u obje grupe).
-
-**Doseg:** samo aplikacija (izuzetak za push), AAB 1.5.2 = `versionCode 16`. Web (`pushEnabled === false`) i server netaknuti.
-
-**Mjereno:** web 380 testova (13 u `pushAsk.test.ts`), typecheck, lint = osnovica (4/2), `apk:staging -- --webpack` prolazi (Java `info()` se kompajlira). Na uređaju nije provjereno; S10e je Android 12, pa list i sistemski dijalog treba vidjeti na Androidu 13+.
-
-## 232. Paket 1.5.2: Raub „Idem” sa cijenom, ponuda na povratku, utisak, ime na sjedištu, Bela do 1001 (2026-11-27, `feat/build-1-5-2`)
-
-**Povod:** vlasnik, 27.11.2026 — šta još mora u sljedeći paket (1.5.2 = `versionCode 16`, uz A/B iz 231).
-
-**Šta:**
-- **Raub „Idem / Ne idem” kaže cijenu** (QA 2026-11-09 P1, visok). Napomena na dugmadima po obrascu „Raub · moraš 2 štiha”: **Ne idem · 0 bodova**, **Idem · bez štiha +2** (×2 poslije refe: +4; panel `going` dobija `double` iz `multiplier`). Brojke iz `raubScoreDelta`; pravila netaknuta. Prvi tekst „−1 po štihu · bez štiha +2” je na 360 px gurao „Idem” van ekrana (izmjereno CDP-om), pa je ostala samo kazna — ona iznenađuje.
-- **Ponuda na povratku** (`home_return`, 6/85): isti tekst kao kraj partije i list iz 231 („Revanš kad tebi odgovara?”). `host`/`guest`/`waiting`/`friends`/`invite_missed` ostaju — obećavaju ono što igrač tada čeka.
-- **Utisak, prazno slanje** (QA 11-09 P9): „Pošalji” više nije sivo zbog praznog polja; slanje kaže „Napiši bar par riječi.” i stavlja fokus u polje (obrazac „Sjedi za sto”, changelog 180).
-- **Ime na bočnom sjedištu** (QA 11-09 B9, 10-24 B9): `overflow-wrap: anywhere` → `break-word`, a `PlayerSeat` stavlja `<wbr>` na spoj velikim slovom (`lib/seatName.ts`, `nameBreakParts`): „KomandantŠef” → „Komandant / Šef”, ne „Komanda / ntŠef”. Riječ se lomi tek kad dio sam ne stane u red. Svi stolovi (isti `PlayerSeat`).
-- **Bela do 1001** (odluka vlasnika, bela-spec odluka 19): Profil → Moje igre → Bela nudi „Igra se do 501 / 1001” (`lib/belaTarget.ts`, ključ `kartaonica:bela:target`, podrazumijevano 501); red pod igrom „do 501 · Klasik”, „Igraj · do 1001”. `startQuickPlay` šalje `belaTarget`; „Novi sto” poslije partije isti cilj. Server: `parseBelaQuickTarget` (501 | 1001, inače 501, nikad 400), `seatGameQuickPlay` upisuje cilj u `rulesConfig.targetScore` i spaja samo isti izbor, `belaTargetFor` za javni sto 1001 samo kad je upisan, inače 501 (hidrirani stolovi sa 21 ostaju 501). `play_requested` nosi `target_score` za Belu. Pravila Bele u igri pominju izbor.
-- QA 11-09 P8 („Nazad na igru”) je već bio riješen Profilom v0.3 — samo označen.
-
-**Mjereno:** web 386 testova (`seatName`, `belaTarget`, `profileView`, `raubView`), server 371, typecheck, lint = osnovica (4/2); lokalni server + curl: dva zahtjeva sa `belaTarget: 1001` u isti sto (cilj 1001), 501 i zahtjev bez polja u drugi (501). CDP 360×740 (prava mobilna emulacija; goli `--window-size` u headless Chrome-u crta na ≥ 500 px i reže snimak — lažan „overflow”): Raub panel, prazan utisak, Profil → Bela. Na uređaju nije provjereno.
-
-**Redoslijed izdanja:** server (deploy) prije paketa, inače paket šalje `belaTarget` koji stari server ignoriše → 501 (ništa ne puca).
-
->>>>>>> origin/main
