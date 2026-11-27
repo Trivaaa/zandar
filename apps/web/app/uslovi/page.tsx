@@ -4,8 +4,8 @@ import { LegalPage, LegalSection } from "@/components/legal/LegalPage";
 import { CONTACT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
-  title: "Uslovi korišćenja — Žandar",
-  description: "Pravila korišćenja igre Žandar na kartaonica.com.",
+  title: "Uslovi korišćenja — Kartaonica",
+  description: "Pravila korišćenja Kartaonice (kartaonica.com i mobilna aplikacija).",
 };
 
 /**
@@ -18,10 +18,11 @@ export const metadata: Metadata = {
  */
 export default function UsloviPage() {
   return (
-    <LegalPage title="Uslovi korišćenja" updated="8. septembar 2026.">
+    <LegalPage title="Uslovi korišćenja" updated="24. novembar 2026.">
       <p>
-        Korišćenjem igre Žandar (kartaonica.com i mobilna aplikacija)
-        prihvataš uslove ispod. Ako se ne slažeš, nemoj koristiti igru.
+        Korišćenjem Kartaonice (kartaonica.com i mobilna aplikacija) i igara
+        na njoj prihvataš uslove ispod. Ako se ne slažeš, nemoj koristiti
+        Kartaonicu.
       </p>
 
       <LegalSection title="Ko može da igra">
@@ -50,8 +51,8 @@ export default function UsloviPage() {
         <p>
           Žetoni u igri su isključivo ukrasni. Nemaju novčanu vrijednost, ne
           mogu se kupiti za pravi novac, ne mogu se prodati, prenijeti ni
-          zamijeniti za novac ili bilo šta van igre. Žandar nije kockanje i ne
-          nudi igre na sreću za novac.
+          zamijeniti za novac ili bilo šta van igre. Kartaonica nije kockanje i
+          ne nudi igre na sreću za novac.
         </p>
       </LegalSection>
 

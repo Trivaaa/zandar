@@ -7,7 +7,7 @@ import { BRAND, CONTACT_EMAIL, LEGAL_NAME, PUBLISHER } from "@/lib/contact";
 import { identityUi } from "@/lib/features";
 
 export const metadata: Metadata = {
-  title: "Brisanje podataka — Žandar",
+  title: "Brisanje podataka — Kartaonica",
   description:
     "Kako zatražiti brisanje podataka koje Kartaonica čuva, šta se briše i u kom roku.",
   alternates: { canonical: "https://kartaonica.com/delete-account" },
@@ -32,10 +32,10 @@ export default function DeleteAccountPage() {
   return (
     <LegalPage
       title={identityUi ? "Brisanje naloga i podataka" : "Brisanje podataka"}
-      updated="31. oktobar 2026."
+      updated="24. novembar 2026."
     >
       <p>
-        Ova stranica se odnosi na <strong>{BRAND}</strong> i igru Žandar
+        Ova stranica se odnosi na <strong>{BRAND}</strong> i sve igre na njoj
         (kartaonica.com i Android aplikacija), koje izdaje {PUBLISHER} (
         {LEGAL_NAME}).
       </p>
@@ -180,7 +180,7 @@ export default function DeleteAccountPage() {
           traži nas.
         </p>
         <p>
-          Na Androidu: <em>Podešavanja → Aplikacije → Žandar → Memorija →
+          Na Androidu: <em>Podešavanja → Aplikacije → Kartaonica → Memorija →
           Obriši podatke</em>. Time gubiš i pristup partijama koje su u toku.
         </p>
       </LegalSection>

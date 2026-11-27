@@ -8,13 +8,14 @@ import {
   ADDRESS_STREET,
   BRAND,
   CONTACT_EMAIL,
-  GAME,
   LEGAL_NAME,
   PUBLISHER,
 } from "@/lib/contact";
+import { GAMES } from "@/lib/games";
+import { listJoin, sr } from "@/lib/sr";
 
 export const metadata: Metadata = {
-  title: "O nama i kontakt — Žandar",
+  title: "O nama i kontakt — Kartaonica",
   description:
     "Kartaonica je projekat Tricoma iz Banje Luke. Pravni podaci, kontakt i šta aplikacija trenutno nudi.",
   alternates: { canonical: "https://kartaonica.com/o-nama" },
@@ -27,16 +28,19 @@ export const metadata: Metadata = {
  * pravni naziv i adresu sa sajta sa onim sto stoji u payments profilu, pa ovi
  * podaci moraju biti javni i doslovni (`lib/contact.ts` je jedini izvor).
  *
- * Opisuje SAMO ono sto aplikacija danas radi. Buduce igre se ne pominju kao
- * dostupne — brend jeste "Kartaonica", ali je Zandar trenutno jedina igra.
+ * Opisuje SAMO ono sto aplikacija danas radi: spisak igara dolazi iz `GAMES`
+ * (samo `live`), pa najavljene igre ne stoje kao dostupne.
  */
+const LIVE_GAMES = listJoin(
+  GAMES.filter((g) => g.status === "live").map((g) => sr.games[g.slug].name),
+);
+
 export default function ONamaPage() {
   return (
-    <LegalPage title="O nama i kontakt" updated="13. septembar 2026.">
+    <LegalPage title="O nama i kontakt" updated="24. novembar 2026.">
       <p>
         <strong>{BRAND}</strong> je projekat {PUBLISHER}a, male firme iz Banje
-        Luke. {GAME} je prva i <strong>trenutno jedina</strong> igra na
-        Kartaonici.
+        Luke. Na Kartaonici se igraju {LIVE_GAMES}.
       </p>
 
       <LegalSection title="Šta aplikacija nudi">

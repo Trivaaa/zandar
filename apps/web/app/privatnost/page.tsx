@@ -6,7 +6,7 @@ import {
 } from "@/components/legal/PrivacyPolicyBody";
 
 export const metadata: Metadata = {
-  title: "Politika privatnosti — Žandar",
+  title: "Politika privatnosti — Kartaonica",
   description:
     "Koje podatke Kartaonica prikuplja, zašto, kome ih prosljeđuje i kako ih obrišeš.",
   // Apsolutni URL: `app/layout.tsx` nema `metadataBase`, pa bi relativan

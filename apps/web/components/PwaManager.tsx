@@ -150,7 +150,7 @@ function PwaBanner() {
         </>
       ) : (
         <>
-          <span className="text-sm text-white">Instaliraj Žandar</span>
+          <span className="text-sm text-white">Instaliraj Kartaonicu</span>
           <button
             type="button"
             onClick={doInstall}

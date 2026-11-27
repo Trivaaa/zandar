@@ -95,7 +95,7 @@ export function DeleteAccountScreen() {
           <h1 className="acct__title">{sr.deleteAccount.doneTitle}</h1>
           <p className="acct__body">{sr.deleteAccount.doneBody}</p>
           <button type="button" className="home__cta acct__submit" onClick={() => router.replace("/")}>
-            {sr.deleteAccount.playZandar}
+            {sr.deleteAccount.backHome}
           </button>
         </div>
       </main>

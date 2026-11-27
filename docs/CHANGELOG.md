@@ -2954,3 +2954,13 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Šta je urađeno:** `belaAboveHand` (prima i `deck`, podrazumijevano mađarice) bira tekst kroz `belaHoldingNote`: dok su obje karte u ruci „Imaš belu · +20 se upiše sama", a kad je jedna bačena „Baci K♥ · bela +20 se upiše sama" (kratko, jer `.bl-note` na 360 px ima ~240 px) (karta preko `cardLabel`, ekran znak boje mijenja ikonicom). Nov string `sr.bela.decl.holdingLast`. Samo web/prikaz, server netaknut.
 
 **Provjereno:** web 372 testa (nov test: preostali K, preostala O, klasične karte), typecheck, lint izmijenjenih fajlova čist. **Nije provjereno:** snimak na uređaju (dužina pilule na 360 px). Aplikacija dobija tekst tek novim paketom.
+
+## 230. Kartaonica umjesto Žandra kao ime aplikacije (2026-11-24, `fix/brand-kartaonica`)
+
+**Povod:** na MacBooku je kartaonica.com nudio „Instaliraj Žandar". Ponudu za instalaciju (`PwaManager`, `beforeinstallprompt`) Chrome i Edge prikazuju na desktopu; na Androidu je ugašena u korist ponude aplikacije, pa se na telefonu nije vidjela.
+
+**Šta:** svuda gdje je Žandar stajao kao ime aplikacije sada piše Kartaonica: ponuda za instalaciju („Instaliraj Kartaonicu"), naslov i opis sajta (`layout.tsx`), naslovi i tekst pravnih stranica (`/privatnost`, `/privacy`, `/uslovi`, `/delete-account`, `/o-nama`, `PrivacyPolicyBody`). Pravne stranice imaju nov datum (24. novembar 2026.). Ispravljene i dvije netačnosti: put za brisanje podataka na Androidu („Aplikacije → Kartaonica", aplikacija se tako i zove) i „Žandar je prva i trenutno jedina igra" na `/o-nama` — rečenica sada nabraja žive igre iz `GAMES` (`listJoin` je izvezen iz `sr.ts`), pa ne može ponovo zastarjeti. Dugmad „Igraj Žandar" (poslije brisanja naloga) i „Nazad na Žandar" (`/igre/[slug]`) vode na početnu i sad tako i kažu („Nazad na početnu"). Uklonjen `GAME` iz `lib/contact.ts`.
+
+**Namjerno ostaje:** Žandar kao ime igre (kartica, pravila, sto, push podsjetnici) i pregled linka koji nabraja igre („Kartaonica — Žandar, Raub, Poker", `og-share.jpg`). Interna imena (`com.kartaonica.zandar`, `@zandar/*`, ključevi u localStorage, `/zandar/room/`) se ne mijenjaju.
+
+**Mjereno:** typecheck, web 334 testa, lint dodirnutih fajlova čist. Build i prikaz u pregledaču nisu rađeni. Aplikacija dobija pravne stranice tek novim AAB-om (izvezene su u paket).
