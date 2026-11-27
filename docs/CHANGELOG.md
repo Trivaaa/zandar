@@ -2934,3 +2934,16 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 - web: natpis faze je „Zamjena” i za ponudu sedmice poslije zamjene (bio je „Licitacija” još od odluke 29); dugme „Zamijeni 7” drži natpis u jednom omotaču (grid je razdvajao tekst i znak boje); tekst pravila; `/dev/raub?s=mojaSeven` sada pokazuje ponudu na kraju.
 
 **Provjereno:** game-core 554, server 369, web 371 testova; typecheck. Simulacija 10.000 × 4P i 5.000 × 2P: 0 grešaka (4P medijan 23 ruke, refa 2,0 %). Headless snimak `/dev/raub?s=mojaSeven&n=2`. **Nije provjereno:** uređaj. Promjena pravila je u motoru na serveru, pa je dovoljan deploy servera; natpis i dugme stižu u aplikaciju tek novim paketom.
+
+## 228. Raub odluka 38: Štih na prvu sedmicu samo djelilac (2026-11-25, `fix/raub-seven-dealer-only`)
+
+**Povod:** prijava igrača sa snimkom — prva okrenuta karta VII, djelilac kaže „Dalje”, a sljedećem igraču sto nudi „Štih · moraš 1 štih”. Igrač: „štihovat može samo diler odma na prvu kartu ako je sedmica … ja mogu samo zaustaviti”. To je bilo ponašanje odluke 32 (21.11.2026, takođe po prijavi igrača); vlasnik 25.11.2026 bira novo pravilo, odluka 32 je zamijenjena.
+
+**Pravilo:** na djeliočevo „Dalje” ista sedmica ide u običnu licitaciju, kao sedmica kao druga karta (odluka 36): ostali redom „Moja” (nosi tu boju, mora 2; karta ostaje na talonu jer drugu sedmicu te boje niko nema) ili „Dalje”. Djelilac je već odgovorio i ne pita se ponovo; kad svi kažu „Dalje”, okreće se druga karta.
+
+**Kod (samo game-core):** `applyRaubAction` `stih`/`take: false` uz `sevenPassToBidding` i djelioca na potezu: `seat.bid = "pass"`, `step = "bidding"`, na potezu sljedeći poslije djelioca (licitacija podrazumijevano kreće od djelioca, `firstBidder: "dealer"`, pa se krug samo nastavlja; postojeća provjera „svi pass → `flipNext`” ga zatvara prije djelioca). `raubCanMoja` je sedmicu već puštao (odluka 36), `raubCanRaub` je odbija, `raubCanRefa` traži `bid == null`, djelilac vidi karte. Parametar `sevenPassToBidding` (bez polja = da) ima prednost nad `sevenOpenToAll`; ruka zatečena pri deployu sa ne-djeliocem u krugu Štiha završava starim putem (test). Bez novog polja u stanju i protokolu — APK 1.5.1 crta „Moja / Dalje” iz `bidOptions`. Tekst pravila u `RaubRules.tsx` ispravljen (aplikacija ga dobija tek novim paketom).
+
+**Provjereno:** game-core 552 (blok odluke 32 sad testira stari put uz `sevenPassToBidding: false`; novi blok odluke 38: licitacija na istoj karti, Moja → mora 2 i karta na talonu, svi Dalje → druga karta, 2P, Refa, zatečena ruka, bot), server 369, web 371, typecheck. Simulacija 10.000 × 4P: 0 grešaka karata/štihova/akcija, medijan 23 ruke (isto), refa 2,7 → 2,1 %, Štih 29,4k → 21,0k (nazad na nivo prije odluke 32). **Nije provjereno na uređaju.** Deploy: samo server.
+
+**Napomena:** u glavnom folderu je istovremeno bio nekomitovan rad na odluci 37 (`mojaSevenAtEnd`, grana `fix/raub-moja-seven-at-end`) — ovo je rađeno u zasebnom worktree-u `zandar-seven`; spajanje dodiruje iste blokove (`config.ts`, `rulesV2`, tipovi, spec, changelog).
+

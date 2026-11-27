@@ -61,6 +61,9 @@ export const DEFAULT_RAUB_RULES: Omit<RaubRules, "playerCount"> = {
   // Odluka 37 (vlasnik, 25.11.2026, po prijavi igrača): sedmica se daje za
   // kartu s talona tek kad su svi zamijenili — i kod „Moja” sa sedmicom.
   mojaSevenAtEnd: true,
+  // Odluka 38 (vlasnik, 25.11.2026, po prijavi igrača; zamjenjuje 32): Štih na
+  // prvu sedmicu samo djelilac; poslije njegovog „Dalje" ostali „Moja"/„Dalje".
+  sevenPassToBidding: true,
 };
 
 /**
