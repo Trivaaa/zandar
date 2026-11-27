@@ -2982,3 +2982,20 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Doseg:** samo aplikacija (izuzetak za push), AAB 1.5.2 = `versionCode 16`. Web (`pushEnabled === false`) i server netaknuti.
 
 **Mjereno:** web 380 testova (13 u `pushAsk.test.ts`), typecheck, lint = osnovica (4/2), `apk:staging -- --webpack` prolazi (Java `info()` se kompajlira). Na uređaju nije provjereno; S10e je Android 12, pa list i sistemski dijalog treba vidjeti na Androidu 13+.
+
+## 232. Paket 1.5.2: Raub „Idem” sa cijenom, ponuda na povratku, utisak, ime na sjedištu, Bela do 1001 (2026-11-27, `feat/build-1-5-2`)
+
+**Povod:** vlasnik, 27.11.2026 — šta još mora u sljedeći paket (1.5.2 = `versionCode 16`, uz A/B iz 231).
+
+**Šta:**
+- **Raub „Idem / Ne idem” kaže cijenu** (QA 2026-11-09 P1, visok). Napomena na dugmadima po obrascu „Raub · moraš 2 štiha”: **Ne idem · 0 bodova**, **Idem · bez štiha +2** (×2 poslije refe: +4; panel `going` dobija `double` iz `multiplier`). Brojke iz `raubScoreDelta`; pravila netaknuta. Prvi tekst „−1 po štihu · bez štiha +2” je na 360 px gurao „Idem” van ekrana (izmjereno CDP-om), pa je ostala samo kazna — ona iznenađuje.
+- **Ponuda na povratku** (`home_return`, 6/85): isti tekst kao kraj partije i list iz 231 („Revanš kad tebi odgovara?”). `host`/`guest`/`waiting`/`friends`/`invite_missed` ostaju — obećavaju ono što igrač tada čeka.
+- **Utisak, prazno slanje** (QA 11-09 P9): „Pošalji” više nije sivo zbog praznog polja; slanje kaže „Napiši bar par riječi.” i stavlja fokus u polje (obrazac „Sjedi za sto”, changelog 180).
+- **Ime na bočnom sjedištu** (QA 11-09 B9, 10-24 B9): `overflow-wrap: anywhere` → `break-word`, a `PlayerSeat` stavlja `<wbr>` na spoj velikim slovom (`lib/seatName.ts`, `nameBreakParts`): „KomandantŠef” → „Komandant / Šef”, ne „Komanda / ntŠef”. Riječ se lomi tek kad dio sam ne stane u red. Svi stolovi (isti `PlayerSeat`).
+- **Bela do 1001** (odluka vlasnika, bela-spec odluka 19): Profil → Moje igre → Bela nudi „Igra se do 501 / 1001” (`lib/belaTarget.ts`, ključ `kartaonica:bela:target`, podrazumijevano 501); red pod igrom „do 501 · Klasik”, „Igraj · do 1001”. `startQuickPlay` šalje `belaTarget`; „Novi sto” poslije partije isti cilj. Server: `parseBelaQuickTarget` (501 | 1001, inače 501, nikad 400), `seatGameQuickPlay` upisuje cilj u `rulesConfig.targetScore` i spaja samo isti izbor, `belaTargetFor` za javni sto 1001 samo kad je upisan, inače 501 (hidrirani stolovi sa 21 ostaju 501). `play_requested` nosi `target_score` za Belu. Pravila Bele u igri pominju izbor.
+- QA 11-09 P8 („Nazad na igru”) je već bio riješen Profilom v0.3 — samo označen.
+
+**Mjereno:** web 386 testova (`seatName`, `belaTarget`, `profileView`, `raubView`), server 371, typecheck, lint = osnovica (4/2); lokalni server + curl: dva zahtjeva sa `belaTarget: 1001` u isti sto (cilj 1001), 501 i zahtjev bez polja u drugi (501). CDP 360×740 (prava mobilna emulacija; goli `--window-size` u headless Chrome-u crta na ≥ 500 px i reže snimak — lažan „overflow”): Raub panel, prazan utisak, Profil → Bela. Na uređaju nije provjereno.
+
+**Redoslijed izdanja:** server (deploy) prije paketa, inače paket šalje `belaTarget` koji stari server ignoriše → 501 (ništa ne puca).
+

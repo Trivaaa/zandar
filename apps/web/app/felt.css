@@ -909,12 +909,16 @@
    imaju sirine i ostaju na 16px u jednom redu.
 
    `-webkit-box` + `line-clamp` je jedini nacin da se ellipsis pojavi na DRUGOM
-   redu; `text-overflow` iz baze radi samo uz `nowrap`, koji ovdje gasimo. */
+   redu; `text-overflow` iz baze radi samo uz `nowrap`, koji ovdje gasimo.
+
+   Prelom (QA B9): `break-word`, ne `anywhere` — riječ se lomi tek kad sama ne
+   stane u red. Spoj velikim slovom nosi `<wbr>` iz `PlayerSeat`
+   (`nameBreakParts`), pa „KomandantŠef" ide „Komandant / Šef". */
 .seat--left .seat__name,
 .seat--right .seat__name {
   font-size: var(--type-xs);
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;

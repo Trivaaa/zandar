@@ -162,6 +162,12 @@ describe("bela: igra, stari klijent i cilj", () => {
 
   test("cilj: Quick Play 501, privatni sto 501/701/1001, inače 1001 (P-16)", () => {
     assert.equal(belaTargetFor({ isPublic: true, rulesConfig: createRulesConfig(4) }), 501);
+    // Od 1.5.2: Quick Play do 1001 po izboru; sve drugo na javnom stolu → 501.
+    const pub = createRulesConfig(4);
+    pub.targetScore = 1001;
+    assert.equal(belaTargetFor({ isPublic: true, rulesConfig: pub }), 1001);
+    pub.targetScore = 701;
+    assert.equal(belaTargetFor({ isPublic: true, rulesConfig: pub }), 501);
     const rc = createRulesConfig(4);
     assert.equal(belaTargetFor({ rulesConfig: rc }), 1001); // 21 iz Žandar pravila → 1001
     rc.targetScore = 701;

@@ -661,11 +661,13 @@ export type AnalyticsEvents = {
   /** `game` od pokera (6.11.2026); bez njega je Žandar. */
   /** `guest`: igrač je preskočio ime i ide kao „Gost NN" (web, 16.11.2026). */
   /** `start_score`: Raub brza igra, od koliko se kreće (11 ili 21) — SPEC_PROFIL_POSTAVKE §7. */
+  /** `target_score`: Bela brza igra, do koliko se igra (501 ili 1001, od 1.5.2). */
   play_requested: {
     mode: MatchMode;
     game?: "zandar" | "poker" | "raub" | "bela";
     guest?: true;
     start_score?: number;
+    target_score?: number;
   };
   /** Profil i Postavke (SPEC_PROFIL_POSTAVKE §7, D9/D14). */
   settings_opened: { from: "profile_pill" };

@@ -11,7 +11,7 @@ export function BelaRulesBody({ SectionTitle }: { SectionTitle: (p: { children: 
         <SectionTitle>🎯 Cilj igre</SectionTitle>
         <p>
           Igraju četvorica, dvoje na dvoje — partner ti sjedi preko puta. Pobjeđuje tim koji prvi skupi ciljni broj bodova
-          (brza igra 501, sto s prijateljima do 501, 701 ili 1001).
+          (brza igra do 501 ili 1001 — biraš u Profilu, sto s prijateljima do 501, 701 ili 1001).
         </p>
       </section>
 

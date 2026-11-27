@@ -62,10 +62,10 @@ describe("mostPlayedGame — pločica „najviše igraš\" (D8)", () => {
 
 describe("list igre — samo ono što server sluša (§5)", () => {
   test("Žandar: igrači + cilj; Raub: početak + karte; Poker i Bela: samo sto", () => {
-    assert.deepEqual(gameSettingsShape("zandar"), { players: true, target: "to", deck: false });
-    assert.deepEqual(gameSettingsShape("raub"), { players: false, target: "from", deck: true });
-    assert.deepEqual(gameSettingsShape("poker"), { players: false, target: null, deck: false });
-    assert.deepEqual(gameSettingsShape("bela"), { players: false, target: null, deck: false });
+    assert.deepEqual(gameSettingsShape("zandar"), { players: true, target: "to", deck: false, belaTarget: false });
+    assert.deepEqual(gameSettingsShape("raub"), { players: false, target: "from", deck: true, belaTarget: false });
+    assert.deepEqual(gameSettingsShape("poker"), { players: false, target: null, deck: false, belaTarget: false });
+    assert.deepEqual(gameSettingsShape("bela"), { players: false, target: null, deck: false, belaTarget: true });
   });
 });
 
@@ -84,13 +84,16 @@ describe("opis ispod igre — iz istog izbora koji ide serveru", () => {
     );
   });
   test("Bela i Poker: samo sto (fiksno 2 na 2 do 501 se ne piše)", () => {
-    assert.equal(gameSettingsSummary("bela", { prefs, tableTheme: "cloth", deck: "hungarian" }), "Sto: Kafana");
+    assert.equal(gameSettingsSummary("bela", { prefs, tableTheme: "cloth", deck: "hungarian" }), "do 501 · Kafana");
+    assert.equal(gameSettingsSummary("bela", { prefs, tableTheme: "cloth", deck: "hungarian", belaTarget: 1001 }), "do 1001 · Kafana");
     assert.equal(gameSettingsSummary("poker", { prefs, tableTheme: "wood", deck: "hungarian" }), "Sto: Drvo");
   });
   test("Igraj nosi izbor u sebi", () => {
     assert.equal(gamePlayHint("zandar", { playerCount: 2, targetScore: 11 }), "2 igrača · do 11");
     assert.equal(gamePlayHint("raub", prefs), "od 21");
     assert.equal(gamePlayHint("poker", prefs), null);
+    assert.equal(gamePlayHint("bela", prefs), "do 501");
+    assert.equal(gamePlayHint("bela", prefs, 1001), "do 1001");
   });
 });
 

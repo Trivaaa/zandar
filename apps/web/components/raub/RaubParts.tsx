@@ -371,8 +371,24 @@ export function ActionPanel({
             {withSuits(sr.raub.go.hint(SUIT_SYMBOL[panel.trump], panel.declarerName, panel.required))}
             {panel.mustGo ? <> · {sr.raub.go.must}</> : null}
           </p>
-          {panel.mustGo ? null : btn("pass", sr.raub.go.no, () => onGo(false))}
-          {btn("accent", sr.raub.go.yes, () => onGo(true))}
+          {panel.mustGo
+            ? null
+            : btn(
+                "pass",
+                <span className="rb-panel__two">
+                  {sr.raub.go.no}
+                  <small>{sr.raub.go.noNote}</small>
+                </span>,
+                () => onGo(false),
+              )}
+          {btn(
+            "accent",
+            <span className="rb-panel__two">
+              {sr.raub.go.yes}
+              <small>{sr.raub.go.yesNote(panel.double)}</small>
+            </span>,
+            () => onGo(true),
+          )}
         </div>
       );
     case "exchange":

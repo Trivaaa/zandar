@@ -105,7 +105,7 @@ import {
 import { notifyDevices, notifyUser } from "./push/notify";
 import { playRecordsFromCaptures } from "./push/playRecords";
 import { reminderConfigFromEnv, startReminderScheduler } from "./push/scheduler";
-import { parseDisplayName, parseRaubQuickStartScore, parseRoomTargetScore } from "./input";
+import { parseBelaQuickTarget, parseDisplayName, parseRaubQuickStartScore, parseRoomTargetScore } from "./input";
 import { parseQuickPlayConfig } from "./quickplay";
 import {
   guarded,
@@ -136,7 +136,7 @@ import { toPublicPlayer } from "./publicPlayer";
 import { profileStore } from "./profile/store";
 import { PokerTables } from "./poker/table";
 import { RaubTables } from "./raub/table";
-import { BelaTables } from "./bela/table";
+import { BelaTables, belaTargetFor } from "./bela/table";
 
 /**
  * Poker i Raub soba traže klijenta koji zna tu igru. Stari APK (1.0–1.3) ne
@@ -1160,6 +1160,8 @@ fastify.get<{
 type QuickPlayBody = {
   displayName?: unknown;
   game?: unknown; // "poker" | "raub" | "bela"; bez polja = Žandar (stari klijenti)
+  /** Bela: 501 ili 1001 iz Profila (od 1.5.2); bez polja 501. */
+  belaTarget?: unknown;
   playerCount?: unknown;
   targetScore?: unknown;
   /** Raub: 11 ili 21 iz podešavanja Rauba; bez polja 21 (stari klijenti, odluka 35). */
@@ -1180,7 +1182,8 @@ fastify.post<{ Body: QuickPlayBody }>(
     const qpGame = parseGameId(request.body.game);
     if (qpGame === "poker" || qpGame === "raub" || qpGame === "bela") {
       const raubStart = qpGame === "raub" ? parseRaubQuickStartScore(request.body.startScore) : undefined;
-      return seatGameQuickPlay(qpGame, displayName, request.body.tableTheme, identity, raubStart);
+      const belaTarget = qpGame === "bela" ? parseBelaQuickTarget(request.body.belaTarget) : undefined;
+      return seatGameQuickPlay(qpGame, displayName, request.body.tableTheme, identity, raubStart, belaTarget);
     }
     // Veličinu stola i cilj bira igrač (ekran `/igraj`) — oba su korisnički unos.
     const parsed = parseQuickPlayConfig(request.body);
@@ -1291,6 +1294,8 @@ async function seatGameQuickPlay(
   identity: Pick<Player, "guestId" | "platform" | "uid">,
   /** Raub: od koliko se kreće (11 ili 21); spajaju se samo igrači istog izbora. */
   raubStart: number = RAUB_QUICK_START_SCORE,
+  /** Bela: do koliko se igra (501 ili 1001); spajaju se samo igrači istog izbora. */
+  belaTarget: number = 501,
 ): Promise<{ roomId: string; playerId: string; playerSessionToken: string }> {
   const playerId = createPlayerId();
   const sessionToken = createSessionToken();
@@ -1313,7 +1318,8 @@ async function seatGameQuickPlay(
       r.status === "waiting" &&
       (r.matchingUntil ?? 0) > now &&
       r.players.length < r.rulesConfig.playerCount &&
-      (game !== "raub" || r.rulesConfig.targetScore === raubStart),
+      (game !== "raub" || r.rulesConfig.targetScore === raubStart) &&
+      (game !== "bela" || belaTargetFor(r) === belaTarget),
   );
   if (open) {
     const player = seat(open.players.length, false);
@@ -1332,6 +1338,8 @@ async function seatGameQuickPlay(
   // Raub brza igra: izbor iz podešavanja, podrazumijevano 21 (odluka 35);
   // `RaubTables.start` čita cilj iz sobe.
   if (game === "raub") rulesConfig.targetScore = raubStart;
+  // Bela: izbor iz Profila (od 1.5.2); `belaTargetFor` čita cilj iz sobe.
+  if (game === "bela") rulesConfig.targetScore = belaTarget;
   const room: LobbyRoom = {
     id: createRoomId(),
     status: "waiting",

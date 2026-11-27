@@ -90,6 +90,12 @@ describe("raubView: faza i panel", () => {
     }
     const fp = panelFor(getRaubView(forced, "p0"), name);
     assert.equal(fp.kind === "going" && fp.mustGo, true);
+    // QA 2026-11-09 P1: cijena „Idem” se udvostručuje u ruci poslije refe.
+    assert.equal(gp.kind === "going" && gp.double, going.multiplier === 2);
+    const doubled = structuredClone(going);
+    doubled.multiplier = 2;
+    const dp = panelFor(getRaubView(doubled, "p0"), name);
+    assert.equal(dp.kind === "going" && dp.double, true);
     assert.equal(panelFor(getRaubView(until(mine("exchange")), "p0"), name).kind, "exchange");
     // Odluka 20: nosilac Rauba/Štiha mijenja dok mu karta čeka na stolu.
     const claim = until((s) => mine("exchange")(s) && s.talonTakenBy === "p0" && s.talon.at(-1)?.id === s.lockedCardId);

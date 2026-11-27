@@ -42,6 +42,6 @@ export const isServerTableGame = (game: GameId | undefined) => isSeatGame(game) 
 export const RAUB_TARGETS = [11, 21] as const;
 export const RAUB_DEFAULT_TARGET = 21;
 
-/** Bela: ciljevi privatnog stola (spec P-16); Quick Play je uvijek 501. */
+/** Bela: ciljevi privatnog stola (spec P-16); Quick Play 501 ili 1001 (`lib/belaTarget.ts`). */
 export const BELA_TARGETS = [501, 701, 1001] as const;
 export const BELA_DEFAULT_TARGET = 1001;

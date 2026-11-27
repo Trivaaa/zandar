@@ -7,6 +7,7 @@ import { Avatar } from "@/components/profile/Avatar";
 import type { GameConfig } from "@/lib/games";
 import { gameSettingsSummary } from "@/lib/profileView";
 import { useQuickPlayPrefs } from "@/lib/quickPlayPrefs";
+import { useBelaTarget } from "@/lib/belaTarget";
 import { useRaubDeck } from "@/lib/settings";
 import { sr } from "@/lib/sr";
 import { useTableTheme } from "@/lib/tableTheme";
@@ -166,6 +167,7 @@ function GameRow({ game, onOpen }: { game: GameConfig; onOpen: () => void }) {
   const prefs = useQuickPlayPrefs(game.slug);
   const tableTheme = useTableTheme(game.slug);
   const [deck] = useRaubDeck();
+  const belaTarget = useBelaTarget();
   return (
     <button type="button" className="profile__game" data-tint={game.tint} onClick={onOpen}>
       <span className="profile__game-dot" aria-hidden="true">
@@ -173,7 +175,7 @@ function GameRow({ game, onOpen }: { game: GameConfig; onOpen: () => void }) {
       </span>
       <span className="profile__game-text">
         <span className="profile__game-name">{sr.games[game.slug].name}</span>
-        <span className="profile__game-sub">{gameSettingsSummary(game.slug, { prefs, tableTheme, deck })}</span>
+        <span className="profile__game-sub">{gameSettingsSummary(game.slug, { prefs, tableTheme, deck, belaTarget })}</span>
       </span>
       <ChevronRightIcon className="profile__item-chevron" />
     </button>

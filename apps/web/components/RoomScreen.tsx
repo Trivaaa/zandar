@@ -577,6 +577,8 @@ export function RoomScreen({ roomId }: { roomId: string }) {
         // I izgled: „novi sto" izgleda kao ovaj koji je upravo odigran.
         ...(room?.tableTheme ? { tableTheme: room.tableTheme } : {}),
         ...(seatGame ? { game: seatGame } : {}),
+        // Bela: novi sto do istog cilja kao odigrani (501 ili 1001).
+        ...(seatGame === "bela" ? { belaTarget: room?.targetScore === 1001 ? 1001 : 501 } : {}),
       });
       saveSession({
         roomId: res.roomId,

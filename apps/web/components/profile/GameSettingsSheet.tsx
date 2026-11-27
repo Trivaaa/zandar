@@ -17,6 +17,7 @@ import {
   saveQuickPlayPrefs,
   useQuickPlayPrefs,
 } from "@/lib/quickPlayPrefs";
+import { BELA_QUICK_TARGETS, saveBelaTarget, useBelaTarget } from "@/lib/belaTarget";
 import { useRaubDeck, type RaubDeck } from "@/lib/settings";
 import { sr } from "@/lib/sr";
 import { saveTableTheme, useTableTheme } from "@/lib/tableTheme";
@@ -52,7 +53,8 @@ export function GameSettingsSheet({
   const prefs = useQuickPlayPrefs(game);
   const theme = useTableTheme(game);
   const [deck, setDeck] = useRaubDeck();
-  const hint = gamePlayHint(game, prefs);
+  const belaTarget = useBelaTarget();
+  const hint = gamePlayHint(game, prefs, belaTarget);
   // Pravila na dnu lista (želja vlasnika 24.11.2026): isti prozor kao za stolom.
   // Android nazad zatvara prvo pravila (stog je LIFO), pa list.
   const rules = rulesGame(game);
@@ -93,6 +95,23 @@ export function GameSettingsSheet({
                 if (targetScore === prefs.targetScore) return;
                 saveQuickPlayPrefs({ ...readQuickPlayPrefs(game), targetScore }, game);
                 changed(shape.target === "from" ? "start_score" : "target", targetScore);
+              }}
+            />
+          ) : null}
+
+          {shape.belaTarget ? (
+            <Segmented
+              label={t.toLabel}
+              options={BELA_QUICK_TARGETS.map((n) => ({
+                value: n,
+                label: String(n),
+                note: n === 501 ? t.shorter : t.longer,
+              }))}
+              selected={belaTarget}
+              onSelect={(next) => {
+                if (next === belaTarget) return;
+                saveBelaTarget(next);
+                changed("target", next);
               }}
             />
           ) : null}
