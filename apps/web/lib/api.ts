@@ -321,12 +321,15 @@ export async function quickPlay(input: {
   game?: GameId;
   /** Raub: od koliko se kreće (11 ili 21); bez polja server uzima 21. */
   startScore?: number;
+  /** Bela: do koliko se igra (501 ili 1001); bez polja server uzima 501. */
+  belaTarget?: number;
 }, analytics: { guest?: true } = {}): Promise<QuickPlayResponse> {
   // `guest` ide samo u analitiku, ne serveru.
   track("play_requested", {
     mode: "quick_play",
     game: input.game ?? "zandar",
     ...(input.game === "raub" && input.startScore !== undefined ? { start_score: input.startScore } : {}),
+    ...(input.game === "bela" && input.belaTarget !== undefined ? { target_score: input.belaTarget } : {}),
     ...analytics,
   });
   const res = await fetch(`${API_BASE}/api/quickplay`, {

@@ -41,7 +41,7 @@ Redom odozgo:
    - Žandar: „4 igrača · do 21 · Klasik"
    - Raub: „Od 21 · mađarice · Klasik"
    - Poker: „Sto: Drvo"
-   - Bela: „Sto: Kafana" (2 na 2 i 501 su fiksni, ne pišu se)
+   - Bela: „do 501 · Kafana" (od 1.5.2 cilj 501 ili 1001; 2 na 2 je fiksno, ne piše se)
 
 **Gotovo kad (360×740):** bez skrola se vide dugme Postavke, kartica igrača, pločice i — kod gosta — kartica „Sačuvaj napredak"; kod naloga bar tri igre. Mjeri se CDP-om, ne procjenom.
 
@@ -73,7 +73,7 @@ Isti list za svaku igru, naslov „{Igra} · kako igraš", X za zatvaranje. Samo
 | Žandar | Igrača 2 / 4 · Igra se do 11 / 21 · Sto |
 | Raub | Kreće se od 11 / 21 (podrazumijevano **21**, odluka 35) · Karte mađarice / francuske · Sto. **Bez** 2 / 4 — brza igra je uvijek 4. |
 | Poker | Sto |
-| Bela | Sto (brza igra je uvijek 2 na 2 do 501) |
+| Bela | Igra se do 501 / 1001 (od 1.5.2, `lib/belaTarget.ts`, bela-spec odluka 19) · sto |
 
 Pravila:
 - **Čuva se odmah** — dodir na izbor je upis. Nema „Sačuvaj i zatvori", a zatvaranje lista ne upisuje ništa samo od sebe (tako je nastao lažni „21" kod Rauba).

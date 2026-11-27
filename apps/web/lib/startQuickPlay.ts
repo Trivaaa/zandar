@@ -1,6 +1,7 @@
 import type { TableTheme } from "@zandar/shared-types";
 
 import { quickPlay } from "@/lib/api";
+import { readBelaTarget } from "@/lib/belaTarget";
 import type { GameSlug } from "@/lib/games";
 import { markGamePlayed } from "@/lib/homePrefs";
 import { normalizePlayerName, savePlayerName } from "@/lib/playerName";
@@ -49,6 +50,8 @@ export async function startQuickPlay(
       ...(game === "poker" || game === "raub" || game === "bela" ? { game } : {}),
       // Raub: od koliko se kreće, iz podešavanja Rauba (11 ili 21).
       ...(game === "raub" ? { startScore: prefs.targetScore } : {}),
+      // Bela: do 501 ili 1001, iz Profila (od 1.5.2).
+      ...(game === "bela" ? { belaTarget: readBelaTarget() } : {}),
     },
     saveName ? {} : { guest: true },
   );

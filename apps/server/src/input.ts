@@ -50,3 +50,15 @@ export function parseRoomTargetScore(value: unknown, game: GameId): number | nul
 export function parseRaubQuickStartScore(value: unknown): number {
   return (RAUB_START_SCORES as readonly unknown[]).includes(value) ? (value as number) : RAUB_QUICK_START_SCORE;
 }
+
+/** Ciljevi brze Bele po izboru u Profilu (od 1.5.2). */
+export const BELA_QUICK_TARGETS = [501, 1001] as const;
+
+/**
+ * Bela brza igra: do koliko se igra (Profil → Moje igre → Bela, od 1.5.2).
+ * Polje `belaTarget` šalju samo klijenti koji imaju izbor; bez njega i za sve
+ * van ponude → 501, kao do sada (`BELA_QUICKPLAY_TARGET`). Nikad 400.
+ */
+export function parseBelaQuickTarget(value: unknown): number {
+  return (BELA_QUICK_TARGETS as readonly unknown[]).includes(value) ? (value as number) : 501;
+}

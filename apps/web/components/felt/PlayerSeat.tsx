@@ -1,9 +1,10 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { CardBack } from "./CardBack";
 import { PlayingCard } from "./PlayingCard";
 import { Avatar } from "@/components/profile/Avatar";
+import { nameBreakParts } from "@/lib/seatName";
 import { sr } from "@/lib/sr";
 import type { Card, PublicPlayer } from "@/components/felt/types";
 
@@ -170,7 +171,15 @@ export function PlayerSeat({
           {/* Bez `text-base`: velicinu drzi `.seat__name` u felt.css, pa je
               bocno sjediste moze spustiti na 13px i prelomiti u dva reda.
               Utility bi iz kasnijeg sloja pobijedio i to bi tiho otkazalo. */}
-          <span className="seat__name font-sans">{player.displayName}</span>
+          {/* `<wbr>` na spoju velikim slovom: „Komandant / Šef", ne „Komanda / ntŠef" (QA B9). */}
+          <span className="seat__name font-sans">
+            {nameBreakParts(player.displayName).map((part, i) => (
+              <Fragment key={i}>
+                {i > 0 ? <wbr /> : null}
+                {part}
+              </Fragment>
+            ))}
+          </span>
           {/* Rezultat je skinut sa sjedista — stajao je na svakom igracu i bio
               najglasniji broj na feltu, a sad se cita u traci u zaglavlju
               i sam iskoci na kraju svake ruke. Zeton ostaje kao sina

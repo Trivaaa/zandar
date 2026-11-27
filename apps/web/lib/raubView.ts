@@ -90,8 +90,12 @@ export type RaubPanel =
   | { kind: "bid"; card: Card; raub: boolean; moja: boolean; seven: Card | null; refa: boolean; blind: boolean; dead: boolean }
   | { kind: "swap"; seven: Card; talon: Card }
   | { kind: "discard"; claim: boolean }
-  /** `mustGo`: svi ostali su rekli „Ne idem” — samo „Idem” (odluka 19). */
-  | { kind: "going"; trump: Suit; declarerName: string; required: number; mustGo: boolean }
+  /**
+   * `mustGo`: svi ostali su rekli „Ne idem” — samo „Idem” (odluka 19).
+   * `double`: ruka poslije refe se boduje ×2 — cijena „Idem” se udvostručuje
+   * (QA 2026-11-09 P1: igrač mora znati cijenu prije odluke).
+   */
+  | { kind: "going"; trump: Suit; declarerName: string; required: number; mustGo: boolean; double: boolean }
   /**
    * `claim`: ja sam nosilac kome karta čeka na stolu — poslije zamjene je
    * uzimam i odbacujem (odluka 20); kod „Moja” (`claimSeven`) za nju dajem
@@ -146,6 +150,7 @@ export function panelFor(
         declarerName: v.declarerId ? nameOf(v.declarerId) : "",
         required: v.requiredTricks,
         mustGo: v.mustGo === true,
+        double: v.multiplier === 2,
       };
     case "exchange":
     {

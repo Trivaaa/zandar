@@ -57,6 +57,7 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
   const [topic, setTopic] = useState<FeedbackTopic | null>(null);
   const [emailReminded, setEmailReminded] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
 
@@ -78,7 +79,8 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
   }, [status]);
 
   const trimmed = text.trim();
-  const canSubmit = status === "idle" && !reading && trimmed.length > 0;
+  // QA 2026-11-09 P9: prazno polje ne gasi dugme — slanje kaže šta fali.
+  const canSubmit = status === "idle" && !reading;
   const room = FEEDBACK_LIMITS.imagesMax - images.length;
   // Teme se nude samo uz kratku prijavu greške sa stola; izabrana ostaje vidljiva.
   const showTopics = !!table && kind === "bug" && (topic !== null || trimmed.length < FEEDBACK_LIMITS.topicHintBelow);
@@ -106,6 +108,11 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
 
   async function submit() {
     if (!canSubmit) return;
+    if (trimmed.length === 0) {
+      setProblem(sr.feedback.emptyText);
+      textRef.current?.focus();
+      return;
+    }
     const address = email.trim();
     if (address && !normalizeEmail(address)) {
       setProblem(sr.feedback.invalidEmail);
@@ -198,13 +205,17 @@ export function FeedbackForm({ onBack, onDone, table }: FeedbackFormProps) {
         </fieldset>
 
         <textarea
+          ref={textRef}
           className="fbform__text"
           aria-label={sr.feedback.textLabel}
           placeholder={sr.feedback.placeholders[kind]}
           value={text}
           maxLength={FEEDBACK_LIMITS.textMax}
           rows={5}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (problem === sr.feedback.emptyText) setProblem(null);
+          }}
         />
 
         {showTopics ? (

@@ -85,13 +85,18 @@ export interface BelaDeps {
   onMatchEnded?(room: LobbyRoom, reason: "completed" | "abandoned", extra?: { stalled?: boolean }): void;
 }
 
-/** Ciljevi koje privatni sto prihvata (P-16); Quick Play je uvijek 501. */
+/** Ciljevi koje privatni sto prihvata (P-16); Quick Play 501 ili 1001 (od 1.5.2). */
 export const BELA_PRIVATE_TARGETS = [501, 701, 1001] as const;
 export const BELA_DEFAULT_PRIVATE_TARGET = 1001;
 
-/** Cilj meča za sobu: Quick Play 501, privatni sto iz `rulesConfig` (inače 1001). */
+/**
+ * Cilj meča za sobu. Quick Play: 1001 samo kad ga je igrač izabrao u Profilu
+ * (`belaTarget` → `rulesConfig.targetScore`), inače 501 — i za hidrirane
+ * javne stolove iz vremena prije izbora (njihov `targetScore` je 21).
+ * Privatni sto iz `rulesConfig` (inače 1001).
+ */
 export function belaTargetFor(room: Pick<LobbyRoom, "isPublic" | "rulesConfig">): number {
-  if (room.isPublic) return BELA_QUICKPLAY_TARGET;
+  if (room.isPublic) return room.rulesConfig.targetScore === 1001 ? 1001 : BELA_QUICKPLAY_TARGET;
   const t = room.rulesConfig.targetScore;
   return (BELA_PRIVATE_TARGETS as readonly number[]).includes(t) ? t : BELA_DEFAULT_PRIVATE_TARGET;
 }

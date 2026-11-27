@@ -738,6 +738,10 @@ export const sr = {
       hintMine: (trump: string, n: number) => `Adut ${trump} · moraš ${n}`,
       yes: "Idem",
       no: "Ne idem",
+      /** Cijena odluke (QA 2026-11-09 P1), iz `raubScoreDelta`; ruka poslije refe ×2. */
+      // Kratko kao „moraš 2 štiha" (dva dugmeta u redu na 360 px); iznenađuje kazna, ne −1 po štihu.
+      yesNote: (double: boolean) => (double ? "bez štiha +4" : "bez štiha +2"),
+      noNote: "0 bodova",
       /** Odluka 19: svi ostali su rekli „Ne idem”. */
       must: "ostali ne idu, ti moraš",
     },
@@ -966,6 +970,8 @@ export const sr = {
     topics: { bela: "Bela", zvanja: "Zvanja", adut: "Adut", prijatelji: "Poziv prijatelja", drugo: "Nešto drugo" },
     noEmail: "Bez e-maila ne možemo ti odgovoriti. Upiši adresu ili dodirni Pošalji još jednom.",
     invalidEmail: "Provjeri e-adresu ili ostavi polje prazno.",
+    /** QA 2026-11-09 P9: „Pošalji" nije sivo bez objašnjenja — prazno slanje kaže šta fali. */
+    emptyText: "Napiši bar par riječi.",
     submit: "Pošalji",
     sending: "Šaljemo…",
     error: "Poruka nije poslata. Pokušaj ponovo.",
@@ -1059,13 +1065,22 @@ export const sr = {
     },
     /* SPEC_PUSH_V2 A1: kraj partije. Kaže SVE što stiže, i podsjetnike. */
     match_end: {
-      title: "Da ti javimo?",
-      body: "Kad te prijatelj pozove ili neko pokuca na tvoj sto. Ponekad i podsjetnik na partiju, koji gasiš u podešavanjima telefona.",
+      title: "Revanš kad tebi odgovara?",
+      body: "Javićemo ti kad je vrijeme za novu partiju — rijetko, otprilike jednom u par dana. Pozivi prijatelja stižu odmah.",
+    },
+    /* A/B od 1.5.2: list sa razlogom prije sistemskog dijaloga (`PushSoftAsk`). */
+    soft: {
+      title: "Revanš kad tebi odgovara?",
+      body: "Javićemo ti kad je vrijeme za novu partiju — rijetko, otprilike jednom u par dana. Pozivi prijatelja stižu odmah.",
+      note: "Gasi se u Postavkama, kad god hoćeš.",
+      enable: "Da, javi mi",
+      notNow: "Ne sada",
     },
     /* SPEC_PUSH_V2 A4: početna, od drugog dana otvaranja. */
+    /* Isto obećanje kao kraj partije (1.5.2): većina igra brzu partiju bez prijatelja. */
     home_return: {
-      title: "Javi mi kad me neko pozove",
-      body: "Poziv prijatelja i „neko kuca na tvoj sto“ stižu i kad aplikacija nije otvorena. Ponekad i podsjetnik, koji gasiš u podešavanjima telefona.",
+      title: "Revanš kad tebi odgovara?",
+      body: "Javićemo ti kad je vrijeme za novu partiju — rijetko, otprilike jednom u par dana. Pozivi prijatelja stižu odmah.",
     },
     /* Propušten poziv — ponuda unutar lista „Poziv je istekao". */
     invite_missed: {
