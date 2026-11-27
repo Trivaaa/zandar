@@ -5,6 +5,8 @@ import type {
   MatchMode,
 } from "@zandar/shared-types";
 
+import { ownEndReason, type MoveCount } from "./afk";
+
 /**
  * Čiste odluke za analitiku mečeva (docs/analytics.md). Bez PostHog-a, bez
  * socket-a — stanje unutra, lista događaja napolje; `index.ts` ih samo šalje.
@@ -213,28 +215,71 @@ export function matchStartedEvents(
  */
 export function matchEndedEvents(
   gs: MatchLike,
-  opts: {
-    mode: MatchMode;
-    reason: MatchEndReason;
-    startedAt?: number | undefined;
-    now: number;
-  },
+  opts: MatchEndOpts,
 ): Capture<"match_ended">[] {
-  const { mode, reason, startedAt, now } = opts;
-  return trackedHumans(gs.players).map((p) => ({
-    distinctId: p.guestId,
-    event: "match_ended" as const,
-    properties: {
-      mode,
-      match_id: gs.matchId,
-      game: "zandar" as const,
-      end_reason: reason,
-      hands_played: gs.handScores.length,
-      ...(startedAt !== undefined ? { duration_ms: Math.max(0, now - startedAt) } : {}),
-      ...(reason === "completed" ? { is_winner: isMatchWinner(gs, p.id) } : {}),
-      ...(p.platform ? { platform: p.platform } : {}),
+  const { mode, startedAt, now } = opts;
+  return trackedHumans(gs.players).map((p) => {
+    const own = endFor(p, opts);
+    return {
+      distinctId: p.guestId,
+      event: "match_ended" as const,
+      properties: {
+        mode,
+        match_id: gs.matchId,
+        game: "zandar" as const,
+        end_reason: own.reason,
+        hands_played: gs.handScores.length,
+        ...(startedAt !== undefined ? { duration_ms: Math.max(0, now - startedAt) } : {}),
+        ...(own.reason === "completed" ? { is_winner: isMatchWinner(gs, p.id) } : {}),
+        ...own.props,
+        ...(p.platform ? { platform: p.platform } : {}),
+      },
+    };
+  });
+}
+
+/** Zajedničke opcije kraja meča za sve četiri igre. */
+export type MatchEndOpts = {
+  mode: MatchMode;
+  reason: MatchEndReason;
+  startedAt?: number | undefined;
+  /** Kraj za `duration_ms` — kod zaglavljenog meča kraj zadnje ruke, ne zatvaranje. */
+  now: number;
+  /** Ručni/auto potezi po playerId-u (`afk.ts`); bez njih se AFK ne procjenjuje. */
+  counts?: Record<string, MoveCount> | undefined;
+  stalled?: boolean | undefined;
+};
+
+/** Razlog i dodatna svojstva za jednog igrača (`left`, `afk`, potezi, `stalled`). */
+function endFor(
+  p: PlayerLike,
+  opts: MatchEndOpts,
+): { reason: MatchEndReason; props: Partial<AnalyticsEvents["match_ended"]> } {
+  const count = opts.counts?.[p.id];
+  const own = ownEndReason(opts.reason, p, count);
+  return {
+    reason: own.reason,
+    props: {
+      ...(own.left ? { left: true } : {}),
+      ...(own.afk ? { afk: true } : {}),
+      ...(count ? { manual_moves: count.manual, auto_moves: count.auto } : {}),
+      ...(opts.stalled ? { stalled: true } : {}),
     },
-  }));
+  };
+}
+
+/**
+ * Ljudi kojima se meč računa kao odigran do kraja — ulaz za profil
+ * (`recordCompletedMatch`). Isto pravilo kao `end_reason` u analitici, pa se
+ * profil i PostHog ne mogu razići.
+ */
+export function completedHumans<P extends PlayerLike>(
+  players: readonly P[],
+  opts: Pick<MatchEndOpts, "reason" | "counts">,
+): P[] {
+  return players.filter(
+    (p) => !p.isBot && ownEndReason(opts.reason, p, opts.counts?.[p.id]).reason === "completed",
+  );
 }
 
 // ── Poker i Raub (igre sa plasmanom po mjestima) ─────────────────────────────
@@ -312,15 +357,15 @@ export function pokerMatchStartedEvents(
 export function pokerMatchEndedEvents(
   state: SeatMatchLike,
   players: readonly PlayerLike[],
-  opts: { mode: MatchMode; reason: MatchEndReason; startedAt?: number | undefined; now: number },
+  opts: MatchEndOpts,
   game: SeatGame = "poker",
 ): Capture<"match_ended">[] {
-  const { mode, reason, startedAt, now } = opts;
+  const { mode, startedAt, now } = opts;
   const atTable = players.filter((p) => state.seats.some((s) => s.playerId === p.id));
   return trackedHumans(atTable).map((p) => {
     const place = state.seats.find((s) => s.playerId === p.id)?.place ?? null;
-    const left = p.left === true;
-    const ownReason: MatchEndReason = left ? "abandoned" : reason;
+    const own = endFor(p, opts);
+    const ownReason = own.reason;
     return {
       distinctId: p.guestId,
       event: "match_ended" as const,
@@ -333,7 +378,7 @@ export function pokerMatchEndedEvents(
         ...(startedAt !== undefined ? { duration_ms: Math.max(0, now - startedAt) } : {}),
         ...(ownReason === "completed" ? { is_winner: place === 1 } : {}),
         ...(place !== null ? { placement: place } : {}),
-        ...(left ? { left: true } : {}),
+        ...own.props,
         ...(p.platform ? { platform: p.platform } : {}),
       },
     };

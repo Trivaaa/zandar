@@ -31,6 +31,7 @@ import {
   resolveVoteTimeout,
 } from "../pause";
 import { cryptoRng } from "../poker/table";
+import { AFK_CONFIG, countMove, stallApplies } from "../afk";
 
 /**
  * Raub sto na serveru (docs/raub-spec.md).
@@ -61,6 +62,11 @@ export interface RaubTiming {
   voteMs: number;
   /** „Čekaj" u glasanju produžava pauzu za ovoliko. */
   waitExtensionMs: number;
+  /**
+   * Rok za „Sljedeća ruka" (`AFK_CONFIG.nextHandIdleMs`); poslije toga je meč
+   * napušten kao zaglavljen (`stalled`). Opciono — testovi ga skraćuju.
+   */
+  nextHandIdleMs?: number;
   /** Quick Play: prozor za druge prave igrače (isto kao Poker). */
   matchWindowMs: number;
 }
@@ -79,7 +85,7 @@ export interface RaubDeps {
   /** Test: brže odluke bota. */
   botThinkMs?: () => number;
   onMatchStarted?(room: LobbyRoom): void;
-  onMatchEnded?(room: LobbyRoom, reason: "completed" | "abandoned"): void;
+  onMatchEnded?(room: LobbyRoom, reason: "completed" | "abandoned", extra?: { stalled?: boolean }): void;
 }
 
 /** Mrežni ulaz → namjera. Nevalidno = null (nikad izuzetak u handleru). */
@@ -154,6 +160,10 @@ export class RaubTables {
   private readonly rng: () => number;
   /** roomId → tajmer poteza (čovjek: rok; bot: odluka). */
   private readonly actTimers = new Map<string, NodeJS.Timeout>();
+  /** Rok za „Sljedeća ruka" po sobi (`routeStall`). */
+  private readonly stallTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Sobe koje se upravo zatvaraju kao zaglavljene — `stalled` u `match_ended`. */
+  private readonly stalled = new Set<string>();
   /** roomId → za koji potez je tajmer naoružan (da broadcast ne resetuje sat). */
   private readonly armedFor = new Map<string, string>();
   private readonly deadlines = new Map<string, number>();
@@ -291,6 +301,7 @@ export class RaubTables {
 
     this.clearAct(room.id);
     this.deadlines.delete(room.id);
+    this.routeStall(room);
 
     if (s.phase === "match_finished" || s.phase === "abandoned") {
       if (room.status !== "finished") {
@@ -303,8 +314,54 @@ export class RaubTables {
           }
         }
       }
-      this.deps.onMatchEnded?.(room, s.phase === "match_finished" ? "completed" : "abandoned");
+      this.deps.onMatchEnded?.(room, s.phase === "match_finished" ? "completed" : "abandoned", {
+        stalled: this.stalled.has(room.id),
+      });
     }
+  }
+
+  /**
+   * Rok za „Sljedeća ruka" (odluka vlasnika 27.11.2026): ruka je gotova, a niko
+   * ne pritisne dugme → poslije `nextHandIdleMs` meč je napušten kao zaglavljen.
+   * Početak čekanja je na sobi (`handEndedAt`), pa rok preživi restart.
+   */
+  private routeStall(room: LobbyRoom): void {
+    const s = room.raub!;
+    const waiting = s.phase === "hand_complete" && !s.interruption;
+    if (!waiting) {
+      this.clearStall(room.id);
+      if (s.phase === "playing") delete room.handEndedAt;
+      return;
+    }
+    if (this.stallTimers.has(room.id)) return;
+    room.handEndedAt ??= Date.now();
+    if (!stallApplies(room.players)) return; // ljudi za stolom: host kontroliše, bez roka
+    const idleMs = this.deps.timing.nextHandIdleMs ?? AFK_CONFIG.nextHandIdleMs;
+    const delay = Math.max(0, room.handEndedAt + idleMs - Date.now());
+    const dealNo = s.dealNo;
+    this.stallTimers.set(
+      room.id,
+      setTimeout(() => {
+        this.stallTimers.delete(room.id);
+        void this.abandonStalled(room.id, dealNo);
+      }, delay),
+    );
+  }
+
+  private clearStall(roomId: string): void {
+    const t = this.stallTimers.get(roomId);
+    if (t) clearTimeout(t);
+    this.stallTimers.delete(roomId);
+  }
+
+  private async abandonStalled(roomId: string, dealNo: number): Promise<void> {
+    const room = this.deps.getRoom(roomId);
+    const s = room?.raub;
+    if (!room || !s || s.phase !== "hand_complete" || s.interruption || s.dealNo !== dealNo) return;
+    this.stalled.add(roomId);
+    this.deps.log.info(`⏳ Raub sto ${roomId}: niko nije pokrenuo sljedeću ruku — prekid`);
+    await this.abandon(roomId);
+    this.stalled.delete(roomId);
   }
 
   private botAct(roomId: string, pid: string): void {
@@ -341,6 +398,7 @@ export class RaubTables {
       return;
     }
     const player = room.players.find((p) => p.id === pid);
+    if (player && !player.isBot) countMove(room, s.matchId, pid, "auto");
     this.deps.emitToRoom?.(roomId, "game:autoPlay", { playerId: pid, displayName: player?.displayName ?? "" });
     void this.broadcast(roomId);
   }
@@ -359,6 +417,8 @@ export class RaubTables {
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : "INVALID_ACTION" };
     }
+    // Prije broadcast-a: kraj meča mora vidjeti i ovaj potez (`afk.ts`).
+    countMove(room, room.raub.matchId, playerId, "manual");
     await this.broadcast(roomId);
     return { ok: true };
   }
@@ -377,6 +437,8 @@ export class RaubTables {
 
   private dealNext(room: LobbyRoom): void {
     const s = room.raub!;
+    this.clearStall(room.id);
+    delete room.handEndedAt;
     // Za stolom mora biti bar jedan pravi igrač — meč samo s botovima se ne igra.
     const humanHere = room.players.some(
       (p) => !p.isBot && p.left !== true && p.connectionStatus !== "abandoned",
@@ -638,7 +700,7 @@ export class RaubTables {
 
   /** Test i gašenje: ugasi sve tajmere. */
   dispose(): void {
-    for (const m of [this.actTimers, this.matchTimers, this.pauseTimers, this.graceTimers]) {
+    for (const m of [this.actTimers, this.matchTimers, this.pauseTimers, this.graceTimers, this.stallTimers]) {
       for (const t of m.values()) clearTimeout(t);
       m.clear();
     }

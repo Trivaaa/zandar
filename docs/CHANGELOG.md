@@ -2964,3 +2964,50 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Namjerno ostaje:** Žandar kao ime igre (kartica, pravila, sto, push podsjetnici) i pregled linka koji nabraja igre („Kartaonica — Žandar, Raub, Poker", `og-share.jpg`). Interna imena (`com.kartaonica.zandar`, `@zandar/*`, ključevi u localStorage, `/zandar/room/`) se ne mijenjaju.
 
 **Mjereno:** typecheck, web 334 testa, lint dodirnutih fajlova čist. Build i prikaz u pregledaču nisu rađeni. Aplikacija dobija pravne stranice tek novim AAB-om (izvezene su u paket).
+
+## 234. „Završena partija" samo kad je igrač stvarno igrao; rok za „Sljedeća ruka" (2026-11-27, `fix/afk-match-end`)
+
+(Brojeve 231 i 232 zauzimaju `feat/push-soft-ask` i `docs/spec-statistika`, koji još nisu spojeni.)
+
+**Povod:** pisanje spec-a za statistiku (changelog 233) otvorilo je pitanje da li PostHog i profil broje partije koje igrač nije igrao.
+
+**Nađeno:**
+- **Auto-potez:** kad igraču istekne sat (Žandar 30 s, Raub/Bela 25 s, poker 20 s), server igra umjesto njega, bez kraja i bez oznake. `consecutiveAutoPlaysForAbandon: 3` se nigdje ne čita. Partija koju je server odigrao je stizala kao `completed` sa `is_winner` i dizala `completedMatches`.
+- **„Sljedeća ruka"** (Žandar, Raub, Bela) nema roka. Sto bez pritiska je stajao do sweepera (12 h) i stizao kao `abandoned` sa napuhanim `duration_ms` (30 dana: preko 1 h Raub 26, Bela 16, Žandar 6).
+- **Poker:** ko izađe dobijao je +1 `completedMatches` kad se meč završi za ostale, iako je PostHog ispravno slao `abandoned`. U Raubu i Beli se igra ne nastavlja sa igračem koji je izašao, pa greška tamo ne nastaje (ispravka tvrdnje iz 232).
+
+**Mjereno u PostHog-u (30 dana):** partija čiji je tempo ruke kao sat poteza (skoro sve auto) ima malo: Bela 17/1530, Raub 9/2415, Žandar 2/370. Djelimičan AFK se unazad ne vidi: `match_ended` nije nosio ništa o potezima, a `$autocapture` za stolom ne bilježi nijedan klik (0 u svim mečevima).
+
+**Odluke vlasnika:**
+- Partija se računa kao odigrana kad je igrač sam odigrao ≥ 50 % svojih poteza, a inače je napuštena (`afk: true`).
+- „Sljedeća ruka" dobija rok od 10 min. Kad istekne, partija je napuštena (`stalled: true`), a trajanje se računa do kraja zadnje ruke.
+
+**Šta:**
+- `apps/server/src/afk.ts`:
+  - `countMove`, `countsFor`, `isAfk`, `ownEndReason`;
+  - `AFK_CONFIG` (`minManualShare`, `nextHandIdleMs`, env `NEXT_HAND_IDLE_MS`);
+  - brojači su na sobi (`LobbyRoom.moveCounts`), pa preživljavaju restart. Stari snapshot bez njih ne mijenja ništa.
+- Gdje se broji:
+  - **ručno:** `game:playCard`, `poker/raub/bela:action`, prije broadcast-a, da ga kraj meča vidi;
+  - **auto:** `handleTurnTimeout` i `autoAct` u sva tri stola.
+- `emitMatchEnded` je jedna funkcija za sve četiri igre. Razlog je po igraču, a `recordCompletedMatch` dobija samo `completedHumans`, po istom pravilu kao analitika.
+- `match_ended` dobija `afk`, `manual_moves`, `auto_moves`, `stalled`, a Žandar i `left`.
+- Rok za „Sljedeća ruka":
+  - Žandar: `armStallTimer` iz `routeTurnTimers`, prekid kroz `enterAbandoned(…, { stalled })`;
+  - Raub i Bela: `routeStall` u stolu;
+  - početak čekanja je `LobbyRoom.handEndedAt` i ponovo se naoruža na hidraciji;
+  - sweeper u fazi kraja ruke takođe šalje `stalled`.
+- `docs/analytics.md`: nova svojstva i upozorenja za čitanje podataka prije 27.11.2026.
+
+**Provjereno:**
+- Server 389 testova (novi: `afk.test.ts`, AFK i `completedHumans` u `analytics.test.ts`, rok i brojanje u Raub i Bela stolu). Typecheck svih paketa.
+- E2E na lokalnom serveru, Raub Quick Play bez ijednog poteza:
+  - snapshot nosi `{ manual: 0, auto: 2 }`;
+  - rok od 4 s istekao tačno na vrijeme → `abandoned`;
+  - restart sa snapshotom u čekanju čiji je rok prošao → prekid 9 ms poslije hidracije.
+
+**Nije provjereno:** Žandar E2E (sat od 30 s; pokriveno samo jedinicama), staging, PostHog poslije deploya.
+
+**Poslije deploya, za sedmicu:** udio `afk: true` po igri i raspodjela `auto_moves / (manual_moves + auto_moves)`.
+
+**Dopuna istog dana (odluka vlasnika):** rok od 10 min za „Sljedeća ruka" važi samo kad čovjek igra sam protiv botova — tačno jedno ljudsko sjedište (`stallApplies` u `afk.ts`). Čim za stolom sjede dva čovjeka (i uz botove), roka nema i host kontroliše tempo; takav sto i dalje zatvara samo sweeper (12 h). `handEndedAt` se bilježi za svaki sto, pa sweeper i tada šalje `stalled` sa trajanjem do kraja zadnje ruke. Testovi: `stallApplies` i sto sa dva čovjeka u Raubu i Beli (bez prekida poslije roka); server 393. Raub E2E (1 čovjek + bot, `NEXT_HAND_IDLE_MS=4000`) i dalje zatvara sto 4 s poslije kraja ruke.

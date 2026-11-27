@@ -10,6 +10,7 @@ import type {
   RulesConfig,
   TableTheme,
 } from "@zandar/shared-types";
+import type { MoveCounts } from "./afk";
 import { persistence } from "./persistence";
 import type { RoomInvite } from "./profile/invites";
 
@@ -91,6 +92,17 @@ export type LobbyRoom = {
   bela?: BelaGameState | null;
   /** Poker, Raub i Bela Quick Play: do kad sto čeka druge prave igrače prije botova (epoch ms). */
   matchingUntil?: number;
+  /**
+   * Ručni i automatski potezi ljudi u tekućem meču (`afk.ts`). Samo server,
+   * opciono — stari snapshot ga nema i tada se AFK ne procjenjuje.
+   */
+  moveCounts?: MoveCounts;
+  /**
+   * Kad je ruka završila i sto čeka „Sljedeća ruka" (Žandar, Raub, Bela; epoch
+   * ms). Ulaz za rok `AFK_CONFIG.nextHandIdleMs` i za trajanje zaglavljenog
+   * meča. Opciono; briše se kad krene sljedeća ruka.
+   */
+  handEndedAt?: number;
 };
 
 const rooms = new Map<string, LobbyRoom>();

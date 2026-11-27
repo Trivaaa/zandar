@@ -23,6 +23,7 @@ import type {
 } from "@zandar/shared-types";
 import type { LobbyRoom } from "../rooms";
 import { toPublicPlayer } from "../publicPlayer";
+import { countMove } from "../afk";
 
 /**
  * Poker sto na serveru (docs/poker-spec.md, plan faza 3).
@@ -363,6 +364,8 @@ export class PokerTables {
     const auto = getPokerAutoAction(s, pid);
     if (!auto) return;
     room.poker = applyPokerAction(s, pid, auto);
+    // Server je odigrao umjesto čovjeka (rok ili bez veze) — `afk.ts`.
+    countMove(room, s.matchId, pid, "auto");
     void this.broadcast(roomId);
   }
 
@@ -379,6 +382,8 @@ export class PokerTables {
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : "ILLEGAL_ACTION" };
     }
+    // Prije broadcast-a: kraj meča mora vidjeti i ovaj potez (`afk.ts`).
+    countMove(room, room.poker.matchId, playerId, "manual");
     await this.broadcast(roomId);
     return { ok: true };
   }

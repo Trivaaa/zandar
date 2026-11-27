@@ -67,6 +67,7 @@ afterEach(() => {
 function setup(r: LobbyRoom, sockets: RaubSocketLike[] = [], timing: Partial<RaubTiming> = {}) {
   const rooms = new Map([[r.id, r]]);
   const ended: string[] = [];
+  const stalledEnds: boolean[] = [];
   const started: string[] = [];
   const roomEvents: Emitted[] = [];
   let botSeq = 0;
@@ -93,10 +94,13 @@ function setup(r: LobbyRoom, sockets: RaubSocketLike[] = [], timing: Partial<Rau
     },
     botThinkMs: () => 1,
     onMatchStarted: (room) => started.push(room.raub!.matchId),
-    onMatchEnded: (_room, reason) => ended.push(reason),
+    onMatchEnded: (_room, reason, extra) => {
+      ended.push(reason);
+      stalledEnds.push(extra?.stalled === true);
+    },
   });
   tables.push(t);
-  return { t, ended, started, roomEvents };
+  return { t, ended, stalledEnds, started, roomEvents };
 }
 
 const lastState = (s: { log: Emitted[] }) =>
@@ -239,6 +243,55 @@ describe("raub: sto", () => {
     assert.deepEqual(await t.nextHand(r.id, "h"), { ok: true });
     assert.equal(r.raub!.dealNo, dealNo + 1);
     assert.deepEqual(await t.nextHand(r.id, "h"), { ok: false, error: "INVALID_PHASE" });
+  });
+
+  test("rok za „Sljedeća ruka”: niko ne pritisne → meč napušten kao zaglavljen (27.11.2026)", async () => {
+    const r = room([human("h", 0), bot("b1", 1)]);
+    const { t, ended, stalledEnds } = setup(r, [], { turnMs: 5, nextHandIdleMs: 40 });
+    t.start(r);
+    await until(() => r.raub!.phase !== "playing");
+    if (r.raub!.phase === "match_finished") return;
+    assert.equal(typeof r.handEndedAt, "number", "početak čekanja je na sobi (preživi restart)");
+    await until(() => r.raub!.phase === "abandoned");
+    assert.deepEqual(ended, ["abandoned"]);
+    assert.deepEqual(stalledEnds, [true]);
+  });
+
+  test("rok za „Sljedeća ruka” ne važi za sto sa dva čovjeka — host kontroliše", async () => {
+    const r = room([human("h", 0), human("g", 1)]);
+    const { t, ended } = setup(r, [], { turnMs: 5, nextHandIdleMs: 40 });
+    t.start(r);
+    await until(() => r.raub!.phase !== "playing");
+    if (r.raub!.phase === "match_finished") return;
+    assert.equal(typeof r.handEndedAt, "number", "početak čekanja se i dalje bilježi (sweeper)");
+    await wait(150);
+    assert.equal(r.raub!.phase, "hand_complete");
+    assert.deepEqual(ended, []);
+  });
+
+  test("rok za „Sljedeća ruka”: host pritisne na vrijeme → nova ruka, početak čekanja obrisan", async () => {
+    const r = room([human("h", 0), bot("b1", 1)]);
+    const { t, ended } = setup(r, [], { turnMs: 5, nextHandIdleMs: 10_000 });
+    t.start(r);
+    await until(() => r.raub!.phase !== "playing");
+    if (r.raub!.phase === "match_finished") return;
+    const dealNo = r.raub!.dealNo;
+    assert.deepEqual(await t.nextHand(r.id, "h"), { ok: true });
+    assert.equal(r.raub!.dealNo, dealNo + 1);
+    assert.equal(r.handEndedAt, undefined, "nova ruka briše početak čekanja");
+    assert.deepEqual(ended, []);
+  });
+
+  test("auto potez čovjeka se broji (afk.ts), bot se ne broji", async () => {
+    const r = room([human("h", 0), bot("b1", 1)]);
+    const { t } = setup(r, [], { turnMs: 5 });
+    t.start(r);
+    await until(() => r.raub!.phase !== "playing");
+    const counts = r.moveCounts;
+    assert.equal(counts?.matchId, r.raub!.matchId);
+    assert.ok((counts?.byPlayer.h?.auto ?? 0) >= 1);
+    assert.equal(counts?.byPlayer.h?.manual, 0);
+    assert.equal(counts?.byPlayer.b1, undefined);
   });
 
   test("akcija van reda i nevažeća akcija se odbijaju kodom", async () => {

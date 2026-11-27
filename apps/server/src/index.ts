@@ -77,8 +77,11 @@ import {
   parsePlatform,
   tableComposition,
   trackedHumans,
+  completedHumans,
   type Capture,
+  type MatchEndOpts,
 } from "./analytics";
+import { AFK_CONFIG, countMove, countsFor, stallApplies } from "./afk";
 import { SlidingWindowLimiter } from "./rateLimit";
 import {
   isAdmin,
@@ -1738,7 +1741,7 @@ const raubTables = new RaubTables({
     matchWindowMs: ms("RAUB_MATCH_WINDOW_MS", 2000),
   },
   onMatchStarted: (room) => emitMatchStarted(room),
-  onMatchEnded: (room, reason) => emitMatchEnded(room, reason),
+  onMatchEnded: (room, reason, extra) => emitMatchEnded(room, reason, extra),
 });
 
 // ---- BELA (docs/bela-spec.md) ----
@@ -1760,7 +1763,7 @@ const belaTables = new BelaTables({
     matchWindowMs: ms("BELA_MATCH_WINDOW_MS", 2000),
   },
   onMatchStarted: (room) => emitMatchStarted(room),
-  onMatchEnded: (room, reason) => emitMatchEnded(room, reason),
+  onMatchEnded: (room, reason, extra) => emitMatchEnded(room, reason, extra),
 });
 
 // ---- BOT MOVE TIMERS ----
@@ -2178,6 +2181,7 @@ async function handleTurnTimeout(roomId: string): Promise<void> {
 
   try {
     autoPlay(room.gameState);
+    if (!player.isBot) countMove(room, room.gameState.matchId, player.id, "auto");
 
     fastify.log.info(
       `⏱ Auto-play in room ${roomId} for player ${currentPlayerId} (${player.displayName})`,
@@ -2281,90 +2285,59 @@ function endMatchCaptures(
   }
 }
 
-/** `match_ended` — jednom po meču: kraj i prekid dijele ključ, pa se ne mogu oba desiti. */
-function emitMatchEnded(room: LobbyRoom, reason: MatchEndReason): void {
-  if (room.poker) {
-    const ps = room.poker;
-    const key = `end:${ps.matchId}`;
-    if (analyticsEmitted.has(key)) return;
-    analyticsEmitted.add(key);
-    const startedAt = matchStartTimes.get(ps.matchId);
-    matchStartTimes.delete(ps.matchId);
-    endMatchCaptures(
-      room,
-      pokerMatchEndedEvents(ps, room.players, { mode: roomMode(room), reason, startedAt, now: Date.now() }),
-      "poker",
-      startedAt,
-    );
-    if (reason === "completed") {
-      const seated = new Set(ps.seats.map((x) => x.playerId));
-      void recordCompletedMatch(profileStore, ps.matchId, room.players.filter((p) => seated.has(p.id)), "poker");
-    }
-    return;
-  }
-  if (room.raub) {
-    const rs = room.raub;
-    const key = `end:${rs.matchId}`;
-    if (analyticsEmitted.has(key)) return;
-    analyticsEmitted.add(key);
-    const startedAt = matchStartTimes.get(rs.matchId);
-    matchStartTimes.delete(rs.matchId);
-    endMatchCaptures(
-      room,
-      pokerMatchEndedEvents(
-        raubMatchLike(rs),
-        room.players,
-        { mode: roomMode(room), reason, startedAt, now: Date.now() },
-        "raub",
-      ),
-      "raub",
-      startedAt,
-    );
-    if (reason === "completed") {
-      const seated = new Set(rs.seats.map((x) => x.playerId));
-      void recordCompletedMatch(profileStore, rs.matchId, room.players.filter((p) => seated.has(p.id)), "raub");
-    }
-    return;
-  }
-  if (room.bela) {
-    const bs = room.bela;
-    const key = `end:${bs.matchId}`;
-    if (analyticsEmitted.has(key)) return;
-    analyticsEmitted.add(key);
-    const startedAt = matchStartTimes.get(bs.matchId);
-    matchStartTimes.delete(bs.matchId);
-    endMatchCaptures(
-      room,
-      pokerMatchEndedEvents(
-        belaMatchLike(bs),
-        room.players,
-        { mode: roomMode(room), reason, startedAt, now: Date.now() },
-        "bela",
-      ),
-      "bela",
-      startedAt,
-    );
-    if (reason === "completed") {
-      const seated = new Set(bs.seats.map((x) => x.playerId));
-      void recordCompletedMatch(profileStore, bs.matchId, room.players.filter((p) => seated.has(p.id)), "bela");
-    }
-    return;
-  }
-  const gs = room.gameState;
-  if (!gs) return;
-  const key = `end:${gs.matchId}`;
+/**
+ * `match_ended` — jednom po meču: kraj i prekid dijele ključ, pa se ne mogu oba desiti.
+ *
+ * Razlog je po igraču (`afk.ts` `ownEndReason`): ko je izašao ili je većinu
+ * poteza prepustio serveru dobija `abandoned`, iako se meč završio. Profil
+ * (`recordCompletedMatch`) broji tačno one kojima je razlog `completed` —
+ * isto pravilo, pa se profil i PostHog ne mogu razići.
+ *
+ * `stalled`: niko nije pritisnuo „Sljedeća ruka" u roku; trajanje se računa
+ * do kraja zadnje ruke (`handEndedAt`), ne do zatvaranja.
+ */
+function emitMatchEnded(
+  room: LobbyRoom,
+  reason: MatchEndReason,
+  extra: { stalled?: boolean } = {},
+): void {
+  const seat = room.poker
+    ? { game: "poker" as const, like: room.poker, seats: room.poker.seats }
+    : room.raub
+      ? { game: "raub" as const, like: raubMatchLike(room.raub), seats: room.raub.seats }
+      : room.bela
+        ? { game: "bela" as const, like: belaMatchLike(room.bela), seats: room.bela.seats }
+        : null;
+  const matchId = seat ? seat.like.matchId : room.gameState?.matchId;
+  if (!matchId) return;
+  const key = `end:${matchId}`;
   if (analyticsEmitted.has(key)) return;
   analyticsEmitted.add(key);
-  const startedAt = matchStartTimes.get(gs.matchId);
-  matchStartTimes.delete(gs.matchId);
-  endMatchCaptures(
-    room,
-    matchEndedEvents(gs, { mode: roomMode(room), reason, startedAt, now: Date.now() }),
-    "zandar",
+  const startedAt = matchStartTimes.get(matchId);
+  matchStartTimes.delete(matchId);
+
+  const stalled = extra.stalled === true;
+  const opts: MatchEndOpts = {
+    mode: roomMode(room),
+    reason,
     startedAt,
-  );
+    now: stalled && room.handEndedAt !== undefined ? room.handEndedAt : Date.now(),
+    counts: countsFor(room, matchId),
+    stalled,
+  };
+
+  if (seat) {
+    endMatchCaptures(room, pokerMatchEndedEvents(seat.like, room.players, opts, seat.game), seat.game, startedAt);
+    const seated = new Set(seat.seats.map((x) => x.playerId));
+    const done = completedHumans(room.players.filter((p) => seated.has(p.id)), opts);
+    if (done.length > 0) void recordCompletedMatch(profileStore, matchId, done, seat.game);
+    return;
+  }
+  const gs = room.gameState!;
+  endMatchCaptures(room, matchEndedEvents(gs, opts), "zandar", startedAt);
   // Broj završenih partija na profilu (SPEC_IDENTITET §3) — napuštena se ne broji.
-  if (reason === "completed") void recordCompletedMatch(profileStore, gs.matchId, gs.players, "zandar");
+  const done = completedHumans(gs.players, opts);
+  if (done.length > 0) void recordCompletedMatch(profileStore, matchId, done, "zandar");
 }
 
 /**
@@ -2413,7 +2386,11 @@ function routeTurnTimers(roomId: string): void {
   if (!room?.gameState) return;
   const gs = room.gameState;
 
+  if (gs.phase === "hand_finished") armStallTimer(roomId);
+  else clearStallTimer(roomId);
+
   if (gs.phase === "playing") {
+    delete room.handEndedAt;
     const currentPlayer = gs.players.find((p) => p.id === gs.currentPlayerId);
     if (currentPlayer?.isBot) {
       clearTurnTimer(roomId); // bot nema AFK timeout
@@ -2433,6 +2410,40 @@ function routeTurnTimers(roomId: string): void {
     // ("Sljedeća ruka →" → game:nextHand). Ranije: auto-advance posle 4s u bot
     // partijama; uklonjeno na zahtjev (igrač kontroliše tempo).
   }
+}
+
+/**
+ * Rok za „Sljedeća ruka" (odluka vlasnika 27.11.2026). Host ne pritisne dugme
+ * u roku → partija je napuštena kao zaglavljena (`stalled`), umjesto da stoji
+ * do sweepera (12 h) i stigne u analitiku sa napuhanim trajanjem. Početak
+ * čekanja je na sobi (`handEndedAt`), pa rok preživi restart.
+ */
+const stallTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function armStallTimer(roomId: string): void {
+  const room = getRoom(roomId);
+  const gs = room?.gameState;
+  if (!room || !gs || gs.phase !== "hand_finished" || stallTimers.has(roomId)) return;
+  room.handEndedAt ??= Date.now();
+  if (!stallApplies(gs.players)) return; // ljudi za stolom: host kontroliše, bez roka
+  const handNumber = gs.handNumber;
+  const delay = Math.max(0, room.handEndedAt + AFK_CONFIG.nextHandIdleMs - Date.now());
+  stallTimers.set(
+    roomId,
+    setTimeout(() => {
+      stallTimers.delete(roomId);
+      const r = getRoom(roomId);
+      if (r?.gameState?.phase !== "hand_finished" || r.gameState.handNumber !== handNumber) return;
+      fastify.log.info(`⏳ Room ${roomId}: niko nije pokrenuo sljedeću ruku — prekid`);
+      void enterAbandoned(roomId, { stalled: true });
+    }, delay),
+  );
+}
+
+function clearStallTimer(roomId: string): void {
+  const t = stallTimers.get(roomId);
+  if (t) clearTimeout(t);
+  stallTimers.delete(roomId);
 }
 
 /* ------------------------------------------------------------------ *
@@ -2581,7 +2592,7 @@ async function enterVote(roomId: string): Promise<void> {
   fastify.log.info(`🗳 Room ${roomId} abandon vote started`);
 }
 
-async function enterAbandoned(roomId: string): Promise<void> {
+async function enterAbandoned(roomId: string, extra: { stalled?: boolean } = {}): Promise<void> {
   const room = getRoom(roomId);
   if (!room?.gameState) return;
   const gs = room.gameState;
@@ -2596,7 +2607,8 @@ async function enterAbandoned(roomId: string): Promise<void> {
   delete gs.abandonVotes;
   // Sweeper time dobija kraći TTL za završene sobe umjesto 12h idle.
   room.status = "finished";
-  emitMatchEnded(room, "abandoned");
+  clearStallTimer(roomId);
+  emitMatchEnded(room, "abandoned", extra);
 
   await broadcastGameState(roomId);
   fastify.log.info(`⚠ Match abandoned in room ${roomId}`);
@@ -2955,6 +2967,8 @@ io.on("connection", (socket) => {
           clientMoveId: payload.clientMoveId,
           clientKnownStateVersion: payload.clientKnownStateVersion,
         });
+        // Prije broadcast-a: kraj meča (emitEndAnalytics) mora vidjeti i ovaj potez.
+        countMove(room, room.gameState.matchId, playerId, "manual");
 
         // Bot gleda šta je čovjek uradio i možda reaguje (§41.2)
         const lastMove = room.gameState.moveHistory.at(-1);
@@ -3274,6 +3288,8 @@ try {
       if (phase === "paused_for_reconnect" || phase === "abandon_vote") {
         armPauseTimer(id);
       }
+      // Rok za „Sljedeća ruka" teče od `handEndedAt` (soba bez njega: od sad).
+      if (phase === "hand_finished") armStallTimer(id);
     }
   }
 } catch (err) {
@@ -3283,14 +3299,23 @@ try {
 // Sweep napuštenih soba: jednom odmah (čisti stare fajlove naslijeđene s diska)
 // pa periodično — inače rooms Map i .data rastu neograničeno.
 // Meč koji je sweeper zatekao otvoren dobija ishod, inače bi ostao bez `match_ended`.
+// Sto zatečen u čekanju na „Sljedeća ruka" je zaglavljen: `stalled`, trajanje do kraja ruke.
 const closeSweptMatch = (room: LobbyRoom) => {
-  if (room.gameState && isMatchOpen(room.gameState.phase)) emitMatchEnded(room, "abandoned");
+  clearStallTimer(room.id);
+  const zPhase = room.gameState?.phase;
+  if (room.gameState && zPhase && isMatchOpen(zPhase)) {
+    emitMatchEnded(room, "abandoned", { stalled: zPhase === "hand_finished" });
+  }
   const pokerPhase = room.poker?.phase;
   if (pokerPhase === "betting" || pokerPhase === "hand_complete") emitMatchEnded(room, "abandoned");
   const raubPhase = room.raub?.phase;
-  if (raubPhase === "playing" || raubPhase === "hand_complete") emitMatchEnded(room, "abandoned");
+  if (raubPhase === "playing" || raubPhase === "hand_complete") {
+    emitMatchEnded(room, "abandoned", { stalled: raubPhase === "hand_complete" });
+  }
   const belaPhase = room.bela?.phase;
-  if (belaPhase === "playing" || belaPhase === "hand_complete") emitMatchEnded(room, "abandoned");
+  if (belaPhase === "playing" || belaPhase === "hand_complete") {
+    emitMatchEnded(room, "abandoned", { stalled: belaPhase === "hand_complete" });
+  }
 };
 const sweptOnBoot = sweepStaleRooms(Date.now(), closeSweptMatch);
 if (sweptOnBoot > 0) {

@@ -769,6 +769,20 @@ export type AnalyticsEvents = {
      * Tada je `end_reason` `abandoned` za njega, iako se meč za ostale završio.
      */
     left?: boolean;
+    /**
+     * Od 27.11.2026: igrač je sam odigrao manje od pola svojih poteza (ostalo je
+     * odigrao server kad mu je istekao sat). Tada je `end_reason` `abandoned`
+     * za njega, iako se meč završio.
+     */
+    afk?: boolean;
+    /** Potezi koje je igrač odigrao sam / koje je server odigrao umjesto njega. */
+    manual_moves?: number;
+    auto_moves?: number;
+    /**
+     * Niko nije pritisnuo „Sljedeća ruka" u roku (ili je sto zatekao sweeper u
+     * čekanju); `duration_ms` je tada do kraja zadnje ruke, ne do zatvaranja.
+     */
+    stalled?: boolean;
     platform?: AnalyticsPlatform;
   };
   hand_finished: {

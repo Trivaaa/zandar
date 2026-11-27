@@ -81,6 +81,7 @@ function setup(
 ) {
   const rooms = new Map([[r.id, r]]);
   const ended: string[] = [];
+  const stalledEnds: boolean[] = [];
   const started: string[] = [];
   const roomEvents: Emitted[] = [];
   let botSeq = 0;
@@ -105,11 +106,14 @@ function setup(
     },
     botThinkMs: () => 1,
     onMatchStarted: (room) => started.push(room.bela!.matchId),
-    onMatchEnded: (_room, reason) => ended.push(reason),
+    onMatchEnded: (_room, reason, extra) => {
+      ended.push(reason);
+      stalledEnds.push(extra?.stalled === true);
+    },
     ...extra,
   });
   tables.push(t);
-  return { t, ended, started, roomEvents };
+  return { t, ended, stalledEnds, started, roomEvents };
 }
 
 const lastState = (s: { log: Emitted[] }) =>
@@ -267,6 +271,29 @@ describe("bela: sto", () => {
     assert.deepEqual(await t.nextHand(r.id, "h"), { ok: true });
     assert.equal(r.bela!.dealNo, dealNo + 1);
     assert.deepEqual(await t.nextHand(r.id, "h"), { ok: false, error: "INVALID_PHASE" });
+  });
+
+  test("rok za „Sljedeća ruka”: niko ne pritisne → napušten kao zaglavljen; čovjekovi auto potezi se broje", async () => {
+    const r = room(four());
+    const { t, ended, stalledEnds } = setup(r, [], { turnMs: 2, nextHandIdleMs: 30 });
+    t.start(r);
+    await until(() => r.bela!.phase === "hand_complete");
+    assert.ok((r.moveCounts?.byPlayer.h?.auto ?? 0) >= 1);
+    assert.equal(r.moveCounts?.byPlayer.b1, undefined, "bot se ne broji");
+    await until(() => r.bela!.phase === "abandoned");
+    assert.deepEqual(ended, ["abandoned"]);
+    assert.deepEqual(stalledEnds, [true]);
+  });
+
+  test("rok za „Sljedeća ruka” ne važi za sto sa dva čovjeka — host kontroliše", async () => {
+    const r = room(fourHumans());
+    const { t, ended } = setup(r, [], { turnMs: 2, nextHandIdleMs: 30 });
+    t.start(r);
+    await until(() => r.bela!.phase === "hand_complete");
+    assert.equal(typeof r.handEndedAt, "number", "početak čekanja se i dalje bilježi (sweeper)");
+    await wait(150);
+    assert.equal(r.bela!.phase, "hand_complete");
+    assert.deepEqual(ended, []);
   });
 
   test("akcija van reda i nevažeća akcija se odbijaju kodom", async () => {

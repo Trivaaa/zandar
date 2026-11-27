@@ -4,6 +4,7 @@ import { describe, test } from "node:test";
 import type { Player } from "@zandar/shared-types";
 
 import {
+  completedHumans,
   friendInviteAcceptedEvent,
   friendInviteSentEvent,
   isRematch,
@@ -257,6 +258,103 @@ describe("pokerMatchEndedEvents — izlazak", () => {
         ["abandoned", true],
       ],
     );
+  });
+});
+
+describe("AFK — server je igrao umjesto čovjeka (27.11.2026)", () => {
+  const table = [
+    player("a", 0, { guestId: "g-a", uid: "u-a" }),
+    player("b", 1, { guestId: "g-b", uid: "u-b" }),
+    player("c", 2, { isBot: true }),
+  ];
+  const counts = { a: { manual: 10, auto: 2 }, b: { manual: 2, auto: 10 } };
+
+  test("Žandar: AFK igrač je abandoned + afk, bez is_winner; igrač ostaje completed; potezi idu uz oba", () => {
+    const events = matchEndedEvents(match(table), {
+      mode: "quick_play",
+      reason: "completed",
+      now: 0,
+      counts,
+    });
+    const byId = new Map(events.map((e) => [e.distinctId, e.properties]));
+    const played = byId.get("g-a")!;
+    assert.equal(played.end_reason, "completed");
+    assert.equal(typeof played.is_winner, "boolean");
+    assert.equal(played.manual_moves, 10);
+    assert.equal(played.auto_moves, 2);
+    assert.equal("afk" in played, false);
+
+    const afk = byId.get("g-b")!;
+    assert.equal(afk.end_reason, "abandoned");
+    assert.equal(afk.afk, true);
+    assert.equal("is_winner" in afk, false);
+  });
+
+  test("Raub: isto pravilo, plasman ostaje", () => {
+    const events = pokerMatchEndedEvents(
+      raubMatchLike({
+        matchId: "r1",
+        dealNo: 9,
+        seats: [
+          { playerId: "a", place: 2 },
+          { playerId: "b", place: 1 },
+          { playerId: "c", place: 3 },
+        ],
+      }),
+      table,
+      { mode: "quick_play", reason: "completed", now: 0, counts },
+      "raub",
+    );
+    const afk = events.find((e) => e.distinctId === "g-b")!.properties;
+    assert.deepEqual([afk.end_reason, afk.afk, afk.placement, "is_winner" in afk], ["abandoned", true, 1, false]);
+  });
+
+  test("bez brojača (stari snapshot): ništa se ne mijenja", () => {
+    const events = matchEndedEvents(match(table), { mode: "quick_play", reason: "completed", now: 0 });
+    assert.deepEqual(
+      events.map((e) => [e.properties.end_reason, "manual_moves" in e.properties, "afk" in e.properties]),
+      [
+        ["completed", false, false],
+        ["completed", false, false],
+      ],
+    );
+  });
+
+  test("stalled ide uz događaj; trajanje je do `now` koji pozivalac da (kraj ruke)", () => {
+    const events = matchEndedEvents(match(table), {
+      mode: "quick_play",
+      reason: "abandoned",
+      startedAt: 1000,
+      now: 61_000,
+      stalled: true,
+    });
+    assert.deepEqual(
+      events.map((e) => [e.properties.stalled, e.properties.duration_ms]),
+      [
+        [true, 60_000],
+        [true, 60_000],
+      ],
+    );
+  });
+});
+
+describe("completedHumans — ko dobija završenu partiju na profilu", () => {
+  test("samo ljudi kojima je razlog completed: bez bota, bez AFK-a, bez onoga ko je izašao", () => {
+    const table = [
+      player("a", 0, { uid: "u-a" }),
+      player("b", 1, { uid: "u-b" }),
+      player("c", 2, { isBot: true }),
+      player("d", 3, { uid: "u-d", left: true }),
+    ];
+    const done = completedHumans(table, {
+      reason: "completed",
+      counts: { a: { manual: 5, auto: 0 }, b: { manual: 0, auto: 5 }, d: { manual: 5, auto: 0 } },
+    });
+    assert.deepEqual(done.map((p) => p.id), ["a"]);
+  });
+
+  test("prekinut meč: niko", () => {
+    assert.deepEqual(completedHumans([player("a", 0, { uid: "u-a" })], { reason: "abandoned" }), []);
   });
 });
 
