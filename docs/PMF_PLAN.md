@@ -365,7 +365,7 @@ Zaključak:
 
 **Dopuna 27.11. — „Vrati se za sto":** `table_resume_click` je na produkciji od 22.11.: 6 → 18 → 25 → 33 → 35 → 33 klikova dnevno, 31 osoba 27.11. Za sljedeće čitanje: koliko tih povrataka završi partiju.
 
-**⚠ Lom serije „završeno" (grana `fix/afk-match-end`, changelog 234):** od deploya te grane `match_ended` računa partiju kao završenu samo ako je igrač sam odigrao bar 50 % poteza (ostalo `abandoned` + `afk`), sto koji 10 min čeka „Sljedeća ruka" protiv botova je `abandoned` + `stalled`, a Žandar sada šalje `left` kao ostale igre. Udio završenih i broj završenih na profilu zato **padaju poslije deploya bez promjene igre** — najviše Žandar na webu. Serije završenih mečeva se ne porede preko tog datuma; za poređenje unazad isključiti `afk`/`stalled` ili čitati odvojeno. Datum deploya na produkciju upisati ovdje. D1/D7 se ne mijenjaju (baza je `match_started`).
+**⚠ Lom serije „završeno" (grana `fix/afk-match-end`, changelog 234):** od deploya te grane `match_ended` računa partiju kao završenu samo ako je igrač sam odigrao bar 50 % poteza (ostalo `abandoned` + `afk`), sto koji 10 min čeka „Sljedeća ruka" protiv botova je `abandoned` + `stalled`, a Žandar sada šalje `left` kao ostale igre. Udio završenih i broj završenih na profilu zato **padaju poslije deploya bez promjene igre** — najviše Žandar na webu. Serije završenih mečeva se ne porede preko tog datuma; za poređenje unazad isključiti `afk`/`stalled` ili čitati odvojeno. Na produkciji najkasnije od **28.11.2026. u 9:11** (tip `b6867b3`); tačan trenutak prvog deploya je u Railway Deployments — za poređenje uzimati od 28.11. D1/D7 se ne mijenjaju (baza je `match_started`).
 
 ## 7. Ritam čitanja
 
