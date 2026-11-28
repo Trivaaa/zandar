@@ -2,12 +2,14 @@ Naslov: Koliko često pobjeđuješ?
 
 Zdravo,
 
-sad u Kartaonici vidiš kako ti ide.
+mnogi od vas su nas pitali koliko partija dobijaju i kako stoje u odnosu na druge. Na vaš zahtjev, sad u Kartaonici vidiš kako ti ide.
 
 U Profilu, za svaku igru posebno: koliko partija dobijaš, procenat pobjeda i koliko ti je dug niz. Poslije svake partije odmah vidiš šta se pomjerilo.
 
 UPOREDI SE SA PRIJATELJIMA
-Otvori prijatelja u listi Prijatelji i vidiš ko češće pobjeđuje u istim igrama. Nemaš ih još? Dodaj ih po nadimku u Profil → Prijatelji.
+Otvori prijatelja u listi Prijatelji i vidiš ko češće pobjeđuje u istim igrama.
+
+Društvo još nije tu? Pošalji im link kartaonica.com ili im samo proslijedi ovaj mejl. Kad naprave nalog, dodaj ih po nadimku u Profil → Prijatelji i neka igra počne.
 
 Brojanje kreće od 28. novembra, pa je sad pravo vrijeme da počneš svoj niz — i da ga pokažeš ekipi.
 
@@ -19,7 +21,7 @@ UZ TO, UKRATKO
 Pogledaj svoju statistiku u aplikaciji:
 https://play.google.com/store/apps/details?id=com.kartaonica.zandar&referrer=utm_source%3Demail%26utm_medium%3Demail%26utm_campaign%3Dstats
 
-ili igraj u pregledaču:
+ili igraj na webu:
 https://kartaonica.com/?utm_source=email&utm_medium=email&utm_campaign=stats
 
 Imaš ideju ili nešto ne radi? Samo odgovori na ovaj mejl.
