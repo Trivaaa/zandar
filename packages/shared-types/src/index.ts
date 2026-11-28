@@ -672,7 +672,7 @@ export type AnalyticsEvents = {
   /** Profil i Postavke (SPEC_PROFIL_POSTAVKE §7, D9/D14). */
   settings_opened: { from: "profile_pill" };
   /** SPEC_STATISTIKA §10 (C1): kartica statistike prikazana; `matches` = partije u toj igri. */
-  stats_viewed: { game: "zandar" | "poker" | "raub" | "bela"; source: "profile"; matches: number };
+  stats_viewed: { game: "zandar" | "poker" | "raub" | "bela"; source: "profile" | "other_profile"; matches: number };
   stats_game_switched: { from: "zandar" | "poker" | "raub" | "bela"; to: "zandar" | "poker" | "raub" | "bela" };
   /** C2: red na kraju partije prikazan (veza sa „Igraj ponovo"). */
   match_end_stats_shown: { game: "zandar" | "poker" | "raub" | "bela"; outcome: "win" | "loss"; streak: number };

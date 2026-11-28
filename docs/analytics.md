@@ -141,7 +141,7 @@ Dopuniti spisak kad se nađu.
 | `fake_door_signup` | klijent | Prijava iz lista lažnih vrata je stigla na server. Odvaja je od prijava sa `/igre/[slug]`. Ponovljena adresa takođe šalje ovaj događaj, a `signup_succeeded` ne, pa jedinstvene adrese broji `signup_succeeded`. | `game` |
 | `settings_opened` | klijent | Otvoren ekran Postavke (`/postavke`) pilulom na Profilu (SPEC_PROFIL_POSTAVKE §7, od 24.11.2026). | `from` (`profile_pill`) |
 | `game_settings_opened` | klijent | Otvoren list igre iz Profila → „Moje igre". | `game`, `from` (`profile`) |
-| `stats_viewed` | klijent | Kartica „Statistika" na Profilu prikazana sa brojkama (SPEC_STATISTIKA C1, od F1). Jednom po otvaranju profila, za igru koja se prva vidi. | `game`, `source` (`profile`), `matches` (partije u toj igri) |
+| `stats_viewed` | klijent | Kartica „Statistika" prikazana sa brojkama (SPEC_STATISTIKA C1, od F1). Jednom po otvaranju, za igru koja se prva vidi. `other_profile` (v0.3) = tuđi profil prijatelja ili igrača za istim privatnim stolom. | `game`, `source` (`profile` \| `other_profile`), `matches` (partije u toj igri) |
 | `stats_game_switched` | klijent | Promjena igre čipom na kartici statistike. | `from`, `to` |
 | `match_end_stats_shown` | klijent | Red statistike na kraju partije prikazan (S3; C2: veza sa „Igraj ponovo"/revanšom). Samo kad je `stats:update` stigao u 3 s — gost bez naloga i stariji server ga nemaju. | `game`, `outcome` (`win` \| `loss`), `streak` |
 | `game_setting_changed` | klijent | Dodir u listu igre koji MIJENJA vrijednost (isti izbor ponovo ne šalje). Čuva se odmah. | `game`, `setting` (`players` \| `target` \| `start_score` \| `deck` \| `table`), `value` |

@@ -1,9 +1,10 @@
-# SPEC — Statistika igrača po igri · NACRT v0.2
+# SPEC — Statistika igrača po igri · NACRT v0.3
 
 > **Status: nacrt, čeka odobrenje vlasnika. Nijedan red koda nije napisan.**
 > Datum: 2026-11-27, v0.2 2026-11-28. Grana: `docs/spec-statistika`.
 > **Obim v1 (odluka vlasnika 28.11.2026): igrač vidi samo SVOJU statistiku.** Tuđi profil, sjedište u lobiju i javno „Završava %" su P2 (§6, §13). Razlog: ~94 % partija je brza igra, skoro uvijek protiv botova (§13), pa tuđi procenat ne govori ništa o igraču.
 > Dizajn: tabla `UI_Statistika` na platnu „Kartaonica · identitet".
+> **v0.3 (odluka vlasnika 28.11.2026): tuđu statistiku vide prijatelji i igrači za istim PRIVATNIM stolom** — ista kartica kao na vlastitom profilu, samo za čitanje (§14). Brza igra bez prijateljstva i dalje ne vidi ništa.
 > Odnos prema `docs/Specs/SPEC_RANG.md` („Liga"): ovaj spec je **faza F0 Lige**. Liga gradi na istim zapisima ishoda, a dok se ne odobri, statistika stoji sama.
 > Gdje se ovaj tekst i kod razilaze, važi kod.
 
@@ -376,3 +377,21 @@ Oko 94 % završenih partija je brza igra, a to je skoro uvijek sto sa botovima. 
 - **Polazište zavisi od broja igrača.** Za stolom od 4 prosjek je 25 %, pa poker pokazuje oko 23 % i kod prosječnog igrača. Zato poker i Raub dobijaju red konteksta stola (§5.2), a Žandar i Bela ne, jer im je polazište 50 %.
 - **Težina bota utiče na procenat.** Promjena `ZANDAR_BOT_TIERS` ili poker bota pomjera svima procenat. Takvu promjenu treba zabilježiti u changelogu sa datumom, da se skok u statistici ne čita kao promjena igrača. DDA i krivulja pobjeda za nove igrače (HARD RULE 7) moraju ostati konfiguracija.
 - **Kad tuđa statistika dolazi:** kad udio partija među ljudima bude dovoljno velik da procenat govori o igraču. Mjeri se iz `results/.opponents` (§7.1), a ne pogađa.
+
+## 14. Prijatelji i privatni sto (dopuna v0.3, 28.11.2026)
+
+Odluke vlasnika:
+- **Ko vidi:** prijatelj (`relation: friends`) i igrač koji sjedi za istim privatnim stolom (`!isPublic`, oba `uid`-a u sobi, nije izašao). Brza igra bez prijateljstva ne daje pravo, jer se tamo uglavnom igra protiv botova (§13).
+- **Šta vidi:** istu karticu kao na vlastitom profilu (`StatsCard variant="other"`): čipove igara, krug, pobjede i poraze, kontekst stola i niz. Dugmeta „Igraj" nema, a bez partija se kartica ne crta.
+- **„Završava %":** drugi ga vide tek kad vlasnik ima 10 ili više započetih partija, u svim igrama zajedno (`showCompletes`). Do tada server šalje `abandoned: 0`.
+- **Privatnost:** prekidač u Postavkama → Privatnost, „Statistiku vide prijatelji i igrači za privatnim stolom". Podrazumijevano je uključen (`profiles.statsHidden`, bez polja = vidljivo). Blokada u bilo kom smjeru sakriva statistiku. Sebi se ne šalje, jer svoju igrač vidi na profilu.
+
+Server:
+- `GET /api/profiles/:id?room=<roomId>`; sobu provjerava server (`sharesPrivateTable`), pa se tuđa soba ne može podmetnuti;
+- odgovor nosi `stats` (`SharedStats`) samo kad `canSeeStats` dozvoli;
+- nikad `lastAt`, protivnici ni oznaka bota.
+
+Botovi (HARD RULE 3): dodir na sjedište otvara profil samo za nalog (`profileId`). Gost i bot već izgledaju isto (oblačić bez profila), pa statistika ne otkriva bota.
+
+O2 je zatvoreno pragom 10. **O4 (pravni pregled vidljivosti) je uslov za produkciju**: `/privatnost` je dopunjena odlomkom „Statistika po igri".
+

@@ -31,7 +31,10 @@ async function fakeRequireUser(
   };
 }
 
-function setup(store: ProfileStore = createMemoryProfileStore()) {
+function setup(
+  store: ProfileStore = createMemoryProfileStore(),
+  sharesPrivateTable?: (viewerUid: string, targetUid: string, roomId: string) => boolean,
+) {
   let clock = 1_000_000_000;
   const app = Fastify();
   const unbound: string[] = [];
@@ -40,6 +43,7 @@ function setup(store: ProfileStore = createMemoryProfileStore()) {
     requireUser: fakeRequireUser,
     now: () => clock,
     unbindDevices: (uid) => unbound.push(uid),
+    ...(sharesPrivateTable ? { sharesPrivateTable } : {}),
   });
   const as = (who: string) => ({ authorization: `Bearer ${who}` });
   return {
@@ -72,6 +76,7 @@ test("/api/me: gost bez profila", async () => {
     completedMatches: 0,
     completedMatchesByGame: { zandar: 0, poker: 0, raub: 0, bela: 0 },
     stats: { v: 1, since: null, byGame: {} },
+    statsVisible: true,
     nickname: null,
     avatar: null,
     nicknameChangeAllowedAt: null,
@@ -288,4 +293,74 @@ test("skladište ne odgovara → 503 store_unavailable, ne 500", async () => {
   const res = await app.inject({ method: "GET", url: "/api/me", headers: as("user:u1") });
   assert.equal(res.statusCode, 503);
   assert.equal((res.json() as { code: string }).code, "store_unavailable");
+});
+
+// ---------------------------------------------------------------------------
+// SPEC_STATISTIKA v0.3 — tuđa statistika: prijatelji i isti privatni sto
+// ---------------------------------------------------------------------------
+
+const R = { place: 1, players: 4, mode: "private_room" as const, opponents: ["bot:2", "u2"], hands: 5 };
+
+async function statsSetup() {
+  // Sto „sto1" je privatan i u njemu sjede u1 i u2; u3 nije za stolom.
+  const ctx = setup(createMemoryProfileStore(), (viewer, target, room) =>
+    room === "sto1" && [viewer, target].every((u) => u === "u1" || u === "u2"),
+  );
+  await ctx.setNick("user:u1", "Marko");
+  await ctx.setNick("user:u2", "Ana");
+  await ctx.setNick("user:u3", "Zoki");
+  await ctx.store.recordMatchResult("m1", "u1", "raub", { ...R, outcome: "win" }, 1000);
+  await ctx.store.recordMatchResult("m2", "u1", "raub", { ...R, place: 3, outcome: "loss" }, 2000);
+  await ctx.store.recordMatchResult("m3", "u1", "raub", { ...R, place: null, outcome: "abandon", left: true }, 3000);
+  const get = (who: string, room?: string) =>
+    ctx.app.inject({ method: "GET", url: `/api/profiles/marko${room ? `?room=${room}` : ""}`, headers: ctx.as(who) });
+  return { ...ctx, get };
+}
+
+test("tuđa statistika: isti privatni sto vidi, tuđi sto i brza igra bez prijateljstva ne vide", async () => {
+  const { get } = await statsSetup();
+  const atTable = (await get("user:u2", "sto1")).json() as { stats?: unknown };
+  assert.deepEqual(atTable.stats, {
+    v: 1,
+    since: 1000,
+    showCompletes: false,
+    byGame: { raub: { won: 1, lost: 1, abandoned: 0, streak: 0, bestStreak: 1, tables: { "4": 3 } } },
+  });
+  assert.equal((await get("user:u2")).json().stats, undefined, "bez sobe i bez prijateljstva");
+  assert.equal((await get("user:u3", "sto1")).json().stats, undefined, "u3 ne sjedi za tim stolom");
+  assert.equal((await get("user:u2", "drugi")).json().stats, undefined, "podmetnuta soba");
+});
+
+test("tuđa statistika: prijatelj vidi bez sobe; odgovor nikad ne nosi bot:, lastAt ni protivnike", async () => {
+  const { get, store } = await statsSetup();
+  await store.setFriends("u1", "u2", true);
+  const res = await get("user:u2");
+  assert.ok((res.json() as { stats?: unknown }).stats);
+  assert.doesNotMatch(res.body, /bot:|lastAt|opponents|u1/);
+});
+
+test("tuđa statistika: skrivena ili blokada u bilo kom smjeru → nema je; sebi se ne šalje", async () => {
+  const { get, store, app, as } = await statsSetup();
+  await store.setFriends("u1", "u2", true);
+  const hide = await app.inject({ method: "PUT", url: "/api/me/stats-visibility", headers: as("user:u1"), payload: { visible: false } });
+  assert.equal(hide.statusCode, 200);
+  assert.equal((hide.json() as { statsVisible: boolean }).statsVisible, false);
+  assert.equal((await get("user:u2", "sto1")).json().stats, undefined, "skrivena");
+  await app.inject({ method: "PUT", url: "/api/me/stats-visibility", headers: as("user:u1"), payload: { visible: true } });
+  assert.ok((await get("user:u2", "sto1")).json().stats, "ponovo vidljiva");
+
+  await store.setBlock("u1", "u2", true);
+  assert.equal((await get("user:u2", "sto1")).json().stats, undefined, "vlasnik blokirao gledaoca");
+  await store.setBlock("u1", "u2", false);
+  await store.setBlock("u2", "u1", true);
+  assert.equal((await get("user:u2", "sto1")).json().stats, undefined, "gledalac blokirao vlasnika");
+  assert.equal((await get("user:u1", "sto1")).json().stats, undefined, "svoje se gleda na profilu");
+});
+
+test("prekidač: samo nalog, samo boolean", async () => {
+  const { app, as } = setup();
+  const put = (who: string, payload: unknown) =>
+    app.inject({ method: "PUT", url: "/api/me/stats-visibility", headers: as(who), payload: payload as object });
+  assert.equal((await put("anon:g1", { visible: false })).statusCode, 403);
+  assert.equal((await put("user:u1", { visible: "ne" })).statusCode, 400);
 });

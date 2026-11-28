@@ -16,6 +16,7 @@ import { unbindPushDevice } from "@/lib/api";
 import { useBackHandler } from "@/lib/backHandlers";
 import { isNative } from "@/lib/platform";
 import { useMe } from "@/lib/profile";
+import { StatsVisibilityRow } from "@/components/settings/StatsVisibilityRow";
 import { getPushId, pushEnabled } from "@/lib/push";
 import { sr } from "@/lib/sr";
 import { STORE_LINKS } from "@/lib/stores";
@@ -106,6 +107,7 @@ export function SettingsScreen() {
         </Group>
 
         <Group title={s.groupPrivacy}>
+          {isAccount && me.status === "ready" ? <StatsVisibilityRow me={me.me} onSaved={me.update} /> : null}
           <MetaConsentRow />
           <Link href="/delete-account" className="profile__item">
             <span className="profile__item-label">{s.deleteData}</span>

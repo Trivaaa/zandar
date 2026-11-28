@@ -1,9 +1,11 @@
 "use client";
 
-import { EMPTY_GAME_STATS, type GameStats, type PlayerStats } from "@zandar/shared-types";
+import { EMPTY_GAME_STATS, type GameStats, type PlayerStats, type SharedStats } from "@zandar/shared-types";
 
 import { MatchStatsLineView } from "@/components/MatchStatsRow";
+import { Avatar } from "@/components/profile/Avatar";
 import { StatsCard, type StatsCardState } from "@/components/profile/StatsCard";
+import { Sheet } from "@/components/sheet/Sheet";
 import { useQueryParam } from "@/lib/useQuery";
 
 /**
@@ -17,6 +19,8 @@ import { useQueryParam } from "@/lib/useQuery";
  *   /dev/stats?s=loading   S1 skelet
  *   /dev/stats?s=error     S1 greška
  *   /dev/stats?s=end       S3 svi redovi na kraju partije
+ *   /dev/stats?s=other     S4 tuđi profil (prijatelj / privatni sto), Završava vidljivo
+ *   /dev/stats?s=other-new S4 tuđi profil, manje od 10 započetih (bez Završava)
  */
 const g = (x: Partial<GameStats>): GameStats => ({ ...EMPTY_GAME_STATS, ...x });
 
@@ -38,6 +42,18 @@ const POKER: PlayerStats = {
 
 const ORDER = ["raub", "bela", "poker", "zandar"] as const;
 
+const shared = (stats: PlayerStats, showCompletes: boolean): SharedStats => ({
+  v: 1,
+  since: stats.since,
+  showCompletes,
+  byGame: Object.fromEntries(
+    Object.entries(stats.byGame).map(([k, g]) => {
+      const { lastAt: _drop, ...rest } = g!;
+      return [k, { ...rest, abandoned: showCompletes ? rest.abandoned : 0 }];
+    }),
+  ),
+});
+
 export default function DevStatsPage() {
   const s = useQueryParam("s") ?? "full";
   const state: StatsCardState =
@@ -46,6 +62,27 @@ export default function DevStatsPage() {
       : s === "error"
         ? { status: "error", onRetry: () => undefined }
         : { status: "ready", stats: s === "small" ? SMALL : s === "poker" ? POKER : s === "empty" ? undefined : FULL };
+
+  if (s === "other" || s === "other-new") {
+    return (
+      <main className="screen profile" style={{ padding: "1rem" }}>
+        <Sheet title="Profil igrača" closeLabel="Zatvori" onClose={() => undefined}>
+          <div className="other-profile">
+            <Avatar id="medvjed" size={64} />
+            <span className="profile__hero-name">Jasmin</span>
+            <span className="profile__meta">63 završene partije</span>
+            <div className="other-profile__stats">
+              <StatsCard
+                variant="other"
+                state={{ status: "ready", stats: s === "other" ? shared(FULL, true) : shared(SMALL, false) }}
+                order={[]}
+              />
+            </div>
+          </div>
+        </Sheet>
+      </main>
+    );
+  }
 
   return (
     <main className="screen profile" style={{ padding: "1rem" }}>

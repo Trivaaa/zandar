@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { RetryIcon, WarningIcon } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
+import { StatsCard } from "@/components/profile/StatsCard";
 import { Sheet } from "@/components/sheet/Sheet";
 import { fetchPublicProfile, type PublicProfile } from "@/lib/profile";
 import { sr } from "@/lib/sr";
@@ -19,10 +20,13 @@ type Load = { status: "loading" } | { status: "error" } | { status: "ready"; pro
  */
 export function OtherProfileSheet({
   profileId,
+  roomId,
   onClose,
   actions,
 }: {
   profileId: string;
+  /** Privatni sto za kojim oba sjede — daje pravo na statistiku (v0.3). */
+  roomId?: string | undefined;
   onClose: () => void;
   actions?: (profile: PublicProfile) => ReactNode;
 }) {
@@ -31,14 +35,14 @@ export function OtherProfileSheet({
 
   useEffect(() => {
     let cancelled = false;
-    fetchPublicProfile(profileId).then(
+    fetchPublicProfile(profileId, roomId).then(
       (profile) => !cancelled && setLoad({ status: "ready", profile }),
       () => !cancelled && setLoad({ status: "error" }),
     );
     return () => {
       cancelled = true;
     };
-  }, [profileId, attempt]);
+  }, [profileId, roomId, attempt]);
 
   return (
     <Sheet title={sr.otherProfile.title} closeLabel={sr.otherProfile.close} onClose={onClose}>
@@ -46,7 +50,8 @@ export function OtherProfileSheet({
         {load.status === "ready" ? (
           <>
             {load.profile.avatar ? (
-              <Avatar id={load.profile.avatar} size={120} />
+              // Sa statistikom (v0.3) avatar je manji, da kartica stane iznad ivice.
+              <Avatar id={load.profile.avatar} size={load.profile.stats ? 64 : 120} />
             ) : (
               <span className="profile__letter profile__letter--xl" aria-hidden="true">
                 {load.profile.nickname.charAt(0).toLocaleUpperCase("sr-Latn")}
@@ -54,6 +59,11 @@ export function OtherProfileSheet({
             )}
             <span className="profile__hero-name">{load.profile.nickname}</span>
             <span className="profile__meta">{sr.profile.completed(load.profile.completedMatches)}</span>
+            {load.profile.stats && load.profile.relation !== "self" ? (
+              <div className="other-profile__stats">
+                <StatsCard variant="other" state={{ status: "ready", stats: load.profile.stats }} order={[]} />
+              </div>
+            ) : null}
             <div className="other-profile__actions">
               {load.profile.relation === "self" ? null : actions?.(load.profile)}
             </div>

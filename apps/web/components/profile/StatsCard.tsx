@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { GameId, PlayerStats } from "@zandar/shared-types";
+import type { GameId, PlayerStats, SharedStats } from "@zandar/shared-types";
 
 import { CardsIcon, CheckIcon, FlameIcon, RetryIcon, TableIcon } from "@/components/icons";
 import { Sheet } from "@/components/sheet/Sheet";
@@ -16,10 +16,14 @@ import { track } from "@/lib/track";
  * `UI_Statistika`). Jedna velika brojka: pobjede % u izabranoj igri. Ispod
  * 5 završenih krug je u segmentima, bez procenta. Isti ekran za web i
  * aplikaciju (O1).
+ *
+ * `variant="other"` (v0.3): ista kartica na tuđem profilu, samo za čitanje —
+ * bez dugmeta „Igraj" (bez partija se ne crta), „Završava" samo kad ga server
+ * dozvoli (`showCompletes`, od 10 započetih partija vlasnika).
  */
 
 export type StatsCardState =
-  | { status: "ready"; stats: PlayerStats | undefined }
+  | { status: "ready"; stats: PlayerStats | SharedStats | undefined }
   | { status: "loading" }
   | { status: "error"; onRetry: () => void };
 
@@ -29,16 +33,19 @@ const RING_C = 2 * Math.PI * RING_R;
 export function StatsCard({
   state,
   order,
-  fallbackGame,
+  fallbackGame = "zandar",
   onPlay,
+  variant = "own",
 }: {
   state: StatsCardState;
   /** Redoslijed igara na početnoj — za nerješeno (isto partija). */
   order: readonly GameId[];
   /** Igra za dugme „Igraj" kad nema partija (zadnja izabrana). */
-  fallbackGame: GameId;
-  onPlay: (game: GameId) => void;
+  fallbackGame?: GameId;
+  onPlay?: (game: GameId) => void;
+  variant?: "own" | "other";
 }) {
+  const other = variant === "other";
   const [picked, setPicked] = useState<GameId | null>(null);
   const [howOpen, setHowOpen] = useState(false);
 
@@ -50,10 +57,10 @@ export function StatsCard({
   useEffect(() => {
     if (state.status !== "ready" || !game || !stats || viewed.current === game) return;
     if (viewed.current === null) {
-      track("stats_viewed", { game, source: "profile", matches: totalOf(stats.byGame[game]!) });
+      track("stats_viewed", { game, source: other ? "other_profile" : "profile", matches: totalOf(stats.byGame[game]!) });
     }
     viewed.current = game;
-  }, [state.status, game, stats]);
+  }, [state.status, game, stats, other]);
 
   if (state.status === "loading") {
     return (
@@ -89,6 +96,7 @@ export function StatsCard({
   const how = howOpen ? <HowSheet onClose={() => setHowOpen(false)} /> : null;
 
   if (!game || !stats) {
+    if (other) return null;
     return (
       <section className="stats" aria-labelledby="stats-title">
         <h2 id="stats-title" className="stats__title">
@@ -105,7 +113,7 @@ export function StatsCard({
           </span>
           <p className="stats__text">{sr.stats.empty}</p>
         </div>
-        <button type="button" className="home__cta stats__play" onClick={() => onPlay(fallbackGame)}>
+        <button type="button" className="home__cta stats__play" onClick={() => onPlay?.(fallbackGame)}>
           <span>{sr.stats.play(sr.games[fallbackGame].name)}</span>
         </button>
       </section>
@@ -113,6 +121,7 @@ export function StatsCard({
   }
 
   const v = gameStatsView(game, stats.byGame[game]!);
+  const showCompletes = !("showCompletes" in stats) || stats.showCompletes;
   const name = sr.games[game].name;
 
   return (
@@ -161,7 +170,7 @@ export function StatsCard({
           {v.percent === null ? (
             <li className="stats__muted">{sr.stats.percentFrom}</li>
           ) : null}
-          {v.completes !== null ? (
+          {v.completes !== null && showCompletes ? (
             <li>
               <CheckIcon className="stats__li-icon" />
               <span>{sr.stats.completes(v.completes)}</span>

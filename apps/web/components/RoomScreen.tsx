@@ -79,13 +79,14 @@ type GameStateWithDeadline = PrivateGameStateView & {
  */
 export function RoomScreen({ roomId }: { roomId: string }) {
   const router = useRouter();
-  // Dodir na igrača → tuđi profil / kartica gosta (SPEC_IDENTITET T1–T3).
-  const playerInfo = usePlayerInfo();
-  const onPlayerTap = identityUi ? playerInfo.open : undefined;
   // E3 „Pozovi iz prijatelja" (host sa nalogom).
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const [room, setRoom] = useState<RoomInfo | null>(null);
+  // Dodir na igrača → tuđi profil / kartica gosta (SPEC_IDENTITET T1–T3).
+  // Privatni sto (SPEC_STATISTIKA v0.3): igrači za njim vide statistiku jedan drugom.
+  const playerInfo = usePlayerInfo(undefined, undefined, room && !room.isPublic ? roomId : undefined);
+  const onPlayerTap = identityUi ? playerInfo.open : undefined;
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<RoomSession | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);

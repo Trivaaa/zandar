@@ -1200,9 +1200,16 @@ export const sr = {
       "Broji se svaka partija odigrana do kraja.",
       "Ako izađeš prije kraja, ili većinu poteza umjesto tebe odigra sat, partija se broji kao napuštena.",
       "Ako drugi igrač ode, tebi se ne broji ništa.",
-      "Statistiku vidiš samo ti.",
+      "Statistiku vide tvoji prijatelji i igrači za privatnim stolom. Možeš je sakriti u Postavkama.",
     ],
     howOk: "Razumijem",
+    /** v0.3: Postavke → prekidač. */
+    visibleTitle: "Statistiku vide prijatelji i igrači za privatnim stolom",
+    visibleSub: "Kad je isključeno, tvoju statistiku vidiš samo ti.",
+    visibleError: "Izmjena nije sačuvana. Pokušaj ponovo.",
+    visibleOn: "Uključeno",
+    turnOn: "Uključi",
+    turnOff: "Isključi",
     /** S3: red na kraju partije. */
     endWin: (won: number) => `Pobjeda ${won}`,
     endStreak: (won: number, streak: number) => `Pobjeda ${won} · niz ${streak}`,

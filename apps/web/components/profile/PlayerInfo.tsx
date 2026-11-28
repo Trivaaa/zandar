@@ -45,6 +45,8 @@ export function usePlayerInfo(
   onChanged?: () => void,
   /** F5 „Pozovi na partiju" — samo gdje host može da pozove (lista prijatelja). */
   onInvite?: (profile: PublicProfile) => void,
+  /** SPEC_STATISTIKA v0.3: privatni sto — igrači za njim vide statistiku jedan drugom. */
+  privateRoomId?: string,
 ): {
   open: (player: { displayName: string; profileId?: string | null }, anchor: DOMRect) => void;
   layer: ReactNode;
@@ -173,6 +175,7 @@ export function usePlayerInfo(
       <OtherProfileSheet
         key={`${tapped.profileId}:${version}`}
         profileId={tapped.profileId}
+        roomId={privateRoomId}
         onClose={close}
         actions={(profile) => actionsFor(profile, viewerIsGuest)}
       />

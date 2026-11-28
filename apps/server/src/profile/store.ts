@@ -67,6 +67,8 @@ export type StoredProfile = {
   avatar?: ProfileAvatar;
   /** SPEC_STATISTIKA F0; profil bez njega = prazna statistika. */
   stats?: PlayerStats;
+  /** v0.3: vlasnik je sakrio statistiku od prijatelja i stola. Bez polja = vidljiva. */
+  statsHidden?: boolean;
 };
 
 /** `own` = nadimak pripada ovom igraču (njegov ili njegov rezervisan). */
@@ -110,6 +112,8 @@ export type ProfileStore = {
   /** `nickname`/`key` su već prošli `checkNickname` i filter riječi. */
   setNickname(uid: string, nickname: string, key: string, now?: number): Promise<SetNicknameResult>;
   setAvatar(uid: string, avatar: ProfileAvatar, now?: number): Promise<void>;
+  /** SPEC_STATISTIKA v0.3: „Statistiku vide prijatelji i igrači za privatnim stolom". */
+  setStatsHidden(uid: string, hidden: boolean, now?: number): Promise<void>;
   /**
    * Profil i svi rezultati igrača (napušten gost T6, nedovršen nalog Q10).
    * Nadimak NE dira — rezervacija nadimka je stvar brisanja naloga (korak 7).
@@ -264,6 +268,10 @@ export function createMemoryProfileStore(): ProfileStore {
     async setAvatar(uid, avatar) {
       profiles.set(uid, { ...profileOf(uid), avatar });
     },
+    async setStatsHidden(uid, hidden) {
+      const { statsHidden: _old, ...rest } = profileOf(uid);
+      profiles.set(uid, hidden ? { ...rest, statsHidden: true } : rest);
+    },
     async deleteUserData(uid) {
       profiles.delete(uid);
       for (const [key, owner] of results) if (owner === uid) results.delete(key);
@@ -350,6 +358,7 @@ function decodeProfile(f: FsFields): StoredProfile {
   if (avatar) profile.avatar = avatar;
   const stats = decodeStats(f.stats);
   if (stats) profile.stats = stats;
+  if (f.statsHidden === true) profile.statsHidden = true;
   return profile;
 }
 
@@ -565,6 +574,16 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
           path: profilePath(uid),
           fields: { avatar, updatedAt: now },
           mask: ["avatar", "updatedAt"],
+        },
+      ]);
+    },
+    async setStatsHidden(uid, hidden, now = Date.now()) {
+      await db.commit([
+        {
+          kind: "set",
+          path: profilePath(uid),
+          fields: { statsHidden: hidden, updatedAt: now },
+          mask: ["statsHidden", "updatedAt"],
         },
       ]);
     },

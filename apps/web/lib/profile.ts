@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { GameId, PlayerStats, ProfileAvatar } from "@zandar/shared-types";
+import type { GameId, PlayerStats, ProfileAvatar, SharedStats } from "@zandar/shared-types";
 
 import { authHeaders } from "@/lib/auth";
 import { resolveApiBase } from "@/lib/platform";
@@ -20,6 +20,8 @@ export type Me = {
   completedMatchesByGame?: Record<GameId, number>;
   /** SPEC_STATISTIKA F0 (server od 28.11.2026); opciono jer stariji server ga ne šalje. */
   stats?: PlayerStats;
+  /** v0.3: vide li prijatelji i igrači za privatnim stolom statistiku (bez polja = da). */
+  statsVisible?: boolean;
   nickname: string | null;
   avatar: ProfileAvatar | null;
   /** Kad se nadimak smije opet mijenjati; `null` = odmah. */
@@ -134,10 +136,14 @@ export type PublicProfile = {
   completedMatches: number;
   /** `none` · `self`; prijatelji i blokada dolaze sa koracima 8d i 9. */
   relation: string;
+  /** SPEC_STATISTIKA v0.3: samo prijatelju i igraču za istim privatnim stolom, i kad vlasnik nije sakrio. */
+  stats?: SharedStats;
 };
 
-export async function fetchPublicProfile(profileId: string): Promise<PublicProfile> {
-  const res = await authed(`/api/profiles/${encodeURIComponent(profileId)}`);
+/** `roomId` = privatni sto za kojim oba sjede — server ga provjerava (v0.3). */
+export async function fetchPublicProfile(profileId: string, roomId?: string): Promise<PublicProfile> {
+  const query = roomId ? `?room=${encodeURIComponent(roomId)}` : "";
+  const res = await authed(`/api/profiles/${encodeURIComponent(profileId)}${query}`);
   if (!res.ok) throw new Error(`profile_${res.status}`);
   return (await res.json()) as PublicProfile;
 }
@@ -177,6 +183,13 @@ export async function deleteMyAccount(): Promise<"ok" | "recent_login" | "error"
 export async function saveAvatar(avatar: ProfileAvatar): Promise<Me> {
   const res = await authed("/api/me/avatar", { method: "PUT", body: JSON.stringify({ avatar }) });
   if (!res.ok) throw new Error(`avatar_${res.status}`);
+  return (await res.json()) as Me;
+}
+
+/** v0.3 prekidač „Statistiku vide prijatelji i igrači za privatnim stolom". Baca na neuspjeh. */
+export async function saveStatsVisible(visible: boolean): Promise<Me> {
+  const res = await authed("/api/me/stats-visibility", { method: "PUT", body: JSON.stringify({ visible }) });
+  if (!res.ok) throw new Error(`stats_visibility_${res.status}`);
   return (await res.json()) as Me;
 }
 

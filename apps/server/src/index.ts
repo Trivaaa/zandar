@@ -286,6 +286,15 @@ registerProfileRoutes(fastify, {
   identity: identityAdmin,
   unbindDevices: (uid) => void deviceStore.unbindUid(uid),
   onFriendsChanged: (uids) => uids.forEach((uid) => void pushFriendCount(uid)),
+  // SPEC_STATISTIKA v0.3: tuđu statistiku vide i igrači za istim privatnim
+  // stolom. Soba dolazi od klijenta, pa se ovdje provjerava: postoji, nije brza
+  // igra, i oba igrača sjede u njoj (bez onih koji su izašli).
+  sharesPrivateTable: (viewerUid, targetUid, roomId) => {
+    const room = getRoom(roomId);
+    if (!room || room.isPublic) return false;
+    const seated = (uid: string) => room.players.some((p) => !p.isBot && p.uid === uid && p.left !== true);
+    return seated(viewerUid) && seated(targetUid);
+  },
 });
 // Prijatelji (SPEC_IDENTITET tok d, §6.6).
 registerFriendRoutes(fastify, {

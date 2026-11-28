@@ -93,6 +93,16 @@ export function PrivacyPolicyBody() {
                 posljednje promjene nadimka. Nadimak, avatar i broj partija vide
                 drugi igrači; e-mail i način prijave ne vidi niko drugi.
               </li>
+              <li>
+                <strong>Statistika po igri</strong> — za svaku partiju odigranu
+                sa gostom ili nalogom: ishod (pobjeda, poraz ili napuštena
+                partija), mjesto, broj igrača i trajanje, i iz toga zbir po
+                igri (pobjede, porazi, niz pobjeda, koliko partija završavaš).
+                Statistiku vidiš ti na svom profilu. Ako imaš nalog, vide je i
+                tvoji prijatelji i igrači koji sjede sa tobom za privatnim
+                stolom; to možeš isključiti u Postavkama → Privatnost. Briše se
+                sa nalogom.
+              </li>
             </>
           ) : null}
           <li>

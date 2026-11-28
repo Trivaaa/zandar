@@ -1,4 +1,7 @@
-import type { GameId, GameStats, PlayerStats, StatsUpdatePayload, TableSize } from "@zandar/shared-types";
+import type { GameId, GameStats, PlayerStats, SharedStats, StatsUpdatePayload, TableSize } from "@zandar/shared-types";
+
+/** Svoja i tuđa statistika imaju iste brojače; tuđa nema `lastAt`. */
+type Counts = Omit<GameStats, "lastAt">;
 
 /**
  * Prikaz statistike (SPEC_STATISTIKA v0.2 §5.2, §8). Čiste funkcije — kartica
@@ -12,12 +15,12 @@ export const PERCENT_FROM = 5;
 /** Igre gdje svako igra za sebe sa 3–4 igrača — polazište nije 50 %, pa ide red konteksta. */
 const CONTEXT_GAMES: readonly GameId[] = ["poker", "raub"];
 
-export function totalOf(g: GameStats): number {
+export function totalOf(g: Counts): number {
   return g.won + g.lost + g.abandoned;
 }
 
 /** Igre sa bar jednom partijom: najviše partija prvo, nerješeno po redu `order` (redoslijed početne). */
-export function statsGames(stats: PlayerStats | undefined, order: readonly GameId[]): GameId[] {
+export function statsGames(stats: PlayerStats | SharedStats | undefined, order: readonly GameId[]): GameId[] {
   if (!stats) return [];
   const rank = (g: GameId) => {
     const i = order.indexOf(g);
@@ -45,14 +48,14 @@ export type GameStatsView = {
   tableSize: number | null;
 };
 
-function mostCommonTable(g: GameStats): number | null {
+function mostCommonTable(g: Counts): number | null {
   const entries = Object.entries(g.tables ?? {}) as [TableSize, number][];
   if (entries.length === 0) return null;
   const [size] = entries.reduce((a, b) => (b[1] > a[1] || (b[1] === a[1] && Number(b[0]) > Number(a[0])) ? b : a));
   return Number(size);
 }
 
-export function gameStatsView(game: GameId, g: GameStats): GameStatsView {
+export function gameStatsView(game: GameId, g: Counts): GameStatsView {
   const finished = g.won + g.lost;
   const total = totalOf(g);
   const size = CONTEXT_GAMES.includes(game) ? mostCommonTable(g) : null;

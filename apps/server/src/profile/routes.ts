@@ -6,6 +6,7 @@ import type { AuthUser } from "../auth/idToken";
 import type { IdentityAdmin } from "../google/identityToolkit";
 import { abandonGuest, deleteAccount } from "./cleanup";
 import { relationOf, severOnBlock } from "./friends";
+import { canSeeStats, sharedStats } from "./statsAccess";
 import { SlidingWindowLimiter } from "../rateLimit";
 import { evaluateNickname } from "./nickname";
 import { matchesByGameFull, REPORT_REASONS, type ProfileStore, type ReportReason } from "./store";
@@ -40,6 +41,12 @@ export function registerProfileRoutes(
     unbindDevices?: (uid: string) => void;
     /** Promijenio se broj zahtjeva ovih igrača (blokada briše zahtjeve). */
     onFriendsChanged?: (uids: string[]) => void;
+    /**
+     * SPEC_STATISTIKA v0.3: oba igrača su sada za istim PRIVATNIM stolom
+     * `roomId` (soba postoji, nije brza igra, oba `uid`-a sjede). Bez nje
+     * statistiku vide samo prijatelji.
+     */
+    sharesPrivateTable?: (viewerUid: string, targetUid: string, roomId: string) => boolean;
     now?: () => number;
   },
 ): void {
@@ -69,6 +76,8 @@ export function registerProfileRoutes(
       completedMatchesByGame: matchesByGameFull(profile?.completedMatchesByGame),
       /** SPEC_STATISTIKA F0: pobjede, porazi, napuštanja i niz po igri; prazno za stari profil. */
       stats: profile?.stats ?? { v: 1, since: null, byGame: {} },
+      /** v0.3: vide li prijatelji i igrači za privatnim stolom statistiku. */
+      statsVisible: profile?.statsHidden !== true,
       nickname: profile?.nickname ?? null,
       avatar: profile?.avatar ?? null,
       /** Kad je nadimak zaključan (P2); `null` = smije se mijenjati. */
@@ -194,20 +203,35 @@ export function registerProfileRoutes(
    * partija. NIKAD e-mail ni način prijave (G4). Gost i bot nemaju profil
    * (njihov `profileId` je `null`), pa ih ova ruta ne može ni naći.
    */
-  app.get<{ Params: { profileId: string } }>("/api/profiles/:profileId", async (request, reply) => {
+  app.get<{ Params: { profileId: string }; Querystring: { room?: string } }>("/api/profiles/:profileId", async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return reply;
     try {
       const uid = await store.uidForNickname(request.params.profileId.toLowerCase());
       const profile = uid ? await store.getProfile(uid) : null;
       if (!uid || !profile?.nickname) return reply.code(404).send({ code: "not_found" });
+      // F2–F5 i „blocked" — uvijek iz ugla gledaoca (friends.ts).
+      const relation = await relationOf(store, user.uid, uid);
+      // SPEC_STATISTIKA v0.3: prijatelj ili isti privatni sto; soba iz upita
+      // se provjerava na serveru (`sharesPrivateTable`), ne vjeruje se klijentu.
+      const room = typeof request.query.room === "string" ? request.query.room : null;
+      const stats =
+        profile.stats &&
+        canSeeStats({
+          relation,
+          blockedEitherWay: relation === "blocked" || (await store.isBlocked(uid, user.uid)),
+          hidden: profile.statsHidden === true,
+          sharesPrivateTable: room !== null && (deps.sharesPrivateTable?.(user.uid, uid, room) ?? false),
+        })
+          ? sharedStats(profile.stats)
+          : undefined;
       return {
         profileId: profile.nicknameKey,
         nickname: profile.nickname,
         avatar: profile.avatar ?? null,
         completedMatches: profile.completedMatches,
-        // F2–F5 i „blocked" — uvijek iz ugla gledaoca (friends.ts).
-        relation: await relationOf(store, user.uid, uid),
+        relation,
+        ...(stats ? { stats } : {}),
       };
     } catch (err) {
       return storeUnavailable(reply, err, "GET /api/profiles/:id");
@@ -273,6 +297,21 @@ export function registerProfileRoutes(
       return reply.code(204).send();
     } catch (err) {
       return storeUnavailable(reply, err, "POST /api/reports");
+    }
+  });
+
+  /** SPEC_STATISTIKA v0.3: prekidač „Statistiku vide prijatelji i igrači za privatnim stolom" (samo nalog). */
+  app.put<{ Body: { visible?: unknown } }>("/api/me/stats-visibility", async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return reply;
+    if (accountRequired(user, reply)) return reply;
+    const visible = request.body?.visible;
+    if (typeof visible !== "boolean") return reply.code(400).send({ code: "invalid" });
+    try {
+      await store.setStatsHidden(user.uid, !visible, now());
+      return await me(user);
+    } catch (err) {
+      return storeUnavailable(reply, err, "PUT /api/me/stats-visibility");
     }
   });
 

@@ -86,3 +86,16 @@ export function applyOutcome(
     lastAt: at,
   };
 }
+
+/**
+ * Tuđa statistika u `GET /api/profiles/:id` (v0.3): samo prijatelji i igrači
+ * za istim privatnim stolom. Bez `lastAt`; `abandoned` je 0 dok vlasnik nema
+ * 10 započetih partija (`showCompletes: false`), pa se „Završava" ne prikazuje.
+ */
+export type SharedGameStats = Omit<GameStats, "lastAt">;
+export type SharedStats = {
+  v: 1;
+  since: number | null;
+  showCompletes: boolean;
+  byGame: Partial<Record<GameId, SharedGameStats>>;
+};

@@ -487,3 +487,16 @@ test("stari profil bez stats: čita se bez statistike; neispravan stats se tiho 
     byGame: { raub: { won: 0, lost: 2, abandoned: 0, streak: 0, bestStreak: 0, lastAt: 0 } },
   });
 });
+
+test("statsHidden (v0.3): memorija i Firestore — upis, čitanje, vraćanje", async () => {
+  const fake = fakeFirestore();
+  for (const store of [createMemoryProfileStore(), createFirestoreProfileStore(createFirestore("p", tokens, fake.impl))]) {
+    await store.setAvatar("u1", "jez");
+    assert.equal((await store.getProfile("u1"))?.statsHidden, undefined, "bez polja = vidljiva");
+    await store.setStatsHidden("u1", true);
+    assert.equal((await store.getProfile("u1"))?.statsHidden, true);
+    await store.setStatsHidden("u1", false);
+    assert.equal((await store.getProfile("u1"))?.statsHidden, undefined);
+    assert.equal((await store.getProfile("u1"))?.avatar, "jez", "ostala polja netaknuta");
+  }
+});

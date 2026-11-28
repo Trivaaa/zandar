@@ -3160,3 +3160,36 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 - red na kraju partije sa pravim nalogom: lokalno nema Firebase-a, pa nema `uid`-a ni upisa;
 - uređaj.
 
+## 238. Statistika v0.3: prijatelji i igrači za privatnim stolom vide tuđu karticu (2026-11-28, `feat/stats-f2`)
+
+**Odluke vlasnika (28.11.2026):**
+- Tuđu statistiku vide prijatelji i igrači za istim privatnim stolom.
+- Vidi se ista kartica kao na vlastitom profilu.
+- Prekidač u Postavkama, podrazumijevano uključen.
+- „Završava %" se drugima pokazuje od 10 započetih partija.
+
+**Server:**
+- `profile/statsAccess.ts`:
+  - `canSeeStats`: prijatelj ili isti privatni sto; ne za sebe, uz blokadu u bilo kom smjeru ni kad je statistika skrivena;
+  - `sharedStats`: bez `lastAt`, a `abandoned` 0 dok vlasnik nema 10 započetih.
+- `GET /api/profiles/:id?room=` provjerava sobu kroz zavisnost `sharesPrivateTable` iz `index.ts`: soba postoji, nije brza igra i oba čovjeka sjede u njoj (nisu izašli).
+- `profiles.statsHidden` i `PUT /api/me/stats-visibility` (samo nalog); `/api/me` vraća `statsVisible`.
+
+**Web (i aplikacija):**
+- `StatsCard variant="other"` u `OtherProfileSheet`, ispod nadimka. Avatar je 64 px kad postoji statistika, da kartica stane na 360×640.
+- `usePlayerInfo` dobija `privateRoomId`, a `RoomScreen` ga šalje samo za privatni sto.
+- Postavke → Privatnost: `StatsVisibilityRow` (Uključeno / Isključi), čuva se odmah, a na grešku vraća staro stanje.
+- S6 pravilo glasi: „Statistiku vide tvoji prijatelji i igrači za privatnim stolom. Možeš je sakriti u Postavkama."
+- `/privatnost` je dopunjena odlomkom „Statistika po igri" (čeka pravni pregled).
+- Harness `/dev/stats?s=other|other-new`.
+
+**Zamka:** `next dev` na ovoj mašini zna pasti na `next/font/google` (`Module not found … font/google/font`), jer Avast presreće HTTPS. Pomaže `NODE_OPTIONS=--use-system-ca`, uz brisanje `.next`.
+
+**Provjereno:**
+- server 424 testa (10 novih): `canSeeStats`, `sharedStats`, ruta sa sobom (isti sto, tuđi sto, podmetnuta soba, brza igra), prijatelj, skrivena, blokada u oba smjera, prekidač, `statsHidden` u memoriji i Firestore-u;
+- web 393 testa;
+- typecheck;
+- snimci tuđeg profila 360×640.
+
+**Nije provjereno:** dva prava naloga za privatnim stolom (staging), uređaj, pravni pregled teksta.
+
