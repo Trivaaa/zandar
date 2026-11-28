@@ -1,6 +1,6 @@
 "use client";
 
-import type { ProfileAvatar } from "@zandar/shared-types";
+import type { GameId, PlayerStats, ProfileAvatar } from "@zandar/shared-types";
 
 import { ArrowRightIcon, ChevronRightIcon, GearIcon, PencilIcon, RetryIcon, WarningIcon } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
@@ -10,6 +10,7 @@ import { useQuickPlayPrefs } from "@/lib/quickPlayPrefs";
 import { useBelaTarget } from "@/lib/belaTarget";
 import { useRaubDeck } from "@/lib/settings";
 import { sr } from "@/lib/sr";
+import { myGameLine } from "@/lib/statsView";
 import { useTableTheme } from "@/lib/tableTheme";
 
 /**
@@ -133,6 +134,7 @@ export function SaveProgressCard({ onRegister, onLogin }: { onRegister: () => vo
         {p.saveTitle}
       </h2>
       <p className="profile__save-body">{p.saveBody}</p>
+      <p className="profile__save-perk">{p.saveStatsPerk}</p>
       <button type="button" className="home__cta profile__save-cta" onClick={onRegister}>
         <span>{p.saveCta}</span>
         <ArrowRightIcon className="home__cta-arrow" />
@@ -145,7 +147,16 @@ export function SaveProgressCard({ onRegister, onLogin }: { onRegister: () => vo
 }
 
 /** „Moje igre · kako igraš": red = boja igre, ime, trenutni izbor; dodir → list igre. */
-export function MyGames({ games, onOpen }: { games: readonly GameConfig[]; onOpen: (game: GameConfig) => void }) {
+export function MyGames({
+  games,
+  stats,
+  onOpen,
+}: {
+  games: readonly GameConfig[];
+  /** S2: druga linija „41 partija · 34 % pobjeda" (SPEC_STATISTIKA). */
+  stats?: PlayerStats | undefined;
+  onOpen: (game: GameConfig) => void;
+}) {
   return (
     <section className="profile__games" aria-labelledby="profile-games-title">
       <h2 id="profile-games-title" className="profile__section-title">
@@ -154,7 +165,11 @@ export function MyGames({ games, onOpen }: { games: readonly GameConfig[]; onOpe
       <ul className="profile__game-list">
         {games.map((game) => (
           <li key={game.slug}>
-            <GameRow game={game} onOpen={() => onOpen(game)} />
+            <GameRow
+              game={game}
+              line={myGameLine(game.slug as GameId, stats?.byGame[game.slug as GameId])}
+              onOpen={() => onOpen(game)}
+            />
           </li>
         ))}
       </ul>
@@ -163,7 +178,15 @@ export function MyGames({ games, onOpen }: { games: readonly GameConfig[]; onOpe
 }
 
 /** Opis ispod imena čita isti izbor koji ide serveru („Red = istina", §5). */
-function GameRow({ game, onOpen }: { game: GameConfig; onOpen: () => void }) {
+function GameRow({
+  game,
+  line,
+  onOpen,
+}: {
+  game: GameConfig;
+  line: { matches: number; percent: number | null } | null;
+  onOpen: () => void;
+}) {
   const prefs = useQuickPlayPrefs(game.slug);
   const tableTheme = useTableTheme(game.slug);
   const [deck] = useRaubDeck();
@@ -176,6 +199,7 @@ function GameRow({ game, onOpen }: { game: GameConfig; onOpen: () => void }) {
       <span className="profile__game-text">
         <span className="profile__game-name">{sr.games[game.slug].name}</span>
         <span className="profile__game-sub">{gameSettingsSummary(game.slug, { prefs, tableTheme, deck, belaTarget })}</span>
+        {line ? <span className="profile__game-stats">{sr.stats.myGame(line.matches, line.percent)}</span> : null}
       </span>
       <ChevronRightIcon className="profile__item-chevron" />
     </button>

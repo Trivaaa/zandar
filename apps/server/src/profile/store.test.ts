@@ -393,8 +393,11 @@ async function statsContract(store: ProfileStore) {
   // Stari profil: partija prije F0 (samo brojač).
   await store.recordCompletedMatch("old", "u1", "raub", 500);
 
-  assert.equal(await store.recordMatchResult("m1", "u1", "raub", { ...RESULT, outcome: "win" }, 1000), true);
-  assert.equal(await store.recordMatchResult("m1", "u1", "raub", { ...RESULT, outcome: "win" }, 1001), false, "dupla dostava");
+  assert.deepEqual(await store.recordMatchResult("m1", "u1", "raub", { ...RESULT, outcome: "win" }, 1000), {
+    before: null,
+    after: { won: 1, lost: 0, abandoned: 0, streak: 1, bestStreak: 1, lastAt: 1000, tables: { "3": 1 } },
+  });
+  assert.equal(await store.recordMatchResult("m1", "u1", "raub", { ...RESULT, outcome: "win" }, 1001), null, "dupla dostava");
   await store.recordMatchResult("m2", "u1", "raub", { ...RESULT, outcome: "win" }, 2000);
   await store.recordMatchResult("m3", "u1", "raub", { ...RESULT, place: 2, outcome: "loss" }, 3000);
   await store.recordMatchResult("m4", "u1", "raub", { ...RESULT, outcome: "win" }, 4000);
@@ -408,14 +411,14 @@ async function statsContract(store: ProfileStore) {
     v: 1,
     since: 1000,
     byGame: {
-      raub: { won: 3, lost: 1, abandoned: 1, streak: 0, bestStreak: 2, lastAt: 5000 },
-      bela: { won: 0, lost: 1, abandoned: 0, streak: 0, bestStreak: 0, lastAt: 6000 },
+      raub: { won: 3, lost: 1, abandoned: 1, streak: 0, bestStreak: 2, lastAt: 5000, tables: { "3": 5 } },
+      bela: { won: 0, lost: 1, abandoned: 0, streak: 0, bestStreak: 0, lastAt: 6000, tables: { "4": 1 } },
     },
   });
 
   await store.deleteUserData("u1");
   assert.equal(await store.getProfile("u1"), null, "brisanje nosi i statistiku");
-  assert.equal(await store.recordMatchResult("m1", "u1", "raub", { ...RESULT, outcome: "win" }, 7000), true, "i zapise u results/");
+  assert.notEqual(await store.recordMatchResult("m1", "u1", "raub", { ...RESULT, outcome: "win" }, 7000), null, "i zapise u results/");
 }
 
 test("memorija: statistika po igri — ishodi, niz, dupla dostava, stari profil", async () => {
@@ -447,7 +450,7 @@ test("Firestore: profil se mijenjao između čitanja i upisa → novi pokušaj, 
     }
     return realCommit(writes);
   };
-  assert.equal(await store.recordMatchResult("m1", "u1", "poker", { ...RESULT, outcome: "win" }, 1000), true);
+  assert.notEqual(await store.recordMatchResult("m1", "u1", "poker", { ...RESULT, outcome: "win" }, 1000), null);
   db.commit = realCommit;
   const p = await store.getProfile("u1");
   assert.equal(p?.avatar, "lisica");

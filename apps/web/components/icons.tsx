@@ -334,3 +334,33 @@ export function SuitIcon({ suit, className }: IconProps & { suit: Suit }) {
     </svg>
   );
 }
+
+/** Plamen — niz pobjeda (statistika). */
+export function FlameIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.6.8-2.8 1.8-3.8.2 1.4 1 2.3 2 2.3 0-2.5-1-4.5.2-7z" />
+    </svg>
+  );
+}
+
+/** Pehar — novi rekord (statistika). */
+export function TrophyIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <path d="M8 4h8v4a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 3M16 6h3a3 3 0 0 1-3 3M12 12v4M9 20h6" />
+    </svg>
+  );
+}
+
+/** Dvoje ljudi — red konteksta stola („Za stolom od 4…"). */
+export function TableIcon({ className }: IconProps) {
+  return (
+    <svg {...stroke} className={className}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <circle cx="17" cy="9" r="2.5" />
+      <path d="M16.5 14.3a5 5 0 0 1 5 5.2" />
+    </svg>
+  );
+}

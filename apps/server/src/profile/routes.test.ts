@@ -89,7 +89,7 @@ test("/api/me: statistika po igri (SPEC_STATISTIKA F0)", async () => {
   assert.deepEqual(me.stats, {
     v: 1,
     since: 1000,
-    byGame: { raub: { won: 2, lost: 0, abandoned: 1, streak: 0, bestStreak: 2, lastAt: 3000 } },
+    byGame: { raub: { won: 2, lost: 0, abandoned: 1, streak: 0, bestStreak: 2, lastAt: 3000, tables: { "3": 3 } } },
   });
   assert.ok(!JSON.stringify(me).includes("bot:"), "protivnici i oznaka bota nikad ne idu klijentu");
 });

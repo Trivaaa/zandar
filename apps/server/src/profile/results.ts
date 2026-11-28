@@ -1,6 +1,6 @@
-import type { GameId } from "@zandar/shared-types";
+import type { GameId, RecordedStats } from "@zandar/shared-types";
 
-import type { MatchResult } from "./outcomes";
+import type { PlayerOutcome } from "./outcomes";
 import type { ProfileStore } from "./store";
 
 type PlayerLike = { isBot?: boolean; uid?: string };
@@ -49,14 +49,21 @@ export function recordMatchResults(
   store: ProfileStore,
   matchId: string,
   game: GameId,
-  outcomes: readonly { uid: string; result: MatchResult }[],
+  outcomes: readonly PlayerOutcome[],
   log: (msg: string) => void = console.error,
+  /** Poslije uspješnog upisa (F1: `stats:update` socketu igrača). Ne zove se za već upisanu partiju ni za grešku. */
+  onRecorded?: (o: PlayerOutcome, stats: RecordedStats) => void,
 ): Promise<void> {
   return Promise.all(
-    outcomes.map(({ uid, result }) =>
-      store.recordMatchResult(matchId, uid, game, result).catch((err: unknown) => {
-        log(`[profile] rezultat nije upisan (${matchId}): ${String(err).slice(0, 300)}`);
-      }),
+    outcomes.map((o) =>
+      store
+        .recordMatchResult(matchId, o.uid, game, o.result)
+        .then((stats) => {
+          if (stats) onRecorded?.(o, stats);
+        })
+        .catch((err: unknown) => {
+          log(`[profile] rezultat nije upisan (${matchId}): ${String(err).slice(0, 300)}`);
+        }),
     ),
   ).then(() => undefined);
 }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import type { ProfileAvatar } from "@zandar/shared-types";
+import { GAME_IDS, type GameId, type ProfileAvatar } from "@zandar/shared-types";
 
 import { useAccountEntry } from "@/components/account/AccountEntry";
 import { VerifyEmailSheet } from "@/components/account/AccountSheets";
@@ -20,6 +20,7 @@ import {
   type IdentityMeta,
 } from "@/components/profile/ProfileParts";
 import { AvatarSheet, IdentitySheet } from "@/components/profile/ProfileSheets";
+import { StatsCard, type StatsCardState } from "@/components/profile/StatsCard";
 import { currentAccount, refreshAccount, resendVerification, type AccountInfo } from "@/lib/account";
 import { fetchFriends, peekFriends } from "@/lib/friends";
 import { GAMES, homeLayout, type GameConfig } from "@/lib/games";
@@ -136,7 +137,24 @@ export function ProfileScreen() {
       friends={isAccount ? friends : null}
     />
   );
-  const myGames = <MyGames games={games} onOpen={openGame} />;
+  const playerStats = me.status === "ready" ? me.me.stats : undefined;
+  const myGames = <MyGames games={games} stats={playerStats} onOpen={openGame} />;
+  // S1: redoslijed igara kao na početnoj; „Igraj" bez partija = najviše igrana ili prva.
+  const statsOrder = games.map((g) => g.slug).filter((s): s is GameId => (GAME_IDS as readonly string[]).includes(s));
+  const statsState: StatsCardState =
+    me.status === "ready"
+      ? { status: "ready", stats: playerStats }
+      : me.status === "error"
+        ? { status: "error", onRetry: me.retry }
+        : { status: "loading" };
+  const statsCard = (
+    <StatsCard
+      state={statsState}
+      order={statsOrder}
+      fallbackGame={statsOrder.find((g) => g === most) ?? statsOrder[0] ?? "zandar"}
+      onPlay={(game) => router.push(profileStartPath(game))}
+    />
+  );
 
   let body;
   if (accountReady && me.status === "ready" && me.me.nickname) {
@@ -163,6 +181,7 @@ export function ProfileScreen() {
           onEdit={() => setSheet({ kind: "identity" })}
         />
         {stats}
+        {statsCard}
         {myGames}
       </>
     );
@@ -199,6 +218,7 @@ export function ProfileScreen() {
             entry.openLogin();
           }}
         />
+        {statsCard}
         {myGames}
       </>
     );

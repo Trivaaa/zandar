@@ -671,6 +671,11 @@ export type AnalyticsEvents = {
   };
   /** Profil i Postavke (SPEC_PROFIL_POSTAVKE §7, D9/D14). */
   settings_opened: { from: "profile_pill" };
+  /** SPEC_STATISTIKA §10 (C1): kartica statistike prikazana; `matches` = partije u toj igri. */
+  stats_viewed: { game: "zandar" | "poker" | "raub" | "bela"; source: "profile"; matches: number };
+  stats_game_switched: { from: "zandar" | "poker" | "raub" | "bela"; to: "zandar" | "poker" | "raub" | "bela" };
+  /** C2: red na kraju partije prikazan (veza sa „Igraj ponovo"). */
+  match_end_stats_shown: { game: "zandar" | "poker" | "raub" | "bela"; outcome: "win" | "loss"; streak: number };
   game_settings_opened: { game: "zandar" | "poker" | "raub" | "bela"; from: "profile" };
   game_setting_changed: {
     game: "zandar" | "poker" | "raub" | "bela";
@@ -862,7 +867,10 @@ export type ClientAnalyticsEvent =
   | "settings_opened"
   | "game_settings_opened"
   | "game_setting_changed"
-  | "account_cta_tapped";
+  | "account_cta_tapped"
+  | "stats_viewed"
+  | "stats_game_switched"
+  | "match_end_stats_shown";
 
 export type ServerAnalyticsEvent = Exclude<keyof AnalyticsEvents, ClientAnalyticsEvent>;
 

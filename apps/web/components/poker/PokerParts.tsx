@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import type { Card, PublicPlayer } from "@zandar/shared-types";
 
+import { MatchStatsRow } from "@/components/MatchStatsRow";
 import { PlayingCard } from "@/components/felt/PlayingCard";
 import { Avatar } from "@/components/profile/Avatar";
 import { POKER_CATEGORY_LABEL, type HandSummary, type PotChip, type ShowdownRow } from "@/lib/pokerView";
@@ -322,6 +323,8 @@ export function MatchEndCard({
             );
           })}
         </ol>
+        {/* SPEC_STATISTIKA S3 — ispod rezultata, iznad dugmadi. */}
+        {!abandoned ? <MatchStatsRow game="poker" /> : null}
         <div className="pk-card__actions">
           {mode === "quick" ? (
             <button type="button" className="pk-card__primary" disabled={busy} onClick={onPlayAgain}>

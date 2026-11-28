@@ -3120,3 +3120,43 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 
 **Trošak:** jedno čitanje profila više po završenoj partiji, za čovjeka sa nalogom.
 
+## 237. Statistika F1: kartica na profilu, red na kraju partije, „Moje igre" (2026-11-28, `feat/stats-f1`)
+
+**Povod:** SPEC_STATISTIKA v0.2, faza F1, po tabli `UI_Statistika`. Odluka vlasnika (O1, 28.11.2026): web i aplikacija, kao Profil v0.3. Aplikacija dobija ovo tek sljedećim paketom (`versionCode 17`).
+
+**Server:**
+- `GameStats.tables` broji partije po broju igrača. Iz njega se izvodi red konteksta „Za stolom od 4 pobjeđuje 1 od 4". Zapisi iz F0 ga nemaju, pa takav profil red nema.
+- `recordMatchResult` vraća stanje prije i poslije (`RecordedStats`), a `null` znači da je partija već upisana.
+- Poslije upisa `statsNotifier` šalje `stats:update` socketima tog igrača u sobi (`socket.data.playerId`).
+  - Šalje se na socket stola, ne na kanal naloga, jer gost nije u kanalu naloga.
+  - Oblik je isti za svaki sto, bez protivnika i oznake bota.
+
+**Web (`isNative` se ne koristi, isti kod i u aplikaciji):**
+- `lib/statsView.ts` (testiran): redoslijed igara, procenat od 5 završenih, „3 od 4", Završava %, red konteksta (samo poker i Raub, najčešći sto 3–4), linija za „Moje igre" i red na kraju partije.
+  - Pobjeda, pobjeda sa nizom, poraz „Partija N · X %", napuštanje bez reda.
+  - „Novi rekord" tek kad niz obori raniji najduži od bar 2, da prvi niz od 2 ne bude „rekord".
+- `components/profile/StatsCard.tsx` (S1 + S6):
+  - čipovi igara, krug u svjetlijoj nijansi boje igre (segmenti ispod praga), redovi, „Broji se od", link „Kako se broji";
+  - stanja učitavanje (skelet), greška i bez partija (Igraj zadnje igranu);
+  - stoji ispod pločica; kod gosta ispod „Sačuvaj napredak", koji dobija prvu prednost „Statistika ostaje sačuvana".
+- `MyGames` (S2): druga linija „41 partija · 34 % pobjeda".
+- `components/MatchStatsRow.tsx` (S3) u sva četiri završna ekrana, ispod rezultata, iznad dugmadi.
+  - `lib/statsUpdates.ts` sluša `stats:update` od ulaska u sobu (`RoomScreen`), jer događaj zna stići prije završnog ekrana.
+  - Red čeka najviše 3 s. Ako događaj ne stigne, reda nema.
+- Analitika: `stats_viewed`, `stats_game_switched`, `match_end_stats_shown` (`docs/analytics.md`).
+- Harness `/dev/stats?s=full|small|poker|empty|loading|error|end`.
+
+**Zamke:**
+- `.stats__ring svg` je pogađao i ikonicu u praznom stanju (i ona je `svg` u krugu), pa je pravilo suženo na `> svg`.
+- Headless Chrome (`--headless=new`) ima minimalnu širinu prozora ~500 px, pa `--window-size=360` snima isječak sredine. Snimci idu kroz CDP `Emulation.setDeviceMetricsOverride`.
+- CDP profil kešira CSS pod istim URL-om, pa se poslije izmjene CSS-a profil briše.
+
+**Provjereno:**
+- server 414 testova, web 393 (7 novih za `statsView`);
+- typecheck svih paketa;
+- snimci 360×640 svih stanja, `scrollWidth` = 360.
+
+**Nije provjereno:**
+- red na kraju partije sa pravim nalogom: lokalno nema Firebase-a, pa nema `uid`-a ni upisa;
+- uređaj.
+

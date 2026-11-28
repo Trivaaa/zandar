@@ -13,6 +13,7 @@ import type {
   FeedbackSnapshot,
 } from "@zandar/shared-types";
 
+import { MatchStatsRow } from "@/components/MatchStatsRow";
 import { FeedbackForm } from "@/components/feedback/FeedbackForm";
 import { PlayerHand } from "@/components/felt/PlayerHand";
 import { BugIcon, ChevronRightIcon } from "@/components/icons";
@@ -417,6 +418,8 @@ export function BelaMatchEnd({
             {sr.bela.end.team(names[0]!, names[1]!)} · {sr.bela.end.hands(hands)}
           </p>
         ) : null}
+        {/* SPEC_STATISTIKA S3 — ispod rezultata, iznad dugmadi. */}
+        {!abandoned ? <MatchStatsRow game="bela" /> : null}
         <div className="pk-card__actions">
           {mode === "quick" ? (
             <button type="button" className="pk-card__primary" disabled={busy} onClick={onPlayAgain}>

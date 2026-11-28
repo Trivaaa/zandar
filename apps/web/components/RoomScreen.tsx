@@ -18,6 +18,7 @@ import { clearSession, getSession, saveSession, type RoomSession } from "@/lib/s
 import { markTableSeen } from "@/lib/activeTable";
 import { readPlayerName } from "@/lib/playerName";
 import { getSocket } from "@/lib/socket";
+import { listenStatsUpdates } from "@/lib/statsUpdates";
 import { isConnectionLost, type SocketStatus } from "@/lib/connection";
 import { ConnectionBanner } from "@/components/felt/ConnectionBanner";
 import { getIdToken } from "@/lib/auth";
@@ -157,6 +158,9 @@ export function RoomScreen({ roomId }: { roomId: string }) {
     },
     [],
   );
+
+  // F1 S3: `stats:update` stiže na kraju partije, ponekad prije završnog ekrana.
+  useEffect(() => listenStatsUpdates(), []);
 
   useEffect(() => {
     setSession(getSession(roomId));

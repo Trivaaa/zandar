@@ -1168,6 +1168,46 @@ export const sr = {
     logoutTitle: "Odjaviti se?",
     logoutBody:
       "Na ovom uređaju igraćeš kao gost dok se ponovo ne prijaviš. Nalog i rezultati ostaju sačuvani.",
+    saveStatsPerk: "Statistika ostaje sačuvana",
+  },
+  /* Statistika igrača (SPEC_STATISTIKA v0.2 S1–S6). */
+  stats: {
+    title: "Statistika",
+    titleOne: (game: string) => `Statistika · ${game}`,
+    pickGame: "Izaberi igru",
+    wins: "pobjeda",
+    ofTotal: (won: number, finished: number) => `${won} od ${finished}`,
+    winsLabel: (n: number) => pluralForm(n, "pobjeda", "pobjede", "pobjeda"),
+    winsLosses: (won: number, lost: number) =>
+      `${won} ${pluralForm(won, "pobjeda", "pobjede", "pobjeda")} · ${lost} ${pluralForm(lost, "poraz", "poraza", "poraza")}`,
+    table: (n: number) => `Za stolom od ${n} pobjeđuje 1 od ${n}`,
+    streak: (now: number, best: number) => `Niz ${now} · najduži ${best}`,
+    completes: (pct: number) => `Završava ${pct} %`,
+    percentFrom: "Procenat od 5 partija",
+    since: (date: string) => `Broji se od ${date}`,
+    how: "Kako se broji",
+    empty: "Još nema partija. Odigraj jednu do kraja i ovdje će stajati tvoje pobjede.",
+    play: (game: string) => `Igraj ${game}`,
+    loadError: "Statistika se nije učitala. Provjeri vezu.",
+    retry: "Pokušaj ponovo",
+    loading: "Statistika se učitava",
+    /** S2: druga linija reda igre. */
+    myGame: (matches: number, pct: number | null) =>
+      `${matches} ${pluralForm(matches, "partija", "partije", "partija")}${pct === null ? "" : ` · ${pct} % pobjeda`}`,
+    /** S6 */
+    howTitle: "Kako se broji",
+    howRules: [
+      "Broji se svaka partija odigrana do kraja.",
+      "Ako izađeš prije kraja, ili većinu poteza umjesto tebe odigra sat, partija se broji kao napuštena.",
+      "Ako drugi igrač ode, tebi se ne broji ništa.",
+      "Statistiku vidiš samo ti.",
+    ],
+    howOk: "Razumijem",
+    /** S3: red na kraju partije. */
+    endWin: (won: number) => `Pobjeda ${won}`,
+    endStreak: (won: number, streak: number) => `Pobjeda ${won} · niz ${streak}`,
+    endRecord: (streak: number) => `Novi rekord: ${streak} zaredom`,
+    endLoss: (match: number, pct: number | null) => `Partija ${match}${pct === null ? "" : ` · ${pct} % pobjeda`}`,
   },
   /* Nalog: registracija, prijava, nadimak, avatar (SPEC_IDENTITET tok a/b, §6.3, §6.4). */
   account: {

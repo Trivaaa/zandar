@@ -141,6 +141,9 @@ Dopuniti spisak kad se nađu.
 | `fake_door_signup` | klijent | Prijava iz lista lažnih vrata je stigla na server. Odvaja je od prijava sa `/igre/[slug]`. Ponovljena adresa takođe šalje ovaj događaj, a `signup_succeeded` ne, pa jedinstvene adrese broji `signup_succeeded`. | `game` |
 | `settings_opened` | klijent | Otvoren ekran Postavke (`/postavke`) pilulom na Profilu (SPEC_PROFIL_POSTAVKE §7, od 24.11.2026). | `from` (`profile_pill`) |
 | `game_settings_opened` | klijent | Otvoren list igre iz Profila → „Moje igre". | `game`, `from` (`profile`) |
+| `stats_viewed` | klijent | Kartica „Statistika" na Profilu prikazana sa brojkama (SPEC_STATISTIKA C1, od F1). Jednom po otvaranju profila, za igru koja se prva vidi. | `game`, `source` (`profile`), `matches` (partije u toj igri) |
+| `stats_game_switched` | klijent | Promjena igre čipom na kartici statistike. | `from`, `to` |
+| `match_end_stats_shown` | klijent | Red statistike na kraju partije prikazan (S3; C2: veza sa „Igraj ponovo"/revanšom). Samo kad je `stats:update` stigao u 3 s — gost bez naloga i stariji server ga nemaju. | `game`, `outcome` (`win` \| `loss`), `streak` |
 | `game_setting_changed` | klijent | Dodir u listu igre koji MIJENJA vrijednost (isti izbor ponovo ne šalje). Čuva se odmah. | `game`, `setting` (`players` \| `target` \| `start_score` \| `deck` \| `table`), `value` |
 | `account_cta_tapped` | klijent | Dodir na „Napravi nalog" ili „Prijavi se" u kartici „Sačuvaj napredak" na Profilu gosta (D14: da li je novi Profil smanjio registracije). | `action` (`register` \| `login`), `from` (`profile_card`) |
 | `account_registered` | klijent | Gost je postao nalog (isti `uid`): e-mail registracija ili povezivanje Googlea (`lib/account.ts`). Prijava na postojeći nalog NE šalje događaj. | `method` (`password` \| `google`) |

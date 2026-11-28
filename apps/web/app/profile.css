@@ -1655,3 +1655,297 @@
 .settings-screen .profile__delete {
   margin-top: 0.25rem;
 }
+
+/* ==========================================================================
+   Statistika (SPEC_STATISTIKA v0.2, tabla UI_Statistika) — S1 kartica, S2
+   linija u „Moje igre", S6 list. Krug je u svjetlijoj nijansi boje igre
+   (kontrast ≥ 3:1 na pozadini), pločice ostaju u punoj boji.
+   ========================================================================== */
+
+.stats,
+.stats__chip {
+  --stat-ring: var(--accent);
+}
+:is(.stats, .stats__chip)[data-tint="zandar"] { --stat-ring: #3f9e7a; }
+:is(.stats, .stats__chip)[data-tint="poker"] { --stat-ring: #c94a50; }
+:is(.stats, .stats__chip)[data-tint="raub"] { --stat-ring: #4a82cc; }
+:is(.stats, .stats__chip)[data-tint="bela"] { --stat-ring: #a66bab; }
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface-raised) 45%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.stats__title {
+  margin: 0;
+  font: 400 1.125rem / 1.1 var(--font-display-stack);
+  color: var(--card-face);
+}
+
+.stats__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.stats__chip {
+  min-height: 2.75rem;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--text) 8%, transparent);
+  color: var(--text-soft);
+  font: 600 var(--type-sm) / 1 var(--font-sans-stack);
+}
+
+.stats__chip[aria-pressed="true"] {
+  background-color: color-mix(in oklab, var(--stat-ring) 24%, transparent);
+  box-shadow: inset 0 0 0 2px var(--stat-ring);
+  color: var(--card-face);
+}
+
+.stats__main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  animation: stats-in var(--t-screen-fade) var(--ease-out-soft);
+}
+
+@keyframes stats-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.stats__ring {
+  position: relative;
+  flex: none;
+  width: 7rem;
+  height: 7rem;
+}
+
+.stats__ring > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.stats__track,
+.stats__arc {
+  fill: none;
+  stroke-width: 9;
+}
+
+.stats__track {
+  stroke: color-mix(in oklab, var(--text) 12%, transparent);
+}
+
+.stats__track--dashed {
+  stroke-dasharray: 4 8;
+}
+
+.stats__arc {
+  stroke: var(--stat-ring);
+  stroke-linecap: round;
+}
+
+.stats__arc--seg {
+  stroke-linecap: butt;
+}
+
+.stats__ring-in {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  text-align: center;
+}
+
+.stats__big {
+  font: 400 1.6875rem / 1 var(--font-display-stack);
+  color: var(--card-face);
+}
+
+.stats__big.stats__big--words {
+  font-size: 1.25rem;
+}
+
+.stats__big-label {
+  font: 600 var(--type-xs) / 1 var(--font-sans-stack);
+  color: var(--text-soft);
+}
+
+.stats__empty-icon {
+  width: 1.875rem;
+  height: 1.875rem;
+  color: var(--text-faint);
+}
+
+.stats__list {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 400 var(--type-sm) / 1.25 var(--font-sans-stack);
+  color: var(--card-face);
+}
+
+.stats__list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stats__li-icon {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-faint);
+}
+
+.stats__context,
+.stats__muted {
+  font-size: var(--type-xs);
+  color: var(--text-soft);
+}
+
+.stats__text {
+  margin: 0;
+  font: 400 var(--type-sm) / 1.4 var(--font-sans-stack);
+  color: var(--card-face);
+}
+
+.stats__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid color-mix(in oklab, var(--text) 8%, transparent);
+  font: 400 var(--type-xs) / 1.3 var(--font-sans-stack);
+  color: var(--text-faint);
+}
+
+.stats__how {
+  min-height: 2.75rem;
+  margin: -0.5rem -0.25rem -0.5rem 0;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--card-face);
+  font: 600 var(--type-xs) / 1 var(--font-sans-stack);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: color-mix(in oklab, var(--text) 40%, transparent);
+}
+
+.home__cta.stats__play {
+  min-height: 3.25rem;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  font-size: 1.0625rem;
+}
+
+.stats__retry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.25rem;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: none;
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--text) 30%, transparent);
+  color: var(--card-face);
+  font: 700 var(--type-sm) / 1 var(--font-sans-stack);
+}
+
+.stats__btn-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Skelet iste visine kao kartica — brojke ne pomjeraju ekran kad stignu. */
+.stats__sk,
+.stats__sk-lines > span {
+  display: block;
+  height: 0.875rem;
+  border-radius: 0.5rem;
+  background-color: color-mix(in oklab, var(--text) 9%, transparent);
+  animation: skeleton-pulse var(--t-turn-pulse) var(--ease-out-soft) infinite alternate;
+}
+
+.stats__sk--title {
+  width: 7rem;
+  height: 1.125rem;
+}
+
+.stats__sk--ring {
+  flex: none;
+  width: 7rem;
+  height: 7rem;
+  border-radius: 999px;
+}
+
+.stats__sk-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stats__sk-lines > span:nth-child(2) { width: 70%; }
+.stats__sk-lines > span:nth-child(3) { width: 80%; }
+
+/* S6 */
+.stats-how {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats-how li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--text) 5%, transparent);
+  font: 400 var(--type-sm) / 1.4 var(--font-sans-stack);
+  color: var(--card-face);
+}
+
+.stats-how__icon {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  color: var(--accent);
+}
+
+/* S2 · druga linija reda igre */
+.profile__game-stats {
+  font: 700 var(--type-xs) / 1.2 var(--font-sans-stack);
+  color: var(--card-face);
+}
+
+/* S5 · prva prednost naloga */
+.profile__save-perk {
+  margin: -0.25rem 0 0.25rem;
+  font: 700 var(--type-sm) / 1.3 var(--font-sans-stack);
+  color: var(--card-face);
+}

@@ -53,9 +53,19 @@ test("upis ishoda: greška skladišta se loguje, ne baca; ostali igrači se upi�
   const logged: string[] = [];
   const result = { outcome: "win" as const, place: 1, players: 2, mode: "quick_play" as const, opponents: ["u2"], hands: 3 };
   await recordMatchResults(store, "m1", "raub", [
-    { uid: "u1", result },
-    { uid: "u2", result: { ...result, outcome: "loss", place: 2, opponents: ["u1"] } },
+    { uid: "u1", playerId: "p1", result },
+    { uid: "u2", playerId: "p2", result: { ...result, outcome: "loss", place: 2, opponents: ["u1"] } },
   ], (m) => logged.push(m));
   assert.equal(logged.length, 1);
   assert.equal((await mem.getProfile("u2"))?.stats?.byGame.raub?.lost, 1);
+});
+
+test("onRecorded (stats:update): samo za novi upis, sa stanjem prije i poslije; dupla dostava ne javlja", async () => {
+  const store = createMemoryProfileStore();
+  const result = { outcome: "win" as const, place: 1, players: 4, mode: "quick_play" as const, opponents: ["bot:2"], hands: 3 };
+  const seen: unknown[] = [];
+  const rows = [{ uid: "u1", playerId: "p1", result }];
+  await recordMatchResults(store, "m1", "poker", rows, undefined, (o, s) => seen.push([o.playerId, s.before, s.after.won]));
+  await recordMatchResults(store, "m1", "poker", rows, undefined, (o, s) => seen.push([o.playerId, s.before, s.after.won]));
+  assert.deepEqual(seen, [["p1", null, 1]]);
 });

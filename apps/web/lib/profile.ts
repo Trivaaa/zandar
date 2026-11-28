@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { GameId, ProfileAvatar } from "@zandar/shared-types";
+import type { GameId, PlayerStats, ProfileAvatar } from "@zandar/shared-types";
 
 import { authHeaders } from "@/lib/auth";
 import { resolveApiBase } from "@/lib/platform";
@@ -18,6 +18,8 @@ export type Me = {
    * opciono jer stariji server ga ne šalje. Partije prije toga nisu raspoređene.
    */
   completedMatchesByGame?: Record<GameId, number>;
+  /** SPEC_STATISTIKA F0 (server od 28.11.2026); opciono jer stariji server ga ne šalje. */
+  stats?: PlayerStats;
   nickname: string | null;
   avatar: ProfileAvatar | null;
   /** Kad se nadimak smije opet mijenjati; `null` = odmah. */

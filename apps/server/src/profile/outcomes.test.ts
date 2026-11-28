@@ -38,6 +38,7 @@ describe("matchOutcomes — ishod po igraču (SPEC_STATISTIKA §5.1)", () => {
     assert.equal(rows.length, 1);
     assert.deepEqual(rows[0], {
       uid: "u-a",
+      playerId: "a",
       result: {
         outcome: "win",
         place: 1,

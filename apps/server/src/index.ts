@@ -30,6 +30,8 @@ import {
   type MatchEndReason,
   type MatchMode,
   type Player,
+  type RecordedStats,
+  type StatsUpdatePayload,
   type ServerAnalyticsEvent,
 } from "@zandar/shared-types";
 import {
@@ -121,7 +123,7 @@ import { silentTableReason } from "./tableWatch";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
 import { identityAdmin } from "./profile/cleanup";
-import { matchOutcomes } from "./profile/outcomes";
+import { matchOutcomes, type PlayerOutcome } from "./profile/outcomes";
 import { recordMatchResults } from "./profile/results";
 import { registerProfileRoutes } from "./profile/routes";
 import { registerAppConfigRoute } from "./routes/appConfig";
@@ -2357,7 +2359,7 @@ function emitMatchEnded(
       placeOf: (id) => placeById.get(id) ?? null,
       raubScores: room.raub ? Object.fromEntries(room.raub.seats.map((x) => [x.playerId, x.score])) : undefined,
     });
-    if (outcomes.length > 0) void recordMatchResults(profileStore, matchId, seat.game, outcomes);
+    if (outcomes.length > 0) void recordMatchResults(profileStore, matchId, seat.game, outcomes, undefined, statsNotifier(room.id, matchId, seat.game));
     return;
   }
   const gs = room.gameState!;
@@ -2370,7 +2372,26 @@ function emitMatchEnded(
     target: gs.targetScore,
     placeOf: (id) => zandarPlace(gs, id),
   });
-  if (outcomes.length > 0) void recordMatchResults(profileStore, matchId, "zandar", outcomes);
+  if (outcomes.length > 0) void recordMatchResults(profileStore, matchId, "zandar", outcomes, undefined, statsNotifier(room.id, matchId, "zandar"));
+}
+
+/**
+ * F1 S3: poslije upisa ishoda igraču za stolom stiže `stats:update` (prije i
+ * poslije), da završni ekran pokaže red „Pobjeda 15 · niz 3". Samo socketi tog
+ * igrača u toj sobi; oblik je isti za svaki sto (HARD RULE 3). Greška slanja
+ * se guta — red je ukras, kraj partije ne smije zavisiti od njega.
+ */
+function statsNotifier(roomId: string, matchId: string, game: GameId) {
+  return (o: PlayerOutcome, stats: RecordedStats): void => {
+    const payload: StatsUpdatePayload = { matchId, game, outcome: o.result.outcome, before: stats.before, after: stats.after };
+    void io
+      .in(roomId)
+      .fetchSockets()
+      .then((sockets) => {
+        for (const s of sockets) if (s.data.playerId === o.playerId) s.emit("stats:update", payload);
+      })
+      .catch(() => undefined);
+  };
 }
 
 /**

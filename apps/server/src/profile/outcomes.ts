@@ -71,8 +71,10 @@ function leftOnHisOwn(p: OutcomePlayer): boolean {
   return p.left === true || p.connectionStatus === "abandoned";
 }
 
-export function matchOutcomes(input: OutcomeInput): { uid: string; result: MatchResult }[] {
-  const out: { uid: string; result: MatchResult }[] = [];
+export type PlayerOutcome = { uid: string; playerId: string; result: MatchResult };
+
+export function matchOutcomes(input: OutcomeInput): PlayerOutcome[] {
+  const out: PlayerOutcome[] = [];
   const seen = new Set<string>();
   for (const p of input.players) {
     if (p.isBot || !p.uid || seen.has(p.uid)) continue;
@@ -114,7 +116,7 @@ export function matchOutcomes(input: OutcomeInput): { uid: string; result: Match
     if (own.afk) result.afk = true;
     if (own.left || leftOnHisOwn(p)) result.left = true;
     if (input.startedAt !== undefined) result.durationMs = Math.max(0, input.now - input.startedAt);
-    out.push({ uid: p.uid, result });
+    out.push({ uid: p.uid, playerId: p.id, result });
   }
   return out;
 }

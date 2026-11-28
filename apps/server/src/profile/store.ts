@@ -6,6 +6,8 @@ import {
   type GameId,
   type GameStats,
   type PlayerStats,
+  type RecordedStats,
+  TABLE_SIZES,
   type ProfileAvatar,
 } from "@zandar/shared-types";
 
@@ -90,8 +92,15 @@ export type ProfileStore = {
    * Ishod partije (SPEC_STATISTIKA F0). Idempotentno po (`matchId`, `uid`) kao
    * `recordCompletedMatch`. Pobjeda i poraz uvećavaju i `completedMatches`;
    * napuštanje samo `stats`. Zapis u `results/` nosi cijeli `MatchResult`.
+   * Vraća stanje igre prije i poslije; `null` = partija je već upisana.
    */
-  recordMatchResult(matchId: string, uid: string, game: GameId, result: MatchResult, now?: number): Promise<boolean>;
+  recordMatchResult(
+    matchId: string,
+    uid: string,
+    game: GameId,
+    result: MatchResult,
+    now?: number,
+  ): Promise<RecordedStats | null>;
   nicknameAvailability(key: string, uid: string, now?: number): Promise<NicknameAvailability>;
   /**
    * Vlasnik nadimka (javni ID profila = ključ nadimka). `null` kad nadimak ne
@@ -216,7 +225,7 @@ export function createMemoryProfileStore(): ProfileStore {
     },
     async recordMatchResult(matchId, uid, game, result, now = Date.now()) {
       const key = docId(matchId, uid);
-      if (results.has(key)) return false;
+      if (results.has(key)) return null;
       results.set(key, uid);
       const p = profileOf(uid);
       const next: StoredProfile = { ...p, stats: nextStats(p.stats, game, result, now) };
@@ -225,7 +234,7 @@ export function createMemoryProfileStore(): ProfileStore {
         next.completedMatchesByGame = { ...p.completedMatchesByGame, [game]: (p.completedMatchesByGame?.[game] ?? 0) + 1 };
       }
       profiles.set(uid, next);
-      return true;
+      return { before: p.stats?.byGame[game] ?? null, after: next.stats!.byGame[game]! };
     },
     async nicknameAvailability(key, uid, now = Date.now()) {
       return availabilityOf(nicknames.get(key) ?? null, uid, now);
@@ -360,6 +369,15 @@ export function decodeStats(raw: unknown): PlayerStats | null {
       const n = (g as Record<string, unknown>)[k];
       out[k] = typeof n === "number" && n > 0 ? n : 0;
     }
+    const t = (g as Record<string, unknown>).tables;
+    if (typeof t === "object" && t !== null) {
+      const tables: GameStats["tables"] = {};
+      for (const size of TABLE_SIZES) {
+        const n = (t as Record<string, unknown>)[size];
+        if (typeof n === "number" && n > 0) tables[size] = n;
+      }
+      if (Object.keys(tables).length > 0) out.tables = tables;
+    }
     byGame[game] = out;
   }
   return { v: 1, since: typeof r.since === "number" ? r.since : null, byGame };
@@ -370,7 +388,7 @@ function nextStats(prev: PlayerStats | undefined, game: GameId, result: MatchRes
   return {
     v: 1,
     since: prev?.since ?? now,
-    byGame: { ...prev?.byGame, [game]: applyOutcome(prev?.byGame[game], result.outcome, now) },
+    byGame: { ...prev?.byGame, [game]: applyOutcome(prev?.byGame[game], result.outcome, now, result.players) },
   };
 }
 
@@ -490,7 +508,8 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
       // je neko u međuvremenu mijenjao profil (novi pokušaj sa svježim stanjem).
       for (let attempt = 0; attempt < RESULT_ATTEMPTS; attempt++) {
         const doc = await db.getDoc(profilePath(uid));
-        const stats = nextStats(doc ? decodeStats(doc.fields.stats) ?? undefined : undefined, game, result, now);
+        const prev = doc ? decodeStats(doc.fields.stats) ?? undefined : undefined;
+        const stats = nextStats(prev, game, result, now);
         const counted = result.outcome !== "abandon";
         try {
           await db.commit([
@@ -509,10 +528,10 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
               ...(doc ? { updateTime: doc.updateTime } : { exists: false }),
             },
           ]);
-          return true;
+          return { before: prev?.byGame[game] ?? null, after: stats.byGame[game]! };
         } catch (err) {
           if (!(err instanceof FirestoreConflictError)) throw err;
-          if (await db.get(resultPath)) return false;
+          if (await db.get(resultPath)) return null;
         }
       }
       throw new Error(`profil ${uid} se mijenjao ${RESULT_ATTEMPTS} puta zaredom`);

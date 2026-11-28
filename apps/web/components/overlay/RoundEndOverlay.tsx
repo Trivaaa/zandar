@@ -5,6 +5,7 @@ import type { HandScore, PublicPlayer } from "@zandar/shared-types";
 import { breakdownRows } from "@/lib/handBreakdown";
 import { pilesOf } from "@/lib/piles";
 import { sr } from "@/lib/sr";
+import { MatchStatsRow } from "@/components/MatchStatsRow";
 import { PushPrompt } from "@/components/push/PushPrompt";
 
 export type RoundEndOverlayProps = {
@@ -161,6 +162,9 @@ export function RoundEndOverlay({
           </ul>
         </section>
       </div>
+
+      {/* SPEC_STATISTIKA S3 — ispod rezultata, iznad dugmadi; samo kraj meča. */}
+      {isMatch ? <MatchStatsRow game="zandar" /> : null}
 
       <div className="roundend__actions">
         {isHost ? (
