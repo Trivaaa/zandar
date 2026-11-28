@@ -132,7 +132,8 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
 }
 </style>
 
-<div class="wrap">
+<nav class="views" aria-label="Stranice"><a href="#">Put do PMF-a</a><a href="#ab-push">A/B: dozvola za obavještenja</a></nav>
+<div class="wrap" id="view-pmf">
 
 <header>
   <span class="eyebrow">Kartaonica · plan mjerenja · v1.0 · 22.11.2026.</span>
@@ -140,7 +141,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
   <p class="lede">Tri cilja, ovim redom: prvo dokazati da se igrači vraćaju, pa da se do njih može doći po razumnoj cijeni, pa da zarađuju više nego što koštaju. Sljedeća kapija se ne otvara dok prethodna nije prošla.</p>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
     <span class="now"><span class="chip-dot" aria-hidden="true"></span>Sada: faza 1 · mjerenje, produkcija zamrznuta od 22.11.</span>
-    <span class="eyebrow">Brojke osvježene <span class="num">23.11.2026. u 9:03</span> · sljedeće čitanje <span class="num">24.11.</span> (D1) i <span class="num">29.11.</span> (D7)</span>
+    <span class="eyebrow">Brojke osvježene <span class="num">27.11.2026. uveče</span> · sljedeće čitanje <span class="num">29.11.</span> (D7 kohorte 22.11.)</span>
   </div>
 </header>
 
@@ -175,9 +176,10 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
 <!-- Pragovi -->
 <section aria-labelledby="h-gauges">
   <div class="sec-head"><span class="eyebrow">Kapija 1</span><h2 id="h-gauges">Pragovi PMF-a i gdje smo</h2>
-    <p class="lede">Očitano 23.11.2026. u 9:03. Povratak se broji samo ako je igrač zaigrao tačno N-ti dan, a baza su igrači koji su odigrali bar jedan meč od 1.11. Prvi dan i prva igra su dan i igra prvog meča. Nijedna grupa još nema n ≥ 100, pa su ovo trendovi, ne presude.</p></div>
+    <p class="lede">Očitano 27.11.2026. uveče. Povratak se broji samo ako je igrač zaigrao tačno N-ti dan, a baza su igrači koji su odigrali bar jedan meč od 1.11. Prvi dan, prva igra i platforma su dan, igra i platforma prvog meča. Vlasnikov S10e izdvojen. <b>Raub na Androidu</b> je prva grupa koja prelazi D1 na n ≥ 100; D7 te publike stiže od 29.11.</p></div>
   <div class="legend">
     <span><i class="sw" style="background:var(--ok)"></i>iznad praga</span>
+    <span><i class="sw" style="background:var(--warn)"></i>na granici</span>
     <span><i class="sw" style="background:var(--bad)"></i>ispod praga</span>
     <span><i class="sw" style="background:var(--brass)"></i>prag</span>
   </div>
@@ -185,26 +187,28 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
     <div class="gauge">
       <div class="g-head"><span class="t">D1</span><span class="th">prag <b class="num">35 %</b> · industrija ~22 %</span></div>
       <div class="bars">
-        <!-- skala 0–50 % -->
-        <div class="bar"><span>Raub</span><div class="track"><div class="fill ok" style="width:78%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>39 %</b> 23/59</span></div>
-        <div class="bar"><span>Android</span><div class="track"><div class="fill ok" style="width:88%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>44 %</b> 26/59</span></div>
-        <div class="bar"><span>Žandar</span><div class="track"><div class="fill bad" style="width:45%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>23 %</b> 14/62</span></div>
-        <div class="bar"><span>Poker</span><div class="track"><div class="fill bad" style="width:44%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>22 %</b> 13/59</span></div>
-        <div class="bar"><span>Bela</span><div class="track"><div class="fill warn" style="width:16%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>u toku</b> 3/37</span></div>
-        <div class="bar"><span>Web</span><div class="track"><div class="fill bad" style="width:40%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>20 %</b> 24/121</span></div>
+        <!-- skala 0–100 % -->
+        <div class="bar"><span>Raub app</span><div class="track"><div class="fill ok" style="width:71%"></div><div class="tick" style="left:35%"></div></div><span class="val num"><b>71 %</b> 91/129</span></div>
+        <div class="bar"><span>Raub web</span><div class="track"><div class="fill warn" style="width:34%"></div><div class="tick" style="left:35%"></div></div><span class="val num"><b>34 %</b> 127/376</span></div>
+        <div class="bar"><span>Bela app</span><div class="track"><div class="fill ok" style="width:57%"></div><div class="tick" style="left:35%"></div></div><span class="val num"><b>57 %</b> 30/53</span></div>
+        <div class="bar"><span>Bela web</span><div class="track"><div class="fill bad" style="width:25%"></div><div class="tick" style="left:35%"></div></div><span class="val num"><b>25 %</b> 31/123</span></div>
+        <div class="bar"><span>Poker app</span><div class="track"><div class="fill ok" style="width:43%"></div><div class="tick" style="left:35%"></div></div><span class="val num"><b>43 %</b> 18/42</span></div>
+        <div class="bar"><span>Poker web</span><div class="track"><div class="fill bad" style="width:18%"></div><div class="tick" style="left:35%"></div></div><span class="val num"><b>18 %</b> 15/84</span></div>
+        <div class="bar"><span>Žandar app</span><div class="track"><div class="fill ok" style="width:41%"></div><div class="tick" style="left:35%"></div></div><span class="val num"><b>41 %</b> 18/44</span></div>
+        <div class="bar"><span>Žandar web</span><div class="track"><div class="fill bad" style="width:10%"></div><div class="tick" style="left:35%"></div></div><span class="val num"><b>10 %</b> 5/52</span></div>
       </div>
-      <p class="g-note">Skala 0–50 %. Kohorte 1.–21.11. (njihov D1 je cijeli dan). Platforme i igre se preklapaju. <b>Bela</b> je na produkciji od 22.11., pa ima samo kohortu 22.11.: njen D1 je danas, do 9:03 vratilo se 3/37 — donja granica, ne procenat. Ista kohorta za ostale: Raub 6/63, Poker 1/19, Žandar 2/13. Igra se popodne i uveče; puno čitanje 24.11. ujutro. Bela D7 stiže 29.11.</p>
+      <p class="g-note">Skala 0–100 %. Kohorte 1.–25.11. (Bela od 22.11.). Raub na Androidu po kohortama: 22.–23.11. 64 % (25/39), 24.–25.11. 75 % (58/77) — dvije zaredom iznad praga. Raub na webu: 31 % pa 36 %. I bez igre preko ponoći (povratak tek poslije 6 h) kohorte 24.–25.11. ostaju 71 % / 34 %. Android publika je dobrim dijelom prešla sa web oglasa, pa je samoizabrana.</p>
     </div>
     <div class="gauge">
       <div class="g-head"><span class="t">D7</span><span class="th">prag <b class="num">15 %</b> · industrija ~4 %</span></div>
       <div class="bars">
         <!-- skala 0–50 % -->
-        <div class="bar"><span>Svi</span><div class="track"><div class="fill bad" style="width:27%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>14 %</b> 6/44</span></div>
-        <div class="bar"><span>Raub</span><div class="track"><div class="fill ok" style="width:83%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>42 %</b> 5/12</span></div>
-        <div class="bar"><span>Web</span><div class="track"><div class="fill ok" style="width:32%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>16 %</b> 4/25</span></div>
-        <div class="bar"><span>Android</span><div class="track"><div class="fill bad" style="width:21%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>11 %</b> 2/19</span></div>
+        <div class="bar"><span>Svi</span><div class="track"><div class="fill ok" style="width:30%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>15 %</b> 23/158</span></div>
+        <div class="bar"><span>Raub</span><div class="track"><div class="fill ok" style="width:48%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>24 %</b> 12/50</span></div>
+        <div class="bar"><span>Poker</span><div class="track"><div class="fill ok" style="width:30%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>15 %</b> 8/53</span></div>
+        <div class="bar"><span>Žandar</span><div class="track"><div class="fill bad" style="width:10%"></div><div class="tick" style="left:30%"></div></div><span class="val num"><b>5 %</b> 3/55</span></div>
       </div>
-      <p class="g-note">Skala 0–50 %. Kohorte 1.–15.11. Prvi D7 signal, ali n je 12–44: interval je ±15–25 p.p. Raub 5/12 je zanimljiv, nije dokaz. Kampanja 2 i Raub oglas ulaze u D7 od 29.11.</p>
+      <p class="g-note">Skala 0–50 %. Kohorte 1.–19.11., prije oglasa. Raub 12/50 je i dalje trend, ne presuda. Kohorte iz oglasa (od 22.11.) ulaze u D7 od 29.11.; Bela tada dobija prvi D7.</p>
       <div class="g-head"><span class="t">D30</span><span class="th">prag <b class="num">6 %</b> · kriva D30/D7 ≥ 0,5</span></div>
       <div class="unk-box">Nema dovoljno starih kohorti.</div>
     </div>
@@ -212,36 +216,40 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="g-head"><span class="t">Aktivacija</span><span class="th">orijentir <b class="num">50–60 %</b></span></div>
       <div class="bars">
         <!-- skala 0–100 % -->
-        <div class="bar"><span>Raub oglas</span><div class="track"><div class="fill ok" style="width:57%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>57 %</b> 102/180</span></div>
-        <div class="bar"><span>Android</span><div class="track"><div class="fill ok" style="width:69%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>69 %</b> 45/65</span></div>
-        <div class="bar"><span>Web org.</span><div class="track"><div class="fill warn" style="width:49%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>49 %</b> 31/63</span></div>
-        <div class="bar"><span>Kamp. 2</span><div class="track"><div class="fill bad" style="width:18%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>≥ 18 %</b> 80/446</span></div>
+        <div class="bar"><span>Oglas 24.11.</span><div class="track"><div class="fill ok" style="width:60%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>60 %</b> 396/665</span></div>
+        <div class="bar"><span>Oglas 22.11.</span><div class="track"><div class="fill ok" style="width:57%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>57 %</b> 201/350</span></div>
+        <div class="bar"><span>Oglas 26.11.</span><div class="track"><div class="fill warn" style="width:45%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>45 %</b> 52/116</span></div>
+        <div class="bar"><span>Web bez utm</span><div class="track"><div class="fill ok" style="width:60%"></div><div class="tick" style="left:50%"></div></div><span class="val num"><b>60 %</b> 101/167</span></div>
       </div>
-      <p class="g-note">Skala 0–100 %, „otvorio → zaigrao". Raub oglas: web, prvih 17 sati (do 23.11. u 7:42), u rasponu orijentira. Android, web organski i kampanja 2 su očitanje od 22.11. Kampanja 2 je donja granica zbog rupe u podacima 1.4.5. Pravi prag aktivacije se izvodi iz podataka u fazi 2.</p>
+      <p class="g-note">Skala 0–100 %, „otvorio na webu → zaigrao", od 22.11. D1 po oglasu: 24.11. (<code>…743438329</code>, prva igra Raub 68 %) 33 % (73/224), 22.11. (<code>…136459329</code>, prvi Raub oglas) 26 % (51/197). Oglas 26.11. (<code>…479664929</code>) vodi uglavnom na Belu (63 %); D1 još nečitljiv. Pravi prag aktivacije se izvodi iz podataka u fazi 2.</p>
     </div>
     <div class="gauge">
       <div class="g-head"><span class="t">Angažman</span><span class="th">DAU/MAU prag <b class="num">20 %</b> · završeno <b class="num">70 %</b></span></div>
       <div class="bars">
-        <div class="bar"><span>DAU/MAU</span><div class="track"><div class="fill warn" style="width:36%"></div><div class="tick" style="left:40%"></div></div><span class="val num"><b>18 %</b> 59/332</span></div>
-        <div class="bar"><span>Raub</span><div class="track"><div class="fill bad" style="width:59%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>59 %</b> 346/589</span></div>
-        <div class="bar"><span>Žandar</span><div class="track"><div class="fill bad" style="width:61%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>61 %</b> 190/310</span></div>
-        <div class="bar"><span>Bela</span><div class="track"><div class="fill bad" style="width:63%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>63 %</b> 85/135</span></div>
+        <div class="bar"><span>DAU/MAU</span><div class="track"><div class="fill warn" style="width:44%"></div><div class="tick" style="left:40%"></div></div><span class="val num"><b>22 %</b> 292/1321</span></div>
+        <div class="bar"><span>Raub web</span><div class="track"><div class="fill bad" style="width:55%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>55 %</b> 898/1621</span></div>
+        <div class="bar"><span>Raub app</span><div class="track"><div class="fill warn" style="width:68%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>68 %</b> 1019/1503</span></div>
+        <div class="bar"><span>Bela web</span><div class="track"><div class="fill ok" style="width:76%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>76 %</b> 857/1133</span></div>
+        <div class="bar"><span>Poker web</span><div class="track"><div class="fill ok" style="width:72%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>72 %</b> 344/475</span></div>
+        <div class="bar"><span>Žandar web</span><div class="track"><div class="fill bad" style="width:44%"></div><div class="tick" style="left:70%"></div></div><span class="val num"><b>44 %</b> 68/154</span></div>
       </div>
-      <p class="g-note">DAU/MAU: prosjek DAU 16.–22.11. ÷ igrači u 30 dana, skala 0–50 %, napumpan kampanjom (22.11. je bilo 161 igrač). Ostalo: završeni ÷ započeti mečevi od 8.11., skala 0–100 %. Kohorta Raub oglasa na webu: samo 39 od 88 Raub mečeva završeno. Poker do 22.11. nije pouzdan.</p>
+      <p class="g-note">DAU/MAU: prosjek DAU 21.–27.11. ÷ igrači u 30 dana, skala 0–50 %, napumpan kampanjom, ne broji se. Ostalo: završeni ÷ odigrani mečevi po čovjeku od 24.11., skala 0–100 %. Na Androidu: Bela 79 %, Poker 78 %, Žandar 52 %. Raub na webu se prekida uglavnom zatvaranjem taba, ne dugmetom.</p>
     </div>
     <div class="gauge">
-      <div class="g-head"><span class="t">Cijena po igraču</span><span class="th">Raub oglas · <b class="num">4,59 €</b> za 17 h</span></div>
+      <div class="g-head"><span class="t">Dolazak</span><span class="th">DAU · prije oglasa <b class="num">~42</b></span></div>
       <div class="bars">
-        <!-- skala 0–200 igrača -->
-        <div class="bar"><span>Otvorili</span><div class="track"><div class="fill warn" style="width:98%"></div></div><span class="val num"><b>196</b> 0,023 €</span></div>
-        <div class="bar"><span>Zaigrali</span><div class="track"><div class="fill ok" style="width:58.5%"></div></div><span class="val num"><b>117</b> 0,039 €</span></div>
-        <div class="bar"><span>Meč</span><div class="track"><div class="fill ok" style="width:28.5%"></div></div><span class="val num"><b>57</b> 0,081 €</span></div>
-        <div class="bar"><span>3+ meča</span><div class="track"><div class="fill ok" style="width:15.5%"></div></div><span class="val num"><b>31</b> 0,15 €</span></div>
+        <!-- skala 0–500 igrača -->
+        <div class="bar"><span>22.11.</span><div class="track"><div class="fill ok" style="width:32%"></div></div><span class="val num"><b>160</b></span></div>
+        <div class="bar"><span>23.11.</span><div class="track"><div class="fill ok" style="width:41.4%"></div></div><span class="val num"><b>207</b></span></div>
+        <div class="bar"><span>24.11.</span><div class="track"><div class="fill ok" style="width:56.4%"></div></div><span class="val num"><b>282</b></span></div>
+        <div class="bar"><span>25.11.</span><div class="track"><div class="fill ok" style="width:87.2%"></div></div><span class="val num"><b>436</b></span></div>
+        <div class="bar"><span>26.11.</span><div class="track"><div class="fill ok" style="width:89%"></div></div><span class="val num"><b>445</b></span></div>
+        <div class="bar"><span>27.11.</span><div class="track"><div class="fill ok" style="width:95.6%"></div></div><span class="val num"><b>478</b></span></div>
       </div>
-      <p class="g-note">Skala 0–200 igrača. Web i Android zajedno (isti čovjek može imati dva ID-a). CTR 6,2 %, frekvencija 1,2: oglas nije zasićen. Poređenja radi: kampanja 2 ≤ 0,31 €, kampanja 1 4,15 € po igraču koji je zaigrao. Prva igra na webu: Raub 46, Bela 28, Poker 12, Žandar 11, jer link vodi na početnu.</p>
+      <p class="g-note">Skala 0–500 igrača sa bar jednim mečem; 27.11. web 296, Android 182. Organske Play instalacije 7 → 24 dnevno (22.–27.11.). Potrošnja oglasa poslije 23.11. nije pročitana (Meta nije povezana), pa nema cijene po igraču; zadnja poznata: 0,039 € po igraču koji je zaigrao (Raub oglas, prvih 17 h).</p>
     </div>
   </div>
-  <p class="rule"><b>Očitanje 23.11.:</b> dolazak radi i jeftin je (0,04 € po igraču koji zaigra), ali Raub na webu gubi ljude usred partije. Bela, koja nije reklamirana, završava više mečeva od Rauba. Kandidati za glavnu igru su Raub i Bela. Sljedeći Raub oglas vodi na <code>?igra=raub</code>; budžet ostaje 5–10 € dnevno, ciljanje se ne mijenja do presude.</p>
+  <p class="rule"><b>Očitanje 27.11.:</b> Raub na Androidu prelazi D1 na n ≥ 100, dvije kohorte zaredom (64 %, 75 %); Raub na webu je tik ispod (34 %). Platforma razdvaja više od igre. Prije presude: D7 kohorte 22.11. (od 29.11.) i Raub oglas koji vodi pravo na Play, da se vidi drži li Android i bez prelaska sa weba. Žandar je ispod na svemu.</p>
 </section>
 
 <!-- Faze -->
@@ -270,10 +278,10 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
         <div class="card-top"><h3>Koja igra nosi</h3><span class="goal-tag">PMF · sada, od 22.11.</span></div>
         <div class="io">
           <div><p class="k">Ulaz</p><p>Faza 0 gotova (ostale 3 stavke idu usput)</p></div>
-          <div><p class="k">Rad</p><ul><li>Raub oglas (od 22.11. u 14:31) i Bela za dijasporu</li><li>Link sa <code>?igra=</code>, 5–10 € dnevno</li><li>Produkcija zamrznuta za nove igrače ~10–14 dana</li></ul></div>
+          <div><p class="k">Rad</p><ul><li>Raub oglasi (22.11. i 24.11.), oglas od 26.11. (uglavnom Bela)</li><li>Link sa <code>?igra=</code>, 5–10 € dnevno</li><li>Produkcija zamrznuta za nove igrače ~10–14 dana</li></ul></div>
           <div><p class="k">Izlaz</p><p>150–200 igrača po kandidatu + 7 dana → D1, D7 i cijena po igraču. Najbolja postaje <b>glavna igra</b>.</p></div>
         </div>
-        <p class="fail">Stanje 23.11.: Raub ~120 igrača kojima je to prva igra (od 1.11.), Bela ~40. Kandidati: <b style="color:var(--ink)">Raub i Bela</b>.</p>
+        <p class="fail">Stanje 27.11.: Raub ~500 igrača kojima je to prva igra (do 25.11.; Android 129, web 376), Bela ~180. Kandidat: <b style="color:var(--ink)">Raub na Androidu</b> (D1 71 %, čeka D7); Bela prati.</p>
       </div>
     </div>
 
@@ -283,7 +291,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
         <div class="card-top"><h3>Povratak na glavnoj igri</h3><span class="goal-tag">PMF</span></div>
         <div class="io">
           <div><p class="k">Ulaz</p><p>Izabrana glavna igra</p></div>
-          <div><p class="k">Rad</p><ul><li>Prag aktivacije iz podataka</li><li>Manje napuštanja (Raub 41 %, Žandar 39 %, Bela 37 %)</li><li>Push podsjetnici sa kontrolnom grupom</li><li>Prvi dan: tempo i težina za nove</li></ul></div>
+          <div><p class="k">Rad</p><ul><li>Prag aktivacije iz podataka</li><li>Manje napuštanja (od 24.11.: Raub web 45 %, Žandar web 56 %, Bela web 24 %)</li><li>Push podsjetnici sa kontrolnom grupom</li><li>Prvi dan: tempo i težina za nove</li></ul></div>
           <div><p class="k">Izlaz</p><p>D1 ≥ 35 % i D7 ≥ 15 % na glavnoj igri, n ≥ 100</p></div>
         </div>
       </div>
@@ -379,5 +387,331 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
   </div>
 </section>
 
-<footer>Izvor: <code>docs/PMF_PLAN.md</code> (pragovi su odluka vlasnika od 21.11.2026). Brojke su iz PostHoga, produkcija, osvježene 23.11.2026. u 9:03; Raub oglas iz Mete i PostHoga u 7:42. Vlasnikovi uređaji još nisu izdvojeni. Zadaci: <a href="https://claude.ai/artifact/Ec4Gq48ntt6YWcxSFsLAir" target="_blank" rel="noopener">tabla</a>.</footer>
+<footer>Izvor: <code>docs/PMF_PLAN.md</code> (pragovi su odluka vlasnika od 21.11.2026). Brojke su iz PostHoga, produkcija, osvježene 27.11.2026. uveče; vlasnikov S10e izdvojen. Potrošnja oglasa poslije 23.11. nije pročitana. Zadaci: <a href="https://claude.ai/artifact/Ec4Gq48ntt6YWcxSFsLAir" target="_blank" rel="noopener">tabla</a>. A/B test obavještenja: <a href="#ab-push">tabla testa</a>.</footer>
 </div>
+
+<style>
+/* Pogledi: #ab-push je A/B tabla za dozvolu obavještenja; bez hasha je „Put do PMF-a". Isti tokeni kao glavna stranica. */
+.views{max-width:980px;margin:0 auto 28px;display:flex;flex-wrap:wrap;gap:8px}
+.views a{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+.views a[aria-current="page"]{background:var(--felt);border-color:var(--felt);color:var(--surface)}
+.views a:focus-visible,.ab button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+@media (hover:hover){.views a:not([aria-current="page"]):hover{color:var(--ink);border-color:var(--felt)}}
+
+.ab .verdict{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--unk);border-radius:0 14px 14px 0;padding:16px 18px}
+.ab .verdict[data-tone="ok"]{border-left-color:var(--ok)}
+.ab .verdict[data-tone="warn"]{border-left-color:var(--warn)}
+.ab .verdict[data-tone="bad"]{border-left-color:var(--bad)}
+.ab .verdict .v-title{font-family:var(--f-display);font-size:26px;font-weight:700;line-height:1.15}
+.ab .verdict .v-body{color:var(--muted);max-width:70ch}
+.ab .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.ab .btn{font:600 14px var(--f-body);color:var(--surface);background:var(--felt);border:none;border-radius:999px;padding:9px 18px;cursor:pointer}
+.ab .btn[disabled]{opacity:.55;cursor:progress}
+.ab .status{font-size:13px;color:var(--muted)}
+.ab .status[data-tone="bad"]{color:var(--bad)}
+.ab .arms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.ab .arm{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ab .arm-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ab .arm-head .t{font-family:var(--f-display);font-size:22px;font-weight:700}
+.ab .arm-head .d{font-size:13px;color:var(--muted)}
+.ab .rate{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ab .rate .big{font-family:var(--f-display);font-size:48px;font-weight:700;line-height:1;color:var(--felt)}
+.ab .rate .ci{font-size:13px;color:var(--muted)}
+.ab .kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;font-size:14px;margin:0}
+.ab .kv dt{color:var(--muted)}
+.ab .kv dd{margin:0;text-align:right}
+.ab .prog{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+.ab .prog .track{height:10px}
+.ab .prog .fill{background:var(--felt)}
+.ab .diff svg{display:block;width:100%;height:auto;max-width:100%}
+.ab .diff text{fill:var(--muted);font:12px var(--f-mono)}
+.ab .diff .axis{stroke:var(--line)}
+.ab .diff .zero{stroke:var(--brass);stroke-width:2}
+.ab .diff .band{fill:var(--felt-soft);stroke:var(--felt)}
+.ab .diff .pt{fill:var(--felt)}
+.ab .base{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+.ab .base .rcard .big{font-size:34px}
+@media (max-width:720px){.ab .arms{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+<div class="wrap ab" id="view-ab-push" hidden>
+<header>
+  <span class="eyebrow">Kartaonica · Android 1.5.2 · A/B test · od 27.11.2026.</span>
+  <h1>Dozvola za obavještenja</h1>
+  <p class="lede">Novi uređaj na kraju prve partije dobija jedno od dva pitanja, nasumično pola-pola. <b>Odmah</b>: sistemski dijalog bez objašnjenja, kao u 1.5.1. <b>Sa razlogom</b>: prvo naš list „Revanš kad tebi odgovara?”, a sistemski dijalog tek na „Da, javi mi”. Mjeri se koliko uređaja da dozvolu u 7 dana.</p>
+  <div class="toolbar">
+    <button type="button" class="btn" id="ab-refresh">Osvježi iz PostHoga</button>
+    <span class="status" id="ab-status" role="status"></span>
+  </div>
+</header>
+
+<section aria-labelledby="h-ab-verdict">
+  <div class="sec-head"><span class="eyebrow">Presuda</span><h2 id="h-ab-verdict">Šta kažu brojke</h2></div>
+  <div class="verdict" id="ab-verdict" data-tone="unk">
+    <p class="v-title" id="ab-v-title">Čekaju se podaci</p>
+    <p class="v-body" id="ab-v-body"></p>
+  </div>
+</section>
+
+<section aria-labelledby="h-ab-arms">
+  <div class="sec-head"><span class="eyebrow">Grupe</span><h2 id="h-ab-arms">Dvije grupe</h2>
+    <p class="lede">Dozvola se broji ako je data najkasnije 7 dana poslije prvog pitanja. Uređaj mlađi od 7 dana još ima vremena, pa procenat raste dok test traje. Povratak sutradan je zaštitna metrika: novi list ne smije oterati igrače.</p></div>
+  <div class="arms">
+    <article class="arm" data-arm="direct" aria-labelledby="h-arm-direct">
+      <div class="arm-head"><h3 class="t" id="h-arm-direct">Odmah</h3><span class="d">sistemski dijalog, kao 1.5.1</span></div>
+      <div class="rate"><span class="big num" data-f="rate">–</span><span class="ci num" data-f="ci"></span></div>
+      <dl class="kv num">
+        <dt>Uređaja u grupi</dt><dd data-f="devices">–</dd>
+        <dt>Dali dozvolu (7 dana)</dt><dd data-f="granted">–</dd>
+        <dt>Odbili konačno</dt><dd data-f="denied">–</dd>
+        <dt>Vratili se sutradan</dt><dd data-f="d1">–</dd>
+      </dl>
+      <div class="prog"><span data-f="prog-label">0 / 100 uređaja do presude</span><div class="track"><div class="fill" data-f="prog" style="width:0%"></div></div></div>
+    </article>
+    <article class="arm" data-arm="soft" aria-labelledby="h-arm-soft">
+      <div class="arm-head"><h3 class="t" id="h-arm-soft">Sa razlogom</h3><span class="d">naš list, pa sistemski dijalog</span></div>
+      <div class="rate"><span class="big num" data-f="rate">–</span><span class="ci num" data-f="ci"></span></div>
+      <dl class="kv num">
+        <dt>Uređaja u grupi</dt><dd data-f="devices">–</dd>
+        <dt>Dali dozvolu (7 dana)</dt><dd data-f="granted">–</dd>
+        <dt>Odbili konačno</dt><dd data-f="denied">–</dd>
+        <dt>Vratili se sutradan</dt><dd data-f="d1">–</dd>
+        <dt>Vidjeli list</dt><dd data-f="soft-shown">–</dd>
+        <dt>„Da, javi mi” / „Ne sada”</dt><dd data-f="soft-split">–</dd>
+      </dl>
+      <div class="prog"><span data-f="prog-label">0 / 100 uređaja do presude</span><div class="track"><div class="fill" data-f="prog" style="width:0%"></div></div></div>
+    </article>
+  </div>
+</section>
+
+<section aria-labelledby="h-ab-diff">
+  <div class="sec-head"><span class="eyebrow">Razlika</span><h2 id="h-ab-diff">Sa razlogom minus odmah</h2>
+    <p class="lede">Tačka je razlika u procentu dozvola, traka 95 % interval. Dok traka siječe nulu, razlika nije dokazana.</p></div>
+  <div class="diff gauge" id="ab-diff" aria-live="polite"><p class="g-note" id="ab-diff-note">Razlika se crta kad obje grupe imaju bar po 10 uređaja.</p></div>
+</section>
+
+<section aria-labelledby="h-ab-base">
+  <div class="sec-head"><span class="eyebrow">Osnovica</span><h2 id="h-ab-base">Prije testa: 1.5.1</h2>
+    <p class="lede">Uređaji koji su na 1.5.1 dobili direktno pitanje, od 24.11. Snimak se ne osvježava, služi za poređenje.</p></div>
+  <div class="base">
+    <div class="rcard"><span class="big num">16 %</span><p>dozvola u 7 dana · <span class="num">34 / 213</span></p></div>
+    <div class="rcard"><span class="big num">2 %</span><p>odbili konačno · <span class="num">4 / 213</span></p></div>
+    <div class="rcard"><span class="big num">71 %</span><p>vratili se sutradan · <span class="num">122 / 172</span></p></div>
+  </div>
+</section>
+
+<section aria-labelledby="h-ab-rules">
+  <div class="sec-head"><span class="eyebrow">Pravila</span><h2 id="h-ab-rules">Kako se čita</h2></div>
+  <div class="rules">
+    <div class="rcard"><span class="big num">n ≥ 100</span><p>Presuda tek kad svaka grupa ima 100 uređaja. Prije toga su brojke trend.</p></div>
+    <div class="rcard"><h3>Pobjednik</h3><p>Grupa pobjeđuje kad cijeli 95 % interval razlike stoji na jednoj strani nule. Tada ona postaje 100 % (<code>PUSH_ASK_SOFT_SHARE</code>).</p></div>
+    <div class="rcard"><h3>Zaštita</h3><p>Ako je povratak sutradan u grupi „Sa razlogom” niži za više od 5 p.p., list se ne uvodi ni kad daje više dozvola.</p></div>
+    <div class="rcard"><h3>Ko je u testu</h3><p>Samo uređaji na 1.5.2 čija dozvola na kraju prve partije još nije riješena. Android 12 i stariji ne ulaze: tamo dozvola stiže sama.</p></div>
+  </div>
+</section>
+
+<footer>Izvor: PostHog, produkcija, događaji sa <code>ask_arm</code> od 27.11.2026. Snimak <span class="num" id="ab-asof">–</span>. „Osvježi iz PostHoga” radi u Claude aplikaciji na računaru na kojem je povezan PostHog server; u pregledaču ostaje zadnji snimak. Spec: <code>docs/Specs/SPEC_PUSH_V2.md</code> A1, changelog 231.</footer>
+</div>
+
+<script id="ab-snapshot" type="application/json">{"asOf":"2026-11-27T19:45:00+01:00","arms":[]}</script>
+<script>
+(function () {
+  // Pogledi: #ab-push ili početni.
+  var views = { "ab-push": document.getElementById("view-ab-push"), "": document.getElementById("view-pmf") };
+  function route() {
+    var key = location.hash === "#ab-push" ? "ab-push" : "";
+    Object.keys(views).forEach(function (k) { if (views[k]) views[k].hidden = k !== key; });
+    document.querySelectorAll(".views a").forEach(function (a) {
+      var on = (a.getAttribute("href") === "#ab-push") === (key === "ab-push");
+      if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    document.title = key === "ab-push" ? "Kartaonica — dozvola za obavještenja" : "Kartaonica — put do PMF-a";
+  }
+  window.addEventListener("hashchange", route);
+  route();
+
+  var START = "2026-11-27";
+  var QUERY = "SELECT arm, count() AS devices, countIf(sdk >= 33) AS devices_13plus, " +
+    "countIf(granted_at > toDateTime('2000-01-01') AND granted_at <= first_at + INTERVAL 7 DAY) AS granted_7d, " +
+    "countIf(denied) AS denied, countIf(soft_shown) AS soft_shown, countIf(soft_accepted) AS soft_accepted, " +
+    "countIf(soft_dismissed) AS soft_dismissed, countIf(d0 < today()) AS d1_eligible, " +
+    "countIf(d0 < today() AND has(days, d0 + 1)) AS d1_returned, countIf(first_at <= now() - INTERVAL 7 DAY) AS full_7d " +
+    "FROM (SELECT person_id, " +
+    "argMinIf(properties.ask_arm, timestamp, properties.ask_arm IN ('direct','soft')) AS arm, " +
+    "minIf(timestamp, properties.ask_arm IN ('direct','soft')) AS first_at, " +
+    "toDate(toTimeZone(first_at, 'Europe/Sarajevo')) AS d0, " +
+    "maxIf(toInt(properties.android_sdk), properties.android_sdk IS NOT NULL) AS sdk, " +
+    "minIf(timestamp, (event = 'push_permission_result' AND properties.result = 'granted') OR (event = 'push_state' AND properties.permission = 'granted')) AS granted_at, " +
+    "max(event = 'push_permission_result' AND properties.result = 'denied') AS denied, " +
+    "max(event = 'push_prompt_shown' AND toString(properties.soft) = 'true') AS soft_shown, " +
+    "max(event = 'push_prompt_accepted' AND toString(properties.soft) = 'true') AS soft_accepted, " +
+    "max(event = 'push_prompt_dismissed' AND toString(properties.soft) = 'true') AS soft_dismissed, " +
+    "groupUniqArrayIf(toDate(toTimeZone(timestamp, 'Europe/Sarajevo')), event IN ('push_state', 'play_requested', 'match_started')) AS days " +
+    "FROM events WHERE timestamp >= toDateTime('" + START + "') AND person_id IN " +
+    "(SELECT person_id FROM events WHERE timestamp >= toDateTime('" + START + "') AND properties.ask_arm IN ('direct','soft')) " +
+    "GROUP BY person_id) WHERE arm IN ('direct','soft') GROUP BY arm ORDER BY arm";
+
+  var NUM = ["devices", "devices_13plus", "granted_7d", "denied", "soft_shown", "soft_accepted", "soft_dismissed", "d1_eligible", "d1_returned", "full_7d"];
+
+  // PostHog vraća tekst „kolona|kolona\nvrijednost|…", ponekad uz blok upozorenja ispred.
+  function parseTable(text) {
+    var lines = String(text || "").split("\n");
+    var h = lines.findIndex(function (l) { return /^arm\|devices\|/.test(l.trim()); });
+    if (h < 0) return null;
+    var cols = lines[h].trim().split("|");
+    var rows = [];
+    for (var i = h + 1; i < lines.length; i++) {
+      var l = lines[i].trim();
+      if (!l) break;
+      var cells = l.split("|");
+      if (cells.length !== cols.length) break;
+      var row = {};
+      cols.forEach(function (c, j) { row[c] = NUM.indexOf(c) >= 0 ? (Number(cells[j]) || 0) : cells[j]; });
+      if (row.arm === "direct" || row.arm === "soft") rows.push(row);
+    }
+    return rows;
+  }
+
+  function wilson(k, n) {
+    if (!n) return null;
+    var z = 1.96, p = k / n, d = 1 + z * z / n;
+    var c = (p + z * z / (2 * n)) / d, m = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d;
+    return [Math.max(0, c - m), Math.min(1, c + m)];
+  }
+  // Newcombe (hibrid Wilson) interval razlike p2 − p1.
+  function diffCI(k1, n1, k2, n2) {
+    var a = wilson(k1, n1), b = wilson(k2, n2);
+    if (!a || !b) return null;
+    var p1 = k1 / n1, p2 = k2 / n2, d = p2 - p1;
+    var lo = d - Math.sqrt(Math.pow(p2 - b[0], 2) + Math.pow(a[1] - p1, 2));
+    var hi = d + Math.sqrt(Math.pow(b[1] - p2, 2) + Math.pow(p1 - a[0], 2));
+    return { d: d, lo: lo, hi: hi };
+  }
+  function pct(x) { return (Math.round(x * 1000) / 10).toLocaleString("bs-BA") + " %"; }
+  function pp(x) { var v = Math.round(x * 1000) / 10; return (v > 0 ? "+" : "") + v.toLocaleString("bs-BA") + " p.p."; }
+  function frac(k, n) { return n ? k + " / " + n + " · " + pct(k / n) : "–"; }
+  function set(el, f, text) { var x = el.querySelector('[data-f="' + f + '"]'); if (x) x.textContent = text; }
+
+  function render(snap) {
+    var by = {};
+    (snap.arms || []).forEach(function (r) { by[r.arm] = r; });
+    ["direct", "soft"].forEach(function (arm) {
+      var el = document.querySelector('.arm[data-arm="' + arm + '"]');
+      var r = by[arm] || { devices: 0, granted_7d: 0, denied: 0, d1_eligible: 0, d1_returned: 0, soft_shown: 0, soft_accepted: 0, soft_dismissed: 0 };
+      var ci = wilson(r.granted_7d, r.devices);
+      set(el, "rate", r.devices ? pct(r.granted_7d / r.devices) : "–");
+      set(el, "ci", ci ? "95 % interval " + pct(ci[0]) + " – " + pct(ci[1]) : "nema uređaja");
+      set(el, "devices", String(r.devices));
+      set(el, "granted", frac(r.granted_7d, r.devices));
+      set(el, "denied", frac(r.denied, r.devices));
+      set(el, "d1", frac(r.d1_returned, r.d1_eligible));
+      set(el, "soft-shown", frac(r.soft_shown, r.devices));
+      set(el, "soft-split", r.soft_shown ? r.soft_accepted + " / " + r.soft_dismissed : "–");
+      set(el, "prog-label", Math.min(r.devices, 100) + " / 100 uređaja do presude");
+      var bar = el.querySelector('[data-f="prog"]');
+      if (bar) bar.style.width = Math.min(100, r.devices) + "%";
+    });
+
+    var D = by.direct, S = by.soft;
+    var tone = "unk", title, body;
+    var nMin = Math.min(D ? D.devices : 0, S ? S.devices : 0);
+    var c = D && S ? diffCI(D.granted_7d, D.devices, S.granted_7d, S.devices) : null;
+    var d1 = D && S && D.d1_eligible && S.d1_eligible ? S.d1_returned / S.d1_eligible - D.d1_returned / D.d1_eligible : null;
+    if (!D && !S) {
+      title = "Test još nije počeo";
+      body = "Nema uređaja ni u jednoj grupi. Prvi stižu kad 1.5.2 izađe na Play i novi igrači završe prvu partiju.";
+    } else if (nMin < 100) {
+      tone = "warn";
+      title = "Premalo podataka za presudu";
+      body = "Najmanja grupa ima " + nMin + " od 100 uređaja." + (c ? " Razlika je zasad " + pp(c.d) + ", ali to je trend, ne presuda." : "");
+    } else if (d1 !== null && d1 < -0.05) {
+      tone = "bad";
+      title = "Zaštita: list tjera igrače";
+      body = "Povratak sutradan u grupi „Sa razlogom” je niži za " + pp(-d1).replace("+", "") + ". List se ne uvodi.";
+    } else if (c && c.lo > 0) {
+      tone = "ok";
+      title = "Pobjeđuje „Sa razlogom”";
+      body = "Daje " + pp(c.d) + " više dozvola (95 % interval " + pp(c.lo) + " do " + pp(c.hi) + "). Sljedeći korak: PUSH_ASK_SOFT_SHARE = 1.";
+    } else if (c && c.hi < 0) {
+      tone = "ok";
+      title = "Pobjeđuje „Odmah”";
+      body = "Direktno pitanje daje " + pp(-c.d).replace("+", "") + " više dozvola. Sljedeći korak: PUSH_ASK_SOFT_SHARE = 0.";
+    } else {
+      tone = "warn";
+      title = "Razlika još nije dokazana";
+      body = "Obje grupe imaju 100+ uređaja, ali interval razlike (" + (c ? pp(c.lo) + " do " + pp(c.hi) : "–") + ") siječe nulu. Test teče dalje.";
+    }
+    var v = document.getElementById("ab-verdict");
+    v.dataset.tone = tone;
+    document.getElementById("ab-v-title").textContent = title;
+    document.getElementById("ab-v-body").textContent = body;
+
+    drawDiff(D, S, c);
+    var asof = new Date(snap.asOf);
+    document.getElementById("ab-asof").textContent = isNaN(asof) ? "–" : asof.toLocaleString("bs-BA", { dateStyle: "medium", timeStyle: "short" });
+  }
+
+  function drawDiff(D, S, c) {
+    var box = document.getElementById("ab-diff");
+    if (!c || D.devices < 10 || S.devices < 10) {
+      box.innerHTML = '<p class="g-note">Razlika se crta kad obje grupe imaju bar po 10 uređaja.</p>';
+      return;
+    }
+    // Skala −30 … +30 p.p., ili šire ako interval izlazi van.
+    var lim = Math.max(0.3, Math.ceil(Math.max(Math.abs(c.lo), Math.abs(c.hi)) * 10) / 10);
+    var W = 640, H = 96, L = 24, R = 24, y = 44;
+    function x(v) { return L + (v + lim) / (2 * lim) * (W - L - R); }
+    var ticks = [-lim, -lim / 2, 0, lim / 2, lim];
+    var s = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Razlika ' + pp(c.d) + ", interval " + pp(c.lo) + " do " + pp(c.hi) + '">';
+    s += '<line class="axis" x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '"/>';
+    ticks.forEach(function (t) {
+      s += '<line class="axis" x1="' + x(t) + '" x2="' + x(t) + '" y1="' + (y - 4) + '" y2="' + (y + 4) + '"/>';
+      s += '<text x="' + x(t) + '" y="' + (y + 26) + '" text-anchor="middle">' + pp(t).replace(" p.p.", "") + "</text>";
+    });
+    s += '<line class="zero" x1="' + x(0) + '" x2="' + x(0) + '" y1="' + (y - 18) + '" y2="' + (y + 10) + '"/>';
+    s += '<rect class="band" x="' + x(c.lo) + '" y="' + (y - 9) + '" width="' + Math.max(2, x(c.hi) - x(c.lo)) + '" height="18" rx="4"/>';
+    s += '<circle class="pt" cx="' + x(c.d) + '" cy="' + y + '" r="6"/>';
+    s += '<text x="' + x(c.d) + '" y="' + (y - 16) + '" text-anchor="middle">' + pp(c.d) + "</text>";
+    s += "</svg>";
+    box.innerHTML = s + '<p class="g-note">Lijevo od nule bolje je „Odmah”, desno „Sa razlogom”.</p>';
+  }
+
+  var snap;
+  try { snap = JSON.parse(document.getElementById("ab-snapshot").textContent); } catch (e) { snap = { asOf: null, arms: [] }; }
+  render(snap);
+
+  var btn = document.getElementById("ab-refresh");
+  var status = document.getElementById("ab-status");
+  function say(text, bad) { status.textContent = text; if (bad) status.dataset.tone = "bad"; else delete status.dataset.tone; }
+  say("Prikazan zadnji snimak.");
+
+  var mcpP = null;
+  btn.addEventListener("click", function () {
+    btn.disabled = true;
+    say("Pitam PostHog…");
+    if (!mcpP) mcpP = window.claude && typeof window.claude.use === "function" ? window.claude.use("mcp") : Promise.resolve(null);
+    mcpP.then(function (mcp) {
+      if (!mcp) { say("Uživo osvježavanje ovdje ne radi. Otvori stranicu u Claude aplikaciji na računaru sa PostHog serverom.", true); return; }
+      return mcp.callTool("host:posthog", "exec", {
+        command: "call --json execute-sql " + JSON.stringify({ query: QUERY }),
+        context: "A/B dashboard refresh: push permission ask",
+        llm_model: "unknown"
+      }).then(function (res) {
+        var p = res && res.payload;
+        var rows = parseTable(p && typeof p === "object" ? p.results : p);
+        if (!rows) { say("PostHog je odgovorio, ali bez tabele rezultata. Snimak ostaje.", true); return; }
+        render({ asOf: new Date().toISOString(), arms: rows });
+        say("Osvježeno uživo.");
+      }, function (err) {
+        var code = err && err.code;
+        if (code === "server_not_connected") say("PostHog server nije dostupan ovdje. Radi samo u Claude aplikaciji na računaru gdje je PostHog povezan. Snimak ostaje.", true);
+        else if (code === "cancelled") say("Upit je otkazan u aplikaciji. Snimak ostaje.", true);
+        else if (code === "not_in_manifest" || code === "approval_required" || code === "consent_required") say("Stranica nema dozvolu za PostHog. Dozvoli je u meniju artifacta (Permissions), pa pokušaj ponovo.", true);
+        else if (code === "tool_error") say("PostHog je odbio upit: " + String(err.message || "").slice(0, 160), true);
+        else if (code === "server_unavailable") say("PostHog trenutno ne odgovara. Pokušaj za minut.", true);
+        else say("Osvježavanje nije uspjelo (" + (code || "nepoznato") + "). Snimak ostaje.", true);
+      });
+    }).finally(function () { btn.disabled = false; });
+  });
+})();
+</script>
