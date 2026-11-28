@@ -11,9 +11,8 @@
   Naslov mejla: Koliko često pobjeđuješ?
   (rezerve: „Tvoja statistika je stigla u Kartaonicu" / „Pobjede, porazi i niz — za svaku igru")
 
-  SLIKE: tri placeholdera ispod su sive kutije. Kad slike stignu (1008 px široke, < 200 KB),
-  stave se u apps/web/public/email/ i idu na production; onda se svaka kutija zamijeni
-  zakomentarisanim <img> redom koji stoji odmah iznad nje.
+  SLIKA: jedna, https://kartaonica.com/email/statistika.jpg (apps/web/public/email/statistika.jpg).
+  Mora biti na production grani prije slanja, inače se u mejlu ne vidi.
 -->
 
 <!-- Preheader (vidi se u listi mejlova, ne u samom mejlu) -->
@@ -36,24 +35,13 @@
     <p style="margin:0;">mnogi od vas su nas pitali koliko partija dobijaju i kako stoje u odnosu na druge. Na vaš zahtjev, sad u Kartaonici vidiš kako ti ide.</p>
   </td></tr>
 
-  <!-- SLIKA 1: kartica „Statistika" u Profilu -->
+  <!-- SLIKA: Profil → Statistika i statistika prijatelja (apps/web/public/email/statistika.jpg, mora biti na production) -->
   <tr><td style="padding:0 28px 16px;">
-    <!-- <img src="https://kartaonica.com/email/stats-1.png" width="504" alt="Statistika u Profilu: procenat pobjeda, pobjede i porazi" style="display:block;width:100%;max-width:504px;height:auto;border:0;border-radius:10px;"> -->
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td align="center" style="background:#e9e4da;border:2px dashed #b9ae9c;border-radius:10px;padding:90px 16px;font-size:14px;color:#7a7065;">SLIKA 1 — kartica Statistika u Profilu</td>
-    </tr></table>
+    <img src="https://kartaonica.com/email/statistika.jpg" width="504" alt="Statistika u Profilu: 34 % pobjeda u Raubu, niz 3, završava 94 %; pored toga statistika prijatelja" style="display:block;width:100%;max-width:504px;height:auto;border:0;border-radius:10px;">
   </td></tr>
 
   <tr><td style="padding:0 28px 20px;font-size:16px;line-height:1.55;">
     <p style="margin:0;">U Profilu, za svaku igru posebno: koliko partija dobijaš, procenat pobjeda i koliko ti je dug niz. Poslije svake partije odmah vidiš šta se pomjerilo.</p>
-  </td></tr>
-
-  <!-- SLIKA 2: red na kraju partije („Pobjeda 25 · niz 3") -->
-  <tr><td style="padding:0 28px 24px;">
-    <!-- <img src="https://kartaonica.com/email/stats-2.png" width="504" alt="Kraj partije: Pobjeda 25, niz 3" style="display:block;width:100%;max-width:504px;height:auto;border:0;border-radius:10px;"> -->
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td align="center" style="background:#e9e4da;border:2px dashed #b9ae9c;border-radius:10px;padding:56px 16px;font-size:14px;color:#7a7065;">SLIKA 2 — red na kraju partije</td>
-    </tr></table>
   </td></tr>
 
   <!-- Prijatelji -->
@@ -61,14 +49,6 @@
     <p style="margin:0 0 6px;font-size:18px;font-weight:bold;color:#1f5a3c;">Uporedi se sa prijateljima</p>
     <p style="margin:0 0 12px;">Otvori prijatelja u listi Prijatelji i vidiš ko češće pobjeđuje u istim igrama.</p>
     <p style="margin:0;"><strong>Društvo još nije tu?</strong> Pošalji im link <a href="https://kartaonica.com/?utm_source=email&amp;utm_medium=email&amp;utm_campaign=stats_invite" style="color:#1f5a3c;font-weight:bold;">kartaonica.com</a> ili im samo proslijedi ovaj mejl. Kad naprave nalog, dodaj ih po nadimku u Profil&nbsp;&rarr; Prijatelji i neka igra počne.</p>
-  </td></tr>
-
-  <!-- SLIKA 3: statistika prijatelja -->
-  <tr><td style="padding:0 28px 20px;">
-    <!-- <img src="https://kartaonica.com/email/stats-3.png" width="504" alt="Statistika prijatelja" style="display:block;width:100%;max-width:504px;height:auto;border:0;border-radius:10px;"> -->
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td align="center" style="background:#e9e4da;border:2px dashed #b9ae9c;border-radius:10px;padding:90px 16px;font-size:14px;color:#7a7065;">SLIKA 3 — statistika prijatelja</td>
-    </tr></table>
   </td></tr>
 
   <tr><td style="padding:0 28px 24px;font-size:16px;line-height:1.55;">
