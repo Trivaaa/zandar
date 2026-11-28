@@ -2999,6 +2999,21 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 
 **Redoslijed izdanja:** server (deploy) prije paketa, inače paket šalje `belaTarget` koji stari server ignoriše → 501 (ništa ne puca).
 
+## 233. Spec: statistika igrača po igri (2026-11-27, `docs/spec-statistika`)
+
+**Povod:** tri utiska igrača traže broj partija, omjer pobjeda i poraza i odustajanja. Jedan za Raub predlaže rang po bodovima: pobjednik dobija ono što je ostalo ostalima, a ostali gube ono što im je ostalo. Cilj je povratak igrača (D1/D7).
+
+**Šta:** nov nacrt `docs/Specs/SPEC_STATISTIKA.md` (v0.1): definicije ishoda za sve četiri igre, podaci (`profiles.stats`, nova polja u `results/`), ekrani S1–S6, mjerenje i faze F0–F3. Bez koda.
+
+**Odluke vlasnika (27.11.2026):**
+- Statistika ide prije Lige i postaje njena faza F0.
+- Raub formula iz utiska postaje bodovanje Lige za Raub; dopunjen `SPEC_RANG.md` §3.4 i zaglavlje.
+- „Završava N %" vide i drugi igrači (od 10 započetih partija).
+
+**Nađeno u kodu:** igrač koji izađe iz pokera i dalje dobije +1 `completedMatches` kad se meč završi za ostale (`recordCompletedMatch` uzima sve iz `room.players`, a `left: true` igrači ostaju u njima, changelog 214). Spec to ispravlja u F0.
+
+**Otvoreno:** aplikacija u F1 ili tek F3, prag za javni procenat, Žandar istek veze kao napuštanje, pravni pregled vidljivosti (SPEC_STATISTIKA §12).
+
 ## 234. „Završena partija" samo kad je igrač stvarno igrao; rok za „Sljedeća ruka" (2026-11-27, `fix/afk-match-end`)
 
 (Broj 233 je ostavljen za `docs/spec-statistika`, koji još nije spojen.)
@@ -3046,9 +3061,23 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 
 **Dopuna istog dana (odluka vlasnika):** rok od 10 min za „Sljedeća ruka" važi samo kad čovjek igra sam protiv botova — tačno jedno ljudsko sjedište (`stallApplies` u `afk.ts`). Čim za stolom sjede dva čovjeka (i uz botove), roka nema i host kontroliše tempo; takav sto i dalje zatvara samo sweeper (12 h). `handEndedAt` se bilježi za svaki sto, pa sweeper i tada šalje `stalled` sa trajanjem do kraja zadnje ruke. Testovi: `stallApplies` i sto sa dva čovjeka u Raubu i Beli (bez prekida poslije roka); server 393. Raub E2E (1 čovjek + bot, `NEXT_HAND_IDLE_MS=4000`) i dalje zatvara sto 4 s poslije kraja ruke.
 
-## 236. Statistika F0: server bilježi ishod svake partije (2026-11-28, `feat/stats-f0`)
+## 235. Spec statistike v0.2: samo vlastiti profil, pobjeda = 1. mjesto, osnova za Ligu (2026-11-28, `docs/spec-statistika`)
 
-(Grana je iz `fix/afk-match-end`. Unosi 233 i 235 su spec na `docs/spec-statistika`.)
+**Odluke vlasnika (28.11.2026):**
+- U v1 igrač vidi samo svoju statistiku. Tuđi profil, sjedište u lobiju i javno „Završava %" (S4, ex P0-5, ex F2) prelaze u P2.
+- Pobjeda je u svakoj igri samo 1. mjesto. Jednaki bodovi u Raubu dijele mjesto; u pokeru, kad dvojica ispadnu u istoj ruci, bolje mjesto ima onaj ko je u ruku ušao sa više žetona. Red „1. mjesto" otpada.
+- Dugme ⓘ na kartici otpada; „Kako se broji" ostaje kao link na dnu.
+
+**Zašto samo svoj profil — izmjereno** (PostHog, 14 dana, završene partije): brza igra Raub 2.470 / privatni sto 195, Bela 1.683 / 37, poker 1.006 / 75, Žandar 337 / 41. Oko 94 % partija je brza igra, skoro uvijek protiv botova, pa tuđi procenat ne govori ništa o igraču. Pobjede % u brzoj igri: Bela 57,6, Žandar 62,9, Raub 41,6, poker 22,9.
+
+**Novo u specu:**
+- §13 „Botovi": broji se isto za svaki sto, bez podjele i nagovještaja (HARD RULE 3 i 5); poker i Raub dobijaju red konteksta stola („Za stolom od 4 pobjeđuje 1 od 4"), jer je 23 % u pokeru prosjek, a izgleda kao loš rezultat.
+- §7.1 `results/` dobija `mode`, `opponents` (`uid` ili `bot:<tier>`, samo server), `afk`, `left`, `durationMs`, `hands`. Liga na bodove i rang po jačini protivnika (Elo/MMR) računaju se kasnije iz `results/` unazad od dana F0; bez `opponents` od prvog dana rang se ne bi mogao izračunati.
+- O2 i O4 nisu potrebni za v1.
+
+**Tabla `UI_Statistika`:** izbačena oba S4 ekrana, dodat „S1 · Poker, sto od 4", S6 pravilo „Statistiku vidiš samo ti", pravila „Samo ti" i „Botovi". Brojke „pobjeda = 1. mjesto" je na tabli već ispravio odgovor na komentar vlasnika.
+
+## 236. Statistika F0: server bilježi ishod svake partije (2026-11-28, `feat/stats-f0`)
 
 **Povod:** SPEC_STATISTIKA v0.2, faza F0. Server bilježi ishod, a prikaza još nema. Statistika kreće od dana deploya, pa ekran F1 dobija brojke odmah.
 

@@ -316,6 +316,57 @@ Zaključak:
 - Raub ostaje jedini kandidat po D1 i D7; Žandar je ispod na svemu (D7 0/29) — predlog: izbaciti ga iz izbora glavne igre na presudi 29.11.
 - Kandidat za presudu 29.11.: „Raub na Androidu" umjesto „Raub" — tada oglas treba voditi na Play, a ne na web.
 
+### 27.11.2026. uveče — Raub na Androidu prelazi D1 na n ≥ 100
+
+Baza kao u očitanju od 24.11. (prvi `match_started` od 1.11., povratak tačno N-ti dan, `Europe/Sarajevo`, `app_env = production`); vlasnikov S10e izdvojen. Igra i platforma su igra i platforma prvog meča. D1 do kohorte 25.11. (zaključno), D7 do kohorte 19.11.
+
+| Metrika | Vrijednost | n | Prag | Status |
+|---|---|---|---|---|
+| **D1, prva igra Raub na Androidu, kohorte 1.–25.11.** | **71 %** | **91/129** | 35 % | **iznad, n ≥ 100; kohorte 22.–23. 64 % (25/39), 24.–25. 75 % (58/77)** |
+| **D1, prva igra Raub na webu, kohorte 1.–25.11.** | **34 %** | **127/376** | 35 % | **tik ispod; kohorte 22.–23. 31 % (34/111), 24.–25. 36 % (78/219)** |
+| D1 Bela, Android / web (22.–25.11.) | 57 % / 25 % | 30/53, 31/123 | 35 % | Android iznad, n < 100 |
+| D1 Poker, Android / web | 43 % / 18 % | 18/42, 15/84 | 35 % | web ispod |
+| D1 Žandar, Android / web | 41 % / 10 % | 18/44, 5/52 | 35 % | web jako ispod |
+| D1 po dnevnoj kohorti, web | 21 / 31 / 35 / 31 % | 22., 23., 24., 25.11. (n 108, 93, 122, 191) | 35 % | raste, ispod |
+| D1 po dnevnoj kohorti, Android | 46 / 54 / 61 / 71 % | 22., 23., 24., 25.11. (n 24, 48, 44, 94) | 35 % | raste |
+| Provjera D1 bez igre preko ponoći (povratak tek poslije 6 h), kohorte 24.–25. | Raub Android 71 % / web 34 % | 55/77, 74/219 | — | povratak je stvaran |
+| D7 tačno 7. dan, svi (kohorte 1.–19.11.) | 15 % | 23/158 | 15 % | na pragu |
+| D7 Raub / Poker / Žandar | 24 % / 15 % / 5 % | 12/50, 8/53, 3/55 | 15 % | Raub iznad, n < 100 |
+| DAU | 282 / 436 / 445 / 478 (24.–27.11.) | — | — | prije oglasa ~42; 27.11. web 296, Android 182 |
+| DAU/MAU | 22 % | prosjek DAU 292 (21.–27.11.) / MAU 1.321 | 20 % | napumpano kampanjom, ne broji se |
+| Završeni (po čovjeku, od 24.11.), Raub web / Android | 55 % / 68 % | 898/1.621, 1.019/1.503 | 70 % | web ispod |
+| Završeni, Bela web / Android | 76 % / 79 % | 857/1.133, 429/544 | 70 % | iznad |
+| Završeni, Poker web / Android | 72 % / 78 % | 344/475, 261/336 | 70 % | iznad |
+| Završeni, Žandar web / Android | 44 % / 52 % | 68/154, 78/150 | 70 % | ispod |
+
+**Oglasi, web (`first_open` sa `utm_content`, od 22.11.):**
+
+| Oglas | Otvorili | Zaigrali | Prva igra (Raub / Bela / Poker / Žandar) | D1 (kohorte do 25.11.) |
+|---|---|---|---|---|
+| `52534743438329` (od 24.11.) | 665 | 396 (60 %) | 271 / 102 / 20 / 3 | 33 % (73/224) |
+| `52534136459329` (prvi Raub oglas, 22.11.) | 350 | 201 (57 %) | 111 / 57 / 19 / 14 | 26 % (51/197) |
+| bez `utm_content` | 167 | 101 (60 %) | 52 / 32 / 14 / 3 | 36 % (20/56) |
+| `52535479664929` (od 26.11.) | 116 | 52 (45 %) | 14 / 33 / 5 / 0 | nečitljivo |
+
+Sadržaj oglasa `…743438329` i `…479664929` nije provjeren; po izboru prve igre drugi je vjerovatno Bela. Potrošnja nije pročitana (Meta nije povezana), pa nema cijene po igraču.
+
+**Android instalacije (`app_install_attributed`, 22.–27.11.):** oglas `…743438329` 12 / 47 / 29 / 28 (24.–27.11.); organski Play 7 / 11 / 13 / 25 / 14 / 24 (22.–27.11.) — raste, dio je vjerovatno ljudi koji su vidjeli oglas pa potražili aplikaciju.
+
+**Push v2:** `push_sent` 46, `push_opened` 3, `reminder_would_send` 21 (od 22.11.) — nečitljivo.
+
+Zaključak:
+- Raub na Androidu je prva kombinacija igre i platforme koja prelazi D1 na n ≥ 100, na dvije uzastopne kohorte. D7 te publike stiže od 29.11.
+- Android kohorta je samoizabrana: dobar dio su igrači iz web oglasa koji su prešli u aplikaciju (dva ID-a). „Raub na Androidu" zato još nije dokazan kao kanal — treba oglas koji vodi pravo na Play.
+- Platforma razdvaja više od igre: sve četiri igre na Androidu imaju D1 41–71 %, na webu 10–34 %.
+- Raub na webu i dalje gubi 45 % mečeva (uglavnom zatvoren tab, vidi 23.11.). Bela i Poker su iznad 70 % završenih.
+- Oglas `…743438329` dovodi bolje igrače od prvog Raub oglasa (aktivacija 60 % naspram 57 %, D1 33 % naspram 26 %).
+- Dva nova oglasa (24. i 26.11.) mijenjaju sastav kohorti u zamrzavanju; za presudu se čita po oglasu.
+- Sljedeće: 29.11. D7 kohorte 22.11., posebno Raub na Androidu; Raub oglas direktno na Play; snimci prekinutih Raub partija na webu; upisati potrošnju sva tri oglasa; Žandar izbaciti iz izbora glavne igre.
+
+**Dopuna 27.11. — „Vrati se za sto":** `table_resume_click` je na produkciji od 22.11.: 6 → 18 → 25 → 33 → 35 → 33 klikova dnevno, 31 osoba 27.11. Za sljedeće čitanje: koliko tih povrataka završi partiju.
+
+**⚠ Lom serije „završeno" (grana `fix/afk-match-end`, changelog 234):** od deploya te grane `match_ended` računa partiju kao završenu samo ako je igrač sam odigrao bar 50 % poteza (ostalo `abandoned` + `afk`), sto koji 10 min čeka „Sljedeća ruka" protiv botova je `abandoned` + `stalled`, a Žandar sada šalje `left` kao ostale igre. Udio završenih i broj završenih na profilu zato **padaju poslije deploya bez promjene igre** — najviše Žandar na webu. Serije završenih mečeva se ne porede preko tog datuma; za poređenje unazad isključiti `afk`/`stalled` ili čitati odvojeno. Datum deploya na produkciju upisati ovdje. D1/D7 se ne mijenjaju (baza je `match_started`).
+
 ## 7. Ritam čitanja
 
 | Kad | Šta |

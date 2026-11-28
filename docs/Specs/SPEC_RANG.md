@@ -4,6 +4,11 @@
 > Datum: 2026-11-14. Grana: `claude/kartaonicu-rating-system-ye79j7`.
 > Mjerenja i simulacija iz ovog dokumenta se mogu ponoviti: `docs/Specs/rang/mjerenje_tierova.ts` (pravi motor iz `game-core`) i `docs/Specs/rang/simulacija_ekonomije.py`.
 > Gdje se ovaj tekst i kod razilaze, važi kod; razlike koje sam našao su u §2.
+>
+> **Dopuna 2026-11-27:**
+> - Faza F0 (bilježenje ishoda) sada je zaseban spec `docs/Specs/SPEC_STATISTIKA.md`. Statistika (pobjede, porazi, napuštanja po igri) ide prije Lige, na istim zapisima u `results/`.
+> - Bodovi Lige za Raub više nisu fiksna tabela iz §3.4, već „saldo" iz utiska igrača (odluka vlasnika, SPEC_STATISTIKA §9).
+> - §2.1 je zastario: brza igra Žandra danas sjeda protivnike tier 3 i partnera tier 2 (`ZANDAR_BOT_TIERS`, changelog 216), a `versionCode` je na 16 (1.5.2).
 
 ---
 
@@ -150,7 +155,9 @@ Poker i Raub (polazne vrijednosti, **hipoteza**; kalibrišu se po izmjerenom tra
 | Igra | 1. mjesto | 2. | 3. | 4. |
 |---|---|---|---|---|
 | Poker (4 igrača, ~15 min) | +16 | +8 | poraz ×1 | poraz ×1 |
-| Raub (2–4 igrača, ~35 min) | +30 | +14 (od 3 igrača) | +6 (od 4 igrača) | poraz ×2 |
+| ~~Raub (2–4 igrača, ~35 min)~~ | ~~+30~~ | ~~+14 (od 3 igrača)~~ | ~~+6 (od 4 igrača)~~ | ~~poraz ×2~~ |
+
+**Raub (zamijenjeno 2026-11-27):** pobjednik dobija zbir bodova koji je ostao ostalima, a ostali gube onoliko koliko im je ostalo. Faktor i granice su u `RankConfig.raub`, a pod lige iz §3.5 važi. Detalji: `docs/Specs/SPEC_STATISTIKA.md` §9.
 
 ### 3.5 Strah od gubitka
 
