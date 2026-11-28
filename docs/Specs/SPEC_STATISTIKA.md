@@ -206,7 +206,8 @@ target?: number;         // 11 / 21 / 501 …
 raub?: { finalScore: number; othersRemaining: number[] };   // za Ligu (§9)
 // za Ligu i rang (P2) — samo server, nikad klijentu
 mode?: "quick_play" | "private_room";
-opponents?: string[];    // uid ili "bot:<tier>" po protivniku; bot nikad ne ide klijentu (HARD RULE 3)
+opponents?: string[];    // uid, "bot:<tier>" ili "human" (čovjek bez naloga); bot nikad ne ide klijentu (HARD RULE 3)
+partner?: string;        // timske igre (Bela, Žandar 4P), isti oblik
 afk?: boolean;           // fix/afk-match-end
 left?: boolean;
 durationMs?: number;
