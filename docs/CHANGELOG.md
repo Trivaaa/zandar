@@ -3045,3 +3045,49 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Poslije deploya, za sedmicu:** udio `afk: true` po igri i raspodjela `auto_moves / (manual_moves + auto_moves)`.
 
 **Dopuna istog dana (odluka vlasnika):** rok od 10 min za „Sljedeća ruka" važi samo kad čovjek igra sam protiv botova — tačno jedno ljudsko sjedište (`stallApplies` u `afk.ts`). Čim za stolom sjede dva čovjeka (i uz botove), roka nema i host kontroliše tempo; takav sto i dalje zatvara samo sweeper (12 h). `handEndedAt` se bilježi za svaki sto, pa sweeper i tada šalje `stalled` sa trajanjem do kraja zadnje ruke. Testovi: `stallApplies` i sto sa dva čovjeka u Raubu i Beli (bez prekida poslije roka); server 393. Raub E2E (1 čovjek + bot, `NEXT_HAND_IDLE_MS=4000`) i dalje zatvara sto 4 s poslije kraja ruke.
+
+## 236. Statistika F0: server bilježi ishod svake partije (2026-11-28, `feat/stats-f0`)
+
+(Grana je iz `fix/afk-match-end`. Unosi 233 i 235 su spec na `docs/spec-statistika`.)
+
+**Povod:** SPEC_STATISTIKA v0.2, faza F0. Server bilježi ishod, a prikaza još nema. Statistika kreće od dana deploya, pa ekran F1 dobija brojke odmah.
+
+**Šta:**
+- `profile/outcomes.ts`, `matchOutcomes()`: čista funkcija, isto pravilo kao analitika (`ownEndReason`).
+  - Pobjeda je samo 1. mjesto (ili pobjeda tima).
+  - Napuštanje: dugme „Napusti", istek roka za povratak ili AFK.
+  - Prekid za onoga ko je ostao, bot i čovjek bez `uid`-a nemaju upis.
+- Zapis po igraču (`MatchResult`) nosi:
+  - `outcome`, `place`, `players`, `target`;
+  - Raub: `finalScore` i `othersRemaining`;
+  - `mode`, `opponents` (`uid`, `bot:<tier>` ili `human`), `partner` za timske igre;
+  - `afk`, `left`, `durationMs`, `hands`.
+- `ProfileStore.recordMatchResult()`, memorija i Firestore:
+  - `results/` sa `exists: false`, pa se dupli kraj ne broji;
+  - `completedMatches` i `completedMatchesByGame` rastu samo za pobjedu i poraz;
+  - `profiles.stats` (`v`, `since`, `byGame.<igra>`: `won`, `lost`, `abandoned`, `streak`, `bestStreak`, `lastAt`) se piše cijeli, uz `updateTime` preduslov i do 3 pokušaja. Niz pobjeda traži čitanje prije upisa, a duboka maska po igri bi tražila mapu u mapi koju lažni Firestore u testovima ne simulira.
+  - Kad pokušaj padne na konfliktu, provjerava se da li zapis u `results/` već postoji. Ako postoji, vraća se `false`.
+- `emitMatchEnded` za sve četiri igre zove `recordMatchResults` umjesto `completedHumans` + `recordCompletedMatch`.
+  - Tim postoji samo u Beli (mjesto % 2). `teamId` iz lobija (4P Žandar pravila) za poker i Raub ne važi.
+  - Žandar mjesto računa `zandarPlace`; 1 je isto što i `isMatchWinner`, pa se ni kod jednakih bodova ne razilazi sa PostHogom.
+- `/api/me` dobija `stats`, a stari profil vraća `{ v: 1, since: null, byGame: {} }`. Oznaka bota i protivnici ne idu klijentu (test).
+- Tipovi `MatchOutcome`, `GameStats`, `PlayerStats` i čista `applyOutcome` su u `shared-types/src/stats.ts`.
+
+**Provjereno:**
+- Server 413 testova (20 novih):
+  - ishodi za sve igre;
+  - jednak rezultat u Raubu, AFK, izlazak, prekid, bot, igrač bez `uid`-a;
+  - Bela partner;
+  - ugovor skladišta za memoriju i Firestore: niz, dupla dostava, stari profil, brisanje;
+  - konflikt Firestore-a: jedan pa ponovni pokušaj, stalni pa greška;
+  - neispravan `stats` se tiho preskače;
+  - greška skladišta se samo loguje.
+- Typecheck svih paketa.
+- Raub E2E na lokalnom serveru do kraja meča, bez grešaka u logu.
+
+**Nije provjereno:**
+- Upis sa pravim nalogom: lokalno nema Firebase-a, pa igrač nema `uid` i upisa nema. Provjera je na stagingu (`/api/me` → `stats` poslije jedne partije).
+- Pravi Firestore sa mapom u mapi (`stats.byGame`).
+
+**Trošak:** jedno čitanje profila više po završenoj partiji, za čovjeka sa nalogom.
+

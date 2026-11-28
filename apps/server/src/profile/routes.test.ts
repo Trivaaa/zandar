@@ -71,10 +71,27 @@ test("/api/me: gost bez profila", async () => {
     anonymous: true,
     completedMatches: 0,
     completedMatchesByGame: { zandar: 0, poker: 0, raub: 0, bela: 0 },
+    stats: { v: 1, since: null, byGame: {} },
     nickname: null,
     avatar: null,
     nicknameChangeAllowedAt: null,
   });
+});
+
+test("/api/me: statistika po igri (SPEC_STATISTIKA F0)", async () => {
+  const { app, as, store } = setup();
+  const base = { place: 1, players: 3, mode: "quick_play" as const, opponents: ["bot:2", "bot:3"], hands: 9 };
+  await store.recordMatchResult("m1", "u1", "raub", { ...base, outcome: "win" }, 1000);
+  await store.recordMatchResult("m2", "u1", "raub", { ...base, outcome: "win" }, 2000);
+  await store.recordMatchResult("m3", "u1", "raub", { ...base, place: null, outcome: "abandon", left: true }, 3000);
+  const me = (await app.inject({ method: "GET", url: "/api/me", headers: as("user:u1") })).json() as Record<string, unknown>;
+  assert.equal(me.completedMatches, 2, "napuštena se ne broji u završene");
+  assert.deepEqual(me.stats, {
+    v: 1,
+    since: 1000,
+    byGame: { raub: { won: 2, lost: 0, abandoned: 1, streak: 0, bestStreak: 2, lastAt: 3000 } },
+  });
+  assert.ok(!JSON.stringify(me).includes("bot:"), "protivnici i oznaka bota nikad ne idu klijentu");
 });
 
 test("provjera: oblik (sa znakom), zabranjena riječ, slobodan, svoj", async () => {

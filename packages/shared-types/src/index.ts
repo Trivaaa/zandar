@@ -1049,3 +1049,6 @@ export * from "./bela";
 
 // „Vrati se za sto" na početnoj (QA 10-24 P2).
 export * from "./activeTable";
+
+// Statistika igrača po igri (SPEC_STATISTIKA).
+export * from "./stats";

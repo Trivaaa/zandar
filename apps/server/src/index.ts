@@ -74,10 +74,10 @@ import {
   pokerMatchStartedEvents,
   raubMatchLike,
   belaMatchLike,
+  zandarPlace,
   parsePlatform,
   tableComposition,
   trackedHumans,
-  completedHumans,
   type Capture,
   type MatchEndOpts,
 } from "./analytics";
@@ -121,7 +121,8 @@ import { silentTableReason } from "./tableWatch";
 import { trustFirstHop } from "./trustProxy";
 import { bearerToken, idTokens, type AuthUser, type VerifyFailure } from "./auth/idToken";
 import { identityAdmin } from "./profile/cleanup";
-import { recordCompletedMatch } from "./profile/results";
+import { matchOutcomes } from "./profile/outcomes";
+import { recordMatchResults } from "./profile/results";
 import { registerProfileRoutes } from "./profile/routes";
 import { registerAppConfigRoute } from "./routes/appConfig";
 import { registerFriendRoutes } from "./profile/friendRoutes";
@@ -2298,8 +2299,8 @@ function endMatchCaptures(
  *
  * Razlog je po igraču (`afk.ts` `ownEndReason`): ko je izašao ili je većinu
  * poteza prepustio serveru dobija `abandoned`, iako se meč završio. Profil
- * (`recordCompletedMatch`) broji tačno one kojima je razlog `completed` —
- * isto pravilo, pa se profil i PostHog ne mogu razići.
+ * (`matchOutcomes`) daje pobjedu/poraz tačno onima kojima je razlog `completed`,
+ * a napuštanje onima koji su otišli ili su bili AFK — isto pravilo kao PostHog.
  *
  * `stalled`: niko nije pritisnuo „Sljedeća ruka" u roku; trajanje se računa
  * do kraja zadnje ruke (`handEndedAt`), ne do zatvaranja.
@@ -2334,18 +2335,42 @@ function emitMatchEnded(
     stalled,
   };
 
+  // Ishodi za profil (SPEC_STATISTIKA F0): isto pravilo kao `end_reason` gore
+  // (`ownEndReason`), pa se profil i PostHog ne mogu razići. Pobjeda i poraz
+  // dižu i `completedMatches`; napuštanje samo statistiku.
+  const outcomeBase = { reason, counts: opts.counts, mode: opts.mode, startedAt, now: opts.now };
+
   if (seat) {
     endMatchCaptures(room, pokerMatchEndedEvents(seat.like, room.players, opts, seat.game), seat.game, startedAt);
-    const seated = new Set(seat.seats.map((x) => x.playerId));
-    const done = completedHumans(room.players.filter((p) => seated.has(p.id)), opts);
-    if (done.length > 0) void recordCompletedMatch(profileStore, matchId, done, seat.game);
+    const seatNo = new Map(seat.seats.map((x, i) => [x.playerId, "seatNo" in x ? x.seatNo : i]));
+    const placeById = new Map(seat.like.seats.map((x) => [x.playerId, x.place]));
+    const outcomes = matchOutcomes({
+      ...outcomeBase,
+      game: seat.game,
+      // Tim postoji samo u Beli (mjesta 0 i 2 protiv 1 i 3); `teamId` iz lobija
+      // (4P Žandar pravila) za poker i Raub ne važi.
+      players: room.players
+        .filter((p) => seatNo.has(p.id))
+        .map((p) => ({ ...p, teamId: seat.game === "bela" ? seatNo.get(p.id)! % 2 : undefined })),
+      hands: seat.like.handNo,
+      target: room.raub?.rules.startScore ?? room.bela?.rules.targetScore,
+      placeOf: (id) => placeById.get(id) ?? null,
+      raubScores: room.raub ? Object.fromEntries(room.raub.seats.map((x) => [x.playerId, x.score])) : undefined,
+    });
+    if (outcomes.length > 0) void recordMatchResults(profileStore, matchId, seat.game, outcomes);
     return;
   }
   const gs = room.gameState!;
   endMatchCaptures(room, matchEndedEvents(gs, opts), "zandar", startedAt);
-  // Broj završenih partija na profilu (SPEC_IDENTITET §3) — napuštena se ne broji.
-  const done = completedHumans(gs.players, opts);
-  if (done.length > 0) void recordCompletedMatch(profileStore, matchId, done, "zandar");
+  const outcomes = matchOutcomes({
+    ...outcomeBase,
+    game: "zandar",
+    players: gs.players,
+    hands: gs.handScores.length,
+    target: gs.targetScore,
+    placeOf: (id) => zandarPlace(gs, id),
+  });
+  if (outcomes.length > 0) void recordMatchResults(profileStore, matchId, "zandar", outcomes);
 }
 
 /**

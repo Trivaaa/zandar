@@ -82,6 +82,24 @@ export function isMatchWinner(
   return top[0] === myPile;
 }
 
+/**
+ * Mjesto u Žandru za statistiku (SPEC_STATISTIKA F0): 1 = isto što i
+ * `isMatchWinner` (analitika i profil se ne razilaze ni kod jednakih bodova),
+ * ostali po broju pilova sa više bodova, najmanje 2. `null` bez rezultata.
+ */
+export function zandarPlace(
+  gs: Pick<MatchLike, "players" | "matchScore">,
+  playerId: string,
+): number | null {
+  const entries = Object.entries(gs.matchScore);
+  if (entries.length === 0) return null;
+  if (isMatchWinner(gs, playerId)) return 1;
+  const me = gs.players.find((p) => p.id === playerId);
+  const myPile = me?.teamId != null ? `team-${me.teamId}` : playerId;
+  const mine = gs.matchScore[myPile] ?? 0;
+  return Math.max(2, 1 + entries.filter(([, v]) => v > mine).length);
+}
+
 /** Revanš dobija novi matchId sa ovim sufiksom (`game:rematch`). */
 export function isRematch(matchId: string): boolean {
   return matchId.includes("-rematch-");

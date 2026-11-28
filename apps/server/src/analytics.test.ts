@@ -15,6 +15,7 @@ import {
   parsePlatform,
   pokerMatchEndedEvents,
   raubMatchLike,
+  zandarPlace,
 } from "./analytics";
 
 function player(id: string, seatIndex: number, extra: Partial<Player> = {}): Player {
@@ -365,5 +366,18 @@ describe("parsePlatform", () => {
     assert.equal(parsePlatform("web"), "web");
     assert.equal(parsePlatform("ios"), undefined);
     assert.equal(parsePlatform(undefined), undefined);
+  });
+});
+
+describe("zandarPlace — mjesto u Žandru za statistiku", () => {
+  test("1 = isMatchWinner, ostali po broju boljih, timovi po pilu", () => {
+    const gs = { players: [{ id: "a" }, { id: "b" }, { id: "c" }], matchScore: { a: 21, b: 14, c: 18 } };
+    assert.equal(zandarPlace(gs, "a"), 1);
+    assert.equal(zandarPlace(gs, "c"), 2);
+    assert.equal(zandarPlace(gs, "b"), 3);
+    const teams = { players: [{ id: "a", teamId: 0 }, { id: "b", teamId: 1 }], matchScore: { "team-0": 10, "team-1": 22 } };
+    assert.equal(zandarPlace(teams, "b"), 1);
+    assert.equal(zandarPlace(teams, "a"), 2);
+    assert.equal(zandarPlace({ players: [], matchScore: {} }, "a"), null);
   });
 });

@@ -1,5 +1,6 @@
 import type { GameId } from "@zandar/shared-types";
 
+import type { MatchResult } from "./outcomes";
 import type { ProfileStore } from "./store";
 
 type PlayerLike = { isBot?: boolean; uid?: string };
@@ -33,6 +34,27 @@ export function recordCompletedMatch(
   return Promise.all(
     uids.map((uid) =>
       store.recordCompletedMatch(matchId, uid, game).catch((err: unknown) => {
+        log(`[profile] rezultat nije upisan (${matchId}): ${String(err).slice(0, 300)}`);
+      }),
+    ),
+  ).then(() => undefined);
+}
+
+/**
+ * Upis ishoda za sve igrače jedne partije (SPEC_STATISTIKA F0, `matchOutcomes`).
+ * Kao `recordCompletedMatch`: nikad ne baca i ne čeka se, a ponovljen kraj iste
+ * partije je bezopasan (idempotentno po `matchId`, `uid`).
+ */
+export function recordMatchResults(
+  store: ProfileStore,
+  matchId: string,
+  game: GameId,
+  outcomes: readonly { uid: string; result: MatchResult }[],
+  log: (msg: string) => void = console.error,
+): Promise<void> {
+  return Promise.all(
+    outcomes.map(({ uid, result }) =>
+      store.recordMatchResult(matchId, uid, game, result).catch((err: unknown) => {
         log(`[profile] rezultat nije upisan (${matchId}): ${String(err).slice(0, 300)}`);
       }),
     ),

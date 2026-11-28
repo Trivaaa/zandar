@@ -1,8 +1,11 @@
 import {
+  applyOutcome,
   GAME_IDS,
   nicknameChangeAllowedAt,
   parseProfileAvatar,
   type GameId,
+  type GameStats,
+  type PlayerStats,
   type ProfileAvatar,
 } from "@zandar/shared-types";
 
@@ -17,6 +20,7 @@ import {
   type FsFields,
   type FsWrite,
 } from "../google/firestore";
+import type { MatchResult } from "./outcomes";
 import {
   createAccessTokenSource,
   parseServiceAccount,
@@ -38,7 +42,9 @@ import {
  * - `nicknames/{key}` — `uid`, `nickname`, `releasedAt?`; postojanje ovog
  *   dokumenta JE jedinstvenost nadimka (ključ = mala slova)
  * - `results/{matchId__uid}` — jedan dokument po (partija, igrač, uz `game`);
- *   njegovo postojanje brani dvostruko brojanje
+ *   njegovo postojanje brani dvostruko brojanje. Od F0 statistike nosi i
+ *   ishod i polja za Ligu (`MatchResult`, SPEC_STATISTIKA §7.1)
+ * - `profiles/{uid}.stats` — pobjede, porazi, napuštanja i niz po igri (F0)
  */
 
 /** Napušten nadimak (promjena, kasnije i brisanje naloga) ostaje rezervisan (Q2). */
@@ -57,6 +63,8 @@ export type StoredProfile = {
   /** Zadnja PROMJENA; prvi izbor nadimka je ne postavlja (brava kreće od prve promjene). */
   nicknameChangedAt?: number;
   avatar?: ProfileAvatar;
+  /** SPEC_STATISTIKA F0; profil bez njega = prazna statistika. */
+  stats?: PlayerStats;
 };
 
 /** `own` = nadimak pripada ovom igraču (njegov ili njegov rezervisan). */
@@ -78,6 +86,12 @@ export type ProfileStore = {
    * ukupan brojač i brojač te igre u istom upisu.
    */
   recordCompletedMatch(matchId: string, uid: string, game: GameId, now?: number): Promise<boolean>;
+  /**
+   * Ishod partije (SPEC_STATISTIKA F0). Idempotentno po (`matchId`, `uid`) kao
+   * `recordCompletedMatch`. Pobjeda i poraz uvećavaju i `completedMatches`;
+   * napuštanje samo `stats`. Zapis u `results/` nosi cijeli `MatchResult`.
+   */
+  recordMatchResult(matchId: string, uid: string, game: GameId, result: MatchResult, now?: number): Promise<boolean>;
   nicknameAvailability(key: string, uid: string, now?: number): Promise<NicknameAvailability>;
   /**
    * Vlasnik nadimka (javni ID profila = ključ nadimka). `null` kad nadimak ne
@@ -200,6 +214,19 @@ export function createMemoryProfileStore(): ProfileStore {
       profiles.set(uid, { ...p, completedMatches: p.completedMatches + 1, completedMatchesByGame: byGame });
       return true;
     },
+    async recordMatchResult(matchId, uid, game, result, now = Date.now()) {
+      const key = docId(matchId, uid);
+      if (results.has(key)) return false;
+      results.set(key, uid);
+      const p = profileOf(uid);
+      const next: StoredProfile = { ...p, stats: nextStats(p.stats, game, result, now) };
+      if (result.outcome !== "abandon") {
+        next.completedMatches = p.completedMatches + 1;
+        next.completedMatchesByGame = { ...p.completedMatchesByGame, [game]: (p.completedMatchesByGame?.[game] ?? 0) + 1 };
+      }
+      profiles.set(uid, next);
+      return true;
+    },
     async nicknameAvailability(key, uid, now = Date.now()) {
       return availabilityOf(nicknames.get(key) ?? null, uid, now);
     },
@@ -312,8 +339,43 @@ function decodeProfile(f: FsFields): StoredProfile {
   if (typeof f.nicknameChangedAt === "number") profile.nicknameChangedAt = f.nicknameChangedAt;
   const avatar = parseProfileAvatar(f.avatar);
   if (avatar) profile.avatar = avatar;
+  const stats = decodeStats(f.stats);
+  if (stats) profile.stats = stats;
   return profile;
 }
+
+const STAT_KEYS = ["won", "lost", "abandoned", "streak", "bestStreak", "lastAt"] as const;
+
+/** Samo poznate igre i brojevi; sve drugo se tiho preskače (kao `decodeMatchesByGame`). */
+export function decodeStats(raw: unknown): PlayerStats | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const byGameRaw = typeof r.byGame === "object" && r.byGame !== null ? (r.byGame as Record<string, unknown>) : {};
+  const byGame: PlayerStats["byGame"] = {};
+  for (const game of GAME_IDS) {
+    const g = byGameRaw[game];
+    if (typeof g !== "object" || g === null) continue;
+    const out = {} as GameStats;
+    for (const k of STAT_KEYS) {
+      const n = (g as Record<string, unknown>)[k];
+      out[k] = typeof n === "number" && n > 0 ? n : 0;
+    }
+    byGame[game] = out;
+  }
+  return { v: 1, since: typeof r.since === "number" ? r.since : null, byGame };
+}
+
+/** Statistika poslije jednog ishoda — ista za memoriju i Firestore. */
+function nextStats(prev: PlayerStats | undefined, game: GameId, result: MatchResult, now: number): PlayerStats {
+  return {
+    v: 1,
+    since: prev?.since ?? now,
+    byGame: { ...prev?.byGame, [game]: applyOutcome(prev?.byGame[game], result.outcome, now) },
+  };
+}
+
+/** Pokušaji upisa ishoda kad se profil mijenja između čitanja i upisa. */
+const RESULT_ATTEMPTS = 3;
 
 /** Svaka igra sa brojem (0 kad nema partija) — oblik koji vraća `/api/me`. */
 export function matchesByGameFull(byGame: MatchesByGame | undefined): Record<GameId, number> {
@@ -420,6 +482,40 @@ export function createFirestoreProfileStore(db: Firestore): ProfileStore {
         if (err instanceof FirestoreConflictError) return false;
         throw err;
       }
+    },
+    async recordMatchResult(matchId, uid, game, result, now = Date.now()) {
+      const resultPath = `results/${docId(matchId, uid)}`;
+      // Niz pobjeda traži čitanje prije upisa, pa profil ide sa `updateTime`
+      // preduslovom. Konflikt: ili je zapis već tu (dupla dostava → false), ili
+      // je neko u međuvremenu mijenjao profil (novi pokušaj sa svježim stanjem).
+      for (let attempt = 0; attempt < RESULT_ATTEMPTS; attempt++) {
+        const doc = await db.getDoc(profilePath(uid));
+        const stats = nextStats(doc ? decodeStats(doc.fields.stats) ?? undefined : undefined, game, result, now);
+        const counted = result.outcome !== "abandon";
+        try {
+          await db.commit([
+            {
+              kind: "set",
+              path: resultPath,
+              fields: { uid, matchId, game, at: now, ...(result as unknown as FsFields) },
+              exists: false,
+            },
+            {
+              kind: "set",
+              path: profilePath(uid),
+              fields: { updatedAt: now, stats: stats as unknown as FsFields },
+              mask: ["updatedAt", "stats"],
+              ...(counted && { increment: { completedMatches: 1, [`completedMatchesByGame.${game}`]: 1 } }),
+              ...(doc ? { updateTime: doc.updateTime } : { exists: false }),
+            },
+          ]);
+          return true;
+        } catch (err) {
+          if (!(err instanceof FirestoreConflictError)) throw err;
+          if (await db.get(resultPath)) return false;
+        }
+      }
+      throw new Error(`profil ${uid} se mijenjao ${RESULT_ATTEMPTS} puta zaredom`);
     },
     async nicknameAvailability(key, uid, now = Date.now()) {
       const doc = await db.get(nicknamePath(key));

@@ -382,3 +382,105 @@ test("stari profil bez brojača po igri: čita se kao prazan, ukupno ostaje", as
   await store.recordCompletedMatch("m2", "u1", "bela");
   assert.deepEqual(await store.getProfile("u1"), { completedMatches: 8, completedMatchesByGame: { bela: 1 } });
 });
+
+// ---------------------------------------------------------------------------
+// Statistika po igri (SPEC_STATISTIKA F0) — isti ugovor za obje izvedbe
+// ---------------------------------------------------------------------------
+
+const RESULT = { place: 1, players: 3, mode: "quick_play" as const, opponents: ["bot:2", "bot:2"], hands: 8 };
+
+async function statsContract(store: ProfileStore) {
+  // Stari profil: partija prije F0 (samo brojač).
+  await store.recordCompletedMatch("old", "u1", "raub", 500);
+
+  assert.equal(await store.recordMatchResult("m1", "u1", "raub", { ...RESULT, outcome: "win" }, 1000), true);
+  assert.equal(await store.recordMatchResult("m1", "u1", "raub", { ...RESULT, outcome: "win" }, 1001), false, "dupla dostava");
+  await store.recordMatchResult("m2", "u1", "raub", { ...RESULT, outcome: "win" }, 2000);
+  await store.recordMatchResult("m3", "u1", "raub", { ...RESULT, place: 2, outcome: "loss" }, 3000);
+  await store.recordMatchResult("m4", "u1", "raub", { ...RESULT, outcome: "win" }, 4000);
+  await store.recordMatchResult("m5", "u1", "raub", { ...RESULT, place: null, outcome: "abandon", left: true }, 5000);
+  await store.recordMatchResult("b1", "u1", "bela", { ...RESULT, players: 4, outcome: "loss" }, 6000);
+
+  const p = await store.getProfile("u1");
+  assert.equal(p?.completedMatches, 6, "1 stara + 5 sa ishodom win/loss; napuštanje se ne broji");
+  assert.deepEqual(p?.completedMatchesByGame, { raub: 5, bela: 1 });
+  assert.deepEqual(p?.stats, {
+    v: 1,
+    since: 1000,
+    byGame: {
+      raub: { won: 3, lost: 1, abandoned: 1, streak: 0, bestStreak: 2, lastAt: 5000 },
+      bela: { won: 0, lost: 1, abandoned: 0, streak: 0, bestStreak: 0, lastAt: 6000 },
+    },
+  });
+
+  await store.deleteUserData("u1");
+  assert.equal(await store.getProfile("u1"), null, "brisanje nosi i statistiku");
+  assert.equal(await store.recordMatchResult("m1", "u1", "raub", { ...RESULT, outcome: "win" }, 7000), true, "i zapise u results/");
+}
+
+test("memorija: statistika po igri — ishodi, niz, dupla dostava, stari profil", async () => {
+  await statsContract(createMemoryProfileStore());
+});
+
+test("Firestore: statistika — isti ugovor; zapis nosi ishod i protivnike", async () => {
+  const fake = fakeFirestore();
+  const store = createFirestoreProfileStore(createFirestore("p", tokens, fake.impl));
+  await statsContract(store);
+  const doc = [...fake.docs.entries()].find(([name]) => name.endsWith(`/results/${docId("m1", "u1")}`))?.[1];
+  const fields = decodeFields(doc?.fields) as Record<string, unknown>;
+  assert.equal(fields.outcome, "win");
+  assert.deepEqual(fields.opponents, ["bot:2", "bot:2"]);
+  assert.equal(fields.game, "raub");
+});
+
+test("Firestore: profil se mijenjao između čitanja i upisa → novi pokušaj, ništa se ne gubi", async () => {
+  const fake = fakeFirestore();
+  const db = createFirestore("p", tokens, fake.impl);
+  const store = createFirestoreProfileStore(db);
+  await store.setAvatar("u1", "jez");
+  const realCommit = db.commit;
+  let raced = false;
+  db.commit = async (writes) => {
+    if (!raced) {
+      raced = true;
+      await store.setAvatar("u1", "lisica"); // tuđi upis pomjeri updateTime
+    }
+    return realCommit(writes);
+  };
+  assert.equal(await store.recordMatchResult("m1", "u1", "poker", { ...RESULT, outcome: "win" }, 1000), true);
+  db.commit = realCommit;
+  const p = await store.getProfile("u1");
+  assert.equal(p?.avatar, "lisica");
+  assert.equal(p?.stats?.byGame.poker?.won, 1);
+  assert.equal(p?.completedMatches, 1);
+});
+
+test("Firestore: stalni konflikt → baca (pozivalac loguje), ne vraća lažno true", async () => {
+  const fake = fakeFirestore();
+  const db = createFirestore("p", tokens, fake.impl);
+  const store = createFirestoreProfileStore(db);
+  await store.setAvatar("u1", "jez");
+  const realCommit = db.commit;
+  db.commit = async (writes) => {
+    if (writes.some((w) => w.path.startsWith("results/"))) await store.setAvatar("u1", "jez");
+    return realCommit(writes);
+  };
+  await assert.rejects(store.recordMatchResult("m1", "u1", "poker", { ...RESULT, outcome: "win" }, 1000), /mijenjao/);
+});
+
+test("stari profil bez stats: čita se bez statistike; neispravan stats se tiho preskače", async () => {
+  const fake = fakeFirestore();
+  const store = createFirestoreProfileStore(createFirestore("p", tokens, fake.impl));
+  await store.recordCompletedMatch("m1", "u1", "zandar");
+  assert.equal((await store.getProfile("u1"))?.stats, undefined);
+  for (const [name, doc] of fake.docs) {
+    if (name.endsWith("/profiles/u1")) {
+      fake.docs.set(name, { ...doc, fields: { ...doc.fields, ...encodeFields({ stats: { byGame: { raub: { won: "x", lost: 2 }, kviz: { won: 9 } } } }) } });
+    }
+  }
+  assert.deepEqual((await store.getProfile("u1"))?.stats, {
+    v: 1,
+    since: null,
+    byGame: { raub: { won: 0, lost: 2, abandoned: 0, streak: 0, bestStreak: 0, lastAt: 0 } },
+  });
+});

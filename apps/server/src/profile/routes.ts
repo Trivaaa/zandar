@@ -67,6 +67,8 @@ export function registerProfileRoutes(
       completedMatches: profile?.completedMatches ?? 0,
       /** Po igri, uvijek sve igre (0 = nema partija ili su odigrane prije brojača). */
       completedMatchesByGame: matchesByGameFull(profile?.completedMatchesByGame),
+      /** SPEC_STATISTIKA F0: pobjede, porazi, napuštanja i niz po igri; prazno za stari profil. */
+      stats: profile?.stats ?? { v: 1, since: null, byGame: {} },
       nickname: profile?.nickname ?? null,
       avatar: profile?.avatar ?? null,
       /** Kad je nadimak zaključan (P2); `null` = smije se mijenjati. */
