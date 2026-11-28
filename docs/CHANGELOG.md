@@ -2979,3 +2979,20 @@ Izvor: tabla „UI · Gdje je dugme za meni" (`UI_MeniPozicija`, M1 + M6 + M7) i
 **Nađeno u kodu:** igrač koji izađe iz pokera i dalje dobije +1 `completedMatches` kad se meč završi za ostale (`recordCompletedMatch` uzima sve iz `room.players`, a `left: true` igrači ostaju u njima, changelog 214). Spec to ispravlja u F0.
 
 **Otvoreno:** aplikacija u F1 ili tek F3, prag za javni procenat, Žandar istek veze kao napuštanje, pravni pregled vidljivosti (SPEC_STATISTIKA §12).
+
+## 235. Spec statistike v0.2: samo vlastiti profil, pobjeda = 1. mjesto, osnova za Ligu (2026-11-28, `docs/spec-statistika`)
+
+**Odluke vlasnika (28.11.2026):**
+- U v1 igrač vidi samo svoju statistiku. Tuđi profil, sjedište u lobiju i javno „Završava %" (S4, ex P0-5, ex F2) prelaze u P2.
+- Pobjeda je u svakoj igri samo 1. mjesto. Jednaki bodovi u Raubu dijele mjesto; u pokeru, kad dvojica ispadnu u istoj ruci, bolje mjesto ima onaj ko je u ruku ušao sa više žetona. Red „1. mjesto" otpada.
+- Dugme ⓘ na kartici otpada; „Kako se broji" ostaje kao link na dnu.
+
+**Zašto samo svoj profil — izmjereno** (PostHog, 14 dana, završene partije): brza igra Raub 2.470 / privatni sto 195, Bela 1.683 / 37, poker 1.006 / 75, Žandar 337 / 41. Oko 94 % partija je brza igra, skoro uvijek protiv botova, pa tuđi procenat ne govori ništa o igraču. Pobjede % u brzoj igri: Bela 57,6, Žandar 62,9, Raub 41,6, poker 22,9.
+
+**Novo u specu:**
+- §13 „Botovi": broji se isto za svaki sto, bez podjele i nagovještaja (HARD RULE 3 i 5); poker i Raub dobijaju red konteksta stola („Za stolom od 4 pobjeđuje 1 od 4"), jer je 23 % u pokeru prosjek, a izgleda kao loš rezultat.
+- §7.1 `results/` dobija `mode`, `opponents` (`uid` ili `bot:<tier>`, samo server), `afk`, `left`, `durationMs`, `hands`. Liga na bodove i rang po jačini protivnika (Elo/MMR) računaju se kasnije iz `results/` unazad od dana F0; bez `opponents` od prvog dana rang se ne bi mogao izračunati.
+- O2 i O4 nisu potrebni za v1.
+
+**Tabla `UI_Statistika`:** izbačena oba S4 ekrana, dodat „S1 · Poker, sto od 4", S6 pravilo „Statistiku vidiš samo ti", pravila „Samo ti" i „Botovi". Brojke „pobjeda = 1. mjesto" je na tabli već ispravio odgovor na komentar vlasnika.
+
